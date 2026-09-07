@@ -206,7 +206,7 @@ def main() -> None:
 	write_file(os.path.join(pkg_root, "LICENSE-PACKAGE.md"), LICENSE_PACKAGE)
 
 	os.makedirs(os.path.dirname(args.tar) or ".", exist_ok=True)
-	make_tar_gz(args.tar, pkg_root, f"godot-{version}-md")
+	make_tar_gz(args.tar, pkg_root, f"godot-{major_line}-md")
 
 	with open(args.tar, "rb") as f:
 		digest = hashlib.sha256(f.read()).hexdigest()

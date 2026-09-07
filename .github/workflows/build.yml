@@ -126,6 +126,12 @@ jobs:
             echo "=== building site for $line"
             python3 ../tools/build_site.py build --input "$pkg" --output "$line"
           done
+          # prune site dirs that are no longer tracked
+          for d in */; do
+            d="${d%/}"
+            [ -f "$d/VERSION" ] || continue
+            [ -f "../versions/$d.md" ] || rm -rf "$d"
+          done
           python3 ../tools/build_site.py root --output .
           git add -A
           tags=$(ls -d */ 2>/dev/null | tr -d / | paste -sd, -)
