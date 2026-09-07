@@ -40,8 +40,7 @@
 		.then(function (data) {
 			var shas = document.getElementById("meta-shas");
 			if (shas) {
-				shas.textContent = "godot@" + String(data.godot_sha || "").slice(0, 8) +
-					" docs@" + String(data.docs_sha || "").slice(0, 8);
+				shas.textContent = "godot-docs@" + String(data.docs_sha || "").slice(0, 8);
 			}
 			buildTree(data.docs || []);
 		});

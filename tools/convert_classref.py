@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
-"""Convert Godot class reference XML (doc/classes, modules/*/doc_classes,
-platform/*/doc_classes) into one self-contained Markdown file per class.
+"""Convert the Godot class reference from godot-docs' generated RST
+(classes/class_*.rst, produced upstream by make_rst.py) into one
+self-contained Markdown file per class.
 
-The parser mirrors doc/tools/make_rst.py from the godot repo (MIT), with the
-RST emitter replaced by a Markdown emitter. Python stdlib only.
+The generated RST is highly regular, so this parser is line-based over the
+known make_rst.py emit patterns:
+
+- `.. rst-class:: classref-*` section/item markers and `----` separators
+- reftable summary tables (dropped; the detailed sections carry all content)
+- `|abbr|` substitution definitions from the file footer
+- `:ref:`text <target>`` / `` `text <url>`__ `` / `:doc:` inline markup
+- `::` literal blocks and `.. tabs::` / `.. code-tab::` code examples
+
+Python stdlib only.
 """
 
 from __future__ import annotations
@@ -13,96 +22,69 @@ import os
 import re
 import sys
 import urllib.parse
-import xml.etree.ElementTree as ET
 
-GODOT_DOCS_PATTERN = re.compile(r"^\$DOCS_URL/(.*)\.html(#.*)?$")
+UNDERLINE_RE = re.compile(r"^([=\-])\1*\s*$")
+SUBST_RE = re.compile(r"^\.\. \|([^|]+)\| replace::\s*(.*)$")
+REF_RE = re.compile(r":ref:`([^`]*)`")
+NAMED_LINK_RE = re.compile(r"`([^`<>]+?)\s*<(https?://[^>`]+)>`_{1,2}")
+CODE_RE = re.compile(r"``([^`]+)``|(?<!`)`([^`]+)`(?!`)")
+BOLD_NAME_RE = re.compile(r"^(.*?)\*\*(.+?)\*\*(.*)$", re.S)
+TRAILING_ANCHOR_RE = re.compile(r"\s*:ref:`🔗<[^>]*>`\s*$")
+MEDIA_EXT_RE = re.compile(r"\.(png|jpe?g|webp|gif|webm|svg|avif|mp4)$", re.IGNORECASE)
 
-RESERVED_CODEBLOCK_TAGS = ["codeblock", "gdscript", "csharp"]
-RESERVED_CROSSLINK_TAGS = [
-	"method",
-	"constructor",
-	"operator",
-	"member",
-	"signal",
-	"constant",
-	"enum",
-	"annotation",
-	"theme_item",
-	"param",
+SECTION_MAP = {
+	"Description": "Description",
+	"Tutorials": "Tutorials",
+	"Property Descriptions": "Properties",
+	"Constructor Descriptions": "Constructors",
+	"Method Descriptions": "Methods",
+	"Operator Descriptions": "Operators",
+	"Theme Property Descriptions": "Theme Properties",
+	"Signals": "Signals",
+	"Enumerations": "Enumerations",
+	"Constants": "Constants",
+	"Annotations": "Annotations",
+}
+
+SECTION_ORDER = [
+	("properties", "Properties"),
+	("constructors", "Constructors"),
+	("methods", "Methods"),
+	("operators", "Operators"),
+	("theme", "Theme Properties"),
+	("signals", "Signals"),
+	("enums", "Enumerations"),
+	("constants", "Constants"),
+	("annotations", "Annotations"),
 ]
 
-PACKED_ARRAY_TYPES = [
-	"PackedByteArray",
-	"PackedColorArray",
-	"PackedFloat32Array",
-	"PackedFloat64Array",
-	"PackedInt32Array",
-	"PackedInt64Array",
-	"PackedStringArray",
-	"PackedVector2Array",
-	"PackedVector3Array",
-	"PackedVector4Array",
-]
+ITEM_KINDS = {
+	"classref-property": "property",
+	"classref-constructor": "constructor",
+	"classref-method": "method",
+	"classref-operator": "operator",
+	"classref-themeproperty": "themeproperty",
+	"classref-signal": "signal",
+	"classref-annotation": "annotation",
+	"classref-constant": "constant",
+	"classref-enumeration": "enumeration",
+	"classref-enumeration-constant": "enumeration-constant",
+}
 
-DOCS_URL_BASE = "https://docs.godotengine.org/en/stable/"
+RET_KINDS = {"property", "constructor", "method", "operator", "themeproperty", "enumeration-constant"}
+PAREN_KINDS = {"method", "constructor", "operator", "annotation", "signal"}
 
 
 def warn(msg: str) -> None:
 	print(f"WARNING: {msg}", file=sys.stderr)
 
 
-def is_in_tagset(tag_text: str, tagset: list[str]) -> bool:
-	for tag in tagset:
-		if tag_text == tag:
-			return True
-		if tag_text.startswith(tag + " "):
-			return True
-		if tag_text.startswith(tag + "="):
-			return True
-	return False
-
-
-def get_tag_and_args(tag_text: str):
-	tag_name = tag_text
-	arguments = ""
-	delim_pos = -1
-	space_pos = tag_text.find(" ")
-	if space_pos >= 0:
-		delim_pos = space_pos
-	assign_pos = tag_text.find("=")
-	if assign_pos >= 0 and (delim_pos < 0 or assign_pos < delim_pos):
-		delim_pos = assign_pos
-	if delim_pos >= 0:
-		tag_name = tag_text[:delim_pos]
-		arguments = tag_text[delim_pos + 1:].strip()
-	closing = False
-	if tag_name.startswith("/"):
-		tag_name = tag_name[1:]
-		closing = True
-	return tag_name, arguments, closing
-
-
-def md_escape(text: str) -> str:
-	"""Escape plain (non-code) text for Markdown."""
-	out = []
-	for i, ch in enumerate(text):
-		if ch in "`*[]":
-			out.append("\\" + ch)
-		elif ch == "<" and (text[i + 1:i + 2].isalpha() or text[i + 1:i + 2] in "/!?"):
-			out.append("\\" + ch)
-		elif ch == "_":
-			nxt = text[i + 1:i + 2]
-			if not nxt.isalnum():
-				out.append("\\_")
-			else:
-				out.append(ch)
-		else:
-			out.append(ch)
-	return "".join(out)
+def class_link(name: str) -> str:
+	target = urllib.parse.quote(name, safe="")
+	return f"[{name}]({target}.md)"
 
 
 def backtick_span(content: str) -> str:
-	"""Wrap content in an inline code span, choosing a delimiter that survives."""
 	run = 0
 	longest = 0
 	for ch in content:
@@ -116,902 +98,632 @@ def backtick_span(content: str) -> str:
 	return delim + pad + content + pad + delim
 
 
-def class_link(name: str) -> str:
-	target = urllib.parse.quote(name, safe="")
-	return f"[{name}]({target}.md)"
+def render_subst(rst: str) -> str:
+	m = re.match(r":abbr:`([^`]*)`", rst.strip())
+	if m:
+		return re.sub(r"\s*\([^)]*\)\s*$", "", m.group(1)).strip()
+	return rst.strip()
 
 
-class TypeName:
-	def __init__(self, type_name: str, enum: str | None = None, is_bitfield: bool = False):
-		self.type_name = type_name
-		self.enum = enum
-		self.is_bitfield = is_bitfield
-
-	@classmethod
-	def from_element(cls, element: ET.Element) -> "TypeName":
-		return cls(element.attrib["type"], element.get("enum"), element.get("is_bitfield") == "true")
-
-	def display(self, state: "State") -> str:
-		if self.enum is not None:
-			return make_enum(self.enum, self.is_bitfield, state)
-		return self.type_name
+def indent_of(line: str) -> int:
+	return len(line) - len(line.lstrip(" \t"))
 
 
-class DefinitionBase:
-	def __init__(self, definition_name: str, name: str):
-		self.definition_name = definition_name
+def collect_block(lines: list[str], i: int) -> tuple[list[str], int]:
+	"""Collect the indented block following the directive at line i."""
+	base = indent_of(lines[i])
+	j = i + 1
+	block: list[str] = []
+	while j < len(lines):
+		line = lines[j]
+		if line.strip() == "":
+			block.append("")
+			j += 1
+			continue
+		if indent_of(line) <= base:
+			break
+		block.append(line)
+		j += 1
+	while block and block[-1].strip() == "":
+		block.pop()
+	return block, j
+
+
+def deindent(block: list[str]) -> list[str]:
+	indents = [indent_of(l) for l in block if l.strip()]
+	if not indents:
+		return list(block)
+	cut = min(indents)
+	return [l[cut:] if len(l) >= cut else l.lstrip() for l in block]
+
+
+class ClassDoc:
+	def __init__(self, name: str, version: str, source_rel: str):
 		self.name = name
-		self.deprecated: str | None = None
-		self.experimental: str | None = None
-
-
-class PropertyDef(DefinitionBase):
-	def __init__(self, name, type_name, setter, getter, text, default_value, overrides):
-		super().__init__("property", name)
-		self.type_name = type_name
-		self.setter = setter
-		self.getter = getter
-		self.text = text
-		self.default_value = default_value
-		self.overrides = overrides
-
-
-class ParameterDef(DefinitionBase):
-	def __init__(self, name, type_name, default_value):
-		super().__init__("parameter", name)
-		self.type_name = type_name
-		self.default_value = default_value
-
-
-class SignalDef(DefinitionBase):
-	def __init__(self, name, parameters, description):
-		super().__init__("signal", name)
-		self.parameters = parameters
-		self.description = description
-
-
-class AnnotationDef(DefinitionBase):
-	def __init__(self, name, parameters, description, qualifiers):
-		super().__init__("annotation", name)
-		self.parameters = parameters
-		self.description = description
-		self.qualifiers = qualifiers
-
-
-class MethodDef(DefinitionBase):
-	def __init__(self, name, return_type, parameters, description, qualifiers):
-		super().__init__("method", name)
-		self.return_type = return_type
-		self.parameters = parameters
-		self.description = description
-		self.qualifiers = qualifiers
-
-
-class ConstantDef(DefinitionBase):
-	def __init__(self, name, value, text, bitfield):
-		super().__init__("constant", name)
-		self.value = value
-		self.text = text
-		self.is_bitfield = bitfield
-
-
-class EnumDef(DefinitionBase):
-	def __init__(self, name, type_name, bitfield):
-		super().__init__("enum", name)
-		self.type_name = type_name
-		self.values: dict[str, ConstantDef] = {}
-		self.is_bitfield = bitfield
-
-
-class ThemeItemDef(DefinitionBase):
-	def __init__(self, name, type_name, data_name, text, default_value):
-		super().__init__("theme property", name)
-		self.type_name = type_name
-		self.data_name = data_name
-		self.text = text
-		self.default_value = default_value
-
-
-class ClassDef(DefinitionBase):
-	def __init__(self, name: str):
-		super().__init__("class", name)
-		self.constants: dict[str, ConstantDef] = {}
-		self.enums: dict[str, EnumDef] = {}
-		self.properties: dict[str, PropertyDef] = {}
-		self.constructors: dict[str, list[MethodDef]] = {}
-		self.methods: dict[str, list[MethodDef]] = {}
-		self.operators: dict[str, list[MethodDef]] = {}
-		self.signals: dict[str, SignalDef] = {}
-		self.annotations: dict[str, list[AnnotationDef]] = {}
-		self.theme_items: dict[str, ThemeItemDef] = {}
-		self.inherits: str | None = None
-		self.brief_description: str | None = None
-		self.description: str | None = None
-		self.tutorials: list[tuple[str, str]] = []
-		self.filepath: str = ""
-
-
-class State:
-	def __init__(self):
-		self.classes: dict[str, ClassDef] = {}
-		self.current_class = ""
+		self.version = version
+		self.source_rel = source_rel
+		self.subst: dict[str, str] = {}
+		self.brief: list[str] = []
+		self.inherits: list[str] = []
+		self.inherited_by: list[str] = []
+		self.description: list[str] = []
+		self.tutorials: list[str] = []
+		self.properties: list[str] = []
+		self.constructors: list[str] = []
+		self.methods: list[str] = []
+		self.operators: list[str] = []
+		self.theme: list[str] = []
+		self.signals: list[str] = []
+		self.enums: list[str] = []
+		self.constants: list[str] = []
+		self.annotations: list[str] = []
 		self.num_warnings = 0
 
-	def parse_class(self, class_root: ET.Element, filepath: str) -> None:
-		class_name = class_root.attrib["name"]
-		self.current_class = class_name
-		class_def = ClassDef(class_name)
-		self.classes[class_name] = class_def
-		class_def.filepath = filepath
-		class_def.inherits = class_root.get("inherits")
-		class_def.deprecated = class_root.get("deprecated")
-		class_def.experimental = class_root.get("experimental")
+	# ------------------------------------------------------------ inline
 
-		brief_desc = class_root.find("brief_description")
-		if brief_desc is not None and brief_desc.text:
-			class_def.brief_description = brief_desc.text
+	def _ref(self, text: str, target: str, plain: bool) -> str:
+		target = target.strip()
+		if text.strip() == "🔗":
+			return ""
+		if re.fullmatch(r"class_[^_]+", target):
+			name = target[len("class_"):]
+			if plain:
+				return text
+			if name == self.name:
+				return f"**{text}**"
+			return class_link(name)
+		if target.startswith("enum_"):
+			cls, _, _enum = target[len("enum_"):].partition("_")
+			display = text
+			if cls != self.name and "." not in text:
+				display = f"{cls}.{text}"
+			return backtick_span(display)
+		if target.startswith("doc_"):
+			return backtick_span(target[len("doc_"):])
+		return backtick_span(text)
 
-		desc = class_root.find("description")
-		if desc is not None and desc.text:
-			class_def.description = desc.text
+	def inline(self, text: str, plain: bool = False) -> str:
+		def sub_subst(m: re.Match) -> str:
+			return self.subst.get(m.group(1), m.group(0))
 
-		properties = class_root.find("members")
-		if properties is not None:
-			for member in properties:
-				name = member.attrib["name"]
-				if name in class_def.properties:
-					self.warn(f'{class_name}.xml: Duplicate property "{name}".')
-					continue
-				type_name = TypeName.from_element(member)
-				setter = member.get("setter") or None
-				getter = member.get("getter") or None
-				default_value = member.get("default") or None
-				overrides = member.get("overrides") or None
-				prop = PropertyDef(name, type_name, setter, getter, member.text, default_value, overrides)
-				prop.deprecated = member.get("deprecated")
-				prop.experimental = member.get("experimental")
-				class_def.properties[name] = prop
+		text = re.sub(r"\|([a-zA-Z_]+)\|", sub_subst, text)
 
-		for tag, kind, target in (
-			("constructors", "constructor", class_def.constructors),
-			("methods", "method", class_def.methods),
-			("operators", "operator", class_def.operators),
-		):
-			container = class_root.find(tag)
-			if container is None:
+		def sub_link(m: re.Match) -> str:
+			label, url = m.group(1), m.group(2)
+			if MEDIA_EXT_RE.search(url.split("#")[0].split("?")[0]):
+				return label
+			return f"[{label}]({url})"
+
+		text = NAMED_LINK_RE.sub(sub_link, text)
+
+		def sub_doc(m: re.Match) -> str:
+			rel = m.group(2)
+			while rel.startswith("../"):
+				rel = rel[3:]
+			label = m.group(1).strip()
+			if plain:
+				return label
+			return f"[{label}](../manual/{rel}.md)"
+
+		text = re.sub(r":doc:`([^`]*?)\s+<([^>`]+)>`", sub_doc, text)
+
+		def sub_ref(m: re.Match) -> str:
+			inner = m.group(1)
+			tm = re.match(r"^(.*?)\s*<([^>`]+)>$", inner)
+			if tm:
+				return self._ref(tm.group(1).strip(), tm.group(2).strip(), plain)
+			return self._ref(inner.strip(), inner.strip(), plain)
+
+		text = REF_RE.sub(sub_ref, text)
+
+		spans: list[str] = []
+
+		def stash_code(m: re.Match) -> str:
+			content = m.group(1) if m.group(1) is not None else m.group(2)
+			spans.append(content)
+			return f"\x00{len(spans) - 1}\x00"
+
+		text = CODE_RE.sub(stash_code, text)
+
+		text = text.replace("\\ ", " ")
+		for ch in ":,()":
+			text = text.replace("\\" + ch, ch)
+
+		def unstash(m: re.Match) -> str:
+			return backtick_span(spans[int(m.group(1))])
+
+		text = re.sub("\x00([0-9]+)\x00", unstash, text)
+		return text
+
+	# -------------------------------------------------------- signatures
+
+	def parse_args(self, args_raw: str) -> str:
+		if args_raw.strip() == "":
+			return ""
+		vararg = False
+		mtail = re.search(r",?\s*\.\.\.\s*$", args_raw)
+		if mtail:
+			vararg = True
+			args_raw = args_raw[: mtail.start()]
+
+		parts: list[str] = []
+		depth = 0
+		cur = ""
+		i = 0
+		while i < len(args_raw):
+			tok = args_raw[i:i + 2]
+			if tok == "\\," and depth == 0:
+				parts.append(cur)
+				cur = ""
+				i += 2
 				continue
-			for element in container:
-				name = element.attrib["name"]
-				qualifiers = element.get("qualifiers")
-				return_element = element.find("return")
-				if return_element is not None:
-					return_type = TypeName.from_element(return_element)
-				else:
-					return_type = TypeName("void")
-				params = self.parse_params(element)
-				desc_element = element.find("description")
-				method_desc = desc_element.text if desc_element is not None else None
-				method_def = MethodDef(name, return_type, params, method_desc, qualifiers)
-				method_def.deprecated = element.get("deprecated")
-				method_def.experimental = element.get("experimental")
-				target.setdefault(name, []).append(method_def)
+			if tok == "\\[":
+				depth += 1
+			elif tok == "\\]":
+				depth = max(0, depth - 1)
+			cur += args_raw[i]
+			i += 1
+		parts.append(cur)
 
-		constants = class_root.find("constants")
-		if constants is not None:
-			for constant in constants:
-				name = constant.attrib["name"]
-				value = constant.attrib["value"]
-				enum = constant.get("enum")
-				is_bitfield = constant.get("is_bitfield") == "true"
-				constant_def = ConstantDef(name, value, constant.text, is_bitfield)
-				constant_def.deprecated = constant.get("deprecated")
-				constant_def.experimental = constant.get("experimental")
-				if enum is None:
-					if name in class_def.constants:
-						self.warn(f'{class_name}.xml: Duplicate constant "{name}".')
-						continue
-					class_def.constants[name] = constant_def
-				else:
-					if enum not in class_def.enums:
-						class_def.enums[enum] = EnumDef(enum, TypeName("int", enum), is_bitfield)
-					class_def.enums[enum].values[name] = constant_def
-
-		annotations = class_root.find("annotations")
-		if annotations is not None:
-			for annotation in annotations:
-				name = annotation.attrib["name"]
-				qualifiers = annotation.get("qualifiers")
-				params = self.parse_params(annotation)
-				desc_element = annotation.find("description")
-				annotation_desc = desc_element.text if desc_element is not None else None
-				annotation_def = AnnotationDef(name, params, annotation_desc, qualifiers)
-				class_def.annotations.setdefault(name, []).append(annotation_def)
-
-		signals = class_root.find("signals")
-		if signals is not None:
-			for signal in signals:
-				name = signal.attrib["name"]
-				if name in class_def.signals:
-					self.warn(f'{class_name}.xml: Duplicate signal "{name}".')
-					continue
-				params = self.parse_params(signal)
-				desc_element = signal.find("description")
-				signal_desc = desc_element.text if desc_element is not None else None
-				signal_def = SignalDef(name, params, signal_desc)
-				signal_def.deprecated = signal.get("deprecated")
-				signal_def.experimental = signal.get("experimental")
-				class_def.signals[name] = signal_def
-
-		theme_items = class_root.find("theme_items")
-		if theme_items is not None:
-			for theme_item in theme_items:
-				name = theme_item.attrib["name"]
-				data_name = theme_item.attrib["data_type"]
-				if name in class_def.theme_items:
-					self.warn(f'{class_name}.xml: Duplicate theme property "{name}".')
-					continue
-				default_value = theme_item.get("default") or None
-				item = ThemeItemDef(name, TypeName.from_element(theme_item), data_name, theme_item.text, default_value)
-				item.deprecated = theme_item.get("deprecated")
-				item.experimental = theme_item.get("experimental")
-				class_def.theme_items[name] = item
-
-		tutorials = class_root.find("tutorials")
-		if tutorials is not None:
-			for link in tutorials:
-				if link.text is not None:
-					class_def.tutorials.append((link.text.strip(), link.get("title", "")))
-
-		self.current_class = ""
-
-	def parse_params(self, root: ET.Element) -> list[ParameterDef]:
-		param_elements = root.findall("param")
-		params: list[ParameterDef | None] = [None] * len(param_elements)
-		for param_element in param_elements:
-			index = int(param_element.attrib["index"])
-			type_name = TypeName.from_element(param_element)
-			default = param_element.get("default")
-			params[index] = ParameterDef(param_element.attrib["name"], type_name, default)
-		return [p for p in params if p is not None]
-
-
-def make_enum(t: str, is_bitfield: bool, state: State) -> str:
-	p = t.rfind(".")
-	if p >= 0:
-		c = t[:p]
-		e = t[p + 1:]
-		if c == "Variant":
-			c = "@GlobalScope"
-			e = "Variant." + e
-	else:
-		c = state.current_class
-		e = t
-		if c in state.classes and e not in state.classes[c].enums:
-			c = "@GlobalScope"
-
-	if c in state.classes and e in state.classes[c].enums:
-		if c == state.current_class:
-			if is_bitfield:
-				return f"BitField[{e}]"
-			return e
-		if is_bitfield:
-			return f"BitField[{c}.{e}]"
-		return f"{c}.{e}"
-	return t
-
-
-def method_signature_md(defn: MethodDef | SignalDef | AnnotationDef, state: State) -> str:
-	name = defn.name
-	qualifiers = getattr(defn, "qualifiers", None)
-
-	if isinstance(defn, AnnotationDef):
-		name = "@" + name
-
-	out = name + "("
-	parts = []
-	for arg in defn.parameters:
-		sig = f"{arg.name}: {arg.type_name.display(state)}"
-		if arg.default_value is not None:
-			sig += f" = {arg.default_value}"
-		parts.append(sig)
-	if qualifiers is not None and "vararg" in qualifiers.split():
-		parts.append("...")
-	out += ", ".join(parts)
-	out += ")"
-
-	if qualifiers is not None:
-		rest = [q for q in qualifiers.split() if q != "vararg"]
-		if rest:
-			out += " " + " ".join(rest)
-	return out
-
-
-def setter_signature(class_def: ClassDef, prop: PropertyDef, state: State) -> str | None:
-	if prop.setter is None or prop.setter.startswith("_"):
-		return None
-	if prop.setter in class_def.methods:
-		m = class_def.methods[prop.setter][0]
-		return method_signature_md(m, state)
-	setter = MethodDef(prop.setter, TypeName("void"), [ParameterDef("value", prop.type_name, None)], None, None)
-	return method_signature_md(setter, state)
-
-
-def getter_signature(class_def: ClassDef, prop: PropertyDef, state: State) -> str | None:
-	if prop.getter is None or prop.getter.startswith("_"):
-		return None
-	if prop.getter in class_def.methods:
-		m = class_def.methods[prop.getter][0]
-		return method_signature_md(m, state)
-	getter = MethodDef(prop.getter, prop.type_name, [], None, None)
-	return method_signature_md(getter, state)
-
-
-def deprecated_experimental_md(item: DefinitionBase, state: State) -> str:
-	parts = []
-	if item.deprecated is not None:
-		if item.deprecated.strip() == "":
-			msg = f"This {item.definition_name} may be changed or removed in future versions."
-		else:
-			msg = format_text_block(item.deprecated.strip(), item, state)
-		parts.append(f"**Deprecated:** {msg}")
-	if item.experimental is not None:
-		if item.experimental.strip() == "":
-			msg = f"This {item.definition_name} may be changed or removed in future versions."
-		else:
-			msg = format_text_block(item.experimental.strip(), item, state)
-		parts.append(f"**Experimental:** {msg}")
-	if not parts:
-		return ""
-	return "\n\n".join(parts) + "\n"
-
-
-def preformat_text_block(text: str, state: State) -> str | None:
-	result = ""
-	codeblock_tag = ""
-	indent_level = 0
-
-	for line in text.splitlines():
-		stripped_line = line.lstrip("\t")
-		tab_count = len(line) - len(stripped_line)
-
-		if codeblock_tag:
-			if line == "":
-				result += "\n"
+		out = []
+		for part in parts:
+			part = part.strip()
+			if part == "":
 				continue
-			if tab_count < indent_level:
-				state.num_warnings += 1
-				print(
-					f"WARNING: {state.current_class}.xml: Invalid indentation in code block.",
-					file=sys.stderr,
-				)
-				return None
-			if stripped_line.startswith("[/" + codeblock_tag):
-				result += stripped_line
-				codeblock_tag = ""
-			else:
-				result += "\n" + "    " * max(0, tab_count - indent_level) + stripped_line
-		else:
-			if (
-				stripped_line.startswith("[codeblock]")
-				or stripped_line.startswith("[codeblock ")
-				or stripped_line.startswith("[gdscript]")
-				or stripped_line.startswith("[gdscript ")
-				or stripped_line.startswith("[csharp]")
-				or stripped_line.startswith("[csharp ")
-			):
-				if result:
-					result += "\n\n"
-				result += stripped_line
-				tag_text = stripped_line[1:].split("]", 1)[0]
-				codeblock_tag, _, _ = get_tag_and_args(tag_text)
-				indent_level = tab_count
-			else:
-				if result:
-					result += "\n\n"
-				result += stripped_line
-
-	return result
-
-
-def format_text_block(text: str, context: DefinitionBase, state: State) -> str:
-	pre = preformat_text_block(text, state)
-	if pre is None:
-		return ""
-
-	parts: list[str] = []
-	pos = 0
-	inside_code = False
-	inside_code_tag = ""
-
-	def emit_plain(segment: str) -> None:
-		parts.append(md_escape(segment) if not inside_code else segment)
-
-	while True:
-		brack = pre.find("[", pos)
-		if brack == -1:
-			emit_plain(pre[pos:])
-			break
-		if brack > pos:
-			emit_plain(pre[pos:brack])
-
-		endq = pre.find("]", brack + 1)
-		if endq == -1:
-			emit_plain(pre[brack:])
-			break
-
-		tag_text = pre[brack + 1:endq]
-
-		# Bare class reference.
-		if tag_text in state.classes and not inside_code:
-			if tag_text == state.current_class:
-				parts.append(f"**{tag_text}**")
-			else:
-				parts.append(class_link(tag_text))
-			pos = endq + 1
-			continue
-
-		tag_name, arguments, closing = get_tag_and_args(tag_text)
-
-		if inside_code:
-			if closing and tag_name == inside_code_tag:
-				if tag_name == "codeblock":
-					parts.append("\n```")
-				else:
-					parts.append("\n```\n")
-				inside_code = False
-				inside_code_tag = ""
-			else:
-				parts.append(f"[{tag_text}]")
-			pos = endq + 1
-			continue
-
-		if tag_name == "codeblocks":
-			pos = endq + 1  # drop, structure comes from gdscript/csharp fences
-			continue
-
-		if not closing and is_in_tagset(tag_name, RESERVED_CODEBLOCK_TAGS):
-			if tag_name == "csharp":
-				lang = "csharp"
-			elif tag_name == "gdscript":
-				lang = "gdscript"
-			elif "lang=text" in arguments.split(" "):
-				lang = "text"
-			else:
-				m = re.search(r"lang=([A-Za-z0-9_+#.\-]+)", arguments)
-				lang = m.group(1) if m else "gdscript"
-			parts.append("```" + lang)
-			inside_code = True
-			inside_code_tag = tag_name
-			pos = endq + 1
-			continue
-
-		if tag_name == "code" and not closing:
-			endcode = pre.find("[/code]", endq + 1)
-			if endcode == -1:
-				state.num_warnings += 1
-				print(f"WARNING: {state.current_class}.xml: No closing [/code] found.", file=sys.stderr)
-				parts.append(f"[{tag_text}]")
-				pos = endq + 1
+			m = re.match(r"^(.*?)\\:\s*(.*)$", part)
+			if not m:
+				out.append(self.inline(part, plain=True).replace("\\", "").strip())
 				continue
-			content = pre[endq + 1:endcode]
-			parts.append(backtick_span(content))
-			pos = endcode + len("[/code]")
-			continue
+			pname = self.inline(m.group(1), plain=True).strip()
+			rest = m.group(2).strip()
+			default = None
+			md = re.search(r"\s*=\s*(.+)$", rest)
+			if md:
+				default = self.inline(md.group(1), plain=True).strip().strip("`")
+				rest = rest[: md.start()].strip()
+			ptype = self.inline(rest, plain=True).strip()
+			sig = f"{pname}: {ptype}"
+			if default is not None:
+				sig += f" = {default}"
+			out.append(sig)
+		if vararg:
+			out.append("...")
+		return ", ".join(out)
 
-		if tag_name == "kbd":
-			if closing:
-				parts.append("`")
+	def parse_sig(self, raw: str, kind: str) -> dict | None:
+		line = TRAILING_ANCHOR_RE.sub("", raw.strip()).strip()
+		m = BOLD_NAME_RE.match(line)
+		if not m:
+			self.num_warnings += 1
+			warn(f"{self.name}: unparsable {kind} signature: {line[:120]}")
+			return None
+		ret_raw, name, rest = m.group(1).strip(), m.group(2).strip(), m.group(3).strip()
+
+		item: dict = {
+			"kind": kind,
+			"name": name,
+			"ret": "",
+			"args": "",
+			"quals": [],
+			"default": None,
+			"setter": None,
+			"getter": None,
+			"desc": [],
+			"prefix": ("flags" if (kind == "enumeration" and ret_raw == "flags") else "enum") if kind == "enumeration" else None,
+		}
+
+		if kind == "enumeration":
+			return item
+
+		if kind in PAREN_KINDS:
+			rest_n = rest.replace("\\ ", " ").strip()
+			m2 = re.match(r"\((.*)\)\s*(.*)$", rest_n)
+			if m2:
+				args_raw, qual_raw = m2.group(1), m2.group(2)
 			else:
-				endkbd = pre.find("[/kbd]", endq + 1)
-				if endkbd == -1:
-					parts.append(f"[{tag_text}]")
-					pos = endq + 1
-					continue
-				content = pre[endq + 1:endkbd]
-				parts.append(backtick_span(content))
-				pos = endkbd + len("[/kbd]")
-			continue
+				args_raw, qual_raw = rest_n, ""
+			item["ret"] = self.inline(ret_raw, plain=True).strip()
+			item["args"] = self.parse_args(args_raw)
+			for q in re.findall(r"\|([a-zA-Z_]+)\|", qual_raw):
+				if q not in ("vararg", "void", "bitfield") and q not in item["quals"]:
+					item["quals"].append(q)
+			return item
 
-		if tag_name == "url" and not closing:
-			if arguments == "":
-				state.num_warnings += 1
-				print(f"WARNING: {state.current_class}.xml: Empty [url] tag.", file=sys.stderr)
-				parts.append(f"[{tag_text}]")
-				pos = endq + 1
+		if kind in RET_KINDS:
+			item["ret"] = self.inline(ret_raw, plain=True).strip()
+			if kind == "property" and item["ret"] == "":
+				item["ret"] = "Variant"
+		md = re.search(r"=\s*``([^`]*)``", rest)
+		if md:
+			item["default"] = md.group(1)
+		return item
+
+	def parse_setget(self, raw: str) -> tuple[str, str] | None:
+		line = raw.strip()
+		if line.startswith("- "):
+			line = line[2:].strip()
+		line_n = line.replace("\\ ", " ").strip()
+		m = re.match(r"^(.*?)\*\*(.+?)\*\*\s*\((.*)\)\s*$", line_n)
+		if not m:
+			return None
+		name = m.group(2).strip()
+		args = self.parse_args(m.group(3))
+		key = "setter" if name.startswith("set_") else "getter"
+		return (key, f"{name}({args})")
+
+	def member_sig_md(self, item: dict) -> str:
+		out = item["name"] + "(" + item["args"] + ")"
+		if item["quals"]:
+			out += " " + " ".join(item["quals"])
+		return out
+
+	def member_heading(self, item: dict) -> str:
+		if item["kind"] in ("property", "themeproperty"):
+			sig = (item["ret"] + " " if item["ret"] else "") + item["name"]
+			if item["default"] is not None:
+				sig += f" = {item['default']}"
+			return f"### `{sig}`"
+		if item["kind"] == "constant":
+			sig = item["name"]
+			if item["default"] is not None:
+				sig += f" = {item['default']}"
+			return f"### `{sig}`"
+		if item["kind"] in ("signal", "annotation"):
+			return f"### `{self.member_sig_md(item)}`"
+		ret = (item["ret"] + " ") if item["ret"] else ""
+		return f"### `{ret}{self.member_sig_md(item)}`"
+
+	# ------------------------------------------------------------ output
+
+	def emit(self) -> str:
+		out: list[str] = []
+		out.append("---")
+		out.append(f"title: {self.name}")
+		out.append(f"engine: {self.version}")
+		out.append("category: classes")
+		out.append(f"source: {self.source_rel}")
+		out.append("---")
+		out.append("")
+		out.append(f"# {self.name}")
+		out.append("")
+
+		if self.inherits:
+			out.append("_Inherits: " + " < ".join(class_link(c) for c in self.inherits) + "_")
+			out.append("")
+		if self.inherited_by:
+			out.append("_Implemented by: " + ", ".join(class_link(c) for c in self.inherited_by) + "_")
+			out.append("")
+
+		if self.brief:
+			out.append("\n\n".join(self.brief).strip())
+			out.append("")
+
+		if self.description:
+			out.append("## Description")
+			out.append("")
+			out.append("\n\n".join(self.description).strip())
+			out.append("")
+
+		if self.tutorials:
+			out.append("## Tutorials")
+			out.append("")
+			out.extend(self.tutorials)
+			out.append("")
+
+		for attr, title in SECTION_ORDER:
+			data = getattr(self, attr)
+			if not data:
 				continue
-			endurl = pre.find("[/url]", endq + 1)
-			if endurl == -1:
-				parts.append(f"[{tag_text}]")
-				pos = endq + 1
-				continue
-			link_title = pre[endq + 1:endurl]
-			parts.append(make_link_md(arguments, link_title))
-			pos = endurl + len("[/url]")
-			continue
+			out.append(f"## {title}")
+			out.append("")
+			out.extend(data)
+			out.append("")
 
-		if tag_name == "br":
-			parts.append("\n\n")
-			pos = endq + 1
-			continue
-
-		if tag_name == "lb":
-			parts.append("\\[")
-			pos = endq + 1
-			continue
-
-		if tag_name == "rb":
-			parts.append("\\]")
-			pos = endq + 1
-			continue
-
-		if tag_name in ("i", "b"):
-			marker = "*" if tag_name == "i" else "**"
-			parts.append(marker)
-			pos = endq + 1
-			continue
-
-		if tag_name in ("u", "center"):
-			pos = endq + 1  # drop
-			continue
-
-		if not closing and tag_name in RESERVED_CROSSLINK_TAGS:
-			link_target = arguments
-			if link_target == "":
-				state.num_warnings += 1
-				print(
-					f"WARNING: {state.current_class}.xml: Empty cross-reference link [{tag_text}].",
-					file=sys.stderr,
-				)
-				pos = endq + 1
-				continue
-			if tag_name == "enum":
-				parts.append(backtick_span(make_enum(link_target, False, state)))
-			elif tag_name == "param":
-				parts.append(backtick_span(link_target))
-			else:
-				if "." in link_target:
-					target_class_name, target_name = link_target.split(".", 1)
-				else:
-					target_class_name, target_name = state.current_class, link_target
-					if tag_name == "constant" and (
-						target_class_name not in state.classes
-						or (
-							target_name not in state.classes[target_class_name].constants
-							and not any(
-								target_name in e.values for e in state.classes[target_class_name].enums.values()
-							)
-						)
-					):
-						fallback = "@GlobalScope"
-						if fallback in state.classes and (
-							target_name in state.classes[fallback].constants
-							or any(target_name in e.values for e in state.classes[fallback].enums.values())
-						):
-							target_class_name = fallback
-				repl_text = target_name
-				if target_class_name != state.current_class:
-					repl_text = f"{target_class_name}.{target_name}"
-				if tag_name == "method":
-					repl_text += "()"
-				parts.append(backtick_span(repl_text))
-			pos = endq + 1
-			continue
-
-		if closing:
-			parts.append(f"[{tag_text}]")
-		else:
-			parts.append(backtick_span(tag_text))
-		pos = endq + 1
-
-	text = "".join(parts)
-	return collapse_blank_runs(text)
+		return "\n".join(out).rstrip() + "\n"
 
 
-def collapse_blank_runs(text: str) -> str:
-	"""Collapse 3+ newlines outside of fenced code blocks."""
-	lines = text.split("\n")
-	out: list[str] = []
-	in_fence = False
-	blank_run = 0
+def convert_file(path: str, version: str, source_rel: str) -> ClassDoc:
+	with open(path, "r", encoding="utf-8") as f:
+		lines = f.read().split("\n")
+
+	# pre-pass: substitution definitions live in the footer but are used earlier
+	subst: dict[str, str] = {}
 	for line in lines:
-		if not in_fence and (line.startswith("```") or line.startswith("~~~")):
-			in_fence = True
-			blank_run = 0
-			out.append(line)
-			continue
-		if in_fence:
-			if line.startswith("```") or line.startswith("~~~"):
-				in_fence = False
-			out.append(line)
-			continue
-		if line.strip() == "":
-			blank_run += 1
-			if blank_run <= 1:
-				out.append(line)
+		ms = SUBST_RE.match(line.strip())
+		if ms:
+			subst[ms.group(1).strip()] = render_subst(ms.group(2))
+
+	n = len(lines)
+	i = 0
+	while i < n and not lines[i].startswith(".. _class_"):
+		i += 1
+	if i >= n:
+		raise RuntimeError("no class anchor found")
+	i += 1  # skip the anchor line itself
+	while i < n and lines[i].strip() == "":
+		i += 1
+	if i >= n:
+		raise RuntimeError("no class title found")
+	class_name = lines[i].strip()
+	i += 1
+	if i < n and UNDERLINE_RE.match(lines[i]):
+		i += 1
+
+	doc = ClassDoc(class_name, version, source_rel)
+	doc.subst = subst
+
+	ctx = "preamble"  # preamble | Description | Tutorials | member | setget | skip
+	item: dict | None = None
+	pending: list[str] = []
+
+	def attach_paragraph() -> None:
+		nonlocal pending
+		if not pending:
+			return
+		text = "\n".join(doc.inline(p) for p in pending).strip()
+		pending = []
+		if text == "":
+			return
+		if item is not None and ctx in ("member", "setget", "enum-value"):
+			if item["desc"]:
+				item["desc"].append("")
+			item["desc"].append(text)
+		elif ctx == "Description":
+			doc.description.append(text)
+		elif ctx == "preamble":
+			doc.brief.append(text)
+
+	def flush_item() -> None:
+		nonlocal item
+		if item is None:
+			return
+		kind = item["kind"]
+		desc = "\n\n".join(p for p in item["desc"] if p).strip()
+		head = doc.member_heading(item)
+		if kind == "property":
+			doc.properties.extend([head, ""])
+			if item["setter"]:
+				doc.properties.append(f"- Setter: `{item['setter']}`")
+			if item["getter"]:
+				doc.properties.append(f"- Getter: `{item['getter']}`")
+			if item["setter"] or item["getter"]:
+				doc.properties.append("")
+			if desc:
+				doc.properties.extend([desc, ""])
+		elif kind == "enumeration":
+			doc.enums.extend([f"### `{item['prefix']} {item['name']}`", ""])
+		elif kind == "enumeration-constant":
+			entry = [f"- `{item['name']} = {item['default']}`"] if item["default"] is not None else [f"- `{item['name']}`"]
+			if desc:
+				entry.append("")
+				for ln in desc.split("\n"):
+					entry.append(("  " + ln) if ln.strip() else "")
+			doc.enums.extend(entry)
+			doc.enums.append("")
+		elif kind == "constant":
+			doc.constants.extend([head, ""])
+			if desc:
+				doc.constants.extend([desc, ""])
+		elif kind == "themeproperty":
+			doc.theme.extend([head, ""])
+			if desc:
+				doc.theme.extend([desc, ""])
 		else:
-			blank_run = 0
-			out.append(line)
-	return "\n".join(out)
+			section = {
+				"constructor": doc.constructors,
+				"method": doc.methods,
+				"operator": doc.operators,
+				"signal": doc.signals,
+				"annotation": doc.annotations,
+			}[kind]
+			section.extend([head, ""])
+			if desc:
+				section.extend([desc, ""])
+		item = None
 
+	while i < n:
+		line = lines[i]
+		s = line.strip()
 
-MEDIA_EXT_RE = re.compile(r"\.(png|jpe?g|webp|gif|webm|svg|avif|mp4)$", re.IGNORECASE)
+		if s == "":
+			attach_paragraph()
+			i += 1
+			continue
 
+		if s == "::":
+			attach_paragraph()
+			block, j = collect_block(lines, i)
+			target = item["desc"] if (item is not None and ctx in ("member", "setget", "enum-value")) else doc.description
+			content = deindent(block)
+			while content and content[0].strip() == "":
+				content.pop(0)
+			target.append("```gdscript\n" + "\n".join(content) + "\n```")
+			i = j
+			continue
 
-def make_link_md(url: str, title: str) -> str:
-	if MEDIA_EXT_RE.search(url.split("#")[0].split("?")[0]):
-		# media links carry no textual value; keep the title, drop the target
-		return md_escape(title)
-	match = GODOT_DOCS_PATTERN.search(url)
-	if match:
-		url = DOCS_URL_BASE + match.group(1) + ".html" + (match.group(2) or "")
-	text = title if title else url
-	return f"[{md_escape(text)}]({url})"
+		if s.startswith(".. "):
+			attach_paragraph()
+			if s.startswith(".. rst-class::"):
+				kind = s.split("::", 1)[1].strip()
+				if kind in ITEM_KINDS:
+					flush_item()
+					item = {"kind": ITEM_KINDS[kind], "desc": [], "setter": None, "getter": None,
+							"name": "", "args": "", "quals": [], "default": None, "ret": "",
+							"prefix": None, "sig_mode": True}
+					ctx = "member"
+				elif kind == "classref-property-setget":
+					ctx = "setget"
+				elif kind in ("classref-reftable-group", "classref-item-separator",
+							  "classref-section-separator", "classref-descriptions-group",
+							  "classref-introduction-group"):
+					ctx = "skip"
+				i += 1
+				continue
+			if s.startswith(".. table::") or s.startswith(".. container::"):
+				_, j = collect_block(lines, i)
+				i = j
+				continue
+			if s.startswith(".. tabs::"):
+				i += 1
+				continue
+			if s == "::" or s.startswith(".. code-tab::") or s.startswith(".. code::") or s.startswith(".. code-block::"):
+				if s == "::":
+					lang = "gdscript"
+				else:
+					first = s.split("::", 1)[1].strip().split()
+					lang = first[0] if first else "text"
+				block, j = collect_block(lines, i)
+				target = item["desc"] if (item is not None and ctx in ("member", "setget", "enum-value")) else doc.description
+				content = deindent(block)
+				while content and content[0].strip() == "":
+					content.pop(0)
+				target.append("```" + lang + "\n" + "\n".join(content) + "\n```")
+				i = j
+				continue
+			if s.startswith((".. note::", ".. warning::", ".. tip::", ".. important::", ".. seealso::")):
+				label = s.split("::", 1)[0].split("..", 1)[1].strip().capitalize()
+				if label == "Tip":
+					label = "Tip"
+				arg = s.split("::", 1)[1].strip()
+				block, j = collect_block(lines, i)
+				target = item["desc"] if (item is not None and ctx in ("member", "setget", "enum-value")) else doc.description
+				content = [doc.inline(cl) for cl in deindent(block)]
+				while content and content[0].strip() == "":
+					content.pop(0)
+				first_line = "> **" + label + ":**" + ((" " + doc.inline(arg)) if arg else "")
+				if content and not content[0].startswith((">", "-", "*", "```", "|", "#")):
+					target.append(first_line + " " + content[0].strip())
+					rest = content[1:]
+				else:
+					target.append(first_line)
+					rest = content
+				for cl in rest:
+					target.append("> " + cl if cl.strip() else ">")
+				target.append("")
+				i = j
+				continue
+			if s.startswith(".. meta::"):
+				_, j = collect_block(lines, i)
+				i = j
+				continue
+			msub = SUBST_RE.match(s)
+			if msub:
+				doc.subst[msub.group(1).strip()] = render_subst(msub.group(2))
+			i += 1
+			continue
 
+		# heading: text line followed by a ---- underline
+		if i + 1 < n and re.match(r"^-+\s*$", lines[i + 1]) and not line.startswith((" ", "\t", "..", "|", "+")) and not UNDERLINE_RE.match(line):
+			flush_item()
+			pending = []
+			ctx = SECTION_MAP.get(s, "skip")
+			i += 2
+			continue
 
-def section_heading(out: list[str], title: str) -> None:
-	out.append(f"## {title}")
-	out.append("")
+		if UNDERLINE_RE.match(line):
+			i += 1
+			continue
 
+		# plain content
+		if ctx == "preamble":
+			if s.startswith("**Inherits:**"):
+				doc.inherits = re.findall(r":ref:`[^<]+<class_([^>]+)>`", s)
+				i += 1
+				continue
+			if s.startswith("**Inherited By:**"):
+				doc.inherited_by = re.findall(r":ref:`[^<]+<class_([^>]+)>`", s)
+				i += 1
+				continue
+			pending.append(line)
+			i += 1
+			continue
 
-def emit_member_deprecated(out: list[str], item: DefinitionBase, state: State) -> None:
-	notices = deprecated_experimental_md(item, state)
-	if notices:
-		out.append(notices.rstrip())
-		out.append("")
+		if ctx == "Tutorials":
+			if s.startswith("- "):
+				doc.tutorials.append("- " + doc.inline(s[2:]))
+			elif doc.tutorials:
+				doc.tutorials[-1] += " " + doc.inline(s)
+			i += 1
+			continue
 
+		if ctx == "member" and item is not None:
+			if item.get("sig_mode"):
+				parsed = doc.parse_sig(line, item["kind"])
+				if parsed is not None:
+					item.update(parsed)
+					item["sig_mode"] = False
+					if item["kind"] == "enumeration":
+						ctx = "enum-value"
+			else:
+				pending.append(line)
+			i += 1
+			continue
 
-def emit_class(class_def: ClassDef, state: State, output_dir: str, version: str) -> None:
-	class_name = class_def.name
-	out: list[str] = []
+		if ctx == "enum-value" and item is not None:
+			if item.get("sig_mode") and item["name"] == "":
+				parsed = doc.parse_sig(line, item["kind"])
+				if parsed is not None:
+					item.update(parsed)
+					item["sig_mode"] = False
+			else:
+				pending.append(line)
+			i += 1
+			continue
 
-	source_rel = os.path.relpath(class_def.filepath, state.input_root).replace(os.sep, "/")
+		if ctx == "setget" and item is not None:
+			if s.startswith("- "):
+				sg = doc.parse_setget(s)
+				if sg:
+					key, value = sg
+					item[key] = value
+			else:
+				ctx = "member"
+				pending.append(line)
+			i += 1
+			continue
 
-	out.append("---")
-	out.append(f"title: {class_name}")
-	out.append(f"engine: {version}")
-	out.append("category: classes")
-	out.append(f"source: {source_rel}")
-	out.append("---")
-	out.append("")
-	out.append(f"# {class_name}")
-	out.append("")
+		pending.append(line)
+		i += 1
 
-	notices = deprecated_experimental_md(class_def, state)
-	if notices:
-		out.append(notices.rstrip())
-		out.append("")
-
-	if class_def.inherits:
-		chain = []
-		inherits = class_def.inherits.strip()
-		while inherits:
-			chain.append(inherits)
-			if inherits not in state.classes:
-				break
-			inherits = state.classes[inherits].inherits or ""
-		if chain:
-			out.append("_Inherits: " + " < ".join(class_link(c) for c in chain) + "_")
-			out.append("")
-
-	inherited = sorted(c.name for c in state.classes.values() if c.inherits and c.inherits.strip() == class_name)
-	if inherited:
-		out.append("_Implemented by: " + ", ".join(class_link(c) for c in inherited) + "_")
-		out.append("")
-
-	if class_def.brief_description is not None and class_def.brief_description.strip():
-		out.append(format_text_block(class_def.brief_description.strip(), class_def, state).strip())
-		out.append("")
-
-	if class_def.description is not None and class_def.description.strip():
-		section_heading(out, "Description")
-		out.append(format_text_block(class_def.description.strip(), class_def, state).strip())
-		out.append("")
-
-	if class_def.tutorials:
-		section_heading(out, "Tutorials")
-		for url, title in class_def.tutorials:
-			out.append(f"- {make_link_md(url, title)}")
-		out.append("")
-
-	if class_def.properties:
-		section_heading(out, "Properties")
-		for prop in class_def.properties.values():
-			sig = f"{prop.type_name.display(state)} {prop.name}"
-			if prop.default_value is not None:
-				sig += f" = {prop.default_value}"
-			out.append(f"### `{sig}`")
-			out.append("")
-			if prop.overrides:
-				out.append(f"_Overrides {prop.overrides}._")
-				out.append("")
-			setter = setter_signature(class_def, prop, state)
-			getter = getter_signature(class_def, prop, state)
-			if setter:
-				out.append(f"- Setter: `{setter}`")
-			if getter:
-				out.append(f"- Getter: `{getter}`")
-			if setter or getter:
-				out.append("")
-			emit_member_deprecated(out, prop, state)
-			if prop.text is not None and prop.text.strip():
-				out.append(format_text_block(prop.text.strip(), prop, state).strip())
-				out.append("")
-			if prop.type_name.type_name in PACKED_ARRAY_TYPES:
-				out.append(
-					"**Note:** The returned array is *copied* and any changes to it will not update the "
-					"original property value. See "
-					+ class_link(prop.type_name.type_name)
-					+ " for more details."
-				)
-				out.append("")
-
-	if class_def.constructors:
-		section_heading(out, "Constructors")
-		for method_list in class_def.constructors.values():
-			for m in method_list:
-				sig = f"{m.return_type.display(state)} {method_signature_md(m, state)}"
-				out.append(f"### `{sig}`")
-				out.append("")
-				emit_member_deprecated(out, m, state)
-				if m.description is not None and m.description.strip():
-					out.append(format_text_block(m.description.strip(), m, state).strip())
-					out.append("")
-
-	if class_def.methods:
-		section_heading(out, "Methods")
-		for method_list in class_def.methods.values():
-			for m in method_list:
-				sig = f"{m.return_type.display(state)} {method_signature_md(m, state)}"
-				out.append(f"### `{sig}`")
-				out.append("")
-				emit_member_deprecated(out, m, state)
-				if m.description is not None and m.description.strip():
-					out.append(format_text_block(m.description.strip(), m, state).strip())
-					out.append("")
-
-	if class_def.operators:
-		section_heading(out, "Operators")
-		for method_list in class_def.operators.values():
-			for m in method_list:
-				sig = f"{m.return_type.display(state)} {method_signature_md(m, state)}"
-				out.append(f"### `{sig}`")
-				out.append("")
-				emit_member_deprecated(out, m, state)
-				if m.description is not None and m.description.strip():
-					out.append(format_text_block(m.description.strip(), m, state).strip())
-					out.append("")
-
-	if class_def.theme_items:
-		section_heading(out, "Theme Properties")
-		for item in class_def.theme_items.values():
-			sig = f"{item.type_name.display(state)} {item.name}"
-			if item.default_value is not None:
-				sig += f" = {item.default_value}"
-			out.append(f"### `{sig}`")
-			out.append("")
-			emit_member_deprecated(out, item, state)
-			if item.text is not None and item.text.strip():
-				out.append(format_text_block(item.text.strip(), item, state).strip())
-				out.append("")
-
-	if class_def.signals:
-		section_heading(out, "Signals")
-		for signal in class_def.signals.values():
-			sig = method_signature_md(signal, state)
-			out.append(f"### `{sig}`")
-			out.append("")
-			emit_member_deprecated(out, signal, state)
-			if signal.description is not None and signal.description.strip():
-				out.append(format_text_block(signal.description.strip(), signal, state).strip())
-				out.append("")
-
-	if class_def.enums:
-		section_heading(out, "Enumerations")
-		for enum in class_def.enums.values():
-			prefix = "flags" if enum.is_bitfield else "enum"
-			out.append(f"### `{prefix} {enum.name}`")
-			out.append("")
-			for value in enum.values.values():
-				entry = [f"- `{value.name} = {value.value}`"]
-				body: list[str] = []
-				notices = deprecated_experimental_md(value, state)
-				if notices:
-					body.append(notices.rstrip())
-				if value.text is not None and value.text.strip():
-					body.append(format_text_block(value.text.strip(), value, state).strip())
-				if body:
-					entry.append("")
-					for line in body:
-						if line == "":
-							entry.append("")
-						else:
-							entry.append("  " + line.replace("\n", "\n  "))
-				out.append("\n".join(entry))
-				out.append("")
-
-	if class_def.constants:
-		section_heading(out, "Constants")
-		for constant in class_def.constants.values():
-			out.append(f"### `{constant.name} = {constant.value}`")
-			out.append("")
-			emit_member_deprecated(out, constant, state)
-			if constant.text is not None and constant.text.strip():
-				out.append(format_text_block(constant.text.strip(), constant, state).strip())
-				out.append("")
-
-	if class_def.annotations:
-		section_heading(out, "Annotations")
-		for method_list in class_def.annotations.values():
-			for annotation in method_list:
-				sig = method_signature_md(annotation, state)
-				out.append(f"### `{sig}`")
-				out.append("")
-				if annotation.description is not None and annotation.description.strip():
-					out.append(format_text_block(annotation.description.strip(), annotation, state).strip())
-					out.append("")
-
-	content = "\n".join(out).rstrip() + "\n"
-	file_name = class_name.replace('"', "").replace("/", "--")
-	os.makedirs(output_dir, exist_ok=True)
-	with open(os.path.join(output_dir, f"{file_name}.md"), "w", encoding="utf-8", newline="\n") as f:
-		f.write(content)
-
-
-def collect_files(path: str) -> list[str]:
-	if os.path.basename(path) in ("modules", "platform"):
-		files = []
-		for subdir, dirs, _ in os.walk(path):
-			if "doc_classes" in dirs:
-				doc_dir = os.path.join(subdir, "doc_classes")
-				files += [os.path.join(doc_dir, f) for f in sorted(os.listdir(doc_dir)) if f.endswith(".xml")]
-		return files
-	if os.path.isdir(path):
-		return [os.path.join(path, f) for f in sorted(os.listdir(path)) if f.endswith(".xml")]
-	return [path]
+	flush_item()
+	return doc
 
 
 def main() -> None:
-	parser = argparse.ArgumentParser(description="Convert Godot class reference XML to Markdown.")
-	parser.add_argument("input", nargs="+", help="XML files or directories (doc/classes, modules, platform).")
+	parser = argparse.ArgumentParser(description="Convert generated class reference RST to Markdown.")
+	parser.add_argument("input", nargs="+", help="classes/ directory with class_*.rst files (or individual files).")
 	parser.add_argument("--output", "-o", required=True, help="Output directory for class .md files.")
 	parser.add_argument("--version", "-v", default="4.7", help="Engine version recorded in frontmatter.")
 	args = parser.parse_args()
 
-	state = State()
-
 	file_list: list[str] = []
 	for path in args.input:
-		file_list += collect_files(path)
+		if os.path.isdir(path):
+			file_list += [os.path.join(path, f) for f in sorted(os.listdir(path))
+						  if f.startswith("class_") and f.endswith(".rst")]
+		else:
+			file_list.append(path)
 	file_list = sorted(file_list)
 
+	warnings = 0
+	count = 0
+	os.makedirs(args.output, exist_ok=True)
 	for cur_file in file_list:
 		try:
-			tree = ET.parse(cur_file)
-		except ET.ParseError as e:
-			state.num_warnings += 1
-			print(f"WARNING: {cur_file}: XML parse error: {e}", file=sys.stderr)
-			continue
-		root = tree.getroot()
-		name = root.attrib["name"]
-		if name in state.classes:
-			state.num_warnings += 1
-			print(f"WARNING: {cur_file}: Duplicate class \"{name}\".", file=sys.stderr)
-			continue
-		try:
-			state.parse_class(root, cur_file)
+			doc = convert_file(cur_file, args.version, "classes/" + os.path.basename(cur_file))
 		except Exception as e:
-			state.num_warnings += 1
-			print(f"WARNING: {cur_file}: Exception while parsing class: {e}", file=sys.stderr)
+			warnings += 1
+			print(f"WARNING: {cur_file}: {e}", file=sys.stderr)
 			continue
+		out_path = os.path.join(args.output, doc.name.replace('"', "").replace("/", "--") + ".md")
+		with open(out_path, "w", encoding="utf-8", newline="\n") as f:
+			f.write(doc.emit())
+		count += 1
+		warnings += doc.num_warnings
 
-	state.input_root = os.path.commonpath([os.path.abspath(p) for p in args.input]) if args.input else "."
-
-	for class_name in sorted(state.classes, key=lambda n: n.lower()):
-		emit_class(state.classes[class_name], state, args.output, args.version)
-
-	print(f"convert_classref: wrote {len(state.classes)} class files to {args.output}")
-	if state.num_warnings:
-		print(f"convert_classref: {state.num_warnings} warnings", file=sys.stderr)
+	print(f"convert_classref: wrote {count} class files to {args.output}")
+	if warnings:
+		print(f"convert_classref: {warnings} warnings", file=sys.stderr)
 
 
 if __name__ == "__main__":

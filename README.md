@@ -6,52 +6,44 @@ LLM context). Published as GitHub Releases — no expiring CI artifacts.
 
 ## Why this exists
 
-The official Godot documentation lives in two upstream repos:
+The pipeline has a **single upstream source**:
+[`godotengine/godot-docs`](https://github.com/godotengine/godot-docs), which
+carries both halves of the official documentation on every version branch:
 
-| Source | Repo | Content |
-|---|---|---|
-| Class reference source | [`godotengine/godot`](https://github.com/godotengine/godot) | `doc/classes/*.xml`, `modules/*/doc_classes/*.xml`, `platform/*/doc_classes/*.xml` |
-| Manual | [`godotengine/godot-docs`](https://github.com/godotengine/godot-docs) | hand-written RST (`getting_started/`, `tutorials/`, `engine_details/`) |
+| Content | Location in godot-docs |
+|---|---|
+| Class reference | `classes/class_*.rst` — generated upstream by `make_rst.py` from the engine's XML and committed by automation |
+| Manual | hand-written RST: `getting_started/`, `tutorials/`, `engine_details/` |
 
-The class reference shown on docs.godotengine.org is generated at build time
-from the engine repo's XML. The godot-docs repo also carries that reference as
-*generated* RST files committed to its `classes/` directory (produced by
-upstream automation from the same XML), so a docs-only build would not be
-empty — but we deliberately track the XML as well, for two reasons:
+Tracking godot-docs alone keeps the two halves consistent (one commit, one
+SHA) and stays a follower repo, not a fork: no upstream content is modified,
+and rebuilds are triggered automatically whenever upstream changes.
 
-- **It is the source of truth.** The committed RST only follows the engine
-  after upstream's sync bot runs; converting the XML means class-reference
-  changes are picked up as soon as they land in the engine repo.
-- **Cleaner conversion.** Converting structured XML directly yields semantic
-  Markdown; converting the generated RST instead would mean stripping the
-  RST artifacts make_rst.py emits (`.. rst-class::` directives,
-  `|virtual|`-style abbreviation substitutions, `:ref:` anchors, grid
-  tables) only to reconstruct the same content.
-
-This is a follower repo, not a fork: no upstream content is modified, and
-rebuilds are triggered automatically whenever upstream changes.
+The converters never touch the built HTML site: the class reference is parsed
+directly from the generated RST (its structure is fully regular), and the
+manual goes through `pandoc` plus a cleanup pass. Everything is optimized for
+AI retrieval: dense headings, one self-contained file per class or manual
+page, zero navigation chrome.
 
 ## How the SHA-poll works
 
-The build tracks one or more version branches. Upstream **commit SHAs are the
-change-detector** — release tags and branch names are never polled:
+Upstream **commit SHAs are the change-detector** — release tags and branch
+names are never polled. For every tracked version branch (e.g. `4.7`):
 
-- `gh api repos/godotengine/godot/commits/4.7?path=doc --jq .sha` — last commit
-  that touched the engine's `doc/` tree (the class reference source).
-- `gh api repos/godotengine/godot-docs/commits/4.7 --jq .sha` — manual tip.
+- `gh api repos/godotengine/godot-docs/commits/4.7 --jq .sha` — tip of the
+  version branch. Any commit to the branch (manual edits **or** the automated
+  class-reference sync) changes the SHA.
 
 A weekly scheduled workflow (cron `0 4 * * 1`) does two things:
 
-1. **Drift check**: resolves both SHAs for every recorded version and runs
+1. **Drift check**: resolves the SHA for every recorded version and runs
    `tools/build.sh <version>`. If `versions/<version>.md` already records the
-   same pair of SHAs, the build exits early ("skipped") and nothing is
-   published — so patch drift of tracked branches (doc fixes, patch releases)
-   triggers a rebuild automatically, and quiet branches cost one API call.
+   same SHA, the build exits early ("skipped") and nothing is published.
 2. **Adopts new versions**: lists the version-named branches (e.g. `4.7`,
-   `4.8`) present in **both** upstream repos and builds any that is not yet
-   recorded. Only the highest major line is adopted (`2.1`/`3.x` are ignored);
-   when a new major appears (e.g. `5.0`), adoption switches to that line
-   automatically. Already-tracked versions keep their drift checks regardless.
+   `4.8`) of godot-docs and builds any that is not yet recorded. Only the
+   highest major line is adopted (`2.1`/`3.x` are ignored); when a new major
+   appears (e.g. `5.0`), adoption switches to that line automatically.
+   Already-tracked versions keep their drift checks regardless.
 
 ## Triggering a build manually
 
@@ -74,7 +66,7 @@ Outputs land in `dist/` and the build record in `versions/4.7.md`.
 
 | Tag | Meaning |
 |---|---|
-| `godot-4.7-md-<sha8>` | immutable release built from godot commit `<sha8>` |
+| `godot-4.7-md-<sha8>` | immutable release built from godot-docs commit `<sha8>` |
 | `godot-4.7-md-latest` | rolling tag, re-pointed to the newest `4.7` build |
 
 Assets on every release: `godot-<version>-md.tar.gz` and `SHA256SUMS` (sha256

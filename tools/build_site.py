@@ -168,7 +168,6 @@ def make_link_fixer(page_rel: str, known_pages: set[str]):
 def build_site(input_dir: str, output_dir: str) -> None:
 	meta = parse_version_file(os.path.join(input_dir, "VERSION"))
 	version = meta.get("engine", "4.7")
-	godot_sha = meta.get("godot_sha", "")
 	docs_sha = meta.get("godot_docs_sha", "")
 
 	docs = collect_docs(input_dir)
@@ -214,7 +213,7 @@ def build_site(input_dir: str, output_dir: str) -> None:
 
 	with open(os.path.join(output_dir, "index.json"), "w", encoding="utf-8", newline="\n") as f:
 		json.dump(
-			{"version": version, "godot_sha": godot_sha, "docs_sha": docs_sha, "docs": index_entries},
+			{"version": version, "docs_sha": docs_sha, "docs": index_entries},
 			f,
 			ensure_ascii=False,
 			separators=(",", ":"),
@@ -241,8 +240,7 @@ def build_site(input_dir: str, output_dir: str) -> None:
 	# landing page for this version
 	welcome = [
 		f"<h1>Godot {html.escape(version)} documentation</h1>",
-		f"<p class=muted>Markdown build from godot@<code>{html.escape(godot_sha[:8])}</code> "
-		f"and godot-docs@<code>{html.escape(docs_sha[:8])}</code> "
+		f"<p class=muted>Markdown build from godot-docs@<code>{html.escape(docs_sha[:8])}</code> "
 		f"({meta.get('built_at', '')}). Use the sidebar to browse, or search.</p>",
 	]
 	root_prefix = ""

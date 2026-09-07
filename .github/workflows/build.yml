@@ -85,23 +85,22 @@ jobs:
             v="$(basename "$tarball")"
             v="${v#godot-}"; v="${v%-md.tar.gz}"
             TAG=$(grep '^release: ' "versions/$v.md" | cut -d' ' -f2)
-            GODOT_SHA=$(grep '^godot_sha: ' "versions/$v.md" | cut -d' ' -f2)
             DOCS_SHA=$(grep '^godot_docs_sha: ' "versions/$v.md" | cut -d' ' -f2)
             echo "=== publishing $TAG"
             # per-release sums so each release carries a verifiable SHA256SUMS
             tmpd="$(mktemp -d)"
             cp "$tarball" "$tmpd/"
             (cd "$tmpd" && sha256sum "$(basename "$tarball")" > SHA256SUMS)
-            # release pinned to the exact upstream SHAs
+            # release pinned to the exact upstream SHA
             gh release delete "$TAG" -y --cleanup-tag || true
             gh release create "$TAG" "$tmpd/$(basename "$tarball")" "$tmpd/SHA256SUMS" \
               --title "Godot $v documentation (Markdown)" \
-              --notes "Markdown documentation package for Godot $v, built from godot@$GODOT_SHA and godot-docs@$DOCS_SHA."
+              --notes "Markdown documentation package for Godot $v, built from godot-docs@$DOCS_SHA."
             # re-point the rolling tag to the newest build
             gh release delete "godot-$v-md-latest" -y --cleanup-tag || true
             gh release create "godot-$v-md-latest" "$tmpd/$(basename "$tarball")" "$tmpd/SHA256SUMS" \
               --title "Godot $v documentation (Markdown, latest)" \
-              --notes "Rolling latest build for Godot $v, built from godot@$GODOT_SHA and godot-docs@$DOCS_SHA."
+              --notes "Rolling latest build for Godot $v, built from godot-docs@$DOCS_SHA."
             rm -rf "$tmpd"
           done
 

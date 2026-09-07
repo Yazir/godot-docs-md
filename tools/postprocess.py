@@ -80,11 +80,11 @@ def write_file(path: str, content: str) -> None:
 		f.write(content)
 
 
-def build_index(files: list[str], input_dir: str, version: str, godot_sha: str, docs_sha: str) -> str:
+def build_index(files: list[str], input_dir: str, version: str, docs_sha: str) -> str:
 	out = []
 	out.append(f"# Godot {version} documentation index")
 	out.append("")
-	out.append(f"{len(files)} files. Built from godot@{godot_sha} and godot-docs@{docs_sha}.")
+	out.append(f"{len(files)} files. Built from godot-docs@{docs_sha}.")
 	out.append("")
 	for rel in files:
 		out.append(f"- {rel} — {file_summary(os.path.join(input_dir, rel))}")
@@ -141,12 +141,11 @@ def main() -> None:
 	parser.add_argument("--output", "-o", required=True, help="Directory for the assembled package tree.")
 	parser.add_argument("--tar", required=True, help="Path of the resulting .tar.gz package.")
 	parser.add_argument("--version", "-v", default="4.7")
-	parser.add_argument("--godot-sha", required=True)
-	parser.add_argument("--godot-docs-sha", required=True)
+	parser.add_argument("--docs-sha", required=True)
 	args = parser.parse_args()
 
 	version = args.version
-	release = f"godot-{version}-md-{args.godot_sha[:8]}"
+	release = f"godot-{version}-md-{args.docs_sha[:8]}"
 
 	src_classes = os.path.join(args.input, "classes")
 	src_manual = os.path.join(args.input, "manual")
@@ -186,14 +185,13 @@ def main() -> None:
 				with open(os.path.join(dirpath, name), "rb") as fr, open(dst, "wb") as fw:
 					fw.write(fr.read())
 
-	write_file(os.path.join(pkg_root, "INDEX.md"), build_index(markdown_files, args.input, version, args.godot_sha, args.godot_docs_sha))
+	write_file(os.path.join(pkg_root, "INDEX.md"), build_index(markdown_files, args.input, version, args.docs_sha))
 
 	built_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 	version_md = "\n".join(
 		[
 			f"engine: {version}",
-			f"godot_sha: {args.godot_sha}",
-			f"godot_docs_sha: {args.godot_docs_sha}",
+			f"godot_docs_sha: {args.docs_sha}",
 			f"release: {release}",
 			f"built_at: {built_at}",
 		]
