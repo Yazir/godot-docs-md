@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: write
+  pages: write
 
 concurrency:
   group: build-${{ inputs.version || 'auto' }}
@@ -145,6 +146,19 @@ jobs:
           else
             echo "site unchanged"
           fi
+
+      - name: Enable GitHub Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/pages" >/dev/null 2>&1; then
+            echo "Pages already enabled"
+            exit 0
+          fi
+          gh api -X POST "repos/$GITHUB_REPOSITORY/pages" \
+            -f "source[branch]=gh-pages" -f "source[path]=/" >/dev/null 2>&1 \
+            && echo "Pages enabled" \
+            || echo "::warning::could not enable Pages automatically (enable it once in Settings → Pages → source: gh-pages)"
 
       - name: Record builds
         run: |
