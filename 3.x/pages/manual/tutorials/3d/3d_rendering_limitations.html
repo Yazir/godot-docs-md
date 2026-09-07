@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D rendering limitations — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="3d-rendering-limitations">3D rendering limitations</h1>
+<blockquote>
+<p><strong>See also:</strong> In addition to the limitations below, mobile platforms have even more limitations on 3D rendering compared to desktop platforms. See <code>doc_mobile_rendering_limitations</code> for more information.</p>
+</blockquote>
+<h2 id="introduction">Introduction</h2>
+<p>Due to their focus on performance, real-time rendering engines have many limitations. Godot's renderer is no exception. To work effectively with those limitations, you need to understand them.</p>
+<h2 id="texture-size-limits">Texture size limits</h2>
+<p>On desktops and laptops, textures larger than 8192×8192 may not be supported on older devices. You can check your target GPU's limitations on <a href="https://www.gpuinfo.org/">GPUinfo.org</a>.</p>
+<p>Mobile GPUs are typically limited to 4096×4096 textures. Also, some mobile GPUs don't support repeating non-power-of-two-sized textures. Therefore, if you want your texture to display correctly on all platforms, you should avoid using textures larger than 4096×4096 and use a power of two size if the texture needs to repeat.</p>
+<h2 id="color-banding">Color banding</h2>
+<p>When using the GLES3 or Vulkan renderers, Godot's 3D engine renders internally in HDR. However, the rendering output will be tonemapped to a low dynamic range so it can be displayed on the screen. This can result in visible banding, especially when using untextured materials. This can also be seen in 2D projects when using smooth gradient textures.</p>
+<p>There are two main ways to alleviate banding:</p>
+<ul>
+<li>Enable <strong>Use Debanding</strong> in the Project Settings. This applies a fullscreen debanding shader as a post-processing effect and is very cheap. Fullscreen debanding is only supported when using the GLES3 or Vulkan renderers. It also requires HDR to be enabled in the Project Settings (which is the default).</li>
+<li>Alternatively, bake some noise into your textures. This is mainly effective in 2D, e.g. for vignetting effects. In 3D, you can also use a <a href="https://github.com/fractilegames/godot-gles2-debanding-material">custom debanding shader</a> to be applied on your <em>materials</em>. This technique works even if your project is rendered in LDR, which means it will work when using the GLES2 renderer.</li>
+</ul>
+<blockquote>
+<p><strong>See also:</strong> See <a href="http://loopit.dk/banding_in_games.pdf">Banding in Games: A Noisy Rant</a> for more details about banding and ways to combat it.</p>
+</blockquote>
+<h2 id="depth-buffer-precision">Depth buffer precision</h2>
+<p>To sort objects in 3D space, rendering engines rely on a <em>depth buffer</em> (also called <em>Z-buffer</em>). This buffer has a finite precision: 24-bit on desktop platforms, sometimes 16-bit on mobile platforms (for performance reasons). If two different objects end up on the same buffer value, then Z-fighting will occur. This will materialize as textures flickering back and forth as the camera moves or rotates.</p>
+<p>To make the depth buffer more precise over the rendered area, you should <em>increase</em> the Camera node's <strong>Near</strong> property. However, be careful: if you set it too high, players will be able to see through nearby geometry. You should also <em>decrease</em> the Camera node's <strong>Far</strong> property to the lowest permissible value for your use case, though keep in mind it won't impact precision as much as the <strong>Near</strong> property.</p>
+<p>If you only need high precision when the player can see far away, you could change it dynamically based on the game conditions. For instance, if the player enters an airplane, the <strong>Near</strong> property can be temporarily increased to avoid Z-fighting in the distance. It can then be decreased once the player leaves the airplane.</p>
+<p>Depending on the scene and viewing conditions, you may also be able to move the Z-fighting objects further apart without the difference being visible to the player.</p>
+<h2 id="transparency-sorting">Transparency sorting</h2>
+<p>In Godot, transparent materials are drawn after opaque materials. Transparent objects are sorted back to front before being drawn based on the Spatial's position, not the vertex position in world space. Due to this, overlapping objects may often be sorted out of order. To fix improperly sorted objects, tweak the material's ref property. This will force specific materials to appear in front or behind of other transparent materials. Even then, this may not always be sufficient.</p>
+<p>Some rendering engines feature <em>order-independent transparency</em> techniques to alleviate this, but this is costly on the GPU. Godot currently doesn't provide this feature. There are still several ways to avoid this problem:</p>
+<ul>
+<li>Only make materials transparent if you actually need it. If a material only has a small transparent part, consider splitting it into a separate material. This will allow the opaque part to cast shadows and may also improve performance.</li>
+<li>If your texture mostly has fully opaque and fully transparent areas, you can use alpha testing instead of alpha blending. This transparency mode is faster to render and doesn't suffer from transparency issues. Enable <strong>Parameters &gt; Use Alpha Scissor</strong> in SpatialMaterial, and adjust <strong>Alpha Scissor Threshold</strong> accordingly if needed. Note that MSAA will not anti-alias the texture's edges, but FXAA will.</li>
+<li>If you need to render semi-transparent areas of the texture, alpha scissor isn't suitable. Instead, setting the SpatialMaterial's <strong>Parameters &gt; Depth Draw Mode</strong> property to <strong>Opaque Pre-Pass</strong> can sometimes work (at a performance cost).</li>
+<li>If you want a material to fade with distance, use the SpatialMaterial distance fade mode <strong>Pixel Dither</strong> or <strong>Object Dither</strong> instead of <strong>PixelAlpha</strong>. This will make the material opaque. This way, it can also cast shadows.</li>
+</ul>
+<h2 id="multi-sample-antialiasing">Multi-sample antialiasing</h2>
+<p>Multi-sample antialiasing (MSAA) takes multiple <em>coverage</em> samples at the edges of polygons when rendering objects. It does not increase the number of <em>color</em> samples used to render a scene. Here's what this means in practice:</p>
+<ul>
+<li>Edges of meshes will be smoothed out nicely (as well as supersampling would).</li>
+<li>Transparent materials that use <em>alpha testing</em> (1-bit transparency) won't be smoothed out.</li>
+<li>Specular aliasing ("sparkles" that appear on reflective surfaces) won't be reduced.</li>
+</ul>
+<p>There are several ways to work around this limitation depending on your performance budget:</p>
+<ul>
+<li>To make specular aliasing less noticeable, open the Project Settings and enable <strong>Rendering &gt; Quality &gt; Screen Space Filters &gt; Screen Space Roughness Limiter</strong>. This filter has a moderate cost on performance. It should be enabled only if you actually need it.</li>
+<li>Enable FXAA in addition to (or instead of) MSAA. Since FXAA is a screen-space antialiasing method, it will smooth out anything. As a downside, it will also make the scene appear blurrier, especially at resolutions below 1440p.</li>
+<li>Render the scene at a higher resolution, then display it in a ViewportTexture that matches the window size. Make sure to enable <strong>Filter</strong> on the ViewportTexture flags. This technique is called <em>supersampling</em> and is very slow. Its use is generally only recommended for offline rendering.</li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

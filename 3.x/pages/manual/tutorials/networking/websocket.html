@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebSocket — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="websocket">WebSocket</h1>
+<h2 id="html5-and-websocket">HTML5 and WebSocket</h2>
+<p>The WebSocket protocol was standardized in 2011 with the original goal of allowing browsers to create stable and bidirectional connections with a server. Before that, browsers used to only support HTTPRequests, which is not well-suited for bidirectional communication.</p>
+<p>The protocol is quite simple, message based, and a very powerful tool to send push notifications to browsers, and has been used to implement chats, turn-based games, etc. It still uses a TCP connection, which is good for reliability but not for latency, so not good for real-time applications like VoIP and fast-paced games (see ref for those use cases).</p>
+<p>Due to its simplicity, its wide compatibility, and being easier to use than a raw TCP connection, WebSocket soon started to spread outside the browsers, in native applications as a mean to communicate with network servers.</p>
+<p>Godot supports WebSocket in both native and HTML5 exports.</p>
+<h2 id="using-websocket-in-godot">Using WebSocket in Godot</h2>
+<p>WebSocket is implemented in Godot via three main classes ref, ref, and ref. The WebSocket implementation is compatible with the High Level Multiplayer. See section on ref for more details.</p>
+<blockquote>
+<p><strong>Warning:</strong> When exporting to Android, make sure to enable the <code>INTERNET</code> permission in the Android export preset before exporting the project or using one-click deploy. Otherwise, network communication of any kind will be blocked by Android.</p>
+</blockquote>
+<h3 id="minimal-client-example">Minimal client example</h3>
+<p>This example will show you how to create a WebSocket connection to a remote server, and how to send and receive data.</p>
+<pre><code>extends Node
+
+# The URL we will connect to
+export var websocket_url = &quot;wss://libwebsockets.org&quot;
+
+# Our WebSocketClient instance
+var _client = WebSocketClient.new()
+
+func _ready():
+    # Connect base signals to get notified of connection open, close, and errors.
+    _client.connect(&quot;connection_closed&quot;, self, &quot;_closed&quot;)
+    _client.connect(&quot;connection_error&quot;, self, &quot;_closed&quot;)
+    _client.connect(&quot;connection_established&quot;, self, &quot;_connected&quot;)
+    # This signal is emitted when not using the Multiplayer API every time
+    # a full packet is received.
+    # Alternatively, you could check get_peer(1).get_available_packets() in a loop.
+    _client.connect(&quot;data_received&quot;, self, &quot;_on_data&quot;)
+
+    # Initiate connection to the given URL.
+    var err = _client.connect_to_url(websocket_url, [&quot;lws-mirror-protocol&quot;])
+    if err != OK:
+        print(&quot;Unable to connect&quot;)
+        set_process(false)
+
+func _closed(was_clean = false):
+    # was_clean will tell you if the disconnection was correctly notified
+    # by the remote peer before closing the socket.
+    print(&quot;Closed, clean: &quot;, was_clean)
+    set_process(false)
+
+func _connected(proto = &quot;&quot;):
+    # This is called on connection, &quot;proto&quot; will be the selected WebSocket
+    # sub-protocol (which is optional)
+    print(&quot;Connected with protocol: &quot;, proto)
+    # You MUST always use get_peer(1).put_packet to send data to server,
+    # and not put_packet directly when not using the MultiplayerAPI.
+    _client.get_peer(1).put_packet(&quot;Test packet&quot;.to_utf8())
+
+func _on_data():
+    # Print the received packet, you MUST always use get_peer(1).get_packet
+    # to receive data from server, and not get_packet directly when not
+    # using the MultiplayerAPI.
+    print(&quot;Got data from server: &quot;, _client.get_peer(1).get_packet().get_string_from_utf8())
+
+func _process(delta):
+    # Call this in _process or _physics_process. Data transfer, and signals
+    # emission will only happen when calling this function.
+    _client.poll()</code></pre>
+<p>This will print:</p>
+<pre><code>Connected with protocol:
+Got data from server: Test packet</code></pre>
+<h3 id="minimal-server-example">Minimal server example</h3>
+<p>This example will show you how to create a WebSocket server that listens for remote connections, and how to send and receive data.</p>
+<pre><code>extends Node
+
+# The port we will listen to
+const PORT = 9080
+# Our WebSocketServer instance
+var _server = WebSocketServer.new()
+
+func _ready():
+    # Connect base signals to get notified of new client connections,
+    # disconnections, and disconnect requests.
+    _server.connect(&quot;client_connected&quot;, self, &quot;_connected&quot;)
+    _server.connect(&quot;client_disconnected&quot;, self, &quot;_disconnected&quot;)
+    _server.connect(&quot;client_close_request&quot;, self, &quot;_close_request&quot;)
+    # This signal is emitted when not using the Multiplayer API every time a
+    # full packet is received.
+    # Alternatively, you could check get_peer(PEER_ID).get_available_packets()
+    # in a loop for each connected peer.
+    _server.connect(&quot;data_received&quot;, self, &quot;_on_data&quot;)
+    # Start listening on the given port.
+    var err = _server.listen(PORT)
+    if err != OK:
+        print(&quot;Unable to start server&quot;)
+        set_process(false)
+
+func _connected(id, proto):
+    # This is called when a new peer connects, &quot;id&quot; will be the assigned peer id,
+    # &quot;proto&quot; will be the selected WebSocket sub-protocol (which is optional)
+    print(&quot;Client %d connected with protocol: %s&quot; % [id, proto])
+
+func _close_request(id, code, reason):
+    # This is called when a client notifies that it wishes to close the connection,
+    # providing a reason string and close code.
+    print(&quot;Client %d disconnecting with code: %d, reason: %s&quot; % [id, code, reason])
+
+func _disconnected(id, was_clean = false):
+    # This is called when a client disconnects, &quot;id&quot; will be the one of the
+    # disconnecting client, &quot;was_clean&quot; will tell you if the disconnection
+    # was correctly notified by the remote peer before closing the socket.
+    print(&quot;Client %d disconnected, clean: %s&quot; % [id, str(was_clean)])
+
+func _on_data(id):
+    # Print the received packet, you MUST always use get_peer(id).get_packet to receive data,
+    # and not get_packet directly when not using the MultiplayerAPI.
+    var pkt = _server.get_peer(id).get_packet()
+    print(&quot;Got data from client %d: %s ... echoing&quot; % [id, pkt.get_string_from_utf8()])
+    _server.get_peer(id).put_packet(pkt)
+
+func _process(delta):
+    # Call this in _process or _physics_process.
+    # Data transfer, and signals emission will only happen when calling this function.
+    _server.poll()</code></pre>
+<p>This will print (when a client connects) something similar to this:</p>
+<pre><code>Client 1348090059 connected with protocol: selected-protocol
+Got data from client 1348090059: Test packet ... echoing</code></pre>
+<h3 id="advanced-chat-demo">Advanced chat demo</h3>
+<p>A more advanced chat demo which optionally uses the multiplayer mid-level abstraction and a high level multiplayer demo are available in the <a href="https://github.com/godotengine/godot-demo-projects">godot demo projects</a> under networking/websocket_chat and networking/websocket_multiplayer.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

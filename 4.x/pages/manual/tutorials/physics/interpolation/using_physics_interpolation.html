@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using physics interpolation — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-physics-interpolation">Using physics interpolation</h1>
+<p>How do we incorporate physics interpolation into a Godot game? Are there any caveats?</p>
+<p>We have tried to make the system as easy to use as possible, and many existing games will work with few changes. That said there are some situations which require special treatment, and these will be described.</p>
+<h2 id="turn-on-the-physics-interpolation-setting">Turn on the physics interpolation setting</h2>
+<p>The first step is to turn on physics interpolation in ref You can now run your game.</p>
+<p>It is likely that nothing looks hugely different, particularly if you are running physics at 60 TPS or a multiple of it. However, quite a bit more is happening behind the scenes.</p>
+<blockquote>
+<p><strong>Tip:</strong> To convert an existing game to use interpolation, it is highly recommended that you temporarily set ref to a low value such as <code>10</code>, which will make interpolation problems more obvious.</p>
+</blockquote>
+<h2 id="move-almost-all-game-logic-from-_process-to-_physics_process">Move (almost) all game logic from _process to _physics_process</h2>
+<p>The most fundamental requirement for physics interpolation (which you may be doing already) is that you should be moving and performing game logic on your objects within <code>_physics_process</code> (which runs at a physics tick) rather than <code>_process</code> (which runs on a rendered frame). This means your scripts should typically be doing the bulk of their processing within <code>_physics_process</code>, including responding to input and AI.</p>
+<p>Setting the transform of objects only within physics ticks allows the automatic interpolation to deal with transforms <em>between</em> physics ticks, and ensures the game will run the same whatever machine it is run on. As a bonus, this also reduces CPU usage if the game is rendering at high FPS, since AI logic (for example) will no longer run on every rendered frame.</p>
+<blockquote>
+<p><strong>Note:</strong> If you attempt to set the transform of interpolated objects <em>outside</em> the physics tick, the calculations for the interpolated position will be incorrect, and you will get jitter. This jitter may not be visible on your machine, but it <em>will</em> occur for some players. For this reason, setting the transform of interpolated objects should be avoided outside of the physics tick. Godot will attempt to produce warnings in the editor if this case is detected.</p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> This is only a <em>soft rule</em>. There are some occasions where you might want to teleport objects outside of the physics tick (for instance when starting a level, or respawning objects). Still, in general, you should be applying transforms from the physics tick.</p>
+</blockquote>
+<h2 id="ensure-that-all-indirect-movement-happens-during-physics-ticks">Ensure that all indirect movement happens during physics ticks</h2>
+<p>Consider that in Godot, nodes can be moved not just directly in your own scripts, but also by automatic methods such as tweening, animation, and navigation. All these methods should also have their timing set to operate on the physics tick rather than each frame ("idle"), <strong>if</strong> you are using them to move objects (<em>these methods can also be used to control properties that are not interpolated</em>).</p>
+<blockquote>
+<p><strong>Note:</strong> Also consider that nodes can be moved not just by moving themselves, but also by moving parent nodes in the ref. The movement of parents should therefore also only occur during physics ticks.</p>
+</blockquote>
+<h2 id="choose-a-physics-tick-rate">Choose a physics tick rate</h2>
+<p>When using physics interpolation, the rendering is decoupled from physics, and you can choose any value that makes sense for your game. You are no longer limited to values that are multiples of the user's monitor refresh rate (for stutter-free gameplay if the target FPS is reached).</p>
+<p>As a rough guide:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Low tick rates (10-30)</th>
+<th>Medium tick rates (30-60)</th>
+<th>High tick rates (60+)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Better CPU performance</td>
+<td>Good physics behavior in complex scenes</td>
+<td>Good with fast physics</td>
+</tr>
+<tr class="even">
+<td>Add some delay to input</td>
+<td>Good for first person games</td>
+<td>Good for racing games</td>
+</tr>
+<tr class="odd">
+<td>Simple physics behaviour</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> You can always change the tick rate as you develop, it is as simple as changing the project setting.</p>
+</blockquote>
+<h2 id="call-reset_physics_interpolation-when-teleporting-objects">Call <code>reset_physics_interpolation()</code> when teleporting objects</h2>
+<p>Most of the time, interpolation is what you want between two physics ticks. However, there is one situation in which it may <em>not</em> be what you want. That is when you are initially placing objects, or moving them to a new location. Here, you don't want a smooth motion between where the object was (e.g. the origin) and the initial position - you want an instantaneous move.</p>
+<p>The solution to this is to call the ref function. What this function does under the hood is set the internally stored <em>previous transform</em> of the object to be equal to the <em>current transform</em>. This ensures that when interpolating between these two equal transforms, there will be no movement.</p>
+<p>Even if you forget to call this, it will usually not be a problem in most situations (especially at high tick rates). This is something you can easily leave to the polishing phase of your game. The worst that will happen is seeing a streaking motion for a frame or so when you move them - you will know when you need it!</p>
+<p>There are actually two ways to use <code>reset_physics_interpolation()</code>:</p>
+<p><em>Standing start (e.g. player)</em></p>
+<ol type="1">
+<li>Set the initial transform</li>
+<li>Call <code>reset_physics_interpolation()</code></li>
+</ol>
+<p>The previous and current transforms will be identical, resulting in no initial movement.</p>
+<p><em>Moving start (e.g. bullet)</em></p>
+<ol type="1">
+<li>Set the initial transform</li>
+<li>Call <code>reset_physics_interpolation()</code></li>
+<li>Immediately set the transform expected after the first tick of motion</li>
+</ol>
+<p>The previous transform will be the starting position, and the current transform will act as though a tick of simulation has already taken place. This will immediately start moving the object, instead of having a tick delay standing still.</p>
+<blockquote>
+<p><strong>Important:</strong> Make sure you set the transform and call <code>reset_physics_interpolation()</code> in the correct order as shown above, otherwise you will see unwanted "streaking".</p>
+</blockquote>
+<h2 id="testing-and-debugging-tips">Testing and debugging tips</h2>
+<p>Even if you intend to run physics at 60 TPS, in order to thoroughly test your interpolation and get the smoothest gameplay, it is highly recommended to temporarily set the physics tick rate to a low value such as 10 TPS.</p>
+<p>The gameplay may not work perfectly, but it should enable you to more easily see cases where you should be calling ref, or where you should be using your own custom interpolation on e.g. a ref. Once you have these cases fixed, you can set the physics tick rate back to the desired setting.</p>
+<p>The other great advantage to testing at a low tick rate is you can often notice other game systems that are synchronized to the physics tick and creating glitches which you may want to work around. Typical examples include setting animation blend values, which you may decide to set in <code>_process()</code> and interpolate manually.</p>
+<blockquote>
+<p><strong>Note:</strong> In 2D, the position of visible collision shapes shown by the <code>Debug &gt; Visible Collision Shapes</code> option <strong>will</strong> take physics interpolation into account.</p>
+<p>By contrast, in 3D, the position of visible collision shapes <strong>will not</strong> take physics interpolation into account. This means the visible collision shapes can appear to move less smoothly and appear slightly in front of the object's visual representation when the object is moving. This is not a bug, but a consequence of how physics interpolation is implemented in 3D.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

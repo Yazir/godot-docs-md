@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Converting GLSL to Godot shaders — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="converting-glsl-to-godot-shaders">Converting GLSL to Godot shaders</h1>
+<p>This document explains the differences between Godot's shading language and GLSL and gives practical advice on how to migrate shaders from other sources, such as Shadertoy and The Book of Shaders, into Godot shaders.</p>
+<p>For detailed information on Godot's shading language, please refer to the ref reference.</p>
+<h2 id="glsl">GLSL</h2>
+<p>Godot uses a shading language based on GLSL with the addition of a few quality-of-life features. Accordingly, most features available in GLSL are available in Godot's shading language.</p>
+<h3 id="shader-programs">Shader programs</h3>
+<p>In GLSL, each shader uses a separate program. You have one program for the vertex shader and one for the fragment shader. In Godot, you have a single shader that contains a <code>vertex</code> and/or a <code>fragment</code> function. If you only choose to write one, Godot will supply the other.</p>
+<p>Godot allows uniform variables and functions to be shared by defining the fragment and vertex shaders in one file. In GLSL, the vertex and fragment programs cannot share variables except when varyings are used.</p>
+<h3 id="vertex-attributes">Vertex attributes</h3>
+<p>In GLSL, you can pass in per-vertex information using attributes and have the flexibility to pass in as much or as little as you want. In Godot, you have a set number of input attributes, including <code>VERTEX</code> (position), <code>COLOR</code>, <code>UV</code>, <code>UV2</code>, <code>NORMAL</code>. For a complete list, see the ref.</p>
+<h3 id="gl_position">gl_Position</h3>
+<p><code>gl_Position</code> receives the final position of a vertex specified in the vertex shader. It is specified by the user in clip space. Typically, in GLSL, the model space vertex position is passed in using a vertex attribute called <code>position</code> and you handle the conversion from model space to clip space manually.</p>
+<p>In Godot, <code>VERTEX</code> specifies the vertex position in model space at the beginning of the <code>vertex</code> function. Godot also handles the final conversion to clip space after the user-defined <code>vertex</code> function is run. If you want to skip the conversion from model to view space, you can set the <code>render_mode</code> to <code>skip_vertex_transform</code>. If you want to skip all transforms, set <code>render_mode</code> to <code>skip_vertex_transform</code> and set the <code>PROJECTION_MATRIX</code> to <code>mat4(1.0)</code> in order to nullify the final transform from view space to clip space.</p>
+<h3 id="varyings">Varyings</h3>
+<p>Varyings are a type of variable that can be passed from the vertex shader to the fragment shader. In modern GLSL (3.0 and up), varyings are defined with the <code>in</code> and <code>out</code> keywords. A variable going out of the vertex shader is defined with <code>out</code> in the vertex shader and <code>in</code> inside the fragment shader.</p>
+<h3 id="main">Main</h3>
+<p>In GLSL, each shader program looks like a self-contained C-style program. Accordingly, the main entry point is <code>main</code>. If you are copying a vertex shader, rename <code>main</code> to <code>vertex</code> and if you are copying a fragment shader, rename <code>main</code> to <code>fragment</code>.</p>
+<h3 id="constants">Constants</h3>
+<p>Global array constants are not supported in Godot 3.x. You can fake the functionality by using a uniform initialized to the value, but you will not benefit from the increased speed from using a constant.</p>
+<h3 id="macros">Macros</h3>
+<p>In keeping with its similarity to C, GLSL lets you use macros. Commonly <code>#define</code> is used to define constants or small functions. There is no straightforward way to translate defines to Godot's shading language. If it is a function that is defined, then replace with a function, and if it is a constant, then replace with a uniform. For other macros (<code>#if</code>, <code>#ifdef</code>, etc.), there is no equivalent because they run during the pre-processing stage of compilation.</p>
+<h3 id="variables">Variables</h3>
+<p>GLSL has many built-in variables that are hard-coded. These variables are not uniforms, so they are not editable from the main program.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Variable</th>
+<th>Type</th>
+<th>Equivalent</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>gl_FragColor</td>
+<td>out vec4</td>
+<td>COLOR</td>
+<td>Output color for each pixel.</td>
+</tr>
+<tr class="even">
+<td>gl_FragCoord</td>
+<td>vec4</td>
+<td>FRAGCOORD</td>
+<td>For full screen quads. For smaller quads, use UV.</td>
+</tr>
+<tr class="odd">
+<td>gl_Position</td>
+<td>vec4</td>
+<td>VERTEX</td>
+<td>Position of Vertex, output from Vertex Shader.</td>
+</tr>
+<tr class="even">
+<td>gl_PointSize</td>
+<td>float</td>
+<td>POINT_SIZE</td>
+<td>Size of Point primitive.</td>
+</tr>
+<tr class="odd">
+<td>gl_PointCoord</td>
+<td>vec2</td>
+<td>POINT_COORD</td>
+<td>Position on point when drawing Point primitives.</td>
+</tr>
+<tr class="even">
+<td>gl_FrontFacing</td>
+<td>bool</td>
+<td>FRONT_FACING</td>
+<td>True if front face of primitive.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="coordinates">Coordinates</h3>
+<p><code>gl_FragCoord</code> in GLSL and <code>FRAGCOORD</code> in the Godot shading language use the same coordinate system. If using UV in Godot, the y-coordinate will be flipped upside down.</p>
+<h3 id="precision">Precision</h3>
+<p>In GLSL, you can define the precision of a given type (float or int) at the top of the shader with the <code>precision</code> keyword. In Godot, you can set the precision of individual variables as you need by placing precision qualifiers <code>lowp</code>, <code>mediump</code>, and <code>highp</code> before the type when defining the variable. For more information, see the ref reference.</p>
+<h2 id="shadertoy">Shadertoy</h2>
+<p><a href="https://www.shadertoy.com/results?query=&amp;sort=popular&amp;from=10&amp;num=4">Shadertoy</a> is a website that makes it easy to write fragment shaders and create <a href="https://www.shadertoy.com/view/4tjGRh">pure magic</a>.</p>
+<p>Shadertoy does not give the user full control over the shader. It handles all the input and uniforms and only lets the user write the fragment shader.</p>
+<h3 id="types">Types</h3>
+<p>Shadertoy uses the webgl spec, so it runs a slightly different version of GLSL. However, it still has the regular types, including constants and macros.</p>
+<h3 id="mainimage">mainImage</h3>
+<p>The main point of entry to a Shadertoy shader is the <code>mainImage</code> function. <code>mainImage</code> has two parameters, <code>fragColor</code> and <code>fragCoord</code>, which correspond to <code>COLOR</code> and <code>FRAGCOORD</code> in Godot, respectively. These parameters are handled automatically in Godot, so you do not need to include them as parameters yourself. Anything in the <code>mainImage</code> function should be copied into the <code>fragment</code> function when porting to Godot.</p>
+<h3 id="variables-1">Variables</h3>
+<p>In order to make writing fragment shaders straightforward and easy, Shadertoy handles passing a lot of helpful information from the main program into the fragment shader for you. A few of these have no equivalents in Godot because Godot has chosen not to make them available by default. This is okay because Godot gives you the ability to make your own uniforms. For variables whose equivalents are listed as "Provide with Uniform", users are responsible for creating that uniform themselves. The description gives the reader a hint about what they can pass in as a substitute.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Variable</th>
+<th>Type</th>
+<th>Equivalent</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>fragColor</td>
+<td>out vec4</td>
+<td>COLOR</td>
+<td>Output color for each pixel.</td>
+</tr>
+<tr class="even">
+<td>fragCoord</td>
+<td>vec2</td>
+<td>FRAGCOORD.xy</td>
+<td>For full screen quads. For smaller quads, use UV.</td>
+</tr>
+<tr class="odd">
+<td>iResolution</td>
+<td>vec3</td>
+<td>1.0 / SCREEN_PIXEL_SIZE</td>
+<td>Can also pass in manually.</td>
+</tr>
+<tr class="even">
+<td>iTime</td>
+<td>float</td>
+<td>TIME</td>
+<td>Time since shader started.</td>
+</tr>
+<tr class="odd">
+<td>iTimeDelta</td>
+<td>float</td>
+<td>Provide with Uniform</td>
+<td>Time to render previous frame.</td>
+</tr>
+<tr class="even">
+<td>iFrame</td>
+<td>float</td>
+<td>Provide with Uniform</td>
+<td>Frame number.</td>
+</tr>
+<tr class="odd">
+<td>iChannelTime[4]</td>
+<td>float</td>
+<td>Provide with Uniform</td>
+<td>Time since that particular texture started.</td>
+</tr>
+<tr class="even">
+<td>iMouse</td>
+<td>vec4</td>
+<td>Provide with Uniform</td>
+<td>Mouse position in pixel coordinates.</td>
+</tr>
+<tr class="odd">
+<td>iDate</td>
+<td>vec4</td>
+<td>Provide with Uniform</td>
+<td>Current date, expressed in seconds.</td>
+</tr>
+<tr class="even">
+<td>iChannelResolution[4]</td>
+<td>vec3</td>
+<td>1.0 / TEXTURE_PIXEL_SIZE</td>
+<td>Resolution of particular texture.</td>
+</tr>
+<tr class="odd">
+<td>iChanneli</td>
+<td>Sampler2D</td>
+<td>TEXTURE</td>
+<td>Godot provides only one built-in; user can make more.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="coordinates-1">Coordinates</h3>
+<p><code>fragCoord</code> behaves the same as <code>gl_FragCoord</code> in ref and <code>FRAGCOORD</code> in Godot.</p>
+<h2 id="the-book-of-shaders">The Book of Shaders</h2>
+<p>Similar to Shadertoy, <a href="https://thebookofshaders.com">The Book of Shaders</a> provides access to a fragment shader in the web browser, with which the user may interact. The user is restricted to writing fragment shader code with a set list of uniforms passed in and with no ability to add additional uniforms.</p>
+<p>For further help on porting shaders to various frameworks generally, The Book of Shaders provides a <a href="https://thebookofshaders.com/04">page</a> on running shaders in various frameworks.</p>
+<h3 id="types-1">Types</h3>
+<p>The Book of Shaders uses the webgl spec, so it runs a slightly different version of GLSL. However, it still has the regular types, including constants and macros.</p>
+<h3 id="main-1">Main</h3>
+<p>The entry point for a Book of Shaders fragment shader is <code>main</code>, just like in GLSL. Everything written in a Book of Shaders <code>main</code> function should be copied into Godot's <code>fragment</code> function.</p>
+<h3 id="variables-2">Variables</h3>
+<p>The Book of Shaders sticks closer to plain GLSL than Shadertoy does. It also implements fewer uniforms than Shadertoy.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Variable</th>
+<th>Type</th>
+<th>Equivalent</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>gl_FragColor</td>
+<td>out vec4</td>
+<td>COLOR</td>
+<td>Output color for each pixel.</td>
+</tr>
+<tr class="even">
+<td>gl_FragCoord</td>
+<td>vec4</td>
+<td>FRAGCOORD</td>
+<td>For full screen quads. For smaller quads, use UV.</td>
+</tr>
+<tr class="odd">
+<td>u_resolution</td>
+<td>vec2</td>
+<td>1.0 / SCREEN_PIXEL_SIZE</td>
+<td>Can also pass in manually.</td>
+</tr>
+<tr class="even">
+<td>u_time</td>
+<td>float</td>
+<td>TIME</td>
+<td>Time since shader started.</td>
+</tr>
+<tr class="odd">
+<td>u_mouse</td>
+<td>vec2</td>
+<td>Provide with Uniform</td>
+<td>Mouse position in pixel coordinates.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="coordinates-2">Coordinates</h3>
+<p>The Book of Shaders uses the same coordinate system as ref.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

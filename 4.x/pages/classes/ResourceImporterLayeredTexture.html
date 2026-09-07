@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ResourceImporterLayeredTexture — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="resourceimporterlayeredtexture">ResourceImporterLayeredTexture</h1>
+<p><em>Inherits: <a href="ResourceImporter.html">ResourceImporter</a> &lt; <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Imports a 3-dimensional texture (<a href="Texture3D.html">Texture3D</a>), a <a href="Texture2DArray.html">Texture2DArray</a>, a <a href="Cubemap.html">Cubemap</a> or a <a href="CubemapArray.html">CubemapArray</a>.</p>
+<h2 id="description">Description</h2>
+<p>This imports a 3-dimensional texture, which can then be used in custom shaders, as a <a href="FogMaterial.html">FogMaterial</a> density map or as a <a href="GPUParticlesAttractorVectorField3D.html">GPUParticlesAttractorVectorField3D</a>. See also <a href="ResourceImporterTexture.html">ResourceImporterTexture</a> and <a href="ResourceImporterTextureAtlas.html">ResourceImporterTextureAtlas</a>.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/tutorials/assets_pipeline/importing_images.html">Importing images</a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="int-compresschannel_pack--0"><code>int compress/channel_pack = 0</code></h3>
+<p>Controls how color channels should be used in the imported texture.</p>
+<p><strong>sRGB Friendly:</strong>, prevents the R and RG color formats from being used, as they do not support nonlinear sRGB encoding.</p>
+<p><strong>Optimized:</strong>, allows the RG color format to be used if the texture does not use the blue channel. This reduces memory usage if the texture's blue channel can be discarded (all pixels must have a blue value of <code>0</code>).</p>
+<p><strong>Normal Map (RG Channels):</strong> This forces all layers from the texture to be imported with the RG color format, with only the red and green channels preserved. RGTC (Red-Green Texture Compression) compression is able to preserve its detail much better, while using the same amount of memory as a standard RGBA VRAM-compressed texture. This only has an effect on textures with the VRAM Compressed or Basis Universal compression modes. This mode is only available in layered textures (<a href="Cubemap.html">Cubemap</a>, <a href="CubemapArray.html">CubemapArray</a>, <a href="Texture2DArray.html">Texture2DArray</a> and <a href="Texture3D.html">Texture3D</a>).</p>
+<h3 id="int-compresshdr_compression--1"><code>int compress/hdr_compression = 1</code></h3>
+<p>Controls how VRAM compression should be performed for HDR images.</p>
+<p><strong>Disabled:</strong> Never use VRAM compression for HDR textures, regardless of whether they're opaque or transparent. Instead, the texture is converted to RGBE9995 (9-bits per channel + 5-bit exponent = 32 bits per pixel) to reduce memory usage compared to a half-float or single-precision float image format.</p>
+<p><strong>Opaque Only:</strong> Only uses VRAM compression for opaque HDR textures. This is due to a limitation of HDR formats, as there is no VRAM-compressed HDR format that supports transparency at the same time.</p>
+<p><strong>Always:</strong> Force VRAM compression even for HDR textures with an alpha channel. To perform this, the alpha channel is discarded on import.</p>
+<p><strong>Note:</strong> Only effective on Radiance HDR (<code>.hdr</code>) and OpenEXR (<code>.exr</code>) images.</p>
+<h3 id="bool-compresshigh_quality--false"><code>bool compress/high_quality = false</code></h3>
+<p>If <code>true</code>, uses BPTC compression on desktop platforms and ASTC compression on mobile platforms. When using BPTC, BC7 is used for SDR textures and BC6H is used for HDR textures.</p>
+<p>If <code>false</code>, uses the faster but lower-quality S3TC compression on desktop platforms and ETC2 on mobile/web platforms. When using S3TC, DXT1 (BC1) is used for opaque textures and DXT5 (BC3) is used for transparent or normal map (RGTC) textures.</p>
+<p>BPTC and ASTC support VRAM compression for HDR textures, but S3TC and ETC2 do not (see <code>compress/hdr_compression</code>).</p>
+<h3 id="float-compresslossy_quality--07"><code>float compress/lossy_quality = 0.7</code></h3>
+<p>The quality to use when using the <strong>Lossy</strong> compression mode. Higher values result in better quality, at the cost of larger file sizes. Lossy quality does not affect memory usage of the imported texture, only its file size on disk.</p>
+<h3 id="int-compressmode--1"><code>int compress/mode = 1</code></h3>
+<p>The compression mode to use. Each compression mode provides a different tradeoff:</p>
+<p><strong>Lossless</strong>: Original quality, high memory usage, high size on disk, fast import.</p>
+<p><strong>Lossy:</strong> Reduced quality, high memory usage, low size on disk, fast import.</p>
+<p><strong>VRAM Compressed:</strong> Reduced quality, low memory usage, low size on disk, slowest import. Only use for textures in 3D scenes, not for 2D elements.</p>
+<p><strong>VRAM Uncompressed:</strong> Original quality, high memory usage, highest size on disk, fastest import.</p>
+<p><strong>Basis Universal:</strong> Reduced quality, low memory usage, lowest size on disk, slow import. Only use for textures in 3D scenes, not for 2D elements.</p>
+<p>See <code>Compress mode &lt;../tutorials/assets_pipeline/importing_images.html#compress-mode&gt;</code>__ in the manual for more details.</p>
+<h3 id="float-compressrdo_quality_loss--00"><code>float compress/rdo_quality_loss = 0.0</code></h3>
+<p>If greater than or equal to <code>0.01</code>, enables Rate-Distortion Optimization (RDO) to reduce file size. Higher values result in smaller file sizes but lower quality.</p>
+<p><strong>Note:</strong> Enabling RDO makes encoding times significantly longer, especially when the image is large.</p>
+<p>See also <code>ProjectSettings.rendering/textures/basis_universal/rdo_dict_size</code> and <code>ProjectSettings.rendering/textures/basis_universal/zstd_supercompression_level</code> if you want to reduce the file size further.</p>
+<h3 id="int-compressuastc_level--0"><code>int compress/uastc_level = 0</code></h3>
+<p>The UASTC encoding level. Higher values result in better quality but make encoding times longer.</p>
+<h3 id="bool-mipmapsgenerate--true"><code>bool mipmaps/generate = true</code></h3>
+<p>If <code>true</code>, smaller versions of the texture are generated on import. For example, a 64×64 texture will generate 6 mipmaps (32×32, 16×16, 8×8, 4×4, 2×2, 1×1). This has several benefits:</p>
+<ul>
+<li><p>Textures will not become grainy in the distance (in 3D), or if scaled down due to <a href="Camera2D.html">Camera2D</a> zoom or <a href="CanvasItem.html">CanvasItem</a> scale (in 2D).</p></li>
+<li><p>Performance will improve if the texture is displayed in the distance, since sampling smaller versions of the original texture is faster and requires less memory bandwidth.</p></li>
+</ul>
+<p>The downside of mipmaps is that they increase memory usage by roughly 33% (for <a href="Texture2DArray.html">Texture2DArray</a>, <a href="Cubemap.html">Cubemap</a> and <a href="CubemapArray.html">CubemapArray</a>) or 14% (for <a href="Texture3D.html">Texture3D</a>).</p>
+<p>It's recommended to enable mipmaps in 3D. However, in 2D, this should only be enabled if your project visibly benefits from having mipmaps enabled. If the camera never zooms out significantly, there won't be a benefit to enabling mipmaps but memory usage will increase.</p>
+<h3 id="int-mipmapslimit---1"><code>int mipmaps/limit = -1</code></h3>
+<p>Unimplemented. This currently has no effect when changed.</p>
+<h3 id="int-slicesarrangement--1"><code>int slices/arrangement = 1</code></h3>
+<p>Controls how the cubemap's texture is internally laid out. When using high-resolution cubemaps, <strong>2×3</strong> and <strong>3×2</strong> are less prone to exceeding hardware texture size limits compared to <strong>1×6</strong> and <strong>6×1</strong>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

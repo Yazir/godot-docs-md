@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Particle system properties — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="3d-particle-system-properties">3D Particle system properties</h1>
+<h2 id="emitter-properties">Emitter properties</h2>
+<p>The checkbox next to the <code>Emitting</code> property activates and deactivates the particle system. Particles will only be processed and rendered if the box is checked. You can set this property at runtime if you want to activate or deactivate particle systems dynamically.</p>
+<p>The <code>Amount</code> property controls the maximum number of particles visible at any given time. Increase the value to spawn more particles at the cost of performance.</p>
+<p>The <code>Amount Ratio</code> property is the ratio of particles compared to the amount that will be emitted. If it's less than <code>1.0</code>, the amount of particles emitted through the lifetime will be the <code>Amount</code> * <code>Amount Ratio</code>. Changing this value while emitted doesn't affect already created particles and doesn't cause the particle system to restart. It's useful for making effects where the number of emitted particles varies over time.</p>
+<p>You can set another particle node as a <code>Sub Emitter</code>, which will be spawned as a child of each particle. See the ref section in this manual for a detailed explanation of how to add a sub-emitter to a particle system.</p>
+<h2 id="time-properties">Time properties</h2>
+<p>The <code>Lifetime</code> property controls how long each particle exists before it disappears again. It is measured in seconds. A lot of particle properties can be set to change over the particle's lifetime and blend smoothly from one value to another.</p>
+<p><code>Lifetime</code> and <code>Amount</code> are related. They determine the particle system's emission rate. Whenever you want to know how many particles are spawned per second, this is the formula you would use:</p>
+<p><span class="math display">$$Particles per second = \frac{Amount}{Lifetime}$$</span></p>
+<p>Example: Emitting 32 particles with a lifetime of 4 seconds each would mean the system emits 8 particles per second.</p>
+<p>The <code>Interp to End</code> property causes all the particles in the node to interpolate towards the end of their lifetime.</p>
+<p>If the checkbox next to the <code>One Shot</code> property is checked, the particle system will emit <code>amount</code> particles and then disable itself. It "runs" only once. This property is unchecked by default, so the system will keep emitting particles until it is disabled or destroyed manually. One-shot particles are a good fit for effects that react to a single event, like item pickups or splinters that burst away when a bullet hits a wall.</p>
+<p>The <code>Preprocess</code> property is a way to fast-forward to a point in the middle of the particle system's lifetime and start rendering from there. It is measured in seconds. A value of <code>1</code> means that when the particle system starts, it will look as if it has been running for one second already.</p>
+<p>This can be useful if you want the particle system to look like it has been active for a while even though it was just loaded into the scene. Consider the example below. Both particle systems simulate dust flying around in the area. With a preprocess value of <code>0</code>, there wouldn't be any dust for the first couple of seconds because the system has not yet emitted enough particles for the effect to become noticeable. This can be seen in the video on the left. Compare that to the video on the right where the particle system is preprocessed for <code>4</code> seconds. The dust is fully visible from the very beginning because we skipped the first four seconds of "setup" time.</p>
+<p>No preprocess (left) vs. 4 seconds of preprocess (right)</p>
+<p>You can slow down or speed up the particle system with the <code>Speed Scale</code> property. This applies to processing the data as well as rendering the particles. Set it to <code>0</code> to pause the particle system completely or set it to something like <code>2</code> to make it move twice as fast.</p>
+<p>Different speed scale values: 0.1 (left), 0.5 (middle), 1.0 (right)</p>
+<p>The <code>Explosiveness</code> property controls whether particles are emitted sequentially or simultaneously. A value of <code>0</code> means that particles emit one after the other. A value of <code>1</code> means that all <code>amount</code> particles emit at the same time, giving the effect a more "explosive" appearance.</p>
+<p>The <code>Randomness</code> property adds some randomness to the particle emission timing. When set to <code>0</code>, there is no randomness at all and the interval between the emission of one particle and the next is always the same: the particles are emitted at <em>regular</em> intervals. A <code>Randomness</code> value of <code>1</code> makes the interval completely random. You can use this property to break up some of the uniformity in your effects. When <code>Explosiveness</code> is set to <code>1</code>, this property has no effect.</p>
+<p><em>Image: Particles running at low FPS</em></p>
+<p>Interpolation off (left) vs. on (right)</p>
+<p>The <code>Fixed FPS</code> property limits how often the particle system is processed. This includes property updates as well as collision and attractors. This can improve performance a lot, especially in scenes that make heavy use of particle collision. Note that this does not change the speed at which particles move or rotate. You would use the <code>Speed Scale</code> property for that.</p>
+<p>When you set <code>Fixed FPS</code> to very low values, you will notice that the particle animation starts to look choppy. This can sometimes be desired if it fits the art direction, but most of the time, you'll want particle systems to animate smoothly. That's what the <code>Interpolate</code> property does. It blends particle properties between updates so that even a particle system running at <code>10</code> FPS appears as smooth as running at <code>60</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> When using ref, tunneling can occur if the particles move fast and colliders are thin. This can be remedied by increasing <code>Fixed FPS</code> (at a performance cost).</p>
+</blockquote>
+<h2 id="collision-properties">Collision properties</h2>
+<blockquote>
+<p><strong>See also:</strong> Setting up particle collision requires following further steps described in <code>doc_3d_particles_collision</code>.</p>
+</blockquote>
+<p>The <code>Base Size</code> property defines each particle's default collision size, which is used to check whether a particle is currently colliding with the environment. You would usually want this to be about the same size as the particle. It can make sense to increase this value for particles that are very small and move very fast to prevent them from clipping through the collision geometry.</p>
+<h2 id="drawing-properties">Drawing properties</h2>
+<p><em>Image: Particle drawing properties</em></p>
+<p>The <code>Visibility AABB</code> property defines a box around the particle system's origin. As long as any part of this box is in the camera's field of view, the particle system is visible. As soon as it leaves the camera's field of view, the particle system stops being rendered at all. You can use this property to boost performance by keeping the box as small as possible.</p>
+<p>One thing to keep in mind when you set a size for the <code>Visibility AABB</code> is that particles that are outside of its bounds disappear instantly when it leaves the camera's field of view. Particle collision will also not occur outside the <code>Visibility AABB</code>. While not technically a bug, this can have a negative effect on the visual experience.</p>
+<p>When the <code>Local Coords</code> property is checked, all particle calculations use the local coordinate system to determine things like up and down, gravity, and movement direction. Up and down, for example, would follow the particle system's or its parent node's rotation. When the property is unchecked, the global world space is used for these calculations: Down will always be -Y in world space, regardless of the particle system's rotation.</p>
+<p>Local space coordinates (left) vs. world space coordinates (right)</p>
+<p>The <code>Draw Order</code> property controls the order in which individual particles are drawn. <code>Index</code> means that they are drawn in the order of emission: particles that are spawned later are drawn on top of earlier ones. <code>Lifetime</code> means that they are drawn in the order of their remaining lifetime. <code>Reverse Lifetime</code> reverses the <code>Lifetime</code> draw order. <code>View Depth</code> means particles are drawn according to their distance from the camera: The ones closer to the camera on top of those farther away.</p>
+<p>The <code>Transform Align</code> property controls the particle's default rotation. <code>Disabled</code> means they don't align in any particular way. Instead, their rotation is determined by the values set in the process material. <code>Z-Billboard</code> means that the particles will always face the camera. This is similar to the <code>Billboard</code> property in the ref. <code>Y to Velocity</code> means that each particle's Y-axis aligns with its movement direction. This can be useful for things like bullets or arrows, where you want particles to always point "forward". <code>Z-Billboard + Y to Velocity</code> combines the previous two modes. Each particle's Z-axis will point towards the camera while its Y-axis will align with their velocity.</p>
+<h2 id="trail-properties">Trail properties</h2>
+<p><em>Image: Particle trails</em></p>
+<p>Particle trail properties</p>
+<p>The <code>Enabled</code> property controls whether particles are rendered as trails. The box needs to be checked if you want to make use of particle trails.</p>
+<p>The <code>Length Secs</code> property controls for how long a trail should be emitted. The longer this duration is, the longer the trail will be.</p>
+<p>See the ref section in this manual for a detailed explanation of how particle trails work and how to set them up.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

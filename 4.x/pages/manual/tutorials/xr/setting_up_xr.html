@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setting up XR — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="setting-up-xr">Setting up XR</h1>
+<h2 id="introduction-to-the-xr-system-in-godot">Introduction to the XR system in Godot</h2>
+<p>Godot provides a modular XR system that abstracts many of the different XR platform specifics away from the user. At the core sits the ref which acts as a central interface to the XR system that allows users to discover interfaces and interact with the components of the XR system.</p>
+<p>Each supported XR platform is implemented as an ref. A list of supported platforms can be found on the list of features page ref. Supported interfaces register themselves with the ref and can be queried with the <code>find_interface</code> method on the ref. When the desired interface is found it can be initialized by calling <code>initialize</code> on the interface.</p>
+<blockquote>
+<p><strong>Warning:</strong> A registered interface means nothing more than that the interface is available, if the interface is not supported by the host system, initialization may fail and return <code>false</code>. This can have many reasons and sadly the reasons differ from platform to platform. It can be because the user hasn't installed the required software, or that the user simply hasn't plugged in their headset. You as a developer must thus react properly on an interface failing to initialize.</p>
+</blockquote>
+<p>Due to the special requirements for output in XR, especially for head mounted devices that supply different images to each eye, the ref in Godot will override various features in the rendering system. For stand-alone devices this means the final output is handled by the ref and Godot's usual output system is disabled. For desktop XR devices that work as a second screen it is possible to dedicate a separate ref to handle the XR output, leaving the main Godot window available for displaying alternative content.</p>
+<blockquote>
+<p><strong>Note:</strong> Note that only one interface can be responsible for handling the output to an XR device, this is known as the primary interface and by default will be the first interface that is initialized. Godot currently thus only supports implementations with a single headset. It is possible, but increasingly uncommon, to have a secondary interface, for example to add tracking to an otherwise 3DOF only device.</p>
+</blockquote>
+<p>There are three XR specific node types that you will find in nearly all XR applications:</p>
+<ul>
+<li>ref represents, for all intents and purposes, the center point of your play space. That is an oversimplified statement but we'll go into more detail later. All objects tracked in physical space by the XR platform are positioned in relation to this point.</li>
+<li>ref represents the (stereo) camera that is used when rendering output for the XR device. The positioning of this node is controlled by the XR system and updated automatically using the tracking information provided by the XR platform.</li>
+<li>ref represents a controller used by the player, commonly there are two, one held in each hand. These nodes give access to various states on these controllers and send out signals when the player presses buttons on them. The positioning of this node is controlled by the XR system and updated automatically using the tracking information provided by the XR platform.</li>
+</ul>
+<p>There are other XR related nodes and there is much more to say about these three nodes, but we'll get into that later on.</p>
+<h2 id="which-renderer-to-use">Which Renderer to use</h2>
+<p>Godot has 3 renderer options for projects: Compatibility, Mobile, and Forward+. The current recommendation is to use the Mobile renderer for any desktop VR project, or any project running on a standalone headset like the Meta Quest 3. XR projects will run with the Forward+ renderer, but it isn't well optimized for XR right now compared to the other two.</p>
+<h2 id="openxr">OpenXR</h2>
+<p>OpenXR is the industry standard API that allows different XR platforms to interact with XR applications. This standard is an open standard maintained by the Khronos Group and thus aligns very well with Godot's interests. We are thus using this as the example in this introduction. Check the respective chapters for differences in other APIs.</p>
+<p>The Vulkan implementation of OpenXR is closely integrated with Vulkan, taking over part of the Vulkan system. This requires tight integration of certain core graphics features in the Vulkan renderer which are needed before the XR system is setup. This was one of the main deciding factors to include OpenXR as a core interface.</p>
+<p>This also means OpenXR needs to be enabled when Godot starts in order to set things up correctly. Check the ref setting in your project settings under <strong>XR &gt; OpenXR</strong>.</p>
+<p>You can find several other settings related to OpenXR here as well. These can't be changed while your application is running. The default settings will get us started, but for more information on what's here see <code>doc_openxr_settings</code>.</p>
+<p>You'll also need to go to <strong>XR &gt; Shaders</strong> in the project settings and check the ref box to enable them. Once you've done that click the <strong>Save &amp; Restart</strong> button.</p>
+<blockquote>
+<p><strong>Warning:</strong> Many post process effects have not yet been updated to support stereoscopic rendering. Using these will have adverse effects.</p>
+</blockquote>
+<h2 id="setting-up-the-xr-scene">Setting up the XR scene</h2>
+<p>Every XR application needs at least an ref and an ref node. Most will have two ref, one for the left hand and one for the right. Keep in mind that the camera and controller nodes should be children of the origin node. Add these nodes to a new scene and rename the controller nodes to <code>LeftHand</code> and <code>RightHand</code>, your scene should look something like this:</p>
+<p>The warning icons are expected and should go away after you configure the controllers. Select the left hand and set it up as follows:</p>
+<p>And the right hand:</p>
+<p>Right now all these nodes are on the floor, they will be positioned correctly in runtime. To help during development, it can be helpful to move the camera upwards so its <code>y</code> is set to <code>1.7</code>, and move the controller nodes to <code>-0.5, 1.0, -0.5</code> and <code>0.5, 1.0, -0.5</code> for respectively the left and right hand.</p>
+<p>Next we need to add a script to our root node. Add the following code into this script:</p>
+<pre class="gdscript"><code>extends Node3D
+
+var xr_interface: XRInterface
+
+func _ready():
+    xr_interface = XRServer.find_interface(&quot;OpenXR&quot;)
+    if xr_interface and xr_interface.is_initialized():
+        print(&quot;OpenXR initialized successfully&quot;)
+
+        # Change our main viewport to output to the HMD.
+        get_viewport().use_xr = true
+    else:
+        print(&quot;OpenXR not initialized, please check if your headset is connected&quot;)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode3D <span class="op">:</span> Node3D</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> XRInterface _xrInterface<span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        _xrInterface <span class="op">=</span> XRServer<span class="op">.</span><span class="fu">FindInterface</span><span class="op">(</span><span class="st">&quot;OpenXR&quot;</span><span class="op">);</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span><span class="op">(</span>_xrInterface <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span> _xrInterface<span class="op">.</span><span class="fu">IsInitialized</span><span class="op">())</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;OpenXR initialized successfully&quot;</span><span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Change our main viewport to output to the HMD.</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>            <span class="fu">GetViewport</span><span class="op">().</span><span class="fu">UseXR</span> <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">else</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;OpenXR not initialized, please check if your headset is connected&quot;</span><span class="op">);</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> There is no restriction to where this code is executed from. It is common to add this script to the ref node or as a ref child of the root node.</p>
+<p>The OpenXR interface is unique in that we have to start it before the project loads, hence <code>is_initialized</code> is checked here. Most interfaces require a call to their <code>initialize</code> function instead.</p>
+<p>If you wish to support multiple XR interfaces, say release a game both targeting OpenXR hardware and deploy over WebXR, you can check one after the other until a functioning interface is found.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> As OpenXR outputs the rendering result to an HMD, which often runs at a higher framerate than the monitor, Godot's V-Sync settings are ignored and V-sync will always be disabled.</p>
+<p>Instead, OpenXR perform its own frame timing to ensure a consistent framerate.</p>
+<p>Also note that by default the physics engine runs at 60Hz as well and this can result in choppy physics. You should set <code>Engine.physics_ticks_per_second</code> to a higher value.</p>
+</blockquote>
+<p>If you run your project at this point in time, everything will work but you will be in a dark world. So to finish off our starting point add a ref and a ref node to your scene. You may wish to also add a mesh instance as a child to each controller node just to temporarily visualise them. Make sure you configure a sky in your world environment.</p>
+<p>Now run your project, you should be floating somewhere in space and be able to look around.</p>
+<blockquote>
+<p><strong>Note:</strong> While traditional level switching can definitely be used with XR applications, where this scene setup is repeated in each level, most find it easier to set this up once and loading levels as a subscene. If you do switch scenes and replicate the XR setup in each one, do make sure you do not run <code>initialize</code> multiple times. The effect can be unpredictable depending on the XR interface used.</p>
+<p>For the rest of this basic tutorial series we will create a game that uses a single scene.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

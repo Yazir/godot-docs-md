@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using NavigationLinks — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-navigationlinks">Using NavigationLinks</h1>
+<p>NavigationLinks are used to connect navigation mesh polygons from ref and ref over arbitrary distances for pathfinding.</p>
+<p>NavigationLinks are also used to consider movement shortcuts in pathfinding available through interacting with gameplay objects e.g. ladders, jump pads or teleports.</p>
+<p>2D and 3D versions of NavigationJumplinks nodes are available as ref and ref respectively.</p>
+<p>Different NavigationRegions can connect their navigation meshes without the need for a NavigationLink as long as they have overlapping edges or edges that are within navigation map <code>edge_connection_margin</code>. As soon as the distance becomes too large, building valid connections becomes a problem - a problem that NavigationLinks can solve.</p>
+<p>See <code>doc_navigation_using_navigationregions</code> to learn more about the use of navigation regions. See <code>doc_navigation_connecting_navmesh</code> to learn more about how to connect navigation meshes.</p>
+<p>NavigationLinks share many properties with NavigationRegions like <code>navigation_layers</code>. NavigationLinks add a single connection between two positions over an arbitrary distance compared to NavigationRegions that add a more local traversable area with a navigation mesh resource.</p>
+<p>NavigationLinks have a <code>start_position</code> and <code>end_position</code> and can go in both directions when <code>bidirectional</code> is enabled. When placed a navigationlink connects the navigation mesh polygons closest to its <code>start_position</code> and <code>end_position</code> within search radius for pathfinding.</p>
+<p>The polygon search radius can be configured globally in the ProjectSettings under <code>navigation/2d_or_3d/default_link_connection_radius</code> or set for each navigation <strong>map</strong> individually using the <code>NavigationServer.map_set_link_connection_radius()</code> function.</p>
+<p>Both <code>start_position</code> and <code>end_position</code> have debug markers in the Editor. The arrows indicate which direction the link can be travelled across, and the visible radius of a position shows the polygon search radius. All navigation mesh polygons inside are compared and the closest is picked for the edge connection. If no valid polygon is found within the search radius the navigation link gets disabled.</p>
+<p>The link debug visuals can be changed in the Editor ref under <code>debug/shapes/navigation</code>. The visibility of the debug can also be controlled in the Editor 3D Viewport gizmo menu.</p>
+<p>A navigation link does not provide any specialized movement through the link. Instead, when an agent reaches the position of a link, game code needs to react (e.g. through area triggers) and provide means for the agent to move through the link to end up at the links other position (e.g. through teleport or animation). Without that an agent will attempt to move itself along the path of the link. You could end up with an agent walking over a bottomless pit instead of waiting for a moving platform, or walking through a teleporter and proceeding through a wall.</p>
+<h2 id="navigation-link-script-templates">Navigation link script templates</h2>
+<p>The following script uses the NavigationServer to create a new navigation link.</p>
+<pre class="gdscript"><code>extends Node2D
+
+var link_rid: RID
+var link_start_position: Vector2
+var link_end_position: Vector2
+
+func _ready() -&gt; void:
+    link_rid = NavigationServer2D.link_create()
+
+    var link_owner_id: int = get_instance_id()
+    var link_enter_cost: float = 1.0
+    var link_travel_cost: float = 1.0
+    var link_navigation_layers: int = 1
+    var link_bidirectional: bool = true
+
+    NavigationServer2D.link_set_owner_id(link_rid, link_owner_id)
+    NavigationServer2D.link_set_enter_cost(link_rid, link_enter_cost)
+    NavigationServer2D.link_set_travel_cost(link_rid, link_travel_cost)
+    NavigationServer2D.link_set_navigation_layers(link_rid, link_navigation_layers)
+    NavigationServer2D.link_set_bidirectional(link_rid, link_bidirectional)
+
+    # Enable the link and set it to the default navigation map.
+    NavigationServer2D.link_set_enabled(link_rid, true)
+    NavigationServer2D.link_set_map(link_rid, get_world_2d().get_navigation_map())
+
+    # Move the 2 link positions to their intended global positions.
+    NavigationServer2D.link_set_start_position(link_rid, link_start_position)
+    NavigationServer2D.link_set_end_position(link_rid, link_end_position)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2D <span class="op">:</span> Node2D</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Rid _linkRid<span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector2 _linkStartPosition<span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector2 _linkEndPosition<span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        _linkRid <span class="op">=</span> NavigationServer2D<span class="op">.</span><span class="fu">LinkCreate</span><span class="op">();</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">ulong</span> linkOwnerId <span class="op">=</span> <span class="fu">GetInstanceId</span><span class="op">();</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        <span class="dt">float</span> linkEnterCost <span class="op">=</span> <span class="fl">1.0f</span><span class="op">;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">float</span> linkTravelCost <span class="op">=</span> <span class="fl">1.0f</span><span class="op">;</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">uint</span> linkNavigationLayers <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">bool</span> linkBidirectional <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">LinkSetOwnerId</span><span class="op">(</span>_linkRid<span class="op">,</span> linkOwnerId<span class="op">);</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">LinkSetEnterCost</span><span class="op">(</span>_linkRid<span class="op">,</span> linkEnterCost<span class="op">);</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">LinkSetTravelCost</span><span class="op">(</span>_linkRid<span class="op">,</span> linkTravelCost<span class="op">);</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">LinkSetNavigationLayers</span><span class="op">(</span>_linkRid<span class="op">,</span> linkNavigationLayers<span class="op">);</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">LinkSetBidirectional</span><span class="op">(</span>_linkRid<span class="op">,</span> linkBidirectional<span class="op">);</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Enable the link and set it to the default navigation map.</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">LinkSetEnabled</span><span class="op">(</span>_linkRid<span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">LinkSetMap</span><span class="op">(</span>_linkRid<span class="op">,</span> <span class="fu">GetWorld2D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">);</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Move the 2 link positions to their intended global positions.</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">LinkSetStartPosition</span><span class="op">(</span>_linkRid<span class="op">,</span> _linkStartPosition<span class="op">);</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">LinkSetEndPosition</span><span class="op">(</span>_linkRid<span class="op">,</span> _linkEndPosition<span class="op">);</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="gdscript"><code>extends Node3D
+
+var link_rid: RID
+var link_start_position: Vector3
+var link_end_position: Vector3
+
+func _ready() -&gt; void:
+    link_rid = NavigationServer3D.link_create()
+
+    var link_owner_id: int = get_instance_id()
+    var link_enter_cost: float = 1.0
+    var link_travel_cost: float = 1.0
+    var link_navigation_layers: int = 1
+    var link_bidirectional: bool = true
+
+    NavigationServer3D.link_set_owner_id(link_rid, link_owner_id)
+    NavigationServer3D.link_set_enter_cost(link_rid, link_enter_cost)
+    NavigationServer3D.link_set_travel_cost(link_rid, link_travel_cost)
+    NavigationServer3D.link_set_navigation_layers(link_rid, link_navigation_layers)
+    NavigationServer3D.link_set_bidirectional(link_rid, link_bidirectional)
+
+    # Enable the link and set it to the default navigation map.
+    NavigationServer3D.link_set_enabled(link_rid, true)
+    NavigationServer3D.link_set_map(link_rid, get_world_3d().get_navigation_map())
+
+    # Move the 2 link positions to their intended global positions.
+    NavigationServer3D.link_set_start_position(link_rid, link_start_position)
+    NavigationServer3D.link_set_end_position(link_rid, link_end_position)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode3D <span class="op">:</span> Node3D</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Rid _linkRid<span class="op">;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector3 _linkStartPosition<span class="op">;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector3 _linkEndPosition<span class="op">;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        _linkRid <span class="op">=</span> NavigationServer3D<span class="op">.</span><span class="fu">LinkCreate</span><span class="op">();</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">ulong</span> linkOwnerId <span class="op">=</span> <span class="fu">GetInstanceId</span><span class="op">();</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        <span class="dt">float</span> linkEnterCost <span class="op">=</span> <span class="fl">1.0f</span><span class="op">;</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">float</span> linkTravelCost <span class="op">=</span> <span class="fl">1.0f</span><span class="op">;</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">uint</span> linkNavigationLayers <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">bool</span> linkBidirectional <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">LinkSetOwnerId</span><span class="op">(</span>_linkRid<span class="op">,</span> linkOwnerId<span class="op">);</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">LinkSetEnterCost</span><span class="op">(</span>_linkRid<span class="op">,</span> linkEnterCost<span class="op">);</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">LinkSetTravelCost</span><span class="op">(</span>_linkRid<span class="op">,</span> linkTravelCost<span class="op">);</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">LinkSetNavigationLayers</span><span class="op">(</span>_linkRid<span class="op">,</span> linkNavigationLayers<span class="op">);</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">LinkSetBidirectional</span><span class="op">(</span>_linkRid<span class="op">,</span> linkBidirectional<span class="op">);</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Enable the link and set it to the default navigation map.</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">LinkSetEnabled</span><span class="op">(</span>_linkRid<span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">LinkSetMap</span><span class="op">(</span>_linkRid<span class="op">,</span> <span class="fu">GetWorld3D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">);</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Move the 2 link positions to their intended global positions.</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">LinkSetStartPosition</span><span class="op">(</span>_linkRid<span class="op">,</span> _linkStartPosition<span class="op">);</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">LinkSetEndPosition</span><span class="op">(</span>_linkRid<span class="op">,</span> _linkEndPosition<span class="op">);</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

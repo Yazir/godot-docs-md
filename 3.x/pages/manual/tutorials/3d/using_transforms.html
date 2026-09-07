@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using 3D transforms — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-3d-transforms">Using 3D transforms</h1>
+<h2 id="introduction">Introduction</h2>
+<p>If you have never made 3D games before, working with rotations in three dimensions can be confusing at first. Coming from 2D, the natural way of thinking is along the lines of <em>"Oh, it's just like rotating in 2D, except now rotations happen in X, Y and Z"</em>.</p>
+<p>At first, this seems easy. For simple games, this way of thinking may even be enough. Unfortunately, it's often incorrect.</p>
+<p>Angles in three dimensions are most commonly referred to as "Euler Angles".</p>
+<p>Euler angles were introduced by mathematician Leonhard Euler in the early 1700s.</p>
+<p>This way of representing 3D rotations was groundbreaking at the time, but it has several shortcomings when used in game development (which is to be expected from a guy with a funny hat). The idea of this document is to explain why, as well as outlining best practices for dealing with transforms when programming 3D games.</p>
+<h2 id="problems-of-euler-angles">Problems of Euler angles</h2>
+<p>While it may seem intuitive that each axis has a rotation, the truth is that it's just not practical.</p>
+<h3 id="axis-order">Axis order</h3>
+<p>The main reason for this is that there isn't a <em>unique</em> way to construct an orientation from the angles. There isn't a standard mathematical function that takes all the angles together and produces an actual 3D rotation. The only way an orientation can be produced from angles is to rotate the object angle by angle, in an <em>arbitrary order</em>.</p>
+<p>This could be done by first rotating in <em>X</em>, then <em>Y</em> and then in <em>Z</em>. Alternatively, you could first rotate in <em>Y</em>, then in <em>Z</em> and finally in <em>X</em>. Anything works, but depending on the order, the final orientation of the object will <em>not necessarily be the same</em>. Indeed, this means that there are several ways to construct an orientation from 3 different angles, depending on <em>the order of the rotations</em>.</p>
+<p>Following is a visualization of rotation axes (in X, Y, Z order) in a gimbal (from Wikipedia). As you can see, the orientation of each axis depends on the rotation of the previous one:</p>
+<p>You may be wondering how this affects you. Let's look at a practical example:</p>
+<p>Imagine you are working on a first-person controller (e.g. an FPS game). Moving the mouse left and right controls your view angle parallel to the ground, while moving it up and down moves the player's view up and down.</p>
+<p>In this case to achieve the desired effect, rotation must be applied first in the <em>Y</em> axis ("up" in this case, since Godot uses a "Y-Up" orientation), followed by rotation in the <em>X</em> axis.</p>
+<p>If we were to apply rotation in the <em>X</em> axis first, and then in <em>Y</em>, the effect would be undesired:</p>
+<p>Depending on the type of game or effect desired, the order in which you want axis rotations to be applied may differ. Therefore, applying rotations in X, Y, and Z is not enough: you also need a <em>rotation order</em>.</p>
+<h3 id="interpolation">Interpolation</h3>
+<p>Another problem with using Euler angles is interpolation. Imagine you want to transition between two different camera or enemy positions (including rotations). One logical way to approach this is to interpolate the angles from one position to the next. One would expect it to look like this:</p>
+<p>But this does not always have the expected effect when using angles:</p>
+<p>The camera actually rotated the opposite direction!</p>
+<p>There are a few reasons this may happen:</p>
+<ul>
+<li>Rotations don't map linearly to orientation, so interpolating them does not always result in the shortest path (i.e., to go from <code>270</code> to <code>0</code> degrees is not the same as going from <code>270</code> to <code>360</code>, even though the angles are equivalent).</li>
+<li>Gimbal lock is at play (first and last rotated axis align, so a degree of freedom is lost). See <a href="https://en.wikipedia.org/wiki/Gimbal_lock">Wikipedia's page on Gimbal Lock</a> for a detailed explanation of this problem.</li>
+</ul>
+<h3 id="say-no-to-euler-angles">Say no to Euler angles</h3>
+<p>The result of all this is that you should <strong>not use</strong> the <code>rotation</code> property of <code>class_Spatial</code> nodes in Godot for games. It's there to be used mainly in the editor, for coherence with the 2D engine, and for simple rotations (generally just one axis, or even two in limited cases). As much as you may be tempted, don't use it.</p>
+<p>Instead, there is a better way to solve your rotation problems.</p>
+<h2 id="introducing-transforms">Introducing transforms</h2>
+<p>Godot uses the <code>class_Transform</code> datatype for orientations. Each <code>class_Spatial</code> node contains a <code>transform</code> property which is relative to the parent's transform, if the parent is a Spatial-derived type.</p>
+<p>It is also possible to access the world coordinate transform via the <code>global_transform</code> property.</p>
+<p>A transform has a <code>class_Basis</code> (transform.basis sub-property), which consists of three <code>class_Vector3</code> vectors. These are accessed via the <code>transform.basis</code> property and can be accessed directly by <code>transform.basis.x</code>, <code>transform.basis.y</code>, and <code>transform.basis.z</code>. Each vector points in the direction its axis has been rotated, so they effectively describe the node's total rotation. The scale (as long as it's uniform) can also be inferred from the length of the axes. A <em>basis</em> can also be interpreted as a 3x3 matrix and used as <code>transform.basis[x][y]</code>.</p>
+<p>A default basis (unmodified) is akin to:</p>
+<pre class="gdscript"><code>var basis = Basis()
+# Contains the following default values:
+basis.x = Vector3(1, 0, 0) # Vector pointing along the X axis
+basis.y = Vector3(0, 1, 0) # Vector pointing along the Y axis
+basis.z = Vector3(0, 0, 1) # Vector pointing along the Z axis</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Due to technical limitations on structs in C# the default</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">// constructor will contain zero values for all fields.</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> defaultBasis <span class="op">=</span> <span class="kw">new</span> <span class="fu">Basis</span><span class="op">();</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>defaultBasis<span class="op">);</span> <span class="co">// prints: ((0, 0, 0), (0, 0, 0), (0, 0, 0))</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Instead we can use the Identity property.</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> identityBasis <span class="op">=</span> Basis<span class="op">.</span><span class="fu">Identity</span><span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>identityBasis<span class="op">.</span><span class="fu">x</span><span class="op">);</span> <span class="co">// prints: (1, 0, 0)</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>identityBasis<span class="op">.</span><span class="fu">y</span><span class="op">);</span> <span class="co">// prints: (0, 1, 0)</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>identityBasis<span class="op">.</span><span class="fu">z</span><span class="op">);</span> <span class="co">// prints: (0, 0, 1)</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">// The Identity basis is equivalent to:</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> basis <span class="op">=</span> <span class="kw">new</span> <span class="fu">Basis</span><span class="op">(</span>Vector3<span class="op">.</span><span class="fu">Right</span><span class="op">,</span> Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span> Vector3<span class="op">.</span><span class="fu">Back</span><span class="op">);</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>basis<span class="op">);</span> <span class="co">// prints: ((1, 0, 0), (0, 1, 0), (0, 0, 1))</span></span></code></pre></div>
+<p>This is also an analog of a 3x3 identity matrix.</p>
+<p>Following the OpenGL convention, <code>X</code> is the <em>Right</em> axis, <code>Y</code> is the <em>Up</em> axis and <code>Z</code> is the <em>Forward</em> axis.</p>
+<p>Together with the <em>basis</em>, a transform also has an <em>origin</em>. This is a <em>Vector3</em> specifying how far away from the actual origin <code>(0, 0, 0)</code> this transform is. Combining the <em>basis</em> with the <em>origin</em>, a <em>transform</em> efficiently represents a unique translation, rotation, and scale in space.</p>
+<p>One way to visualize a transform is to look at an object's 3D gizmo while in "local space" mode.</p>
+<p>The gizmo's arrows show the <code>X</code>, <code>Y</code>, and <code>Z</code> axes (in red, green, and blue respectively) of the basis, while the gizmo's center is at the object's origin.</p>
+<p>For more information on the mathematics of vectors and transforms, please read the <code>doc_vector_math</code> tutorials.</p>
+<h3 id="manipulating-transforms">Manipulating transforms</h3>
+<p>Of course, transforms are not as straightforward to manipulate as angles and have problems of their own.</p>
+<p>It is possible to rotate a transform, either by multiplying its basis by another (this is called accumulation), or by using the rotation methods.</p>
+<pre class="gdscript"><code>var axis = Vector3(1, 0, 0) # Or Vector3.RIGHT
+var rotation_amount = 0.1
+# Rotate the transform around the X axis by 0.1 radians.
+transform.basis = Basis(axis, rotation_amount) * transform.basis
+# shortened
+transform.basis = transform.basis.rotated(axis, rotation_amount)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>Vector3 axis <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span> <span class="co">// Or Vector3.Right</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> rotationAmount <span class="op">=</span> <span class="fl">0.1f</span><span class="op">;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Rotate the transform around the X axis by 0.1 radians.</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>transform<span class="op">.</span><span class="fu">basis</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">Basis</span><span class="op">(</span>axis<span class="op">,</span> rotationAmount<span class="op">)</span> <span class="op">*</span> transform<span class="op">.</span><span class="fu">basis</span><span class="op">;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">// shortened</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>transform<span class="op">.</span><span class="fu">basis</span> <span class="op">=</span> transform<span class="op">.</span><span class="fu">basis</span><span class="op">.</span><span class="fu">Rotated</span><span class="op">(</span>axis<span class="op">,</span> rotationAmount<span class="op">);</span></span></code></pre></div>
+<p>A method in Spatial simplifies this:</p>
+<pre class="gdscript"><code># Rotate the transform around the X axis by 0.1 radians.
+rotate(Vector3(1, 0, 0), 0.1)
+# shortened
+rotate_x(0.1)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Rotate the transform around the X axis by 0.1 radians.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Rotate</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span> <span class="fl">0.1f</span><span class="op">);</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">// shortened</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="fu">RotateX</span><span class="op">(</span><span class="fl">0.1f</span><span class="op">);</span></span></code></pre></div>
+<p>This rotates the node relative to the parent node.</p>
+<p>To rotate relative to object space (the node's own transform), use the following:</p>
+<pre class="gdscript"><code># Rotate around the object&#39;s local X axis by 0.1 radians.
+rotate_object_local(Vector3(1, 0, 0), 0.1)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Rotate around the object&#39;s local X axis by 0.1 radians.</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">RotateObjectLocal</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span> <span class="fl">0.1f</span><span class="op">);</span></span></code></pre></div>
+<h3 id="precision-errors">Precision errors</h3>
+<p>Doing successive operations on transforms will result in a loss of precision due to floating-point error. This means the scale of each axis may no longer be exactly <code>1.0</code>, and they may not be exactly <code>90</code> degrees from each other.</p>
+<p>If a transform is rotated every frame, it will eventually start deforming over time. This is unavoidable.</p>
+<p>There are two different ways to handle this. The first is to <em>orthonormalize</em> the transform after some time (maybe once per frame if you modify it every frame):</p>
+<pre class="gdscript"><code>transform = transform.orthonormalized()</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>transform <span class="op">=</span> transform<span class="op">.</span><span class="fu">Orthonormalized</span><span class="op">();</span></span></code></pre></div>
+<p>This will make all axes have <code>1.0</code> length again and be <code>90</code> degrees from each other. However, any scale applied to the transform will be lost.</p>
+<p>It is recommended you not scale nodes that are going to be manipulated; scale their children nodes instead (such as MeshInstance). If you absolutely must scale the node, then re-apply it at the end:</p>
+<pre class="gdscript"><code>transform = transform.orthonormalized()
+transform = transform.scaled(scale)</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>transform <span class="op">=</span> transform<span class="op">.</span><span class="fu">Orthonormalized</span><span class="op">();</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>transform <span class="op">=</span> transform<span class="op">.</span><span class="fu">Scaled</span><span class="op">(</span>scale<span class="op">);</span></span></code></pre></div>
+<h3 id="obtaining-information">Obtaining information</h3>
+<p>You might be thinking at this point: <strong>"Ok, but how do I get angles from a transform?"</strong>. The answer again is: you don't. You must do your best to stop thinking in angles.</p>
+<p>Imagine you need to shoot a bullet in the direction your player is facing. Just use the forward axis (commonly <code>Z</code> or <code>-Z</code>).</p>
+<pre class="gdscript"><code>bullet.transform = transform
+bullet.speed = transform.basis.z * BULLET_SPEED</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>bullet<span class="op">.</span><span class="fu">Transform</span> <span class="op">=</span> transform<span class="op">;</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>bullet<span class="op">.</span><span class="fu">LinearVelocity</span> <span class="op">=</span> transform<span class="op">.</span><span class="fu">basis</span><span class="op">.</span><span class="fu">z</span> <span class="op">*</span> BulletSpeed<span class="op">;</span></span></code></pre></div>
+<p>Is the enemy looking at the player? Use the dot product for this (see the <code>doc_vector_math</code> tutorial for an explanation of the dot product):</p>
+<pre class="gdscript"><code># Get the direction vector from player to enemy
+var direction = enemy.transform.origin - player.transform.origin
+if direction.dot(enemy.transform.basis.z) &gt; 0:
+    enemy.im_watching_you(player)</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Get the direction vector from player to enemy</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>Vector3 direction <span class="op">=</span> enemy<span class="op">.</span><span class="fu">Transform</span><span class="op">.</span><span class="fu">origin</span> <span class="op">-</span> player<span class="op">.</span><span class="fu">Transform</span><span class="op">.</span><span class="fu">origin</span><span class="op">;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>direction<span class="op">.</span><span class="fu">Dot</span><span class="op">(</span>enemy<span class="op">.</span><span class="fu">Transform</span><span class="op">.</span><span class="fu">basis</span><span class="op">.</span><span class="fu">z</span><span class="op">)</span> <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    enemy<span class="op">.</span><span class="fu">ImWatchingYou</span><span class="op">(</span>player<span class="op">);</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Strafe left:</p>
+<pre class="gdscript"><code># Remember that +X is right
+if Input.is_action_pressed(&quot;strafe_left&quot;):
+    translate_object_local(-transform.basis.x)</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Remember that +X is right</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;strafe_left&quot;</span><span class="op">))</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">TranslateObjectLocal</span><span class="op">(-</span>Transform<span class="op">.</span><span class="fu">basis</span><span class="op">.</span><span class="fu">x</span><span class="op">);</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Jump:</p>
+<pre class="gdscript"><code># Keep in mind Y is up-axis
+if Input.is_action_just_pressed(&quot;jump&quot;):
+    velocity.y = JUMP_SPEED
+
+velocity = move_and_slide(velocity)</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Keep in mind Y is up-axis</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionJustPressed</span><span class="op">(</span><span class="st">&quot;jump&quot;</span><span class="op">))</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    velocity<span class="op">.</span><span class="fu">y</span> <span class="op">=</span> JumpSpeed<span class="op">;</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>velocity <span class="op">=</span> <span class="fu">MoveAndSlide</span><span class="op">(</span>velocity<span class="op">);</span></span></code></pre></div>
+<p>All common behaviors and logic can be done with just vectors.</p>
+<h3 id="setting-information">Setting information</h3>
+<p>There are, of course, cases where you want to set information to a transform. Imagine a first person controller or orbiting camera. Those are definitely done using angles, because you <em>do want</em> the transforms to happen in a specific order.</p>
+<p>For such cases, keep the angles and rotations <em>outside</em> the transform and set them every frame. Don't try to retrieve and reuse them because the transform is not meant to be used this way.</p>
+<p>Example of looking around, FPS style:</p>
+<pre class="gdscript"><code># accumulators
+var rot_x = 0
+var rot_y = 0
+
+func _input(event):
+    if event is InputEventMouseMotion and event.button_mask &amp; 1:
+        # modify accumulated mouse rotation
+        rot_x += event.relative.x * LOOKAROUND_SPEED
+        rot_y += event.relative.y * LOOKAROUND_SPEED
+        transform.basis = Basis() # reset rotation
+        rotate_object_local(Vector3(0, 1, 0), rot_x) # first rotate in Y
+        rotate_object_local(Vector3(1, 0, 0), rot_y) # then rotate in X</code></pre>
+<div class="sourceCode" id="cb22"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// accumulators</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">float</span> _rotationX <span class="op">=</span> <span class="dv">0</span>f<span class="op">;</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">float</span> _rotationY <span class="op">=</span> <span class="dv">0</span>f<span class="op">;</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Input</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventMouseMotion mouseMotion<span class="op">)</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// modify accumulated mouse rotation</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>        _rotationX <span class="op">+=</span> mouseMotion<span class="op">.</span><span class="fu">Relative</span><span class="op">.</span><span class="fu">x</span> <span class="op">*</span> LookAroundSpeed<span class="op">;</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>        _rotationY <span class="op">+=</span> mouseMotion<span class="op">.</span><span class="fu">Relative</span><span class="op">.</span><span class="fu">y</span> <span class="op">*</span> LookAroundSpeed<span class="op">;</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// reset rotation</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>        Transform transform <span class="op">=</span> Transform<span class="op">;</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>        transform<span class="op">.</span><span class="fu">basis</span> <span class="op">=</span> Basis<span class="op">.</span><span class="fu">Identity</span><span class="op">;</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>        Transform <span class="op">=</span> transform<span class="op">;</span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">RotateObjectLocal</span><span class="op">(</span>Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span> _rotationX<span class="op">);</span> <span class="co">// first rotate about Y</span></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>        <span class="fu">RotateObjectLocal</span><span class="op">(</span>Vector3<span class="op">.</span><span class="fu">Right</span><span class="op">,</span> _rotationY<span class="op">);</span> <span class="co">// then rotate about X</span></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>As you can see, in such cases it's even simpler to keep the rotation outside, then use the transform as the <em>final</em> orientation.</p>
+<h3 id="interpolating-with-quaternions">Interpolating with quaternions</h3>
+<p>Interpolating between two transforms can efficiently be done with quaternions. More information about how quaternions work can be found in other places around the Internet. For practical use, it's enough to understand that pretty much their main use is doing a closest path interpolation. As in, if you have two rotations, a quaternion will smoothly allow interpolation between them using the closest axis.</p>
+<p>Converting a rotation to quaternion is straightforward.</p>
+<pre class="gdscript"><code># Convert basis to quaternion, keep in mind scale is lost
+var a = Quat(transform.basis)
+var b = Quat(transform2.basis)
+# Interpolate using spherical-linear interpolation (SLERP).
+var c = a.slerp(b,0.5) # find halfway point between a and b
+# Apply back
+transform.basis = Basis(c)</code></pre>
+<div class="sourceCode" id="cb24"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Convert basis to quaternion, keep in mind scale is lost</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> a <span class="op">=</span> transform<span class="op">.</span><span class="fu">basis</span><span class="op">.</span><span class="fu">Quat</span><span class="op">();</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> b <span class="op">=</span> transform2<span class="op">.</span><span class="fu">basis</span><span class="op">.</span><span class="fu">Quat</span><span class="op">();</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Interpolate using spherical-linear interpolation (SLERP).</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> c <span class="op">=</span> a<span class="op">.</span><span class="fu">Slerp</span><span class="op">(</span>b<span class="op">,</span> <span class="fl">0.5f</span><span class="op">);</span> <span class="co">// find halfway point between a and b</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Apply back</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>transform<span class="op">.</span><span class="fu">basis</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">Basis</span><span class="op">(</span>c<span class="op">);</span></span></code></pre></div>
+<p>The <code>class_Quat</code> type reference has more information on the datatype (it can also do transform accumulation, transform points, etc., though this is used less often). If you interpolate or apply operations to quaternions many times, keep in mind they need to be eventually normalized. Otherwise, they will also suffer from numerical precision errors.</p>
+<p>Quaternions are useful when doing camera/path/etc. interpolations, as the result will always be correct and smooth.</p>
+<h2 id="transforms-are-your-friend">Transforms are your friend</h2>
+<p>For most beginners, getting used to working with transforms can take some time. However, once you get used to them, you will appreciate their simplicity and power.</p>
+<p>Don't hesitate to ask for help on this topic in any of Godot's <a href="https://godotengine.org/community">online communities</a> and, once you become confident enough, please help others!</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

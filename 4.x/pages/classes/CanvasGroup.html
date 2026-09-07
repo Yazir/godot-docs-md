@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CanvasGroup — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="canvasgroup">CanvasGroup</h1>
+<p><em>Inherits: <a href="Node2D.html">Node2D</a> &lt; <a href="CanvasItem.html">CanvasItem</a> &lt; <a href="Node.html">Node</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Merges several 2D nodes into a single draw operation.</p>
+<h2 id="description">Description</h2>
+<p>Child <a href="CanvasItem.html">CanvasItem</a> nodes of a <strong>CanvasGroup</strong> are drawn as a single object. It allows to e.g. draw overlapping translucent 2D nodes without causing the overlapping sections to be more opaque than intended (set the <code>CanvasItem.self_modulate</code> property on the <strong>CanvasGroup</strong> to achieve this effect).</p>
+<p><strong>Note:</strong> The <strong>CanvasGroup</strong> uses a custom shader to read from the backbuffer to draw its children. Assigning a <a href="Material.html">Material</a> to the <strong>CanvasGroup</strong> overrides the built-in shader. To duplicate the behavior of the built-in shader in a custom <a href="Shader.html">Shader</a>, use the following:</p>
+<pre class="gdscript"><code>shader_type canvas_item;
+render_mode unshaded;
+
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
+
+void fragment() {
+    vec4 c = textureLod(screen_texture, SCREEN_UV, 0.0);
+
+    if (c.a &gt; 0.0001) {
+        c.rgb /= c.a;
+    }
+
+    COLOR *= c;
+}</code></pre>
+<p><strong>Note:</strong> Since <strong>CanvasGroup</strong> and <code>CanvasItem.clip_children</code> both utilize the backbuffer, children of a <strong>CanvasGroup</strong> who have their <code>CanvasItem.clip_children</code> set to anything other than <code>CanvasItem.CLIP_CHILDREN_DISABLED</code> will not function correctly.</p>
+<h2 id="properties">Properties</h2>
+<h3 id="float-clear_margin--100"><code>float clear_margin = 10.0</code></h3>
+<ul>
+<li>Setter: <code>set_clear_margin(value: float)</code></li>
+<li>Getter: <code>get_clear_margin()</code></li>
+</ul>
+<p>Sets the size of the margin used to expand the clearing rect of this <strong>CanvasGroup</strong>. This expands the area of the backbuffer that will be used by the <strong>CanvasGroup</strong>. A smaller margin will reduce the area of the backbuffer used which can increase performance, however if <code>use_mipmaps</code> is enabled, a small margin may result in mipmap errors at the edge of the <strong>CanvasGroup</strong>. Accordingly, this should be left as small as possible, but should be increased if artifacts appear along the edges of the canvas group.</p>
+<h3 id="float-fit_margin--100"><code>float fit_margin = 10.0</code></h3>
+<ul>
+<li>Setter: <code>set_fit_margin(value: float)</code></li>
+<li>Getter: <code>get_fit_margin()</code></li>
+</ul>
+<p>Sets the size of a margin used to expand the drawable rect of this <strong>CanvasGroup</strong>. The size of the <strong>CanvasGroup</strong> is determined by fitting a rect around its children then expanding that rect by <code>fit_margin</code>. This increases both the backbuffer area used and the area covered by the <strong>CanvasGroup</strong> both of which can reduce performance. This should be kept as small as possible and should only be expanded when an increased size is needed (e.g. for custom shader effects).</p>
+<h3 id="bool-use_mipmaps--false"><code>bool use_mipmaps = false</code></h3>
+<ul>
+<li>Setter: <code>set_use_mipmaps(value: bool)</code></li>
+<li>Getter: <code>is_using_mipmaps()</code></li>
+</ul>
+<p>If <code>true</code>, calculates mipmaps for the backbuffer before drawing the <strong>CanvasGroup</strong> so that mipmaps can be used in a custom <a href="ShaderMaterial.html">ShaderMaterial</a> attached to the <strong>CanvasGroup</strong>. Generating mipmaps has a performance cost so this should not be enabled unless required.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nodes and terminology — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="nodes-and-terminology">Nodes and terminology</h1>
+<p>Before continuing, it must be noted that the <em>Node</em> terminology needs to be used with care. When referring to <em>Visual Script Nodes</em> (or generally <em>Nodes</em>) this text will refer to the little boxes you connect with lines, which are part of a graph. When referring to <em>Scene Nodes</em>, it is implied that the elements that make up a Scene are being referred, which are part of a tree. Their naming is similar but their function is different. When referring to <em>Node</em> here, it will be implied that a <em>Visual Script Node</em> is referred to unless indicated otherwise.</p>
+<h2 id="node-properties">Node properties</h2>
+<p>Like in most visual scripting implementations, each node has editable properties. In Godot, though, we try to avoid bloating the nodes with editable controls for the sake of readability.</p>
+<p>Nodes still display the required information as text, but editing is done via the <em>Inspector</em>. To edit them, select any node and edit its properties in the <em>Inspector</em>.</p>
+<h2 id="ports-and-connections">Ports and connections</h2>
+<p>Programming in Godot Visual Scripting is done via <em>Nodes</em> and <em>Port Connections</em> inside each function.</p>
+<h3 id="ports">Ports</h3>
+<p>Nodes in Godot Visual Scripting have <em>Ports</em>. These are endpoints that appear to the left and right of nodes and which can be used to make <em>Connections</em>: There are two types of <em>Ports</em>: <em>Sequence</em> and <em>Data</em>.</p>
+<p><em>Sequence Ports</em> indicate the order in which operations are executed. Typically when a <em>Node</em> is done processing, it will go to the next node from one of the ports at the right. If nothing is connected, the function may end, or another output <em>Sequence Port</em> might be tried (this depends on the node). Thanks to this, you can follow the logic flow within a function by following the white lines. Not every <em>Node</em> has <em>Sequence Ports</em>. In fact, most do not.</p>
+<p><em>Data Ports</em> ports contain typed values. Types can be any regular Godot types, such as a boolean, an integer, a string, a Vector3, an array, any Object or Scene Node, etc. A <em>Data Port</em> on the right side of a node is considered an output, while, a port on the left side is an input. Connecting them allows information to flow to the next node.</p>
+<p>Not all <em>Data Port</em> types are compatible and will allow connections, though. Pay special attention to colors and icons, as each type has a different representation:</p>
+<h3 id="connections">Connections</h3>
+<p>Connecting is a relatively simple process. Drag an <em>Output Port</em> towards an <em>Input Port</em>.</p>
+<p>Disconnecting takes a bit more practice. Disconnecting in <em>Data Ports</em> happens by dragging the <em>Input</em> away, while for <em>Sequence Ports</em>, this happens by dragging the <em>Output</em> away.</p>
+<p>This may seem strange at first, but it happens because <em>Data Ports</em> are 1:N (A single output port can connect to many inputs), while <em>Sequence Ports</em> are N:1 (Many sequence outputs can be connected to a single input).</p>
+<p>Connecting to empty space (drag to connect but unpress over empty space) is also context sensitive, it will supply a list of most common operations. For sequences, it will be conditional nodes:</p>
+<p>While, for data, a contextual set/get/call menu will open:</p>
+<h2 id="adding-nodes">Adding nodes</h2>
+<p>Finally! We got to the fun part! But, before explaining in more detail what each type of node does, let's take a short look at how nodes are most commonly added and dealt with.</p>
+<h3 id="accessing-scene-nodes">Accessing scene nodes</h3>
+<p>One of the most common tasks is accessing Scene Tree Nodes (again, not to mistake with <em>Visual Script Nodes</em>). Dragging from the Scene Tree and dropping into the canvas will ask you to <em>call a method</em> (sometimes referred to as <em>member function</em>) on this node.</p>
+<p>While accessing properties is desired in most cases (more on that below), sometimes <em>calling methods</em> can be useful too. Methods execute specific actions on objects. In the above case, the mouse pointer can be warped to a position in local coordinates to the control. Another common use case is queueing a node for deletion, which is done with the <em>queue_free</em> method.</p>
+<p>Care must be taken that this only works if the scene being edited contains your <em>Visual Script</em> in one of the nodes! Otherwise, a warning will be shown.</p>
+<h3 id="accessing-scene-node-properties">Accessing scene node properties</h3>
+<p>This is the most common way to edit <em>Scene Nodes</em> in Visual Scripting. Select a <em>Scene Node</em> from the <em>Scene Tree</em>, go to the Inspector, find <em>the Name</em> of the property you want to edit (hint, <em>not</em> the value!) and drag it to the canvas:</p>
+<p>The result is that this value can be changed from your script by writing to a <em>Data Port</em>.</p>
+<p>If instead reading this value is desired, drag the node again but hold <code>Ctrl</code> (or <code>Cmd</code> on macOS). This will create a getter:</p>
+<p>In this case, the value can be read from a <em>Data Port</em>.</p>
+<h3 id="variables">Variables</h3>
+<p>Variables are memory containers local to the script which can hold a value. This value can be read from any of the functions of the script or from other scripts via the method described in the previous step.</p>
+<p>To add a Variable, push the "+" button on the <em>Variables</em> section of the Members panel. Double-click the new variable to rename it:</p>
+<p>Right-clicking the variable allows you to configure its properties:</p>
+<p>As it can be seen above, the type and initial value of the variable can be changed, as well as some property hints. Ticking the "Export" option makes the variable visible in the Inspector when selecting the node. This also makes it available to other scripts via the method described in the previous step.</p>
+<p>To use the variable in the script, simply drag it to the canvas to create a getter:</p>
+<p>Likewise, hold <code>Ctrl</code> (or <code>Cmd</code> on macOS) to drop a setter:</p>
+<h3 id="signals">Signals</h3>
+<p>It is also possible to create your own signals in a script and use them. For this, do the same steps you did for variables in the previous step, except for <em>Signals</em>:</p>
+<p>A signal can also be edited via the right-click menu to customize its arguments:</p>
+<p>The signal you have created will appear in the Inspector, along with the built-in node signals. This allows you to connect it from another script from another <em>Scene Node</em>:</p>
+<p>Finally, to emit the signal, simply drag it to the canvas:</p>
+<p>Remember that emitting a signal is a sequenced operation, so it must come from a Sequence port.</p>
+<h2 id="adding-more-nodes">Adding more nodes</h2>
+<p>Now that the basics are covered, let's discuss the large amount of utility nodes available for your canvas! Below the member panel, exists the list of all available node types:</p>
+<p>Pressing <code>Ctrl + F</code> (or <code>Cmd + F</code> on macOS) allows you to search the list.</p>
+<p>Any of them can be dragged to the scene. Unlike nodes (e.g. dragging a property from the Inspector sets the context to the node being edited automatically), these are added without any "contextual" information, so this has to be done manually.</p>
+<p>Remember that you can check the class reference for what each node does, as they are documented there. That mentioned, a brief overview of node types follows:</p>
+<h3 id="constants">Constants</h3>
+<p>Constant nodes are nodes that provide values that, while not changing over time, can be useful as reference values. Most of the time they are integer or float.</p>
+<p>The first one is "Constant", which allows you to select any value of any type as constant, from an integer (42) to a String ("Hello!"). In general, this node is not used that often because of default input values in <em>Data Ports</em>, but it's good to know it exists.</p>
+<p>The second is the GlobalConstant node, which contains a long list of constants for global types in Godot. In there you can find some useful constants to refer to key names, joystick or mouse buttons, etc.</p>
+<p>The third one is MathConstant, which provides typical mathematical constants, such as PI, E, etc.</p>
+<h3 id="data">Data</h3>
+<p>Data nodes deal with all sorts of access to information. Any information in Godot is accessed via these nodes, so they are some of the most important ones to use and pretty diverse.</p>
+<p>There are many types of nodes of interest here, so a short attempt to describe them will follow:</p>
+<h4 id="action">Action</h4>
+<p>Action nodes are vital when dealing with input from a device. You can read more about actions in the (@TODO ACTION TUTE LINK). In the following example below, the control is moved to the right when the "move_right" action is pressed.</p>
+<h4 id="engine-singleton">Engine Singleton</h4>
+<p>Engine singletons are global interfaces (meaning they can be accessed without a reference; unlike Scene Nodes, they are always available). They have several purposes, but in general, they are useful for low-level access or OS-related access.</p>
+<p>Remember that dragging a connection to empty space will help you call functions or set/get properties on these:</p>
+<h4 id="local-variables">Local Variables</h4>
+<p>These are nodes you can use as temporary storage for your graphs. Make sure they all have the same name and type when using them and they will reference the same piece of memory.</p>
+<p>As it can be seen above, there are two nodes available: A simple getter, and a sequenced setter (setting requires a sequence port).</p>
+<h4 id="scene-node">Scene Node</h4>
+<p>This is just a reference to a node in the tree, but it's easier to use this node by dragging the actual node from the scene tree to the canvas (this will create it and configure it).</p>
+<h4 id="self">Self</h4>
+<p>In some rare occasions, it may be desired to pass this Scene Node as argument. It can be used to call functions and set/get properties, or drag nodes (or event the node itself that has the script) from the Scene Tree to the canvas for this.</p>
+<h4 id="scenetree">SceneTree</h4>
+<p>This node is similar to the Singleton node because it references the SceneTree, which contains the active scene. SceneTree, however, only works when the node is sitting in the scene and active, otherwise accessing it will return an error.</p>
+<p>SceneTree allows for many low-level things, like setting stretch options, calling groups, make timers, or even load another scene. It's a good class to get familiar with.</p>
+<h4 id="preload">Preload</h4>
+<p>This does the same function as preload() in GDScript. It maintains this resource loaded and ready to use. Rather than instancing the node, it's simpler to drag the desired resource from the filesystem dock to the canvas.</p>
+<h4 id="resource-path">Resource Path</h4>
+<p>This node is a simple helper to get a string with a path to a resource you can pick. It's useful in functions that load things from disk.</p>
+<h4 id="comment">Comment</h4>
+<p>A Comment node works as a node you can resize to put around other nodes. It will not try to get focus or be brought to top when selecting it. It can also be used to write text on it.</p>
+<h3 id="flow-control">Flow Control</h3>
+<p>Flow control nodes allow the execution to take different branches, usually depending on a given condition.</p>
+<h4 id="condition">Condition</h4>
+<p>This is a simple node that checks a bool port. If <code>true</code>, it will go via the "true" sequence port. If <code>false</code>, the second. After going for either of them, it goes via the "done" port. Leaving sequence ports disconnected is fine if not all of them are used.</p>
+<h4 id="iterator">Iterator</h4>
+<p>Some data types in Godot (ie, arrays, dictionaries) are iterable. This means that a bit of code can run for each element that it has.</p>
+<p>The Iterator node goes through all elements and, for each of them, it goes via the "each" sequence port, making the element available in the "elem" data port.</p>
+<p>When done, it goes via the "exit" sequence port.</p>
+<h4 id="return">Return</h4>
+<p>Some functions can return values. In general for virtual ones, Godot will add the Return node for you. A return node forces the function to end.</p>
+<h4 id="sequence">Sequence</h4>
+<p>This node is useful mostly for organizing your graph. It calls its sequence ports in order.</p>
+<h4 id="typecast">TypeCast</h4>
+<p>This is a useful and commonly used node. You can use it to cast arguments or other objects to the type you desire. Afterwards, you can even drag the object output to get full completion.</p>
+<p>It is also possible to cast to a script, which will allow complete script properties and functions:</p>
+<h4 id="switch">Switch</h4>
+<p>The Switch node is similar to the Condition node, but it matches many values at the same time.</p>
+<h4 id="while">While</h4>
+<p>This is a more primitive form of iteration. "repeat" sequence output will be called as long as the condition in the "cond" data port is met.</p>
+<h3 id="functions">Functions</h3>
+<p>Functions are simple helpers, most of the time deterministic. They take some arguments as input and return an output. They are almost never sequenced.</p>
+<h4 id="built-in">Built-In</h4>
+<p>There is a list of built-in helpers. The list is almost identical to the one from ref. Most of them are mathematical functions, but others can be useful helpers. Make sure to take a look at the list at some point.</p>
+<h4 id="by-type">By Type</h4>
+<p>Those are the methods available to basic types. For example, if you want a dot-product, you can search for "dot" instead of the Vector3 category. In most cases just search the list of nodes, it should be faster.</p>
+<h4 id="call">Call</h4>
+<p>This is the generic calling node. It is rarely used directly but by dragging to empty space on an already configured node.</p>
+<h4 id="constructors">Constructors</h4>
+<p>These are all the functions needed to create Godot basic datatypes. For example, If you need to create a Vector3 out of 3 floats, a constructor must be used.</p>
+<h4 id="destructor">Destructor</h4>
+<p>This is the opposite to Constructor, it allows to separate any basic type (ie, Vector3) into its sub-elements.</p>
+<h4 id="emit-signal">Emit Signal</h4>
+<p>Emits signals from any object. In general it's not that useful, as dragging a signal to the canvas works better.</p>
+<h4 id="getset">Get/Set</h4>
+<p>Generic Getter/Setter node. Dragging properties from the Inspector works better, as they appear properly configured on drop.</p>
+<h4 id="wait">Wait</h4>
+<p>The Wait nodes will suspend execution of the function until something happens (many frames can pass until resuming, in fact). Default nodes allow you to wait for a frame to pass, a fixed frame or a given amount of time until execution is resumed.</p>
+<h4 id="yield">Yield</h4>
+<p>This node completely suspends the execution of the script, and it will make the function return a value that can be used to resume execution.</p>
+<h4 id="yield-signal">Yield Signal</h4>
+<p>Same as Yield, but will wait until a given signal is emitted.</p>
+<h3 id="index">Index</h3>
+<p>Generic indexing operator, not often used but it's good that it exists just in case.</p>
+<h3 id="operators">Operators</h3>
+<p>These are mostly generic operators, such as addition, multiplication, comparison, etc. By default, these mostly accept any datatype (and will throw an error at run-time if the types fed do not match those expected by the operator). It is always recommended to set the right type for operators to catch errors faster and make the graph easier to read.</p>
+<h4 id="expression-node">Expression Node</h4>
+<p>Among the operators, the <em>Expression</em> node is the most powerful. If well used, it allows you to enormously simplify visual scripts that are math or logic heavy. Type any expression on it and it will be executed in real-time.</p>
+<p>Expression nodes can:</p>
+<ul>
+<li>Perform math and logic expressions based on custom inputs (eg: "a*5+b", where a and b are custom inputs):</li>
+<li>Access local variables or properties:</li>
+<li>Use most of the existing built-in functions that are available to GDScript, such as <code>sin()</code>, <code>cos()</code>, <code>print()</code>, as well as constructors, such as <code>Vector3(x, y, z)</code>, <code>Rect2(...)</code>, etc.:</li>
+<li>Call API functions:</li>
+<li>Use sequenced mode, which makes more sense in case of respecting the processing order:</li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

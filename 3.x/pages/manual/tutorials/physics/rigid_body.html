@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using RigidBody — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-rigidbody">Using RigidBody</h1>
+<h2 id="what-is-a-rigid-body">What is a rigid body?</h2>
+<p>A rigid body is one that is directly controlled by the physics engine in order to simulate the behavior of physical objects. In order to define the shape of the body, it must have one or more ref objects assigned. Note that setting the position of these shapes will affect the body's center of mass.</p>
+<h2 id="how-to-control-a-rigid-body">How to control a rigid body</h2>
+<p>A rigid body's behavior can be altered by setting its properties, such as mass and weight. A physics material needs to be added to the rigid body to adjust its friction and bounce, and set if it's absorbent and/or rough. These properties can be set in the Inspector or via code. See ref and ref for the full list of properties and their effects.</p>
+<p>There are several ways to control a rigid body's movement, depending on your desired application.</p>
+<p>If you only need to place a rigid body once, for example to set its initial location, you can use the methods provided by the ref node, such as <code>set_global_transform()</code> or <code>look_at()</code>. However, these methods cannot be called every frame or the physics engine will not be able to correctly simulate the body's state. As an example, consider a rigid body that you want to rotate so that it points towards another object. A common mistake when implementing this kind of behavior is to use <code>look_at()</code> every frame, which breaks the physics simulation. Below, we'll demonstrate how to implement this correctly.</p>
+<p>The fact that you can't use <code>set_global_transform()</code> or <code>look_at()</code> methods doesn't mean that you can't have full control of a rigid body. Instead, you can control it by using the <code>_integrate_forces()</code> callback. In this method, you can add <em>forces</em>, apply <em>impulses</em>, or set the <em>velocity</em> in order to achieve any movement you desire.</p>
+<h2 id="the-look-at-method">The "look at" method</h2>
+<p>As described above, using the Spatial node's <code>look_at()</code> method can't be used each frame to follow a target. Here is a custom <code>look_at()</code> method that will work reliably with rigid bodies:</p>
+<pre class="gdscript"><code>extends RigidBody
+
+func look_follow(state, current_transform, target_position):
+    var up_dir = Vector3(0, 1, 0)
+    var cur_dir = current_transform.basis.xform(Vector3(0, 0, 1))
+    var target_dir = (target_position - current_transform.origin).normalized()
+    var rotation_angle = acos(cur_dir.x) - acos(target_dir.x)
+
+    state.set_angular_velocity(up_dir * (rotation_angle / state.get_step()))
+
+func _integrate_forces(state):
+    var target_position = $my_target_spatial_node.get_global_transform().origin
+    look_follow(state, get_global_transform(), target_position)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Body <span class="op">:</span> RigidBody</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">LookFollow</span><span class="op">(</span>PhysicsDirectBodyState state<span class="op">,</span> Transform currentTransform<span class="op">,</span> Vector3 targetPosition<span class="op">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> upDir <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> curDir <span class="op">=</span> currentTransform<span class="op">.</span><span class="fu">basis</span><span class="op">.</span><span class="fu">Xform</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">));</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> targetDir <span class="op">=</span> <span class="op">(</span>targetPosition <span class="op">-</span> currentTransform<span class="op">.</span><span class="fu">origin</span><span class="op">).</span><span class="fu">Normalized</span><span class="op">();</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> rotationAngle <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Acos</span><span class="op">(</span>curDir<span class="op">.</span><span class="fu">x</span><span class="op">)</span> <span class="op">-</span> Mathf<span class="op">.</span><span class="fu">Acos</span><span class="op">(</span>targetDir<span class="op">.</span><span class="fu">x</span><span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        state<span class="op">.</span><span class="fu">SetAngularVelocity</span><span class="op">(</span>upDir <span class="op">*</span> <span class="op">(</span>rotationAngle <span class="op">/</span> state<span class="op">.</span><span class="fu">GetStep</span><span class="op">()));</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_IntegrateForces</span><span class="op">(</span>PhysicsDirectBodyState state<span class="op">)</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> targetPosition <span class="op">=</span> GetNode<span class="op">&lt;</span>Spatial<span class="op">&gt;(</span><span class="st">&quot;my_target_spatial_node&quot;</span><span class="op">).</span><span class="fu">GetGlobalTransform</span><span class="op">().</span><span class="fu">origin</span><span class="op">;</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">LookFollow</span><span class="op">(</span>state<span class="op">,</span> <span class="fu">GetGlobalTransform</span><span class="op">(),</span> targetPosition<span class="op">);</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This method uses the rigid body's <code>set_angular_velocity()</code> method to rotate the body. It first calculates the difference between the current and desired angle and then adds the velocity needed to rotate by that amount in one frame's time.</p>
+<blockquote>
+<p><strong>Note:</strong> This script will not work with rigid bodies in <em>character mode</em> because then, the body's rotation is locked. In that case, you would have to rotate the attached mesh node instead using the standard Spatial methods.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

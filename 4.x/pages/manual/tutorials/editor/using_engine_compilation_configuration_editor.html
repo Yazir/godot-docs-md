@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using the engine compilation configuration editor — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-the-engine-compilation-configuration-editor">Using the engine compilation configuration editor</h1>
+<p>Godot comes with a large set of built-in features. While this is convenient, this also means its binary size is larger than it could be, especially for projects that only use a small portion of its feature set.</p>
+<p>To help reduce binary size, it is possible to compile custom export templates with certain features disabled. This is described in detail in <code>doc_optimizing_for_size</code>. However, determining which features need to be disabled can be a tedious task. The engine compilation configuration editor aims to address this by providing an interface to view and manage these features easily, while also being able to detect the features currently being used in the project.</p>
+<p>The <code>Project &gt; Tools &gt; Engine Compilation Configuration Editor</code> allows you to create and manage build profiles for your Godot project.</p>
+<p>From now on, you have two possibilities:</p>
+<ul>
+<li>View the list and manually uncheck features that you don't need.</li>
+<li>Use the <code>Detect from Project</code> button to automatically detect features currently used in the project and disable unused features. Note that this will override the existing list of features, so if you have manually unchecked some items, their state will be reset based on whether the project actually uses the feature.</li>
+</ul>
+<p><em>Image: Opening the Engine Compilation Configuration Editor</em></p>
+<p>Opening the Engine Compilation Configuration Editor</p>
+<p>Once you click <code>Detect from Project</code>, the project detection step will run. This can take from a few seconds up to several minutes depending on the project size. Once detection is complete, you'll see an updated list of features with some features disabled:</p>
+<p><em>Image: Updated features list after using feature detection (example from the 3D platformer demo)</em></p>
+<p>Updated features list after using feature detection (example from the 3D platformer demo)</p>
+<blockquote>
+<p><strong>Warning:</strong> Unchecking features in this dialog will not reduce binary size directly on export. Since it is only possible to actually remove features from the binary at compile-time, you still need to compile custom export templates with the build profile specified to actually benefit from the engine compilation configuration editor.</p>
+</blockquote>
+<p>You can now save the build profile by clicking <strong>Save As</strong> at the top. The build profile can be saved in any location, but it's a good idea to save it somewhere in your project folder and add it to version control to be able to go back to it later when needed. This also allows using version control to track changes to the build profile.</p>
+<p>The build profile is a JSON file (and <code>.gdbuild</code> extension) that looks like this after detection in the above example:</p>
+<pre><code>{
+    &quot;disabled_build_options&quot;: {
+        &quot;disable_navigation_3d&quot;: true,
+        &quot;disable_xr&quot;: true,
+        &quot;module_godot_physics_3d_enabled&quot;: false,
+        &quot;module_msdfgen_enabled&quot;: false,
+        &quot;module_openxr_enabled&quot;: false
+    },
+    &quot;disabled_classes&quot;: [
+        &quot;AESContext&quot;,
+        ...
+        &quot;ZIPReader&quot;
+    ],
+    &quot;type&quot;: &quot;build_profile&quot;
+}</code></pre>
+<p>This file can be passed as a SCons option when ref export templates:</p>
+<pre><code>scons target=template_release build_profile=/path/to/profile.gdbuild</code></pre>
+<p>The buildsystem will use this to disable unused classes and reduce binary size as a result.</p>
+<h2 id="limitations">Limitations</h2>
+<p>The <code>Detect from Project</code> functionality relies on reading the project's scenes and scripts. It will not be able to detect used features in the following scenarios:</p>
+<ul>
+<li>Features that are used in GDScripts that are procedurally created then run at runtime.</li>
+<li>Features that are used in ref.</li>
+<li>Features that are used in ref, unless the language binding allows for defining used classes and the extension makes use of the functionality. See <a href="https://github.com/godotengine/godot/pull/104129">GH-104129</a> for details.</li>
+<li>Features that are used in ref.</li>
+<li>Certain edge cases may exist. If unsure, please <a href="https://github.com/godotengine/godot/issues">open an issue on GitHub</a> with a minimal reproduction project attached.</li>
+</ul>
+<blockquote>
+<p><strong>See also:</strong> You can achieve further size reductions by passing other options that reduce binary size. See <code>doc_optimizing_for_size</code> for more information.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

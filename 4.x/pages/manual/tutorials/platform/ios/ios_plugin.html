@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creating iOS plugins — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="creating-ios-plugins">Creating iOS plugins</h1>
+<p>This page explains what iOS plugins can do for you, how to use an existing plugin, and the steps to code a new one.</p>
+<p>iOS plugins allow you to use third-party libraries and support iOS-specific features like In-App Purchases, GameCenter integration, ARKit support, and more.</p>
+<h2 id="loading-and-using-an-existing-plugin">Loading and using an existing plugin</h2>
+<p>An iOS plugin requires a <code>.gdip</code> configuration file, a binary file which can be either <code>.a</code> static library or <code>.xcframework</code> containing <code>.a</code> static libraries, and possibly other dependencies. To use it, you need to:</p>
+<ol type="1">
+<li>Copy the plugin's files to your Godot project's <code>res://ios/plugins</code> directory. You can also group files in a sub-directory, like <code>res://ios/plugins/my_plugin</code>.</li>
+<li>The Godot editor automatically detects and imports <code>.gdip</code> files inside <code>res://ios/plugins</code> and its subdirectories.</li>
+<li>You can find and activate detected plugins by going to Project -&gt; Export... -&gt; iOS and in the Options tab, scrolling to the Plugins section.</li>
+</ol>
+<p>When a plugin is active, you can access it in your code using <code>Engine.get_singleton()</code>:</p>
+<pre><code>if Engine.has_singleton(&quot;MyPlugin&quot;):
+    var singleton = Engine.get_singleton(&quot;MyPlugin&quot;)
+    print(singleton.foo())</code></pre>
+<blockquote>
+<p><strong>Note:</strong> The plugin's files have to be in the <code>res://ios/plugins/</code> directory or a subdirectory, otherwise the Godot editor will not automatically detect them.</p>
+</blockquote>
+<h2 id="creating-an-ios-plugin">Creating an iOS plugin</h2>
+<p>At its core, a Godot iOS plugin is an iOS library (<em>.a</em> archive file or <em>.xcframework</em> containing static libraries) with the following requirements:</p>
+<ul>
+<li>The library must have a dependency on the Godot engine headers.</li>
+<li>The library must come with a <code>.gdip</code> configuration file.</li>
+</ul>
+<p>An iOS plugin can have the same functionality as a Godot module but provides more flexibility and doesn't require to rebuild the engine.</p>
+<p>Here are the steps to get a plugin's development started. We recommend using <a href="https://developer.apple.com/develop/">Xcode</a> as your development environment.</p>
+<blockquote>
+<p><strong>See also:</strong> The <a href="https://github.com/godotengine/godot-ios-plugins">Godot iOS Plugins</a>.</p>
+<p>The <a href="https://github.com/naithar/godot_ios_plugin">Godot iOS plugin template</a> gives you all the boilerplate you need to get your iOS plugin started.</p>
+</blockquote>
+<p>To build an iOS plugin:</p>
+<ol type="1">
+<li><p>Create an Objective-C static library for your plugin inside Xcode.</p></li>
+<li><p>Add the Godot engine header files as a dependency for your plugin library in <code>HEADER_SEARCH_PATHS</code>. You can find the setting inside the <code>Build Settings</code> tab:</p>
+<blockquote>
+<ul>
+<li>Download the Godot engine source from the <a href="https://github.com/godotengine/godot">Godot GitHub page</a>.</li>
+<li>Run SCons to generate headers. You can learn the process by reading <code>doc_compiling_for_ios</code>. You don't have to wait for compilation to complete to move forward as headers are generated before the engine starts to compile.</li>
+<li>You should use the same header files for iOS plugins and for the iOS export template.</li>
+</ul>
+</blockquote></li>
+<li><p>In the <code>Build Settings</code> tab, specify the compilation flags for your static library in <code>OTHER_CFLAGS</code>. The most important ones are <code>-fcxx-modules</code>, <code>-fmodules</code>, and <code>-DDEBUG</code> if you need debug support. Other flags should be the same you use to compile Godot. For instance:</p></li>
+</ol>
+<!-- -->
+
+<pre><code>-DPTRCALL_ENABLED -DDEBUG_ENABLED -DDEBUG_MEMORY_ALLOC -DDISABLE_FORCED_INLINE -DTYPED_METHOD_BIND</code></pre>
+<ol start="4" type="1">
+<li>Add the required logic for your plugin and build your library to generate a <code>.a</code> file. You will probably need to build both <code>debug</code> and <code>release</code> target <code>.a</code> files. Depending on your needs, pick either or both. If you need both debug and release <code>.a</code> files, their name should match following pattern: <code>[PluginName].[TargetType].a</code>. You can also build the static library with your SCons configuration.</li>
+<li>The iOS plugin system also supports <code>.xcframework</code> files. To generate one, you can use a command such as:</li>
+</ol>
+<!-- -->
+
+<pre><code>xcodebuild -create-xcframework -library [DeviceLibrary].a -library [SimulatorLibrary].a -output [PluginName].xcframework</code></pre>
+<ol start="6" type="1">
+<li><p>Create a Godot iOS Plugin configuration file to help the system detect and load your plugin:</p>
+<blockquote>
+<ul>
+<li>The configuration file extension must be <code>gdip</code> (e.g.: <code>MyPlugin.gdip</code>).</li>
+<li>The configuration file format is as follow:</li>
+</ul>
+<!-- -->
+
+<pre><code>[config]
+name=&quot;MyPlugin&quot;
+binary=&quot;MyPlugin.a&quot;
+
+initialization=&quot;init_my_plugin&quot;
+deinitialization=&quot;deinit_my_plugin&quot;
+
+[dependencies]
+linked=[]
+embedded=[]
+system=[&quot;Foundation.framework&quot;]
+
+capabilities=[&quot;arkit&quot;, &quot;metal&quot;]
+
+files=[&quot;data.json&quot;]
+
+linker_flags=[&quot;-ObjC&quot;]
+
+[plist]
+PlistKeyWithDefaultType=&quot;Some Info.plist key you might need&quot;
+StringPlistKey:string=&quot;String value&quot;
+IntegerPlistKey:integer=42
+BooleanPlistKey:boolean=true
+RawPlistKey:raw=&quot;
+&lt;array&gt;
+    &lt;string&gt;UIInterfaceOrientationPortrait&lt;/string&gt;
+&lt;/array&gt;
+&quot;
+StringPlistKeyToInput:string_input=&quot;Type something&quot;</code></pre>
+</blockquote></li>
+</ol>
+<p>The <code>config</code> section and fields are required and defined as follow:</p>
+<blockquote>
+<ul>
+<li><strong>name</strong>: name of the plugin</li>
+<li><strong>binary</strong>: this should be the filepath of the plugin library (<code>a</code> or <code>xcframework</code>) file.
+<ul>
+<li>The filepath can be relative (e.g.: <code>MyPlugin.a</code>, <code>MyPlugin.xcframework</code>) in which case it's relative to the directory where the <code>gdip</code> file is located.</li>
+<li>The filepath can be absolute: <code>res://some_path/MyPlugin.a</code> or <code>res://some_path/MyPlugin.xcframework</code>.</li>
+<li>In case you need multitarget library usage, the filename should be <code>MyPlugin.a</code> and <code>.a</code> files should be named as <code>MyPlugin.release.a</code> and <code>MyPlugin.debug.a</code>.</li>
+<li>In case you use multitarget <code>xcframework</code> libraries, their filename in the configuration should be <code>MyPlugin.xcframework</code>. The <code>.xcframework</code> files should be named as <code>MyPlugin.release.xcframework</code> and <code>MyPlugin.debug.xcframework</code>.</li>
+</ul></li>
+</ul>
+</blockquote>
+<p>The <code>dependencies</code> and <code>plist</code> sections are optional and defined as follow:</p>
+<blockquote>
+<ul>
+<li><strong>dependencies</strong>:
+<ul>
+<li><strong>linked</strong>: contains a list of iOS frameworks that the iOS application should be linked with.</li>
+<li><strong>embedded</strong>: contains a list of iOS frameworks or libraries that should be both linked and embedded into the resulting iOS application.</li>
+<li><strong>system</strong>: contains a list of iOS system frameworks that are required for plugin.</li>
+<li><strong>capabilities</strong>: contains a list of iOS capabilities that is required for plugin. A list of available capabilities can be found at <a href="https://developer.apple.com/documentation/bundleresources/information_property_list/uirequireddevicecapabilities">Apple UIRequiredDeviceCapabilities documentation page</a>.</li>
+<li><strong>files</strong>: contains a list of files that should be copied on export. This is useful for data files or images.</li>
+<li><strong>linker_flags</strong>: contains a list of linker flags to add to the Xcode project when exporting the plugin.</li>
+</ul></li>
+<li><strong>plist</strong>: should have keys and values that should be present in <code>Info.plist</code> file.
+<ul>
+<li>Each line should follow pattern: <code>KeyName:KeyType=KeyValue</code></li>
+<li>Supported values for <code>KeyType</code> are <code>string</code>, <code>integer</code>, <code>boolean</code>, <code>raw</code>, <code>string_input</code></li>
+<li>If no type is used (e.g.: <code>KeyName="KeyValue"</code>) <code>string</code> type will be used.</li>
+<li>If <code>raw</code> type is used value for corresponding key will be stored in <code>Info.plist</code> as is.</li>
+<li>If <code>string_input</code> type is used you will be able to modify value in Export window.</li>
+</ul></li>
+</ul>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

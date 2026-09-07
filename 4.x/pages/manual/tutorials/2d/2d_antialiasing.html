@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2D antialiasing — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="2d-antialiasing">2D antialiasing</h1>
+<blockquote>
+<p><strong>See also:</strong> Godot also supports antialiasing in 3D rendering. This is covered on the <code>doc_3d_antialiasing</code> page.</p>
+</blockquote>
+<h2 id="introduction">Introduction</h2>
+<p>Due to their limited resolution, scenes rendered in 2D can exhibit aliasing artifacts. These artifacts usually manifest in the form of a "staircase" effect on geometry edges, and are most noticeable when using nodes such as <code>class_Line2D</code>, <code>class_Polygon2D</code> or <code>class_TextureProgressBar</code>. <code>doc_custom_drawing_in_2d</code> can also have aliasing artifacts for methods that don't support antialiasing.</p>
+<p>In the example below, you can notice how edges have a blocky appearance:</p>
+<p><em>Image: Image is scaled by 2× with nearest-neighbor filtering to make aliasing more noticeable.</em></p>
+<p>Image is scaled by 2× with nearest-neighbor filtering to make aliasing more noticeable.</p>
+<p>To combat this, Godot supports several methods of enabling antialiasing on 2D rendering.</p>
+<h2 id="antialiasing-property-in-line2d-and-custom-drawing">Antialiasing property in Line2D and custom drawing</h2>
+<p>This is the recommended method, as it has a lower performance impact in most cases.</p>
+<p>Line2D has an <strong>Antialiased</strong> property which you can enable in the inspector. Also, several methods for <code>doc_custom_drawing_in_2d</code> support an optional <code>antialiased</code> parameter, which can be set to <code>true</code> when calling the function.</p>
+<p>These methods do not require MSAA to be enabled, which makes their <em>baseline</em> performance cost low. In other words, there is no permanent added cost if you're not drawing any antialiased geometry at some point.</p>
+<p>The downside of these antialiasing methods is that they work by generating additional geometry. If you're generating complex 2D geometry that's updated every frame, this may be a bottleneck. Also, Polygon2D, TextureProgressBar, and several custom drawing methods don't feature an antialiased property. For these nodes, you can use 2D multisample antialiasing instead.</p>
+<h2 id="multisample-antialiasing-msaa">Multisample antialiasing (MSAA)</h2>
+<p><em>This is only available in the Forward+ and Mobile renderers, not the Compatibility renderer.</em></p>
+<p>Before enabling MSAA in 2D, it's important to understand what MSAA will operate on. MSAA in 2D follows similar restrictions as in 3D. While it does not introduce any blurriness, its scope of application is limited. The main applications of 2D MSAA are:</p>
+<ul>
+<li>Geometry edges, such as line and polygon drawing.</li>
+<li>Sprite edges <em>only for pixels touching one of the texture's edges</em>. This works for both linear and nearest-neighbor filtering. Sprite edges created using transparency on the image are not affected by MSAA.</li>
+</ul>
+<p>The downside of MSAA is that it only operates on edges. This is because MSAA increases the number of <em>coverage</em> samples, but not the number of <em>color</em> samples. However, since the number of color samples did not increase, fragment shaders are still run for each pixel only once. As a result, MSAA will <strong>not affect</strong> the following kinds of aliasing in any way:</p>
+<ul>
+<li>Aliasing <em>within</em> nearest-neighbor filtered textures (pixel art).</li>
+<li>Aliasing caused by custom 2D shaders.</li>
+<li>Specular aliasing when using Light2D.</li>
+<li>Aliasing in font rendering.</li>
+</ul>
+<p>MSAA can be enabled in the Project Settings by changing the value of the ref setting. It's important to change the value of the <strong>MSAA 2D</strong> setting and not <strong>MSAA 3D</strong>, as these are entirely separate settings.</p>
+<p>Comparison between no antialiasing (left) and various MSAA levels (right). The top-left corner contains a Line2D node, the top-right corner contains 2 TextureProgressBar nodes. The bottom contains 8 pixel art sprites, with 4 of them touching the edges (green background) and 4 of them not touching the edges (Godot logo):</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

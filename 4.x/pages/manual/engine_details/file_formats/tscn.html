@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TSCN file format — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="tscn-file-format">TSCN file format</h1>
+<p>The TSCN (text scene) file format represents a single scene tree inside Godot. Unlike binary SCN files, TSCN files have the advantage of being mostly human-readable and easy for version control systems to manage.</p>
+<p>The ESCN (exported scene) file format is identical to the TSCN file format, but is used to indicate to Godot that the file has been exported from another program and should not be edited by the user from within Godot. Unlike SCN and TSCN files, during import, ESCN files are compiled to binary SCN files stored inside the <code>.godot/imported/</code> folder. This reduces the data size and speeds up loading, as binary formats are faster to load compared to text-based formats.</p>
+<p>To make files more compact, properties equal to the default value are not stored in scene/resource files. It is possible to write them manually, but they will be discarded when saving the file.</p>
+<p>For those looking for a complete description, the parsing is handled in the file <a href="https://github.com/godotengine/godot/blob/master/scene/resources/resource_format_text.cpp">resource_format_text.cpp</a> in the <code>ResourceFormatLoaderText</code> class.</p>
+<blockquote>
+<p><strong>Note:</strong> The scene and resource file formats have changed significantly in Godot 4, with the introduction of string-based UIDs to replace incremental integer IDs.</p>
+<p>Mesh, skeleton and animation data is also stored differently compared to Godot 3. You can read about some of the changes in this article: <a href="https://godotengine.org/article/animation-data-redesign-40/">Animation data rework for 4.0</a></p>
+<p>Scenes and resources saved with Godot 4.x contain <code>format=3</code> in their header, whereas Godot 3.x uses <code>format=2</code> instead.</p>
+</blockquote>
+<h2 id="file-structure">File structure</h2>
+<p>There are five main sections inside the TSCN file:</p>
+<ol start="0" type="1">
+<li>File descriptor</li>
+<li>External resources</li>
+<li>Internal resources</li>
+<li>Nodes</li>
+<li>Connections</li>
+</ol>
+<p>The file descriptor looks like <code>[gd_scene format=3 uid="uid://cecaux1sm7mo0"]</code> and should be the first entry in the file. Note that scenes saved before Godot 4.6 will also have a <code>load_steps=&lt;int&gt;</code> attribute in the file descriptor. This attribute is now deprecated and should be ignored if present.</p>
+<p><code>uid</code> is a unique string-based identifier representing the scene. This is used by the engine to track files that are moved around, even while the editor is closed. Scripts can also load UID-based resources using the <code>uid://</code> path prefix to avoid relying on filesystem paths. This makes it possible to move around a file in the project, but still be able to load it in scripts without having to modify the script. Godot does not use external files to keep track of IDs, which means no central metadata storage location is required within the project. See <a href="https://github.com/godotengine/godot/pull/50786">this pull request</a> for detailed information.</p>
+<p>These sections should appear in order, but it can be hard to distinguish them. The only difference between them is the first element in the heading for all of the items in the section. For example, the heading of all external resources should start with <code>[ext_resource ...]</code>.</p>
+<p>A TSCN file may contain single-line comments starting with a semicolon (<code>;</code>). However, comments will be discarded when saving the file using the Godot editor. Whitespace within a TSCN file is not significant (except within strings), but extraneous whitespace will be discarded when saving the file.</p>
+<h3 id="entries-inside-the-file">Entries inside the file</h3>
+<p>A heading looks like <code>[&lt;resource_type&gt; key1=value1 key2=value2 key3=value3 ...]</code> where resource_type is one of:</p>
+<ul>
+<li><code>ext_resource</code></li>
+<li><code>sub_resource</code></li>
+<li><code>node</code></li>
+<li><code>connection</code></li>
+</ul>
+<p>Below every heading comes zero or more <code>key = value</code> pairs. The values can be complex datatypes such as Arrays, Transforms, Colors, and so on. For example, a Node3D looks like:</p>
+<pre><code>[node name=&quot;Cube&quot; type=&quot;Node3D&quot; unique_id=224283918]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 2, 3)</code></pre>
+<h2 id="the-scene-tree">The scene tree</h2>
+<p>The scene tree is made up of… nodes! The heading of each node consists of its name, parent, a unique ID (used to track nodes even if they are moved or renamed), and most of the time, a type. For example: <code>[node name="PlayerCamera" type="Camera" parent="Player/Head" unique_id=1697057368]</code></p>
+<p>Note that <code>unique_id</code> is only present in scenes saved with Godot 4.6 or later. Therefore, it is not guaranteed to be present.</p>
+<p>Other valid keywords include:</p>
+<blockquote>
+<ul>
+<li><code>instance</code></li>
+<li><code>instance_placeholder</code></li>
+<li><code>owner</code></li>
+<li><code>index</code> (sets the order of appearance in the tree; if absent, inherited nodes will take precedence over plain ones)</li>
+<li><code>groups</code></li>
+<li><code>node_paths</code> (lists names of properties exported as a Node type, but referenced as a NodePath in the file)</li>
+</ul>
+</blockquote>
+<p>The first node in the file, which is also the scene root, must <strong>not</strong> have a <code>parent="Path/To/Node"</code> entry in its heading. All scene files should have exactly <em>one</em> scene root. If it doesn't, Godot will fail to import the file. The parent path of other nodes should be absolute, but shouldn't contain the scene root's name. If the node is a direct child of the scene root, the path should be <code>"."</code>. Here is an example scene tree (but without any node content):</p>
+<pre><code>[node name=&quot;Player&quot; type=&quot;Node3D&quot; unique_id=1155673912]                    ; The scene root
+[node name=&quot;Arm&quot; type=&quot;Node3D&quot; parent=&quot;.&quot; unique_id=1010797352]            ; Parented to the scene root
+[node name=&quot;Hand&quot; type=&quot;Node3D&quot; parent=&quot;Arm&quot; unique_id=536436825]          ; Child of &quot;Arm&quot;
+[node name=&quot;Finger&quot; type=&quot;Node3D&quot; parent=&quot;Arm/Hand&quot; unique_id=1732647084]  ; Child of &quot;Hand&quot;</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> To make the file structure easier to grasp, you can save a file with any given node or resource and then inspect it yourself in an external editor. You can also make incremental changes in the Godot editor, and keep an external text editor open on the <code>.tscn</code> or <code>.tres</code> file with auto-reload enabled to see what changes.</p>
+</blockquote>
+<p>Here is an example of a scene containing a RigidBody3D-based ball with collision, visuals (mesh + light) and a camera parented to the RigidBody3D:</p>
+<pre><code>[gd_scene format=3 uid=&quot;uid://cecaux1sm7mo0&quot;]
+
+[sub_resource type=&quot;SphereShape3D&quot; id=&quot;SphereShape3D_tj6p1&quot;]
+
+[sub_resource type=&quot;SphereMesh&quot; id=&quot;SphereMesh_4w3ye&quot;]
+
+[sub_resource type=&quot;StandardMaterial3D&quot; id=&quot;StandardMaterial3D_k54se&quot;]
+albedo_color = Color(1, 0.639216, 0.309804, 1)
+
+[node name=&quot;Ball&quot; type=&quot;RigidBody3D&quot; unique_id=1358867382]
+
+[node name=&quot;CollisionShape3D&quot; type=&quot;CollisionShape3D&quot; parent=&quot;.&quot; unique_id=1279975976]
+shape = SubResource(&quot;SphereShape3D_tj6p1&quot;)
+
+[node name=&quot;MeshInstance3D&quot; type=&quot;MeshInstance3D&quot; parent=&quot;.&quot; unique_id=558852834]
+mesh = SubResource(&quot;SphereMesh_4w3ye&quot;)
+surface_material_override/0 = SubResource(&quot;StandardMaterial3D_k54se&quot;)
+
+[node name=&quot;OmniLight3D&quot; type=&quot;OmniLight3D&quot; parent=&quot;.&quot; unique_id=1581292810 node_paths=PackedStringArray(&quot;follow_node&quot;)]
+light_color = Color(1, 0.698039, 0.321569, 1)
+omni_range = 10.0
+follow_node = NodePath(&quot;..&quot;)
+
+[node name=&quot;Camera3D&quot; type=&quot;Camera3D&quot; parent=&quot;.&quot; unique_id=795715540]
+transform = Transform3D(1, 0, 0, 0, 0.939693, 0.34202, 0, -0.34202, 0.939693, 0, 1, 3)</code></pre>
+<h3 id="nodepath">NodePath</h3>
+<p>A tree structure is not enough to represent the whole scene. Godot uses a <code>NodePath(Path/To/Node)</code> structure to refer to another node or attribute of the node anywhere in the scene tree. Paths are relative to the current node, with <code>NodePath(".")</code> pointing to the current node and <code>NodePath("")</code> pointing to no node at all.</p>
+<p>For instance, MeshInstance3D uses <code>NodePath()</code> to point to its skeleton. Likewise, Animation tracks use <code>NodePath()</code> to point to node properties to animate.</p>
+<p>NodePath can also point to a property using a <code>:property_name</code> suffix, and even point to a specific component for vector, transform and color types. This is used by Animation resources to point to specific properties to animate. For example, <code>NodePath("MeshInstance3D:scale.x")</code> points to the <code>x</code> component of the <code>scale</code> Vector3 property in MeshInstance3D.</p>
+<p>For example, the <code>skeleton</code> property in the MeshInstance3D node called <code>mesh</code> points to its parent, <code>Armature01</code>:</p>
+<pre><code>[node name=&quot;mesh&quot; type=&quot;MeshInstance3D&quot; parent=&quot;Armature01&quot; unique_id=1638249225]
+skeleton = NodePath(&quot;..&quot;)</code></pre>
+<h3 id="skeleton3d">Skeleton3D</h3>
+<p>The <code>class_Skeleton3D</code> node inherits the Node3D node, but may also have a list of bones described in key-value pairs in the format <code>bones/&lt;id&gt;/&lt;attribute&gt; = value</code>. The bone attributes consist of:</p>
+<ul>
+<li><code>position</code>: Vector3</li>
+<li><code>rotation</code>: Quaternion</li>
+<li><code>scale</code>: Vector3</li>
+</ul>
+<p>These attributes are all optional. For instance, a bone may only define <code>position</code> or <code>rotation</code> without defining the other properties.</p>
+<p>Here's an example of a skeleton node with two bones:</p>
+<pre><code>[node name=&quot;Skeleton3D&quot; type=&quot;Skeleton3D&quot; parent=&quot;PlayerModel/Robot_Skeleton&quot; index=&quot;0&quot; unique_id=542985694]
+bones/1/position = Vector3(0.114471, 2.19771, -0.197845)
+bones/1/rotation = Quaternion(0.191422, -0.0471201, -0.00831942, 0.980341)
+bones/2/position = Vector3(-2.59096e-05, 0.236002, 0.000347473)
+bones/2/rotation = Quaternion(-0.0580488, 0.0310587, -0.0085914, 0.997794)
+bones/2/scale = Vector3(0.9276, 0.9276, 0.9276)</code></pre>
+<h3 id="boneattachment3d">BoneAttachment3D</h3>
+<p>The <code>class_BoneAttachment3D</code> node is an intermediate node to describe some node being parented to a single bone in a Skeleton node. The BoneAttachment has a <code>bone_name = "name of bone"</code> property, as well as a property for the matching bone index.</p>
+<p>An example of a <code>class_Marker3D</code> node parented to a bone in Skeleton:</p>
+<pre><code>[node name=&quot;GunBone&quot; type=&quot;BoneAttachment3D&quot; parent=&quot;PlayerModel/Robot_Skeleton/Skeleton3D&quot; index=&quot;5&quot; unique_id=63481392]
+transform = Transform3D(0.333531, 0.128981, -0.933896, 0.567174, 0.763886, 0.308015, 0.753209, -0.632331, 0.181604, -0.323915, 1.07098, 0.0497144)
+bone_name = &quot;hand.R&quot;
+bone_idx = 55
+
+[node name=&quot;ShootFrom&quot; type=&quot;Marker3D&quot; parent=&quot;PlayerModel/Robot_Skeleton/Skeleton3D/GunBone&quot; unique_id=679926736]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)</code></pre>
+<h3 id="animationplayer">AnimationPlayer</h3>
+<p>The <code>class_AnimationPlayer</code> node works with one or more animation libraries stored in <code>class_AnimationLibrary</code> resources. An animation library is a collection of individual <code>class_Animation</code> resources, whose structure is documented ref.</p>
+<p>This split between animations themselves and animation libraries was done in Godot 4, so that animations can be imported separately from 3D meshes, which is a common workflow in 3D animation software. See the <a href="https://github.com/godotengine/godot/pull/59980">original pull request</a> for details.</p>
+<p>If the library name is empty, then it acts as the unique source of animations for this AnimationPlayer. This allows using <code>&lt;animation_name&gt;</code> directly to play animations from script. If you name the library, then you must play it as <code>&lt;library_name&gt;/&lt;animation_name&gt;</code>. This ensures backwards compatibility and keeps the existing workflow if you don't want to use multiple animation libraries.</p>
+<h2 id="resources">Resources</h2>
+<p>Resources are components that make up the nodes. For example, a MeshInstance3D node will have an accompanying ArrayMesh resource. The ArrayMesh resource may be either internal or external to the TSCN file.</p>
+<p>References to the resources are handled by unique string-based IDs in the resource's heading. This is different from the <code>uid</code> property, which each external resource also has (but subresources don't).</p>
+<p>External resources and internal resources are referred to with <code>ExtResource("id")</code> and <code>SubResource("id")</code>, respectively. Because there are different methods to refer to internal and external resources, you can have the same ID for both an internal and external resource.</p>
+<p>For example, to refer to the resource <code>[ext_resource type="Material" uid="uid://c4cp0al3ljsjv" path="res://material.tres" id="1_7bt6s"]</code>, you would use <code>ExtResource("1_7bt6s")</code>.</p>
+<h3 id="external-resources">External resources</h3>
+<p>External resources are links to resources not contained within the TSCN file itself. An external resource consists of a path, a type, a UID (used to map its filesystem location to a unique identifier) and an ID (used to refer to the resource in the scene file).</p>
+<p>Godot always generates absolute paths relative to the resource directory and thus prefixed with <code>res://</code>, but paths relative to the TSCN file's location are also valid.</p>
+<p>Some example external resources are:</p>
+<pre><code>[ext_resource type=&quot;Texture2D&quot; uid=&quot;uid://ccbm14ebjmpy1&quot; path=&quot;res://gradient.tres&quot; id=&quot;2_eorut&quot;]
+[ext_resource type=&quot;Material&quot; uid=&quot;uid://c4cp0al3ljsjv&quot; path=&quot;material.tres&quot; id=&quot;1_7bt6s&quot;]</code></pre>
+<p>Like TSCN files, a TRES file may contain single-line comments starting with a semicolon (<code>;</code>). However, comments will be discarded when saving the resource using the Godot editor. Whitespace within a TRES file is not significant (except within strings), but extraneous whitespace will be discarded when saving the file.</p>
+<h3 id="internal-resources">Internal resources</h3>
+<p>A TSCN file can contain meshes, materials and other data. These are contained in the <em>internal resources</em> section of the file. The heading for an internal resource looks similar to those of external resources, except that it doesn't have a path. Internal resources also have <code>key=value</code> pairs under each heading. For example, a capsule collision shape looks like:</p>
+<pre><code>[sub_resource type=&quot;CapsuleShape3D&quot; id=&quot;CapsuleShape3D_fdxgg&quot;]
+radius = 1.0
+height = 3.0</code></pre>
+<p>Some internal resources contain links to other internal resources (such as a mesh having a material). In this case, the referring resource must appear <em>before</em> the reference to it. This means that order matters in the file's internal resources section.</p>
+<h3 id="arraymesh">ArrayMesh</h3>
+<p>An ArrayMesh consists of several surfaces contained in the <code>_surfaces</code> array (notice the leading underscore). Each surface's data is stored in a dictionary with the following keys:</p>
+<ul>
+<li><code>aabb</code>: The computed axis-aligned bounding box for visibility.</li>
+<li><code>attribute_data</code>: Vertex attribute data, such as normals, tangents, vertex colors, UV1, UV2 and custom vertex data.</li>
+<li><code>bone_aabbs</code>: The axis-aligned bounding box of each bone for visibility.</li>
+<li><code>format</code>: The surface's buffer format.</li>
+<li><code>index_count</code>: The number of indices in the surface. This must match <code>index_data</code>'s size.</li>
+<li><code>index_data</code>: The index data, which determines which vertices from <code>vertex_data</code> are drawn.</li>
+<li><code>lods</code>: Level of detail variations, stored as an array. Each LOD level represents two values in the array. The first value is the percentage of screen space the LOD level is most suited for (edge length); the second value is the list of indices that should be drawn for the given LOD level.</li>
+<li><code>material</code>: The material used when drawing the surface.</li>
+<li><code>name</code>: The surface's name. This can be used in scripts and is imported from 3D DCCs.</li>
+<li><code>primitive</code>: The surface's primitive type, matching the <code>Mesh.PrimitiveType</code> Godot enum. <code>0</code> = points, <code>1</code> = lines, <code>2</code> = line strip, <code>3</code> = triangles (most common), <code>4</code> = triangle strip.</li>
+<li><code>skin_data</code>: Bone weight data.</li>
+<li><code>vertex_count</code>: Number of vertices in the surface. This must match <code>vertex_data</code>'s size.</li>
+<li><code>vertex_data</code>: The vertex position data.</li>
+</ul>
+<p>Here's an example of an ArrayMesh saved to its own <code>.tres</code> file. Some fields were shortened with <code>...</code> for brevity:</p>
+<pre><code>[gd_resource type=&quot;ArrayMesh&quot; format=3 uid=&quot;uid://dww8o7hsqrhx5&quot;]
+
+[ext_resource type=&quot;Material&quot; path=&quot;res://player/model/playerobot.tres&quot; id=&quot;1_r3bjq&quot;]
+
+[resource]
+resource_name = &quot;player_Sphere_016&quot;
+_surfaces = [{
+&quot;aabb&quot;: AABB(-0.207928, 1.21409, -0.14545, 0.415856, 0.226569, 0.223374),
+&quot;attribute_data&quot;: PackedByteArray(63, 121, ..., 117, 63),
+&quot;bone_aabbs&quot;: [AABB(0, 0, 0, -1, -1, -1), ..., AABB(-0.207928, 1.21409, -0.14545, 0.134291, 0.226569, 0.223374)],
+&quot;format&quot;: 7191,
+&quot;index_count&quot;: 1224,
+&quot;index_data&quot;: PackedByteArray(30, 0, ..., 150, 4),
+&quot;lods&quot;: [0.0382013, PackedByteArray(33, 1, ..., 150, 4)],
+&quot;material&quot;: ExtResource(&quot;1_r3bjq&quot;),
+&quot;name&quot;: &quot;playerobot&quot;,
+&quot;primitive&quot;: 3,
+&quot;skin_data&quot;: PackedByteArray(15, 0, ..., 0, 0),
+&quot;vertex_count&quot;: 1250,
+&quot;vertex_data&quot;: PackedByteArray(196, 169, ..., 11, 38)
+}]
+blend_shape_mode = 0</code></pre>
+<h3 id="animation">Animation</h3>
+<p>Each animation has the following properties:</p>
+<ul>
+<li><code>length</code>: The animation's length in seconds. Note that keyframes may be placed outside the <code>[0; length]</code> interval, but they may have no effect depending on the interpolation mode chosen.</li>
+<li><code>loop_mode</code>: <code>0</code> = no looping, <code>1</code> = wrap-around looping, <code>2</code> = clamped looping.</li>
+<li><code>step</code>: The step size to use when editing this animation in the editor. This is only used in the editor; it doesn't affect animation playback in any way.</li>
+</ul>
+<p>Each track is described by a list of key-value pairs in the format <code>tracks/&lt;id&gt;/&lt;attribute&gt;</code>. Each track includes:</p>
+<ul>
+<li><code>type</code>: The track's type. This defines what kind of properties may be animated by this track, and how it'll be exposed to the user in the editor. Valid types are <code>value</code> (generic property track), <code>position_3d</code>, <code>rotation_3d</code>, <code>scale_3d</code>, <code>blend_shape</code> (optimized 3D animation tracks), <code>method</code> (method call tracks), <code>bezier</code> (Bezier curve tracks), <code>audio</code> (audio playback tracks), <code>animation</code> (tracks that play other animations).</li>
+<li><code>imported</code>: <code>true</code> if the track was created from an imported 3D scene, <code>false</code> if it was manually created by the user in the Godot editor or using a script.</li>
+<li><code>enabled</code>: <code>true</code> if the track is effective, <code>false</code> if it was disabled in the editor.</li>
+<li><code>path</code>: Path to the node property that will be affected by the track. The property is written after the node path with a <code>:</code> separator.</li>
+<li><code>interp</code>: The interpolation mode to use. <code>0</code> = nearest, <code>1</code> = linear, <code>2</code> = cubic, <code>3</code> = linear angle, <code>4</code> = cubic angle.</li>
+<li><code>loop_wrap</code>: <code>true</code> if the track is designed to wrap around when the animation is looping, <code>false</code> if the track clamps to the first/last keyframes.</li>
+<li><code>keys</code>: The animation track's values. This attribute's structure depends on the <code>type</code>.</li>
+</ul>
+<p>Here is a scene containing an AnimationPlayer that scales down a cube over time using a generic property track. The AnimationLibrary workflow was not used, so the animation library has an empty name (but the animation is still given a <code>scale_down</code> name). Note that the <code>RESET</code> track was not created in this AnimationPlayer for brevity:</p>
+<pre><code>[gd_scene format=3 uid=&quot;uid://cdyt3nktp6y6&quot;]
+
+[sub_resource type=&quot;Animation&quot; id=&quot;Animation_r2qdp&quot;]
+resource_name = &quot;scale_down&quot;
+length = 1.5
+loop_mode = 2
+step = 0.05
+tracks/0/type = &quot;value&quot;
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(&quot;Box:scale&quot;)
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+&quot;times&quot;: PackedFloat32Array(0, 1),
+&quot;transitions&quot;: PackedFloat32Array(1, 1),
+&quot;update&quot;: 0,
+&quot;values&quot;: [Vector3(1, 1, 1), Vector3(0, 0, 0)]
+}
+
+[sub_resource type=&quot;AnimationLibrary&quot; id=&quot;AnimationLibrary_4qx36&quot;]
+_data = {
+&quot;scale_down&quot;: SubResource(&quot;Animation_r2qdp&quot;)
+}
+
+[sub_resource type=&quot;BoxMesh&quot; id=&quot;BoxMesh_u688r&quot;]
+
+[node name=&quot;Node3D&quot; type=&quot;Node3D&quot; unique_id=2076735200]
+
+[node name=&quot;AnimationPlayer&quot; type=&quot;AnimationPlayer&quot; parent=&quot;.&quot; unique_id=2139773137]
+autoplay = &quot;scale_down&quot;
+libraries = {
+&quot;&quot;: SubResource(&quot;AnimationLibrary_4qx36&quot;)
+}
+
+[node name=&quot;Box&quot; type=&quot;MeshInstance3D&quot; parent=&quot;.&quot; unique_id=711004519]
+mesh = SubResource(&quot;BoxMesh_u688r&quot;)</code></pre>
+<p>For generic property <code>value</code> tracks, <code>keys</code> is a dictionary containing 3 arrays with positions in <code>times</code> (PackedFloat32Array), easing values in <code>transitions</code> (PackedFloat32Array) and values in <code>values</code> (Array). There is an additional <code>update</code> property, which is an integer with the values <code>0</code> = continuous, <code>1</code> = discrete, <code>2</code> = capture.</p>
+<p>Here is a second Animation resource that makes use of the 3D Position and 3D Rotation tracks. These tracks (in addition to the 3D Scale track) replace Transform tracks from Godot 3. They are optimized for fast playback and can optionally be compressed.</p>
+<p>The downside of these optimized track types is that they can't use custom easing values. Instead, all keyframes use linear interpolation. That said, you can still opt for using nearest or cubic interpolation for all keyframes in a given track by changing the track's interpolation mode.</p>
+<pre><code>[sub_resource type=&quot;Animation&quot; id=&quot;Animation_r2qdp&quot;]
+resource_name = &quot;move_and_rotate&quot;
+length = 1.5
+loop_mode = 2
+step = 0.05
+tracks/0/type = &quot;position_3d&quot;
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(&quot;Box&quot;)
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, 0, 0, 0, 1.5, 1, 1.5, 1, 0)
+tracks/1/type = &quot;rotation_3d&quot;
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(&quot;Box&quot;)
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = PackedFloat32Array(0, 1, 0.211, -0.047, 0.211, 0.953, 1.5, 1, 0.005, 0.976, -0.216, 0.022)</code></pre>
+<p>For 3D position, rotation and scale tracks, <code>keys</code> is a PackedFloat32Array with all values stored in a sequence.</p>
+<p>In the visual guide below, <code>T</code> is the keyframe's time in seconds since the start of the animation, <code>E</code> is the keyframe's transition (currently always <code>1</code>). For 3D position and scale tracks, <code>X</code>, <code>Y</code>, <code>Z</code> are the Vector3's coordinates. For 3D rotation tracks, <code>X</code>, <code>Y</code>, <code>Z</code> and <code>W</code> are the Quaternion's coordinates.</p>
+<pre><code># For 3D position and scale, which use Vector3:
+tracks/&lt;id&gt;/keys = PackedFloat32Array(T, E,   X, Y, Z,      T, E,   X, Y, Z, ...)
+
+# For 3D rotation, which use Quaternion:
+tracks/&lt;id&gt;/keys = PackedFloat32Array(T, E,   X, Y, Z, W,      T, E,   X, Y, Z, W, ...)</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

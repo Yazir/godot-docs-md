@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Idle and Physics Processing — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="idle-and-physics-processing">Idle and Physics Processing</h1>
+<p>Games run in a loop. Each frame, you need to update the state of your game world before drawing it on screen. Godot provides two virtual methods in the Node class to do so: ref and ref. If you define either or both in a script, the engine will call them automatically.</p>
+<p>There are two types of processing available to you:</p>
+<ol type="1">
+<li><strong>Idle processing</strong> allows you to run code that updates a node every frame, as often as possible.</li>
+<li><strong>Physics processing</strong> happens at a fixed rate, 60 times per second by default. This is independent of your game's actual framerate, and keeps physics running smoothly. You should use it for anything that involves the physics engine, like moving a body that collides with the environment.</li>
+</ol>
+<p>You can activate idle processing by defining the <code>_process()</code> method in a script. You can turn it off and back on by calling ref.</p>
+<p>The engine calls this method every time it draws a frame:</p>
+<pre class="gdscript"><code>func _process(delta):
+    # Do something...
+    pass</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Do something...</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Keep in mind that the frequency at which the engine calls <code>_process()</code> depends on your application's framerate, which varies over time and across devices.</p>
+<p>The function's <code>delta</code> parameter is the time elapsed in seconds since the previous call to <code>_process()</code>. Use this parameter to make calculations independent of the framerate. For example, you should always multiply a speed value by <code>delta</code> to animate a moving object.</p>
+<p>Physics processing works with a similar virtual function: <code>_physics_process()</code>. Use it for calculations that must happen before each physics step, like moving a character that collides with the game world. As mentioned above, <code>_physics_process()</code> runs at fixed time intervals as much as possible to keep the physics interactions stable. You can change the interval between physics steps in the Project Settings, under Physics -&gt; Common -&gt; Physics Fps. By default, it's set to run 60 times per second.</p>
+<p>The engine calls this method before every physics step:</p>
+<pre class="gdscript"><code>func _physics_process(delta):
+    # Do something...
+    pass</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_PhysicsProcess</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Do something...</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The function <code>_process()</code> is not synchronized with physics. Its rate depends on hardware and game optimization. It also runs after the physics step in single-threaded games.</p>
+<p>You can see the <code>_process()</code> function at work by creating a scene with a single Label node, with the following script attached to it:</p>
+<pre class="gdscript"><code>extends Label
+
+var time = 0
+
+func _process(delta):
+    time += delta
+    text = str(time) # &#39;text&#39; is a built-in Label property.</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> CustomLabel <span class="op">:</span> Label</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">double</span> _time<span class="op">;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        _time <span class="op">+=</span> delta<span class="op">;</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        Text <span class="op">=</span> _time<span class="op">.</span><span class="fu">ToString</span><span class="op">();</span> <span class="co">// &#39;Text&#39; is a built-in Label property.</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>When you run the scene, you should see a counter increasing each frame.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

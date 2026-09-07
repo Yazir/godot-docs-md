@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resolution scaling — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="resolution-scaling">Resolution scaling</h1>
+<h2 id="why-use-resolution-scaling">Why use resolution scaling?</h2>
+<p>With the ever-increasing rendering complexity of modern games, rendering at native resolution isn't always viable anymore, especially on lower-end GPUs.</p>
+<p>Resolution scaling is one of the most direct ways to influence the GPU requirements of a scene. In scenes that are bottlenecked by the GPU (rather than by the CPU), decreasing the resolution scale can improve performance significantly. Resolution scaling is particularly important on mobile GPUs where performance and power budgets are limited.</p>
+<p>While resolution scaling is an important tool to have, remember that resolution scaling is not intended to be a replacement for decreasing graphics settings on lower-end hardware. Consider exposing both resolution scale and graphics settings in your in-game menus.</p>
+<blockquote>
+<p><strong>See also:</strong> You can compare resolution scaling modes and factors in action using the <a href="https://github.com/godotengine/godot-demo-projects/tree/master/3d/antialiasing">3D Antialiasing demo project</a>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> Resolution scaling is currently not available for 2D rendering, but it can be simulated using the <code>viewport</code> stretch mode. See <code>doc_multiple_resolutions</code> for more information.</p>
+</blockquote>
+<h2 id="resolution-scaling-options">Resolution scaling options</h2>
+<p>In the advanced Project Settings' <strong>Rendering &gt; Scaling 3D</strong> section, you can find several options for 3D resolution scaling:</p>
+<h3 id="scaling-mode">Scaling mode</h3>
+<ul>
+<li><strong>Bilinear:</strong> Standard bilinear filtering (default). This is used as a fallback when the current renderer doesn't support FSR 1.0 or FSR 2.2. <em>Available in all renderers.</em></li>
+<li><strong>FSR 1.0:</strong> <a href="https://gpuopen.com/fidelityfx-superresolution/">AMD FidelityFX Super Resolution 1.0</a>. Slower, but higher quality compared to bilinear scaling. On very slow GPUs, the cost of FSR1 may be too expensive to be worth using it over bilinear scaling. <em>Only available when using the Forward+ renderer.</em></li>
+<li><strong>FSR 2.2:</strong> AMD FidelityFX Super Resolution 2.2 (since Godot 4.2). Slowest, but even higher quality compared to FSR1 and bilinear scaling. On slow GPUs, the cost of FSR2 may be too expensive to be worth using it over bilinear scaling or FSR1. To match FSR2 performance with FSR1, you need to use a lower resolution scale factor. <em>Only available when using the Forward+ renderer.</em></li>
+</ul>
+<p>Here are comparison images between native resolution, bilinear scaling with 50% resolution scale, FSR1, and FSR2 scaling with 50% resolution scale:</p>
+<p>FSR1 upscaling works best when coupled with another form of antialiasing. Temporal antialiasing (TAA) or multisample antialiasing (MSAA) should preferably be used in this case, as FXAA does not add temporal information and introduces more blurring to the image.</p>
+<p>On the other hand, FSR2 provides its own temporal antialiasing. This means you don't need to enable other antialiasing methods for the resulting image to look smooth. The <strong>Use TAA</strong> project setting is ignored when FSR2 is used as the 3D scaling method, since FSR2's temporal antialiasing takes priority.</p>
+<p>Here's the same comparison, but with 4× MSAA enabled on all images:</p>
+<p>Notice how the edge upscaling of FSR1 becomes much more convincing once 4× MSAA is enabled. However, FSR2 doesn't benefit much from enabling MSAA since it already performs temporal antialiasing.</p>
+<h3 id="rendering-scale">Rendering scale</h3>
+<p>The <strong>Rendering &gt; Scaling 3D &gt; Scale</strong> setting adjusts the resolution scale. <code>1.0</code> represents the full resolution scale, with the 3D rendering resolution matching the 2D rendering resolution. Resolution scales <em>below</em> <code>1.0</code> can be used to speed up rendering, at the cost of a blurrier final image and more aliasing.</p>
+<p>The rendering scale can be adjusted at runtime by changing the <code>scaling_3d_scale</code> property on a <code>class_Viewport</code> node.</p>
+<p>Resolution scales <em>above</em> <code>1.0</code> can be used for supersample antialiasing (SSAA). This will provide antialiasing at a <em>very</em> high performance cost, and is <strong>not recommended</strong> for most use cases. See <code>doc_3d_antialiasing</code> for more information.</p>
+<p>The tables below list common screen resolutions, the resulting 3D rendering resolution and the number of megapixels that need to be rendered each frame depending on the rendering scale option. Rows are sorted from fastest to slowest in each table.</p>
+<blockquote>
+<p><strong>Note:</strong> The resolution scale is defined on a <strong>per-axis</strong> basis. For example, this means that halving the resolution scale factor will reduce the number of rendered megapixels per frame by a factor of 4, not 2. Therefore, very low or very high resolution scale factors can have a greater performance impact than expected.</p>
+</blockquote>
+<p><strong>1920×1080 (Full HD)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Resolution scale factor</th>
+<th>3D rendering resolution</th>
+<th>Megapixels rendered per frame</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>0.50</code></td>
+<td>960×540</td>
+<td>0.52 MPix</td>
+</tr>
+<tr class="even">
+<td><code>0.67</code></td>
+<td>1286×723</td>
+<td>0.93 MPix</td>
+</tr>
+<tr class="odd">
+<td><code>0.75</code></td>
+<td>1440×810</td>
+<td>1.17 MPix</td>
+</tr>
+<tr class="even">
+<td><code>0.85</code></td>
+<td>1632×918</td>
+<td>1.50 MPix</td>
+</tr>
+<tr class="odd">
+<td><code>1.00</code> <strong>(native)</strong></td>
+<td><strong>1920×1080</strong></td>
+<td><strong>2.07 MPix</strong></td>
+</tr>
+<tr class="even">
+<td><code>1.33</code> (supersampling)</td>
+<td>2553×1436</td>
+<td>3.67 MPix</td>
+</tr>
+<tr class="odd">
+<td><code>1.50</code> (supersampling)</td>
+<td>2880×1620</td>
+<td>4.67 MPix</td>
+</tr>
+<tr class="even">
+<td><code>2.00</code> (supersampling)</td>
+<td>3840×2160</td>
+<td>8.29 MPix</td>
+</tr>
+</tbody>
+</table>
+<p><strong>2560×1440 (QHD)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Resolution scale factor</th>
+<th>3D rendering resolution</th>
+<th>Megapixels rendered per frame</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>0.50</code></td>
+<td>1280×720</td>
+<td>0.92 MPix</td>
+</tr>
+<tr class="even">
+<td><code>0.67</code></td>
+<td>1715×964</td>
+<td>1.65 MPix</td>
+</tr>
+<tr class="odd">
+<td><code>0.75</code></td>
+<td>1920×1080</td>
+<td>2.07 MPix</td>
+</tr>
+<tr class="even">
+<td><code>0.85</code></td>
+<td>2176×1224</td>
+<td>2.66 MPix</td>
+</tr>
+<tr class="odd">
+<td><code>1.00</code> <strong>(native)</strong></td>
+<td><strong>2560×1440</strong></td>
+<td><strong>3.69 MPix</strong></td>
+</tr>
+<tr class="even">
+<td><code>1.33</code> (supersampling)</td>
+<td>3404×1915</td>
+<td>6.52 MPix</td>
+</tr>
+<tr class="odd">
+<td><code>1.50</code> (supersampling)</td>
+<td>3840×2160</td>
+<td>8.29 MPix</td>
+</tr>
+<tr class="even">
+<td><code>2.00</code> (supersampling)</td>
+<td>5120×2880</td>
+<td>14.75 MPix</td>
+</tr>
+</tbody>
+</table>
+<p><strong>3840×2160 (Ultra HD "4K")</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Resolution scale factor</th>
+<th>3D rendering resolution</th>
+<th>Megapixels rendered per frame</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>0.50</code></td>
+<td>1920×1080</td>
+<td>2.07 MPix</td>
+</tr>
+<tr class="even">
+<td><code>0.67</code></td>
+<td>2572×1447</td>
+<td>3.72 MPix</td>
+</tr>
+<tr class="odd">
+<td><code>0.75</code></td>
+<td>2880×1620</td>
+<td>4.67 MPix</td>
+</tr>
+<tr class="even">
+<td><code>0.85</code></td>
+<td>3264×1836</td>
+<td>5.99 MPix</td>
+</tr>
+<tr class="odd">
+<td><code>1.00</code> <strong>(native)</strong></td>
+<td><strong>3840×2160</strong></td>
+<td><strong>8.29 MPix</strong></td>
+</tr>
+<tr class="even">
+<td><code>1.33</code> (supersampling)</td>
+<td>5107×2872</td>
+<td>14.67 MPix</td>
+</tr>
+<tr class="odd">
+<td><code>1.50</code> (supersampling)</td>
+<td>5760×3240</td>
+<td>18.66 MPix</td>
+</tr>
+<tr class="even">
+<td><code>2.00</code> (supersampling)</td>
+<td>7680×4320</td>
+<td>33.18 MPix</td>
+</tr>
+</tbody>
+</table>
+<h3 id="fsr-sharpness">FSR Sharpness</h3>
+<p><em>This is only available in the Forward+ renderer, not the Mobile or Compatibility renderers.</em></p>
+<p>When using the FSR1 or FSR2 scaling modes, the sharpness can be controlled using the <strong>Rendering &gt; Scaling 3D &gt; FSR Sharpness</strong> advanced project setting.</p>
+<p>The intensity is inverted compared to most other sharpness sliders: <em>lower</em> values will result in a sharper final image, while <em>higher</em> values will <em>reduce</em> the impact of the sharpening filter. <code>0.0</code> is the sharpest, while <code>2.0</code> is the least sharp. The default value of <code>0.2</code> provides a balance between preserving the original image's sharpness and avoiding additional aliasing due to oversharpening.</p>
+<blockquote>
+<p><strong>Note:</strong> If you wish to use sharpening when rendering at native resolution, Godot currently doesn't allow using the sharpening component of FSR1 (RCAS) independently from the upscaling component (EASU).</p>
+<p>As a workaround, you can set the 3D rendering scale to <code>0.99</code>, set the scaling mode to <strong>FSR 1.0</strong> then adjust FSR sharpness as needed. This allows using FSR1 while rendering at a near-native resolution.</p>
+<p>Alternatively, you can set the scaling mode to <strong>FSR 2.2</strong> with the 3D rendering scale set to <code>1.0</code> if you have enough GPU headroom. This also provides high-quality temporal antialiasing. The <strong>FSR Sharpness</strong> setting remains functional in this case.</p>
+</blockquote>
+<h3 id="mipmap-bias">Mipmap bias</h3>
+<p><em>This is only available in the Forward+ and Mobile renderers, not the Compatibility renderer.</em></p>
+<p>Godot automatically uses a negative texture mipmap bias when the 3D resolution scale is set below <code>1.0</code>. This allows for better preservation of texture detail at the cost of a grainy appearance on detailed textures.</p>
+<p>The texture LOD bias currently affects both 2D and 3D rendering in the same way. However, keep in mind it only has an effect on textures with mipmaps enabled. Textures used in 2D don't have mipmaps enabled by default, which means only 3D rendering is affected unless you enabled mipmaps on 2D textures in the Import dock.</p>
+<p>The formula used to determine the texture mipmap bias is: <code>log2f(min(scaling_3d_scale, 1.0)) + custom_texture_mipmap_bias</code></p>
+<p>To counteract the blurriness added by some antialiasing methods, Godot also adds a <code>-0.25</code> offset when FXAA is enabled, and a <code>-0.5</code> offset when TAA is enabled. If both are enabled at the same time, a <code>-0.75</code> offset is used. This mipmap bias offset is applied <em>before</em> the resolution scaling offset, so it does not change depending on resolution scale.</p>
+<p>The texture LOD bias can manually be changed by adjusting the <strong>Rendering &gt; Textures &gt; Default Filters &gt; Texture Mipmap Bias</strong> advanced project setting. It can also be changed at runtime on ref by adjusting the <code>texture_mipmap_bias</code> property.</p>
+<blockquote>
+<p><strong>Warning:</strong> Adjusting the mipmap LOD bias manually can be useful in certain scenarios, but this should be done carefully to prevent the final image from looking grainy in motion.</p>
+<p><em>Negative</em> mipmap LOD bias can also decrease performance due to higher-resolution mips having to be sampled further away. Recommended values for a manual offset are between <code>-0.5</code> and <code>0.0</code>.</p>
+<p><em>Positive</em> mipmap LOD bias will make mipmapped textures appear blurrier than intended. This may improve performance slightly, but is otherwise not recommended as the loss in visual quality is usually not worth the performance gain.</p>
+</blockquote>
+<p>The example below shows an extreme case, with a mipmap LOD bias of <code>-1.0</code> and anisotropic filtering disabled to make the difference more noticeable:</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="performance-does-not-increase-much-when-decreasing-resolution-scale">Performance does not increase much when decreasing resolution scale</h3>
+<p>If performance doesn't increase much when decreasing resolution scale to a value like <code>0.5</code>, it likely means the performance bottleneck is elsewhere in your scene. For example, your scene could have too many draw calls, causing a CPU bottleneck to occur. Likewise, you may have too many graphics effects enabled for your GPU to handle (such as SDFGI, SSAO or SSR).</p>
+<p>See the <code>doc_performance</code> tutorials for more information.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

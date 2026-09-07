@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Third-person camera with spring arm — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="third-person-camera-with-spring-arm">Third-person camera with spring arm</h1>
+<h2 id="introduction">Introduction</h2>
+<p>3D games will often have a third-person camera that follows and rotates around something such as a player character or a vehicle.</p>
+<p>In Godot, this can be done by setting a ref as a child of a node. However, if you try this without any extra steps, you'll notice that the camera clips through geometry and hides the scene.</p>
+<p>This is where the ref node comes in.</p>
+<h2 id="what-is-a-spring-arm">What is a spring arm?</h2>
+<p>A spring arm has two main components that affect its behavior.</p>
+<p>The "length" of the spring arm is how far from its global position to check for collisions:</p>
+<p>The "shape" of the spring arm is what it uses to check for collisions. The spring arm will "sweep" this shape from its origin out towards its length.</p>
+<p>The spring arm tries to keep all of its children at the end of its length. When the shape collides with something, the children are instead placed at or near that collision point:</p>
+<h2 id="spring-arm-with-a-camera">Spring arm with a camera</h2>
+<p>When a camera is placed as a child of a spring arm, a pyramid representing the camera will be used as the shape.</p>
+<p>This pyramid represents the <strong>near plane</strong> of the camera:</p>
+<blockquote>
+<p><strong>Note:</strong> If the spring arm is given a specific shape, then that shape will <strong>always</strong> be used.</p>
+<p>The camera's shape is only used if the camera is a <strong>direct child</strong> of the spring arm.</p>
+<p>If no shape is provided and the camera is not a direct child, the spring arm will fall back to using a ray cast which is inaccurate for camera collisions and not recommended.</p>
+</blockquote>
+<p>Every physics process frame, the spring arm will perform a motion cast to check if anything is collided with:</p>
+<p>When the shape hits something, the camera will be placed at or near the collision point:</p>
+<h2 id="setting-up-the-spring-arm-and-camera">Setting up the spring arm and camera</h2>
+<p>Let's add a spring arm camera setup to the platformer demo.</p>
+<blockquote>
+<p><strong>Note:</strong> You can download the Platformer 3D demo on <a href="https://github.com/godotengine/godot-demo-projects/tree/master/3d/platformer">GitHub</a> or using the <a href="https://godotengine.org/asset-library/asset/2748">Asset Library</a>.</p>
+</blockquote>
+<p>In general, for a third-person camera setup, you will have three nodes as children of the node that you're following:</p>
+<ul>
+<li><p>Node3D (the "pivot point" for the camera)</p>
+<blockquote>
+<ul>
+<li><p>SpringArm3D</p>
+<blockquote>
+<ul>
+<li>Camera3D</li>
+</ul>
+</blockquote></li>
+</ul>
+</blockquote></li>
+</ul>
+<p>Open the <code>player/player.tscn</code> scene. Set these up as children of our player and give them unique names so we can find them in our script. <strong>Make sure to delete the existing camera node!</strong></p>
+<p>Let's move the pivot point up by <code>2</code> on the Y-axis so that it's not on the ground:</p>
+<p>Give the spring arm a length of <code>3</code> so that it is placed behind the character:</p>
+<blockquote>
+<p><strong>Note:</strong> Leave the <strong>Shape</strong> of the spring arm as <code>&lt;empty&gt;</code>. This way, it will use the camera's pyramid shape.</p>
+<p>If you want, you can also try other shapes - a sphere is a common choice since it slides smoothly along edges.</p>
+</blockquote>
+<p>Update the top of <code>player/player.gd</code> to grab the camera and the pivot points by their unique names:</p>
+<pre class="gdscript"><code># Comment out this existing camera line.
+# @onready var _camera := $Target/Camera3D as Camera3D
+
+@onready var _camera := %Camera3D as Camera3D
+@onready var _camera_pivot := %CameraPivot as Node3D</code></pre>
+<p>Add an <code>_unhandled_input</code> function to check for camera movement and then rotate the pivot point accordingly:</p>
+<pre class="gdscript"><code>@export_range(0.0, 1.0) var mouse_sensitivity = 0.01
+@export var tilt_limit = deg_to_rad(75)
+
+
+func _unhandled_input(event: InputEvent) -&gt; void:
+    # Mouselook implemented using `screen_relative` for resolution-independent sensitivity.
+    if event is InputEventMouseMotion:
+        _camera_pivot.rotation.x -= event.screen_relative.y * mouse_sensitivity
+        # Prevent the camera from rotating too far up or down.
+        _camera_pivot.rotation.x = clampf(_camera_pivot.rotation.x, -tilt_limit, tilt_limit)
+        _camera_pivot.rotation.y += -event.screen_relative.x * mouse_sensitivity</code></pre>
+<p>By rotating the pivot point, the spring arm will also be rotated and it will change where the camera is positioned. Run the game and notice that mouse movement now rotates the camera around the character. If the camera moves into a wall, it collides with it.</p>
+<p><em>Video: Camera attached to a spring arm colliding with walls</em></p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

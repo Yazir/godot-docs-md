@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebXR — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="webxr">WebXR</h1>
+<p>WebXR is a web standard for delivering XR experiences right from a web browser, without the user needing to install anything. Godot has built-in support for WebXR.</p>
+<blockquote>
+<p><strong>Note:</strong> As this uses the HTML export WebXR requires the use of the compatibility renderer. Godot currently requires multiview support for stereo rendering which is not available on all WebXR capable devices.</p>
+</blockquote>
+<h2 id="setup">Setup</h2>
+<p>Setting up WebXR is a little different because your application always starts as a normal non-XR webpage. We thus define a 2D UI on our main page that includes a button that will switch to XR.</p>
+<p>We will need the following code to make things work:</p>
+<pre class="gdscript"><code>extends Node3D
+
+@onready var start_xr_button: Button = $EnterWebXR
+
+# Our WebXR interface.
+var xr_interface: WebXRInterface
+
+# Is a WebXR is_session_supported query running
+var webxr_session_query: bool = false
+
+# Set this to true if we wish to have an AR session
+var require_ar: bool = false
+
+# Set this to true if we wish to have hand tracking
+var enable_hand_tracking: bool = false
+
+# Handle the Enter VR button on the WebXR browser
+func _on_enter_webxr_button_pressed() -&gt; void:
+    # Configure the WebXR interface
+    xr_interface.session_mode = &quot;immersive-ar&quot; if require_ar else &quot;immersive-vr&quot;
+    xr_interface.requested_reference_space_types = &quot;local-floor, local&quot;
+    xr_interface.required_features = &quot;local-floor&quot;
+    xr_interface.optional_features = &quot;&quot;
+
+    # Add hand-tracking if needed
+    if enable_hand_tracking:
+        xr_interface.optional_features += &quot;, hand-tracking&quot;
+
+    # Initialize the interface. This should trigger either _on_webxr_session_started
+    # or _on_webxr_session_failed
+    if not xr_interface.initialize():
+        OS.alert(&quot;Failed to initialize WebXR&quot;)
+
+
+# Called when we&#39;re ready
+func _ready() -&gt; void:
+    xr_interface = XRServer.find_interface(&quot;WebXR&quot;)
+    if xr_interface:
+        # Connect our signals
+        xr_interface.session_supported.connect(_on_webxr_session_supported)
+        xr_interface.session_started.connect(_on_webxr_session_started)
+        xr_interface.session_ended.connect(_on_webxr_session_ended)
+        xr_interface.session_failed.connect(_on_webxr_session_failed)
+
+        webxr_session_query = true
+        xr_interface.is_session_supported(&quot;immersive-ar&quot; if require_ar else &quot;immersive-vr&quot;)
+    else:
+        print(&quot;WebXR is not available&quot;)
+
+
+# Handle WebXR session supported check
+func _on_webxr_session_supported(session_mode: String, supported: bool) -&gt; void:
+    # Skip if not running session-query
+    if not webxr_session_query:
+        return
+
+    # Clear the query flag
+    webxr_session_query = false
+
+    # Report if not supported
+    if not supported:
+        OS.alert(&quot;Your web browser doesn&#39;t support &quot; + session_mode + &quot;. Sorry!&quot;)
+        return
+
+    # WebXR supported - show canvas on web browser to enter WebVR
+    start_xr_button.visible = true
+
+
+# Called when the WebXR session has started successfully
+func _on_webxr_session_started() -&gt; void:
+    # Hide the canvas and switch the viewport to XR
+    start_xr_button.visible = false
+
+    get_viewport().transparent_bg = require_ar
+    get_viewport().use_xr = true
+
+
+# Called when the user ends the immersive VR session
+func _on_webxr_session_ended() -&gt; void:
+    # Show the canvas and switch the viewport to non-XR
+    start_xr_button.visible = true
+
+    get_viewport().transparent_bg = false
+    get_viewport().use_xr = false
+
+
+# Called when the immersive VR session fails to start
+func _on_webxr_session_failed(message: String) -&gt; void:
+    OS.alert(&quot;Unable to enter VR: &quot; + message)
+    start_xr_button.visible = true</code></pre>
+<p>Make sure the "Enable WebXR" button's <code>button_pressed</code> signal calls the <code>_on_enter_webxr_button_pressed</code> method.</p>
+<blockquote>
+<p><strong>Note:</strong> In the code above we attempt to use the <code>local-floor</code> reference spaces. This reference spaces assumes gameplay where we need to know the player's height from the floor.</p>
+<p>For games where the player is seated inside of a vehicle, such as flight sims or racing games, the reference space <code>local</code> may be more appropriate.</p>
+</blockquote>
+<h2 id="controller-input">Controller input</h2>
+<p>The input system in WebXR works against a fixed set of inputs that obfuscate the actual hardware being used. In order to allow for code to be portable between a WebXR and OpenXR application these inputs are mapped to actions that overlap with the default action map used by our OpenXR interface.</p>
+<p>There are small differences such as WebXR separating touchpad and thumbsticks as separate inputs, instead of the primary and secondary input setup found in our default OpenXR action map.</p>
+<p>The core inputs are available for WebXR:</p>
+<p>|| || || || || || || || || || || || || || || || ||</p>
+<p>WebXR also exposes <code>aim</code> and <code>grip</code> poses that respectively identify a forward facing location at the tip of the controller and a position on the controller grip.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

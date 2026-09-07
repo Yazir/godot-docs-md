@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2D and 3D physics interpolation — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="2d-and-3d-physics-interpolation">2D and 3D physics interpolation</h1>
+<p>Generally 2D and 3D physics interpolation work in very similar ways. However, there are a few differences, which will be described here.</p>
+<h2 id="global-versus-local-interpolation">Global versus local interpolation</h2>
+<ul>
+<li>In 3D, physics interpolation is performed <em>independently</em> on the <strong>global transform</strong> of each 3D instance.</li>
+<li>In 2D by contrast, physics interpolation is performed on the <strong>local transform</strong> of each 2D instance.</li>
+</ul>
+<p>This has some implications:</p>
+<ul>
+<li>In 3D, it is easy to turn interpolation on and off at the level of each <code>Node</code>, via the <code>physics_interpolation_mode</code> property in the Inspector, which can be set to <code>On</code>, <code>Off</code>, or <code>Inherited</code>.</li>
+<li>However this means that in 3D, pivots that occur in the <code>SceneTree</code> (due to parent child relationships) can only be interpolated <strong>approximately</strong> over the physics tick. In most cases this will not matter, but in some situations the interpolation can look slightly <em>off</em>.</li>
+<li>In 2D, interpolated local transforms are passed down to children during rendering. This means that if a parent is set to <code>physics_interpolation_mode</code> <code>On</code>, but the child is set to <code>Off</code>, the child will still be interpolated if the parent is moving. <em>Only the child's local transform is uninterpolated.</em> Controlling the on / off behaviour of 2D nodes therefore requires a little more thought and planning.</li>
+<li>On the positive side, pivot behaviour in the scene tree is perfectly preserved during interpolation in 2D, which gives super smooth behaviour.</li>
+</ul>
+<h2 id="reset_physics_interpolation">reset_physics_interpolation()</h2>
+<p>Whenever objects are moved to a completely new position, and interpolation is not desired (so as to prevent a "streaking" artefact), it is the responsibility of the user to call <code>reset_physics_interpolation()</code>. The good news is that in 2D, this is automatically done for you when nodes first enter the tree. This reduces boiler plate, and reduces the effort required to get an existing project working.</p>
+<blockquote>
+<p><strong>Note:</strong> If you move objects <em>after</em> adding to the scene tree, you will still need to call <code>reset_physics_interpolation()</code> as with 3D.</p>
+</blockquote>
+<h2 id="2d-particles">2D Particles</h2>
+<p>Currently only <code>CPUParticles2D</code> are supported for physics interpolation in 2D. It is recommended to use a physics tick rate of at least 20-30 ticks per second to keep particles looking fluid. <code>Particles2D</code> (GPU particles) are not yet interpolated, so for now it is recommended to convert to <code>CPUParticles2D</code> (but keep a backup of your <code>Particles2D</code> in case we get these working).</p>
+<h2 id="other">Other</h2>
+<ul>
+<li><code>get_global_transform_interpolated()</code> - this is currently only available for 3D.</li>
+<li><code>MultiMeshes</code> - these should be supported in both 2D and 3D.</li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

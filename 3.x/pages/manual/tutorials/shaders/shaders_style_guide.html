@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shaders style guide — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="shaders-style-guide">Shaders style guide</h1>
+<p>This style guide lists conventions to write elegant shaders. The goal is to encourage writing clean, readable code and promote consistency across projects, discussions, and tutorials. Hopefully, this will also support the development of auto-formatting tools.</p>
+<p>Since the Godot shader language is close to C-style languages and GLSL, this guide is inspired by Godot's own GLSL formatting. You can view an example of a GLSL file in Godot's source code <a href="https://github.com/godotengine/godot/blob/3.6/drivers/gles2/shaders/copy.glsl">here</a>.</p>
+<p>Style guides aren't meant as hard rulebooks. At times, you may not be able to apply some of the guidelines below. When that happens, use your best judgment, and ask fellow developers for insights.</p>
+<p>In general, keeping your code consistent in your projects and within your team is more important than following this guide to a tee.</p>
+<blockquote>
+<p><strong>Note:</strong> Godot's built-in shader editor uses a lot of these conventions by default. Let it help you.</p>
+</blockquote>
+<p>Here is a complete shader example based on these guidelines:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>shader_type canvas_item<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Screen-space shader to adjust a 2D scene&#39;s brightness, contrast</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">// and saturation. Taken from</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">// https://github.com/godotengine/godot-demo-projects/blob/3.5/2d/screen_space_shaders/shaders/BCS.shader</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> brightness <span class="op">=</span> <span class="fl">0.8</span><span class="op">;</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> contrast <span class="op">=</span> <span class="fl">1.5</span><span class="op">;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> saturation <span class="op">=</span> <span class="fl">1.8</span><span class="op">;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vec3</span> c <span class="op">=</span> <span class="bu">textureLod</span><span class="op">(</span>SCREEN_TEXTURE<span class="op">,</span> SCREEN_UV<span class="op">,</span> <span class="fl">0.0</span><span class="op">).</span><span class="fu">rgb</span><span class="op">;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    c<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> <span class="bu">mix</span><span class="op">(</span><span class="dt">vec3</span><span class="op">(</span><span class="fl">0.0</span><span class="op">),</span> c<span class="op">.</span><span class="fu">rgb</span><span class="op">,</span> brightness<span class="op">);</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    c<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> <span class="bu">mix</span><span class="op">(</span><span class="dt">vec3</span><span class="op">(</span><span class="fl">0.5</span><span class="op">),</span> c<span class="op">.</span><span class="fu">rgb</span><span class="op">,</span> contrast<span class="op">);</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    c<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> <span class="bu">mix</span><span class="op">(</span><span class="dt">vec3</span><span class="op">(</span><span class="bu">dot</span><span class="op">(</span><span class="dt">vec3</span><span class="op">(</span><span class="fl">1.0</span><span class="op">),</span> c<span class="op">.</span><span class="fu">rgb</span><span class="op">)</span> <span class="op">*</span> <span class="fl">0.33333</span><span class="op">),</span> c<span class="op">.</span><span class="fu">rgb</span><span class="op">,</span> saturation<span class="op">);</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    COLOR<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> c<span class="op">;</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="formatting">Formatting</h2>
+<h3 id="encoding-and-special-characters">Encoding and special characters</h3>
+<ul>
+<li>Use line feed (<strong>LF</strong>) characters to break lines, not CRLF or CR. <em>(editor default)</em></li>
+<li>Use one line feed character at the end of each file. <em>(editor default)</em></li>
+<li>Use <strong>UTF-8</strong> encoding without a <a href="https://en.wikipedia.org/wiki/Byte_order_mark">byte order mark</a>. <em>(editor default)</em></li>
+<li>Use <strong>Tabs</strong> instead of spaces for indentation. <em>(editor default)</em></li>
+</ul>
+<h3 id="indentation">Indentation</h3>
+<p>Each indent level should be one tab greater than the block containing it.</p>
+<p><strong>Good</strong>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    COLOR <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">1.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">);</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>Bad</strong>:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>        COLOR <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">1.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">);</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Use 2 indent levels to distinguish continuation lines from regular code blocks.</p>
+<p><strong>Good</strong>:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">vec2</span> st <span class="op">=</span> <span class="dt">vec2</span><span class="op">(</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>        <span class="bu">atan</span><span class="op">(</span>NORMAL<span class="op">.</span><span class="fu">x</span><span class="op">,</span> NORMAL<span class="op">.</span><span class="fu">z</span><span class="op">),</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">acos</span><span class="op">(</span>NORMAL<span class="op">.</span><span class="fu">y</span><span class="op">));</span></span></code></pre></div>
+<p><strong>Bad</strong>:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="dt">vec2</span> st <span class="op">=</span> <span class="dt">vec2</span><span class="op">(</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">atan</span><span class="op">(</span>NORMAL<span class="op">.</span><span class="fu">x</span><span class="op">,</span> NORMAL<span class="op">.</span><span class="fu">z</span><span class="op">),</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">acos</span><span class="op">(</span>NORMAL<span class="op">.</span><span class="fu">y</span><span class="op">));</span></span></code></pre></div>
+<h3 id="line-breaks-and-blank-lines">Line breaks and blank lines</h3>
+<p>For a general indentation rule, follow <a href="https://en.wikipedia.org/wiki/Indentation_style#Variant:_1TBS_(OTBS)">the "1TBS Style"</a> which recommends placing the brace associated with a control statement on the same line. Always use braces for statements, even if they only span one line. This makes them easier to refactor and avoids mistakes when adding more lines to an <code>if</code> statement or similar.</p>
+<p><strong>Good</strong>:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span><span class="kw">true</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ...</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>Bad</strong>:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span><span class="kw">true</span><span class="op">)</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ...</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="blank-lines">Blank lines</h3>
+<p>Surround function definitions with one (and only one) blank line:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">do_something</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ...</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ...</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Use one (and only one) blank line inside functions to separate logical sections.</p>
+<h3 id="line-length">Line length</h3>
+<p>Keep individual lines of code under 100 characters.</p>
+<p>If you can, try to keep lines under 80 characters. This helps to read the code on small displays and with two shaders opened side-by-side in an external text editor. For example, when looking at a differential revision.</p>
+<h3 id="one-statement-per-line">One statement per line</h3>
+<p>Never combine multiple statements on a single line.</p>
+<p><strong>Good</strong>:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    ALBEDO <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">1.0</span><span class="op">);</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    EMISSION <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">1.0</span><span class="op">);</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>Bad</strong>:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    ALBEDO <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">1.0</span><span class="op">);</span> EMISSION <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">1.0</span><span class="op">);</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The only exception to that rule is the ternary operator:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>     <span class="dt">bool</span> should_be_white <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>     ALBEDO <span class="op">=</span> should_be_white <span class="op">?</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">1.0</span><span class="op">)</span> <span class="op">:</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">0.0</span><span class="op">);</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a> <span class="op">}</span></span></code></pre></div>
+<h3 id="comment-spacing">Comment spacing</h3>
+<p>Regular comments should start with a space, but not code that you comment out. This helps differentiate text comments from disabled code.</p>
+<p><strong>Good</strong>:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This is a comment.</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co">//return;</span></span></code></pre></div>
+<p><strong>Bad</strong>:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">//This is a comment.</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">// return;</span></span></code></pre></div>
+<p>Don't use multiline comment syntax if your comment can fit on a single line:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* This is another comment. */</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> In the shader editor, to make the selected code a comment (or uncomment it), press <code>Ctrl + K</code>. This feature adds or removes <code>//</code> at the start of the selected lines.</p>
+</blockquote>
+<h3 id="whitespace">Whitespace</h3>
+<p>Always use one space around operators and after commas. Also, avoid extraneous spaces in function calls.</p>
+<p><strong>Good</strong>:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>COLOR<span class="op">.</span><span class="fu">r</span> <span class="op">=</span> <span class="fl">5.0</span><span class="op">;</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>COLOR<span class="op">.</span><span class="fu">r</span> <span class="op">=</span> COLOR<span class="op">.</span><span class="fu">g</span> <span class="op">+</span> <span class="fl">0.1</span><span class="op">;</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>COLOR<span class="op">.</span><span class="fu">b</span> <span class="op">=</span> <span class="fu">some_function</span><span class="op">(</span><span class="fl">1.0</span><span class="op">,</span> <span class="fl">2.0</span><span class="op">);</span></span></code></pre></div>
+<p><strong>Bad</strong>:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>COLOR<span class="op">.</span><span class="fu">r</span><span class="op">=</span><span class="fl">5.0</span><span class="op">;</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>COLOR<span class="op">.</span><span class="fu">r</span> <span class="op">=</span> COLOR<span class="op">.</span><span class="fu">g</span><span class="fl">+0.1</span><span class="op">;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>COLOR<span class="op">.</span><span class="fu">b</span> <span class="op">=</span> <span class="fu">some_function</span> <span class="op">(</span><span class="fl">1.0</span><span class="op">,</span><span class="fl">2.0</span><span class="op">);</span></span></code></pre></div>
+<p>Don't use spaces to align expressions vertically:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>ALBEDO<span class="op">.</span><span class="fu">r</span>   <span class="op">=</span> <span class="fl">1.0</span><span class="op">;</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>EMISSION<span class="op">.</span><span class="fu">r</span> <span class="op">=</span> <span class="fl">1.0</span><span class="op">;</span></span></code></pre></div>
+<h3 id="floating-point-numbers">Floating-point numbers</h3>
+<p>Always specify at least one digit for both the integer and fractional part. This makes it easier to distinguish floating-point numbers from integers, as well as distinguishing numbers greater than 1 from those lower than 1.</p>
+<p><strong>Good</strong>:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    ALBEDO<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">5.0</span><span class="op">,</span> <span class="fl">0.1</span><span class="op">,</span> <span class="fl">0.2</span><span class="op">);</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>Bad</strong>:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    ALBEDO<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">5.</span><span class="op">,</span> <span class="op">.</span><span class="fu">1</span><span class="op">,</span> <span class="op">.</span><span class="fu">2</span><span class="op">);</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="accessing-vector-members">Accessing vector members</h2>
+<p>Use <code>r</code>, <code>g</code>, <code>b</code>, and <code>a</code> when accessing a vector's members if it contains a color. If the vector contains anything else than a color, use <code>x</code>, <code>y</code>, <code>z</code>, and <code>w</code>. This allows those reading your code to better understand what the underlying data represents.</p>
+<p><strong>Good</strong>:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>COLOR<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">5.0</span><span class="op">,</span> <span class="fl">0.1</span><span class="op">,</span> <span class="fl">0.2</span><span class="op">);</span></span></code></pre></div>
+<p><strong>Bad</strong>:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>COLOR<span class="op">.</span><span class="fu">xyz</span> <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">5.0</span><span class="op">,</span> <span class="fl">0.1</span><span class="op">,</span> <span class="fl">0.2</span><span class="op">);</span></span></code></pre></div>
+<h2 id="naming-conventions">Naming conventions</h2>
+<p>These naming conventions follow the Godot Engine style. Breaking these will make your code clash with the built-in naming conventions, leading to inconsistent code.</p>
+<h3 id="functions-and-variables">Functions and variables</h3>
+<p>Use snake_case to name functions and variables:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">some_function</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>     <span class="dt">float</span> some_variable <span class="op">=</span> <span class="fl">0.5</span><span class="op">;</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="constants">Constants</h3>
+<p>Write constants with CONSTANT_CASE, that is to say in all caps with an underscore (_) to separate words:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="dt">const</span> <span class="dt">float</span> GOLDEN_RATIO <span class="op">=</span> <span class="fl">1.618</span><span class="op">;</span></span></code></pre></div>
+<h2 id="code-order">Code order</h2>
+<p>We suggest to organize shader code this way:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fl">01.</span> shader type declaration</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fl">02.</span> render mode declaration</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="fl">03.</span> <span class="co">// docstring</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="fl">04.</span> uniforms</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="fl">05.</span> constants</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="fl">06.</span> varyings</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="fl">07.</span> other functions</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="fl">08.</span> <span class="fu">vertex</span><span class="op">()</span> function</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="fl">09.</span> <span class="fu">fragment</span><span class="op">()</span> function</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a><span class="fl">10.</span> <span class="fu">light</span><span class="op">()</span> function</span></code></pre></div>
+<p>We optimized the order to make it easy to read the code from top to bottom, to help developers reading the code for the first time understand how it works, and to avoid errors linked to the order of variable declarations.</p>
+<p>This code order follows two rules of thumb:</p>
+<ol type="1">
+<li>Metadata and properties first, followed by methods.</li>
+<li>"Public" comes before "private". In a shader language's context, "public" refers to what's easily adjustable by the user (uniforms).</li>
+</ol>
+<h3 id="local-variables">Local variables</h3>
+<p>Declare local variables as close as possible to their first use. This makes it easier to follow the code, without having to scroll too much to find where the variable was declared.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

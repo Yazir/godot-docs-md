@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Godot interfaces — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="godot-interfaces">Godot interfaces</h1>
+<p>Often one needs scripts that rely on other objects for features. There are 2 parts to this process:</p>
+<ol type="1">
+<li>Acquiring a reference to the object that presumably has the features.</li>
+<li>Accessing the data or logic from the object.</li>
+</ol>
+<p>The rest of this tutorial outlines the various ways of doing all this.</p>
+<h2 id="acquiring-object-references">Acquiring object references</h2>
+<p>For all refs, the most basic way of referencing them is to get a reference to an existing object from another acquired instance.</p>
+<pre class="gdscript"><code>var obj = node.object # Property access.
+var obj = node.get_object() # Method access.</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>Object obj <span class="op">=</span> node<span class="op">.</span><span class="fu">Object</span><span class="op">;</span> <span class="co">// Property access.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>Object obj <span class="op">=</span> node<span class="op">.</span><span class="fu">GetObject</span><span class="op">();</span> <span class="co">// Method access.</span></span></code></pre></div>
+<p>The same principle applies for ref objects. While users often access ref and ref this way, alternative measures are available.</p>
+<p>Instead of property or method access, one can get Resources by load access.</p>
+<pre class="gdscript"><code>var preres = preload(path) # Load resource during scene load
+var res = load(path) # Load resource when program reaches statement
+
+# Note that users load scenes and scripts, by convention, with PascalCase
+# names (like typenames), often into constants.
+const MyScene : = preload(&quot;my_scene.tscn&quot;) as PackedScene # Static load
+const MyScript : = preload(&quot;my_script.gd&quot;) as Script
+
+# This type&#39;s value varies, i.e. it is a variable, so it uses snake_case.
+export(Script) var script_type: Script
+
+# If need an &quot;export const var&quot; (which doesn&#39;t exist), use a conditional
+# setter for a tool script that checks if it&#39;s executing in the editor.
+tool # Must place at top of file.
+
+# Must configure from the editor, defaults to null.
+export(Script) var const_script setget set_const_script
+func set_const_script(value):
+    if Engine.is_editor_hint():
+        const_script = value
+
+# Warn users if the value hasn&#39;t been set.
+func _get_configuration_warning():
+    if not const_script:
+        return &quot;Must initialize property &#39;const_script&#39;.&quot;
+    return &quot;&quot;</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Tool script added for the sake of the &quot;const [Export]&quot; example.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> MyType</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Property initializations load during Script instancing, i.e. .new().</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// No &quot;preload&quot; loads during scene load exists in C#.</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Initialize with a value. Editable at runtime.</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Script MyScript <span class="op">=</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Script<span class="op">&gt;(</span><span class="st">&quot;MyScript.cs&quot;</span><span class="op">);</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Initialize with same value. Value cannot be changed.</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">readonly</span> Script MyConstScript <span class="op">=</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Script<span class="op">&gt;(</span><span class="st">&quot;MyScript.cs&quot;</span><span class="op">);</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Like &#39;readonly&#39; due to inaccessible setter.</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// But, value can be set during constructor, i.e. MyType().</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Script Library <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Script<span class="op">&gt;(</span><span class="st">&quot;res://addons/plugin/library.gd&quot;</span><span class="op">);</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">// If need a &quot;const [Export]&quot; (which doesn&#39;t exist), use a</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// conditional setter for a tool script that checks if it&#39;s executing</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// in the editor.</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> PackedScene _enemyScn<span class="op">;</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> PackedScene EnemyScn</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>        <span class="kw">get</span> <span class="op">{</span> <span class="kw">return</span> _enemyScn<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        set</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>Engine<span class="op">.</span><span class="fu">IsEditorHint</span><span class="op">())</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>                _enemyScn <span class="op">=</span> value<span class="op">;</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Warn users if the value hasn&#39;t been set.</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> String <span class="fu">_GetConfigurationWarning</span><span class="op">()</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>EnemyScn <span class="op">==</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span> <span class="st">&quot;Must initialize property &#39;EnemyScn&#39;.&quot;</span><span class="op">;</span></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="st">&quot;&quot;</span><span class="op">;</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Note the following:</p>
+<ol type="1">
+<li>There are many ways in which a language can load such resources.</li>
+<li>When designing how objects will access data, don't forget that one can pass resources around as references as well.</li>
+<li>Keep in mind that loading a resource fetches the cached resource instance maintained by the engine. To get a new object, one must ref an existing reference or instantiate one from scratch with <code>new()</code>.</li>
+</ol>
+<p>Nodes likewise have an alternative access point: the SceneTree.</p>
+<pre class="gdscript"><code>extends Node
+
+# Slow.
+func dynamic_lookup_with_dynamic_nodepath():
+    print(get_node(&quot;Child&quot;))
+
+# Faster. GDScript only.
+func dynamic_lookup_with_cached_nodepath():
+    print($Child)
+
+# Fastest. Doesn&#39;t break if node moves later.
+# Note that `onready` keyword is GDScript only.
+# Other languages must do...
+#     var child
+#     func _ready():
+#         child = get_node(&quot;Child&quot;)
+onready var child = $Child
+func lookup_and_cache_for_future_access():
+    print(child)
+
+# Delegate reference assignment to an external source.
+# Con: need to perform a validation check.
+# Pro: node makes no requirements of its external structure.
+#      &#39;prop&#39; can come from anywhere.
+var prop
+func call_me_after_prop_is_initialized_by_parent():
+    # Validate prop in one of three ways.
+
+    # Fail with no notification.
+    if not prop:
+        return
+
+    # Fail with an error message.
+    if not prop:
+        printerr(&quot;&#39;prop&#39; wasn&#39;t initialized&quot;)
+        return
+
+    # Fail and terminate.
+    # Note: Scripts run from a release export template don&#39;t
+    # run `assert` statements.
+    assert(prop, &quot;&#39;prop&#39; wasn&#39;t initialized&quot;)
+
+# Use an autoload.
+# Dangerous for typical nodes, but useful for true singleton nodes
+# that manage their own data and don&#39;t interfere with other objects.
+func reference_a_global_autoloaded_variable():
+    print(globals)
+    print(globals.prop)
+    print(globals.my_getter())</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> MyNode</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Slow</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">DynamicLookupWithDynamicNodePath</span><span class="op">()</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="fu">GetNode</span><span class="op">(</span><span class="fu">NodePath</span><span class="op">(</span><span class="st">&quot;Child&quot;</span><span class="op">)));</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Fastest. Lookup node and cache for future access.</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Doesn&#39;t break if node moves later.</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Node Child<span class="op">;</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>        Child <span class="op">=</span> <span class="fu">GetNode</span><span class="op">(</span><span class="fu">NodePath</span><span class="op">(</span><span class="st">&quot;Child&quot;</span><span class="op">));</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">LookupAndCacheForFutureAccess</span><span class="op">()</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>Child<span class="op">);</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Delegate reference assignment to an external source.</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Con: need to perform a validation check.</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Pro: node makes no requirements of its external structure.</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">//      &#39;prop&#39; can come from anywhere.</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">object</span> Prop<span class="op">;</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">CallMeAfterPropIsInitializedByParent</span><span class="op">()</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Validate prop in one of three ways.</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Fail with no notification.</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>prop <span class="op">==</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span><span class="op">;</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Fail with an error message.</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>prop <span class="op">==</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">PrintErr</span><span class="op">(</span><span class="st">&quot;&#39;Prop&#39; wasn&#39;t initialized&quot;</span><span class="op">);</span></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span><span class="op">;</span></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Fail and terminate.</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>        Debug<span class="op">.</span><span class="fu">Assert</span><span class="op">(</span>Prop<span class="op">,</span> <span class="st">&quot;&#39;Prop&#39; wasn&#39;t initialized&quot;</span><span class="op">);</span></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Use an autoload.</span></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Dangerous for typical nodes, but useful for true singleton nodes</span></span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a>    <span class="co">// that manage their own data and don&#39;t interfere with other objects.</span></span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">ReferenceAGlobalAutoloadedVariable</span><span class="op">()</span></span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>        Node globals <span class="op">=</span> <span class="fu">GetNode</span><span class="op">(</span><span class="fu">NodePath</span><span class="op">(</span><span class="st">&quot;/root/Globals&quot;</span><span class="op">));</span></span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>globals<span class="op">);</span></span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>globals<span class="op">.</span><span class="fu">prop</span><span class="op">);</span></span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>globals<span class="op">.</span><span class="fu">my_getter</span><span class="op">());</span></span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<h2 id="accessing-data-or-logic-from-an-object">Accessing data or logic from an object</h2>
+<p>Godot's scripting API is duck-typed. This means that if a script executes an operation, Godot doesn't validate that it supports the operation by <strong>type</strong>. It instead checks that the object <strong>implements</strong> the individual method.</p>
+<p>For example, the ref class has a <code>visible</code> property. All properties exposed to the scripting API are in fact a setter and getter pair bound to a name. If one tried to access ref, then Godot would do the following checks, in order:</p>
+<ul>
+<li>If the object has a script attached, it will attempt to set the property through the script. This leaves open the opportunity for scripts to override a property defined on a base object by overriding the setter method for the property.</li>
+<li>If the script does not have the property, it performs a HashMap lookup in the ClassDB for the "visible" property against the CanvasItem class and all of its inherited types. If found, it will call the bound setter or getter. For more information about HashMaps, see the ref docs.</li>
+<li>If not found, it does an explicit check to see if the user wants to access the "script" or "meta" properties.</li>
+<li>If not, it checks for a <code>_set</code>/<code>_get</code> implementation (depending on type of access) in the CanvasItem and its inherited types. These methods can execute logic that gives the impression that the Object has a property. This is also the case with the <code>_get_property_list</code> method.
+<ul>
+<li>Note that this happens even for non-legal symbol names such as in the case of ref's "1/tile_name" property. This refers to the name of the tile with ID 1, i.e. ref.</li>
+</ul></li>
+</ul>
+<p>As a result, this duck-typed system can locate a property either in the script, the object's class, or any class that object inherits, but only for things which extend Object.</p>
+<p>Godot provides a variety of options for performing runtime checks on these accesses:</p>
+<ul>
+<li>A duck-typed property access. These will property check (as described above). If the operation isn't supported by the object, execution will halt.</li>
+</ul>
+<pre class="gdscript"><code># All Objects have duck-typed get, set, and call wrapper methods.
+get_parent().set(&quot;visible&quot;, false)
+
+# Using a symbol accessor, rather than a string in the method call,
+# will implicitly call the `set` method which, in turn, calls the
+# setter method bound to the property through the property lookup
+# sequence.
+get_parent().visible = false
+
+# Note that if one defines a _set and _get that describe a property&#39;s
+# existence, but the property isn&#39;t recognized in any _get_property_list
+# method, then the set() and get() methods will work, but the symbol
+# access will claim it can&#39;t find the property.</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// All Objects have duck-typed Get, Set, and Call wrapper methods.</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">GetParent</span><span class="op">().</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;visible&quot;</span><span class="op">,</span> <span class="kw">false</span><span class="op">);</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// C# is a static language, so it has no dynamic symbol access, e.g.</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">// `GetParent().Visible = false` won&#39;t work.</span></span></code></pre></div>
+<ul>
+<li>A method check. In the case of ref, one can access the methods, <code>set_visible</code> and <code>is_visible</code> like any other method.</li>
+</ul>
+<pre class="gdscript"><code>var child = get_child(0)
+
+# Dynamic lookup.
+child.call(&quot;set_visible&quot;, false)
+
+# Symbol-based dynamic lookup.
+# GDScript aliases this into a &#39;call&#39; method behind the scenes.
+child.set_visible(false)
+
+# Dynamic lookup, checks for method existence first.
+if child.has_method(&quot;set_visible&quot;):
+    child.set_visible(false)
+
+# Cast check, followed by dynamic lookup.
+# Useful when you make multiple &quot;safe&quot; calls knowing that the class
+# implements them all. No need for repeated checks.
+# Tricky if one executes a cast check for a user-defined type as it
+# forces more dependencies.
+if child is CanvasItem:
+    child.set_visible(false)
+    child.show_on_top = true
+
+# If one does not wish to fail these checks without notifying users,
+# one can use an assert instead. These will trigger runtime errors
+# immediately if not true.
+assert(child.has_method(&quot;set_visible&quot;))
+assert(child.is_in_group(&quot;offer&quot;))
+assert(child is CanvasItem)
+
+# Can also use object labels to imply an interface, i.e. assume it
+# implements certain methods.
+# There are two types, both of which only exist for Nodes: Names and
+# Groups.
+
+# Assuming...
+# A &quot;Quest&quot; object exists and 1) that it can &quot;complete&quot; or &quot;fail&quot; and
+# that it will have text available before and after each state...
+
+# 1. Use a name.
+var quest = $Quest
+print(quest.text)
+quest.complete() # or quest.fail()
+print(quest.text) # implied new text content
+
+# 2. Use a group.
+for a_child in get_children():
+    if a_child.is_in_group(&quot;quest&quot;):
+        print(quest.text)
+        quest.complete() # or quest.fail()
+        print(quest.text) # implied new text content
+
+# Note that these interfaces are project-specific conventions the team
+# defines (which means documentation! But maybe worth it?).
+# Any script that conforms to the documented &quot;interface&quot; of the name or
+# group can fill in for it.</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>Node child <span class="op">=</span> <span class="fu">GetChild</span><span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Dynamic lookup.</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>child<span class="op">.</span><span class="fu">Call</span><span class="op">(</span><span class="st">&quot;SetVisible&quot;</span><span class="op">,</span> <span class="kw">false</span><span class="op">);</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Dynamic lookup, checks for method existence first.</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>child<span class="op">.</span><span class="fu">HasMethod</span><span class="op">(</span><span class="st">&quot;SetVisible&quot;</span><span class="op">))</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    child<span class="op">.</span><span class="fu">Call</span><span class="op">(</span><span class="st">&quot;SetVisible&quot;</span><span class="op">,</span> <span class="kw">false</span><span class="op">);</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="co">// Use a group as if it were an &quot;interface&quot;, i.e. assume it implements</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co">// certain methods.</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co">// Requires good documentation for the project to keep it reliable</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">// (unless you make editor tools to enforce it at editor time).</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co">// Note, this is generally not as good as using an actual interface in</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co">// C#, but you can&#39;t set C# interfaces from the editor since they are</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co">// language-level features.</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>child<span class="op">.</span><span class="fu">IsInGroup</span><span class="op">(</span><span class="st">&quot;Offer&quot;</span><span class="op">))</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    child<span class="op">.</span><span class="fu">Call</span><span class="op">(</span><span class="st">&quot;Accept&quot;</span><span class="op">);</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>    child<span class="op">.</span><span class="fu">Call</span><span class="op">(</span><span class="st">&quot;Reject&quot;</span><span class="op">);</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="co">// Cast check, followed by static lookup.</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>CanvasItem ci <span class="op">=</span> <span class="fu">GetParent</span><span class="op">()</span> <span class="kw">as</span> CanvasItem<span class="op">;</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>ci <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>    ci<span class="op">.</span><span class="fu">SetVisible</span><span class="op">(</span><span class="kw">false</span><span class="op">);</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>    <span class="co">// useful when you need to make multiple safe calls to the class</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>    ci<span class="op">.</span><span class="fu">ShowOnTop</span> <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a><span class="co">// If one does not wish to fail these checks without notifying users,</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a><span class="co">// one can use an assert instead. These will trigger runtime errors</span></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a><span class="co">// immediately if not true.</span></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>Debug<span class="op">.</span><span class="fu">Assert</span><span class="op">(</span>child<span class="op">.</span><span class="fu">HasMethod</span><span class="op">(</span><span class="st">&quot;set_visible&quot;</span><span class="op">));</span></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>Debug<span class="op">.</span><span class="fu">Assert</span><span class="op">(</span>child<span class="op">.</span><span class="fu">IsInGroup</span><span class="op">(</span><span class="st">&quot;offer&quot;</span><span class="op">));</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>Debug<span class="op">.</span><span class="fu">Assert</span><span class="op">(</span>CanvasItem<span class="op">.</span><span class="fu">InstanceHas</span><span class="op">(</span>child<span class="op">));</span></span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a><span class="co">// Can also use object labels to imply an interface, i.e. assume it</span></span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a><span class="co">// implements certain methods.</span></span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a><span class="co">// There are two types, both of which only exist for Nodes: Names and</span></span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a><span class="co">// Groups.</span></span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a><span class="co">// Assuming...</span></span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a><span class="co">// A &quot;Quest&quot; object exists and 1) that it can &quot;Complete&quot; or &quot;Fail&quot; and</span></span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a><span class="co">// that it will have Text available before and after each state...</span></span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Use a name.</span></span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>Node quest <span class="op">=</span> <span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Quest&quot;</span><span class="op">);</span></span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>quest<span class="op">.</span><span class="fu">Get</span><span class="op">(</span><span class="st">&quot;Text&quot;</span><span class="op">));</span></span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a>quest<span class="op">.</span><span class="fu">Call</span><span class="op">(</span><span class="st">&quot;Complete&quot;</span><span class="op">);</span> <span class="co">// or &quot;Fail&quot;.</span></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>quest<span class="op">.</span><span class="fu">Get</span><span class="op">(</span><span class="st">&quot;Text&quot;</span><span class="op">));</span> <span class="co">// Implied new text content.</span></span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Use a group.</span></span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a><span class="kw">foreach</span> <span class="op">(</span>Node AChild <span class="kw">in</span> <span class="fu">GetChildren</span><span class="op">())</span></span>
+<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>AChild<span class="op">.</span><span class="fu">IsInGroup</span><span class="op">(</span><span class="st">&quot;quest&quot;</span><span class="op">))</span></span>
+<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a>      GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>quest<span class="op">.</span><span class="fu">Get</span><span class="op">(</span><span class="st">&quot;Text&quot;</span><span class="op">));</span></span>
+<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a>      quest<span class="op">.</span><span class="fu">Call</span><span class="op">(</span><span class="st">&quot;Complete&quot;</span><span class="op">);</span> <span class="co">// or &quot;Fail&quot;.</span></span>
+<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a>      GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>quest<span class="op">.</span><span class="fu">Get</span><span class="op">(</span><span class="st">&quot;Text&quot;</span><span class="op">));</span> <span class="co">// Implied new text content.</span></span>
+<span id="cb10-65"><a href="#cb10-65" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-66"><a href="#cb10-66" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb10-67"><a href="#cb10-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-68"><a href="#cb10-68" aria-hidden="true" tabindex="-1"></a><span class="co">// Note that these interfaces are project-specific conventions the team</span></span>
+<span id="cb10-69"><a href="#cb10-69" aria-hidden="true" tabindex="-1"></a><span class="co">// defines (which means documentation! But maybe worth it?).</span></span>
+<span id="cb10-70"><a href="#cb10-70" aria-hidden="true" tabindex="-1"></a><span class="co">// Any script that conforms to the documented &quot;interface&quot; of the</span></span>
+<span id="cb10-71"><a href="#cb10-71" aria-hidden="true" tabindex="-1"></a><span class="co">// name or group can fill in for it. Also note that in C#, these methods</span></span>
+<span id="cb10-72"><a href="#cb10-72" aria-hidden="true" tabindex="-1"></a><span class="co">// will be slower than static accesses with traditional interfaces.</span></span></code></pre></div>
+<ul>
+<li>Outsource the access to a ref. These may be useful in cases where one needs the max level of freedom from dependencies. In this case, one relies on an external context to setup the method.</li>
+</ul>
+<pre class="gdscript"><code># child.gd
+extends Node
+var fn = null
+
+func my_method():
+    if fn:
+        fn.call_func()
+
+# parent.gd
+extends Node
+
+onready var child = $Child
+
+func _ready():
+    child.fn = funcref(self, &quot;print_me&quot;)
+    child.my_method()
+
+func print_me():
+    print(name)</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Child.cs</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Child <span class="op">:</span> Node</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> FuncRef FN <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">MyMethod</span><span class="op">()</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        Debug<span class="op">.</span><span class="fu">Assert</span><span class="op">(</span>FN <span class="op">!=</span> <span class="kw">null</span><span class="op">);</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        FN<span class="op">.</span><span class="fu">CallFunc</span><span class="op">();</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent.cs</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Parent <span class="op">:</span> Node</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Node Child<span class="op">;</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        Child <span class="op">=</span> <span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Child&quot;</span><span class="op">);</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>        Child<span class="op">.</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;FN&quot;</span><span class="op">,</span> GD<span class="op">.</span><span class="fu">FuncRef</span><span class="op">(</span><span class="kw">this</span><span class="op">,</span> <span class="st">&quot;PrintMe&quot;</span><span class="op">));</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>        Child<span class="op">.</span><span class="fu">MyMethod</span><span class="op">();</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">PrintMe</span><span class="op">()</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="fu">GetClass</span><span class="op">());</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>These strategies contribute to Godot's flexible design. Between them, users have a breadth of tools to meet their specific needs.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

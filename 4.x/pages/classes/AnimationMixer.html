@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnimationMixer — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="animationmixer">AnimationMixer</h1>
+<p><em>Inherits: <a href="Node.html">Node</a> &lt; <a href="Object.html">Object</a></em></p>
+<p><em>Implemented by: <a href="AnimationPlayer.html">AnimationPlayer</a>, <a href="AnimationTree.html">AnimationTree</a></em></p>
+<p>Base class for <a href="AnimationPlayer.html">AnimationPlayer</a> and <a href="AnimationTree.html">AnimationTree</a>.</p>
+<h2 id="description">Description</h2>
+<p>Base class for <a href="AnimationPlayer.html">AnimationPlayer</a> and <a href="AnimationTree.html">AnimationTree</a> to manage animation lists. It also has general properties and methods for playback and blending.</p>
+<p>After instantiating the playback information data within the extended class, the blending is processed by the <strong>AnimationMixer</strong>.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="https://godotengine.org/article/migrating-animations-from-godot-4-0-to-4-3/">Migrating Animations from Godot 4.0 to 4.3</a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="bool-active--true"><code>bool active = true</code></h3>
+<ul>
+<li>Setter: <code>set_active(value: bool)</code></li>
+<li>Getter: <code>is_active()</code></li>
+</ul>
+<p>If <code>true</code>, the <strong>AnimationMixer</strong> will be processing.</p>
+<h3 id="int-audio_max_polyphony--32"><code>int audio_max_polyphony = 32</code></h3>
+<ul>
+<li>Setter: <code>set_audio_max_polyphony(value: int)</code></li>
+<li>Getter: <code>get_audio_max_polyphony()</code></li>
+</ul>
+<p>The number of possible simultaneous sounds for each of the assigned AudioStreamPlayers.</p>
+<p>For example, if this value is <code>32</code> and the animation has two audio tracks, the two <a href="AudioStreamPlayer.html">AudioStreamPlayer</a> s assigned can play simultaneously up to <code>32</code> voices each.</p>
+<h3 id="animationcallbackmodediscrete-callback_mode_discrete--1">``AnimationCallbackModeDiscrete<code> callback_mode_discrete = 1</code></h3>
+<ul>
+<li>Setter: <code>set_callback_mode_discrete(value: </code>AnimationCallbackModeDiscrete<code>)</code></li>
+<li>Getter: <code>get_callback_mode_discrete()</code></li>
+</ul>
+<p>Ordinarily, tracks can be set to <code>Animation.UPDATE_DISCRETE</code> to update infrequently, usually when using nearest interpolation.</p>
+<p>However, when blending with <code>Animation.UPDATE_CONTINUOUS</code> several results are considered. The <code>callback_mode_discrete</code> specify it explicitly. See also <code>AnimationCallbackModeDiscrete</code>.</p>
+<p>To make the blended results look good, it is recommended to set this to <code>ANIMATION_CALLBACK_MODE_DISCRETE_FORCE_CONTINUOUS</code> to update every frame during blending. Other values exist for compatibility and they are fine if there is no blending, but not so, may produce artifacts.</p>
+<h3 id="animationcallbackmodemethod-callback_mode_method--0">``AnimationCallbackModeMethod<code> callback_mode_method = 0</code></h3>
+<ul>
+<li>Setter: <code>set_callback_mode_method(value: </code>AnimationCallbackModeMethod<code>)</code></li>
+<li>Getter: <code>get_callback_mode_method()</code></li>
+</ul>
+<p>The call mode used for "Call Method" tracks.</p>
+<h3 id="animationcallbackmodeprocess-callback_mode_process--1">``AnimationCallbackModeProcess<code> callback_mode_process = 1</code></h3>
+<ul>
+<li>Setter: <code>set_callback_mode_process(value: </code>AnimationCallbackModeProcess<code>)</code></li>
+<li>Getter: <code>get_callback_mode_process()</code></li>
+</ul>
+<p>The process notification in which to update animations.</p>
+<h3 id="bool-deterministic--false"><code>bool deterministic = false</code></h3>
+<ul>
+<li>Setter: <code>set_deterministic(value: bool)</code></li>
+<li>Getter: <code>is_deterministic()</code></li>
+</ul>
+<p>If <code>true</code>, the blending uses the deterministic algorithm. The total weight is not normalized and the result is accumulated with an initial value (<code>0</code> or a <code>"RESET"</code> animation if present).</p>
+<p>This means that if the total amount of blending is <code>0.0</code>, the result is equal to the <code>"RESET"</code> animation.</p>
+<p>If the number of tracks between the blended animations is different, the animation with the missing track is treated as if it had the initial value.</p>
+<p>If <code>false</code>, The blend does not use the deterministic algorithm. The total weight is normalized and always <code>1.0</code>. If the number of tracks between the blended animations is different, nothing is done about the animation that is missing a track.</p>
+<p><strong>Note:</strong> In <a href="AnimationTree.html">AnimationTree</a>, the blending with <a href="AnimationNodeAdd2.html">AnimationNodeAdd2</a>, <a href="AnimationNodeAdd3.html">AnimationNodeAdd3</a>, <a href="AnimationNodeSub2.html">AnimationNodeSub2</a> or the weight greater than <code>1.0</code> may produce unexpected results.</p>
+<p>For example, if <a href="AnimationNodeAdd2.html">AnimationNodeAdd2</a> blends two nodes with the amount <code>1.0</code>, then total weight is <code>2.0</code> but it will be normalized to make the total amount <code>1.0</code> and the result will be equal to <a href="AnimationNodeBlend2.html">AnimationNodeBlend2</a> with the amount <code>0.5</code>.</p>
+<h3 id="bool-reset_on_save--true"><code>bool reset_on_save = true</code></h3>
+<ul>
+<li>Setter: <code>set_reset_on_save_enabled(value: bool)</code></li>
+<li>Getter: <code>is_reset_on_save_enabled()</code></li>
+</ul>
+<p>This is used by the editor. If set to <code>true</code>, the scene will be saved with the effects of the reset animation (the animation with the key <code>"RESET"</code>) applied as if it had been seeked to time 0, with the editor keeping the values that the scene had before saving.</p>
+<p>This makes it more convenient to preview and edit animations in the editor, as changes to the scene will not be saved as long as they are set in the reset animation.</p>
+<h3 id="bool-root_motion_local--false"><code>bool root_motion_local = false</code></h3>
+<ul>
+<li>Setter: <code>set_root_motion_local(value: bool)</code></li>
+<li>Getter: <code>is_root_motion_local()</code></li>
+</ul>
+<p>If <code>true</code>, <code>get_root_motion_position()</code> value is extracted as a local translation value before blending. In other words, it is treated like the translation is done after the rotation.</p>
+<h3 id="nodepath-root_motion_track--nodepath"><code>NodePath root_motion_track = NodePath("")</code></h3>
+<ul>
+<li>Setter: <code>set_root_motion_track(value: NodePath)</code></li>
+<li>Getter: <code>get_root_motion_track()</code></li>
+</ul>
+<p>The path to the Animation track used for root motion. Paths must be valid scene-tree paths to a node, and must be specified starting from the parent node of the node that will reproduce the animation. The <code>root_motion_track</code> uses the same format as <code>Animation.track_set_path()</code>, but note that a bone must be specified.</p>
+<p>If the track has type <code>Animation.TYPE_POSITION_3D</code>, <code>Animation.TYPE_ROTATION_3D</code>, or <code>Animation.TYPE_SCALE_3D</code> the transformation will be canceled visually, and the animation will appear to stay in place. See also <code>get_root_motion_position()</code>, <code>get_root_motion_rotation()</code>, <code>get_root_motion_scale()</code>, and <a href="RootMotionView.html">RootMotionView</a>.</p>
+<h3 id="nodepath-root_node--nodepath"><code>NodePath root_node = NodePath("..")</code></h3>
+<ul>
+<li>Setter: <code>set_root_node(value: NodePath)</code></li>
+<li>Getter: <code>get_root_node()</code></li>
+</ul>
+<p>The node which node path references will travel from.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="variant-_post_process_key_valueanimation-animation-track-int-value-variant-object_id-int-object_sub_idx-int-virtual-const"><code>Variant _post_process_key_value(animation: Animation, track: int, value: Variant, object_id: int, object_sub_idx: int) virtual const</code></h3>
+<p>A virtual function for processing after getting a key during playback.</p>
+<h3 id="globalscopeerror-add_animation_libraryname-stringname-library-animationlibrary">``@GlobalScope.Error<code> add_animation_library(name: StringName, library: AnimationLibrary)</code></h3>
+<p>Adds <code>library</code> to the animation player, under the key <code>name</code>.</p>
+<p>AnimationMixer has a global library by default with an empty string as key. For adding an animation to the global library:</p>
+<pre class="gdscript"><code>var global_library = mixer.get_animation_library(&quot;&quot;)
+global_library.add_animation(&quot;animation_name&quot;, animation_resource)</code></pre>
+<h3 id="void-advancedelta-float"><code>void advance(delta: float)</code></h3>
+<p>Manually advance the animations by the specified time (in seconds).</p>
+<h3 id="void-capturename-stringname-duration-float-trans_type-tweentransitiontype-0-ease_typetweeneasetype--0"><code>void capture(name: StringName, duration: float, trans_type: </code>Tween.TransitionType<code>= 0, ease_type:</code>Tween.EaseType<code> = 0)</code></h3>
+<p>If the animation track specified by <code>name</code> has an option <code>Animation.UPDATE_CAPTURE</code>, stores current values of the objects indicated by the track path as a cache. If there is already a captured cache, the old cache is discarded.</p>
+<p>After this it will interpolate with current animation blending result during the playback process for the time specified by <code>duration</code>, working like a crossfade.</p>
+<p>You can specify <code>trans_type</code> as the curve for the interpolation. For better results, it may be appropriate to specify <code>Tween.TRANS_LINEAR</code> for cases where the first key of the track begins with a non-zero value or where the key value does not change, and <code>Tween.TRANS_QUAD</code> for cases where the key value changes linearly.</p>
+<h3 id="void-clear_caches"><code>void clear_caches()</code></h3>
+<p><strong>AnimationMixer</strong> caches animated nodes. It may not notice if a node disappears; <code>clear_caches()</code> forces it to update the cache again.</p>
+<h3 id="stringname-find_animationanimation-animation-const"><code>StringName find_animation(animation: Animation) const</code></h3>
+<p>Returns the key of <code>animation</code> or an empty <a href="StringName.html">StringName</a> if not found.</p>
+<h3 id="stringname-find_animation_libraryanimation-animation-const"><code>StringName find_animation_library(animation: Animation) const</code></h3>
+<p>Returns the key for the <a href="AnimationLibrary.html">AnimationLibrary</a> that contains <code>animation</code> or an empty <a href="StringName.html">StringName</a> if not found.</p>
+<h3 id="animation-get_animationname-stringname-const"><code>Animation get_animation(name: StringName) const</code></h3>
+<p>Returns the <a href="Animation.html">Animation</a> with the key <code>name</code>. If the animation does not exist, <code>null</code> is returned and an error is logged.</p>
+<h3 id="animationlibrary-get_animation_libraryname-stringname-const"><code>AnimationLibrary get_animation_library(name: StringName) const</code></h3>
+<p>Returns the first <a href="AnimationLibrary.html">AnimationLibrary</a> with key <code>name</code> or <code>null</code> if not found.</p>
+<p>To get the <strong>AnimationMixer</strong>'s global animation library, use <code>get_animation_library("")</code>.</p>
+<h3 id="arraystringname-get_animation_library_list-const"><code>Array\[StringName\] get_animation_library_list() const</code></h3>
+<p>Returns the list of stored library keys.</p>
+<h3 id="packedstringarray-get_animation_list-const"><code>PackedStringArray get_animation_list() const</code></h3>
+<p>Returns the list of stored animation keys.</p>
+<h3 id="vector3-get_root_motion_position-const"><code>Vector3 get_root_motion_position() const</code></h3>
+<p>Retrieve the motion delta of position with the <code>root_motion_track</code> as a <a href="Vector3.html">Vector3</a> that can be used elsewhere.</p>
+<p>If <code>root_motion_track</code> is not a path to a track of type <code>Animation.TYPE_POSITION_3D</code>, returns <code>Vector3(0, 0, 0)</code>.</p>
+<p>See also <code>root_motion_track</code> and <a href="RootMotionView.html">RootMotionView</a>.</p>
+<p>The most basic example is applying position to <a href="CharacterBody3D.html">CharacterBody3D</a>:</p>
+<pre class="gdscript"><code>var current_rotation
+
+func _process(delta):
+    if Input.is_action_just_pressed(&quot;animate&quot;):
+        current_rotation = get_quaternion()
+        state_machine.travel(&quot;Animate&quot;)
+    var velocity = current_rotation * animation_tree.get_root_motion_position() / delta
+    set_velocity(velocity)
+    move_and_slide()</code></pre>
+<p>By using this in combination with <code>get_root_motion_rotation_accumulator()</code>, you can apply the root motion position more correctly to account for the rotation of the node.</p>
+<pre class="gdscript"><code>func _process(delta):
+    if Input.is_action_just_pressed(&quot;animate&quot;):
+        state_machine.travel(&quot;Animate&quot;)
+    set_quaternion(get_quaternion() * animation_tree.get_root_motion_rotation())
+    var velocity = (animation_tree.get_root_motion_rotation_accumulator().inverse() * get_quaternion()) * animation_tree.get_root_motion_position() / delta
+    set_velocity(velocity)
+    move_and_slide()</code></pre>
+<p>If <code>root_motion_local</code> is <code>true</code>, returns the pre-multiplied translation value with the inverted rotation.</p>
+<p>In this case, the code can be written as follows:</p>
+<pre class="gdscript"><code>func _process(delta):
+    if Input.is_action_just_pressed(&quot;animate&quot;):
+        state_machine.travel(&quot;Animate&quot;)
+    set_quaternion(get_quaternion() * animation_tree.get_root_motion_rotation())
+    var velocity = get_quaternion() * animation_tree.get_root_motion_position() / delta
+    set_velocity(velocity)
+    move_and_slide()</code></pre>
+<h3 id="vector3-get_root_motion_position_accumulator-const"><code>Vector3 get_root_motion_position_accumulator() const</code></h3>
+<p>Retrieve the blended value of the position tracks with the <code>root_motion_track</code> as a <a href="Vector3.html">Vector3</a> that can be used elsewhere.</p>
+<p>This is useful in cases where you want to respect the initial key values of the animation.</p>
+<p>For example, if an animation with only one key <code>Vector3(0, 0, 0)</code> is played in the previous frame and then an animation with only one key <code>Vector3(1, 0, 1)</code> is played in the next frame, the difference can be calculated as follows:</p>
+<pre class="gdscript"><code>var prev_root_motion_position_accumulator
+
+func _process(delta):
+    if Input.is_action_just_pressed(&quot;animate&quot;):
+        state_machine.travel(&quot;Animate&quot;)
+    var current_root_motion_position_accumulator = animation_tree.get_root_motion_position_accumulator()
+    var difference = current_root_motion_position_accumulator - prev_root_motion_position_accumulator
+    prev_root_motion_position_accumulator = current_root_motion_position_accumulator
+    transform.origin += difference</code></pre>
+<p>However, if the animation loops, an unintended discrete change may occur, so this is only useful for some simple use cases.</p>
+<h3 id="quaternion-get_root_motion_rotation-const"><code>Quaternion get_root_motion_rotation() const</code></h3>
+<p>Retrieve the motion delta of rotation with the <code>root_motion_track</code> as a <a href="Quaternion.html">Quaternion</a> that can be used elsewhere.</p>
+<p>If <code>root_motion_track</code> is not a path to a track of type <code>Animation.TYPE_ROTATION_3D</code>, returns <code>Quaternion(0, 0, 0, 1)</code>.</p>
+<p>See also <code>root_motion_track</code> and <a href="RootMotionView.html">RootMotionView</a>.</p>
+<p>The most basic example is applying rotation to <a href="CharacterBody3D.html">CharacterBody3D</a>:</p>
+<pre class="gdscript"><code>func _process(delta):
+    if Input.is_action_just_pressed(&quot;animate&quot;):
+        state_machine.travel(&quot;Animate&quot;)
+    set_quaternion(get_quaternion() * animation_tree.get_root_motion_rotation())</code></pre>
+<h3 id="quaternion-get_root_motion_rotation_accumulator-const"><code>Quaternion get_root_motion_rotation_accumulator() const</code></h3>
+<p>Retrieve the blended value of the rotation tracks with the <code>root_motion_track</code> as a <a href="Quaternion.html">Quaternion</a> that can be used elsewhere.</p>
+<p>This is necessary to apply the root motion position correctly, taking rotation into account. See also <code>get_root_motion_position()</code>.</p>
+<p>Also, this is useful in cases where you want to respect the initial key values of the animation.</p>
+<p>For example, if an animation with only one key <code>Quaternion(0, 0, 0, 1)</code> is played in the previous frame and then an animation with only one key <code>Quaternion(0, 0.707, 0, 0.707)</code> is played in the next frame, the difference can be calculated as follows:</p>
+<pre class="gdscript"><code>var prev_root_motion_rotation_accumulator
+
+func _process(delta):
+    if Input.is_action_just_pressed(&quot;animate&quot;):
+        state_machine.travel(&quot;Animate&quot;)
+    var current_root_motion_rotation_accumulator = animation_tree.get_root_motion_rotation_accumulator()
+    var difference = prev_root_motion_rotation_accumulator.inverse() * current_root_motion_rotation_accumulator
+    prev_root_motion_rotation_accumulator = current_root_motion_rotation_accumulator
+    transform.basis *=  Basis(difference)</code></pre>
+<p>However, if the animation loops, an unintended discrete change may occur, so this is only useful for some simple use cases.</p>
+<h3 id="vector3-get_root_motion_scale-const"><code>Vector3 get_root_motion_scale() const</code></h3>
+<p>Retrieve the motion delta of scale with the <code>root_motion_track</code> as a <a href="Vector3.html">Vector3</a> that can be used elsewhere.</p>
+<p>If <code>root_motion_track</code> is not a path to a track of type <code>Animation.TYPE_SCALE_3D</code>, returns <code>Vector3(0, 0, 0)</code>.</p>
+<p>See also <code>root_motion_track</code> and <a href="RootMotionView.html">RootMotionView</a>.</p>
+<p>The most basic example is applying scale to <a href="CharacterBody3D.html">CharacterBody3D</a>:</p>
+<pre class="gdscript"><code>var current_scale = Vector3(1, 1, 1)
+var scale_accum = Vector3(1, 1, 1)
+
+func _process(delta):
+    if Input.is_action_just_pressed(&quot;animate&quot;):
+        current_scale = get_scale()
+        scale_accum = Vector3(1, 1, 1)
+        state_machine.travel(&quot;Animate&quot;)
+    scale_accum += animation_tree.get_root_motion_scale()
+    set_scale(current_scale * scale_accum)</code></pre>
+<h3 id="vector3-get_root_motion_scale_accumulator-const"><code>Vector3 get_root_motion_scale_accumulator() const</code></h3>
+<p>Retrieve the blended value of the scale tracks with the <code>root_motion_track</code> as a <a href="Vector3.html">Vector3</a> that can be used elsewhere.</p>
+<p>For example, if an animation with only one key <code>Vector3(1, 1, 1)</code> is played in the previous frame and then an animation with only one key <code>Vector3(2, 2, 2)</code> is played in the next frame, the difference can be calculated as follows:</p>
+<pre class="gdscript"><code>var prev_root_motion_scale_accumulator
+
+func _process(delta):
+    if Input.is_action_just_pressed(&quot;animate&quot;):
+        state_machine.travel(&quot;Animate&quot;)
+    var current_root_motion_scale_accumulator = animation_tree.get_root_motion_scale_accumulator()
+    var difference = current_root_motion_scale_accumulator - prev_root_motion_scale_accumulator
+    prev_root_motion_scale_accumulator = current_root_motion_scale_accumulator
+    transform.basis = transform.basis.scaled(difference)</code></pre>
+<p>However, if the animation loops, an unintended discrete change may occur, so this is only useful for some simple use cases.</p>
+<h3 id="bool-has_animationname-stringname-const"><code>bool has_animation(name: StringName) const</code></h3>
+<p>Returns <code>true</code> if the <strong>AnimationMixer</strong> stores an <a href="Animation.html">Animation</a> with key <code>name</code>.</p>
+<h3 id="bool-has_animation_libraryname-stringname-const"><code>bool has_animation_library(name: StringName) const</code></h3>
+<p>Returns <code>true</code> if the <strong>AnimationMixer</strong> stores an <a href="AnimationLibrary.html">AnimationLibrary</a> with key <code>name</code>.</p>
+<h3 id="void-remove_animation_libraryname-stringname"><code>void remove_animation_library(name: StringName)</code></h3>
+<p>Removes the <a href="AnimationLibrary.html">AnimationLibrary</a> associated with the key <code>name</code>.</p>
+<h3 id="void-rename_animation_libraryname-stringname-newname-stringname"><code>void rename_animation_library(name: StringName, newname: StringName)</code></h3>
+<p>Moves the <a href="AnimationLibrary.html">AnimationLibrary</a> associated with the key <code>name</code> to the key <code>newname</code>.</p>
+<h2 id="signals">Signals</h2>
+<h3 id="animation_finishedanim_name-stringname"><code>animation_finished(anim_name: StringName)</code></h3>
+<p>Notifies when an animation finished playing.</p>
+<p><strong>Note:</strong> This signal is not emitted if an animation is looping.</p>
+<h3 id="animation_libraries_updated"><code>animation_libraries_updated()</code></h3>
+<p>Notifies when the animation libraries have changed.</p>
+<h3 id="animation_list_changed"><code>animation_list_changed()</code></h3>
+<p>Notifies when an animation list is changed.</p>
+<h3 id="animation_startedanim_name-stringname"><code>animation_started(anim_name: StringName)</code></h3>
+<p>Notifies when an animation starts playing.</p>
+<p><strong>Note:</strong> This signal is not emitted if an animation is looping.</p>
+<h3 id="caches_cleared"><code>caches_cleared()</code></h3>
+<p>Notifies when the caches have been cleared, either automatically, or manually via <code>clear_caches()</code>.</p>
+<h3 id="mixer_applied"><code>mixer_applied()</code></h3>
+<p>Notifies when the blending result related have been applied to the target objects.</p>
+<h3 id="mixer_updated"><code>mixer_updated()</code></h3>
+<p>Notifies when the property related process have been updated.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-animationcallbackmodeprocess"><code>enum AnimationCallbackModeProcess</code></h3>
+<ul>
+<li><p><code>ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS = 0</code></p>
+<p>Process animation during physics frames (see <code>Node.NOTIFICATION_INTERNAL_PHYSICS_PROCESS</code>). This is especially useful when animating physics bodies.</p></li>
+<li><p><code>ANIMATION_CALLBACK_MODE_PROCESS_IDLE = 1</code></p>
+<p>Process animation during process frames (see <code>Node.NOTIFICATION_INTERNAL_PROCESS</code>).</p></li>
+<li><p><code>ANIMATION_CALLBACK_MODE_PROCESS_MANUAL = 2</code></p>
+<p>Do not process animation. Use <code>advance()</code> to process the animation manually.</p></li>
+</ul>
+<h3 id="enum-animationcallbackmodemethod"><code>enum AnimationCallbackModeMethod</code></h3>
+<ul>
+<li><p><code>ANIMATION_CALLBACK_MODE_METHOD_DEFERRED = 0</code></p>
+<p>Batch method calls during the animation process, then do the calls after events are processed. This avoids bugs involving deleting nodes or modifying the AnimationPlayer while playing.</p></li>
+<li><p><code>ANIMATION_CALLBACK_MODE_METHOD_IMMEDIATE = 1</code></p>
+<p>Make method calls immediately when reached in the animation.</p></li>
+</ul>
+<h3 id="enum-animationcallbackmodediscrete"><code>enum AnimationCallbackModeDiscrete</code></h3>
+<ul>
+<li><p><code>ANIMATION_CALLBACK_MODE_DISCRETE_DOMINANT = 0</code></p>
+<p>An <code>Animation.UPDATE_DISCRETE</code> track value takes precedence when blending <code>Animation.UPDATE_CONTINUOUS</code> or <code>Animation.UPDATE_CAPTURE</code> track values and <code>Animation.UPDATE_DISCRETE</code> track values.</p></li>
+<li><p><code>ANIMATION_CALLBACK_MODE_DISCRETE_RECESSIVE = 1</code></p>
+<p>An <code>Animation.UPDATE_CONTINUOUS</code> or <code>Animation.UPDATE_CAPTURE</code> track value takes precedence when blending the <code>Animation.UPDATE_CONTINUOUS</code> or <code>Animation.UPDATE_CAPTURE</code> track values and the <code>Animation.UPDATE_DISCRETE</code> track values. This is the default behavior for <a href="AnimationPlayer.html">AnimationPlayer</a>.</p></li>
+<li><p><code>ANIMATION_CALLBACK_MODE_DISCRETE_FORCE_CONTINUOUS = 2</code></p>
+<p>Always treat the <code>Animation.UPDATE_DISCRETE</code> track value as <code>Animation.UPDATE_CONTINUOUS</code> with <code>Animation.INTERPOLATION_NEAREST</code>. This is the default behavior for <a href="AnimationTree.html">AnimationTree</a>.</p>
+<p>If a value track has un-interpolatable type key values, it is internally converted to use <code>ANIMATION_CALLBACK_MODE_DISCRETE_RECESSIVE</code> with <code>Animation.UPDATE_DISCRETE</code>.</p>
+<p>Un-interpolatable type list:</p>
+<ul>
+<li><p><code>@GlobalScope.TYPE_NIL</code></p></li>
+<li><p><code>@GlobalScope.TYPE_NODE_PATH</code></p></li>
+<li><p><code>@GlobalScope.TYPE_RID</code></p></li>
+<li><p><code>@GlobalScope.TYPE_OBJECT</code></p></li>
+<li><p><code>@GlobalScope.TYPE_CALLABLE</code></p></li>
+<li><p><code>@GlobalScope.TYPE_SIGNAL</code></p></li>
+<li><p><code>@GlobalScope.TYPE_DICTIONARY</code></p></li>
+<li><p><code>@GlobalScope.TYPE_PACKED_BYTE_ARRAY</code></p></li>
+</ul>
+<p><code>@GlobalScope.TYPE_BOOL</code> and <code>@GlobalScope.TYPE_INT</code> are treated as <code>@GlobalScope.TYPE_FLOAT</code> during blending and rounded when the result is retrieved.</p>
+<p>It is same for arrays and vectors with them such as <code>@GlobalScope.TYPE_PACKED_INT32_ARRAY</code> or <code>@GlobalScope.TYPE_VECTOR2I</code>, they are treated as <code>@GlobalScope.TYPE_PACKED_FLOAT32_ARRAY</code> or <code>@GlobalScope.TYPE_VECTOR2</code>. Also note that for arrays, the size is also interpolated.</p>
+<p><code>@GlobalScope.TYPE_STRING</code> and <code>@GlobalScope.TYPE_STRING_NAME</code> are interpolated between character codes and lengths, but note that there is a difference in algorithm between interpolation between keys and interpolation by blending.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exporting for macOS — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="exporting-for-macos">Exporting for macOS</h1>
+<blockquote>
+<p><strong>See also:</strong> This page describes how to export a Godot project to macOS. If you're looking to compile editor or export template binaries from source instead, read <code>doc_compiling_for_macos</code>.</p>
+</blockquote>
+<p>macOS apps exported with the official export templates are exported as a single "Universal 2" binary <code>.app</code> bundle, a folder with a specific structure which stores the executable, libraries and all the project files. This bundle can be exported as is, packed in a ZIP archive, or packed in a DMG disk image (only supported when exporting from macOS). <a href="https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary">Universal binaries for macOS support both Intel x86_64 and ARM64 (Apple Silicon) architectures</a>.</p>
+<blockquote>
+<p><strong>Warning:</strong> Due to file system limitations, <code>.app</code> bundles exported from Windows lack the <code>executable</code> flag and won't run on macOS. Projects exported as <code>.zip</code> are not affected by this issue. To run <code>.app</code> bundles exported from Windows on macOS, transfer the <code>.app</code> to a device running macOS or Linux and use the <code>chmod +x {executable_name}</code> terminal command to add the <code>executable</code> permission. The main executable located in the <code>Contents/MacOS/</code> subfolder, as well as optional helper executables in the <code>Contents/Helpers/</code> subfolder, should have the <code>executable</code> permission for the <code>.app</code> bundle to be valid.</p>
+</blockquote>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>Download the Godot export templates. Use the Godot menu: <code>Editor &gt; Manage Export Templates</code>.</li>
+<li>A valid and unique <code>Bundle identifier</code> should be set in the <code>Application</code> section of the export options.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> A valid bundle ID can only contain alphanumeric characters, hyphens, and periods (<code>A-Z</code>, <code>a-z</code>, <code>0-9</code>, <code>-</code>, and <code>.</code>). Apple recommends using reverse-DNS format (e.g. <code>com.example.your-game</code>) of a domain you own, so that your bundle ID is guaranteed to be unique. Bundle IDs are case-insensitive. See <a href="https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundleidentifier">CFBundleIdentifier</a>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Projects exported without code signing and notarization will be blocked by Gatekeeper if they are downloaded from unknown sources, see the ref page for more information.</p>
+</blockquote>
+<h2 id="code-signing-and-notarization">Code signing and notarization</h2>
+<p>By default, macOS will run only applications that are signed and notarized. If you use any other signing configuration, see ref for workarounds.</p>
+<p>To notarize an app, you <strong>must</strong> have a valid <a href="https://developer.apple.com/">Apple Developer ID Certificate</a>.</p>
+<h3 id="if-you-have-an-apple-developer-id-certificate-and-exporting-from-macos">If you have an Apple Developer ID Certificate and exporting from macOS</h3>
+<p>Install <a href="https://developer.apple.com/xcode/">Xcode</a> command line tools and open Xcode at least once or run the <code>sudo xcodebuild -license accept</code> command to accept license agreement.</p>
+<h4 id="to-sign-exported-app">To sign exported app</h4>
+<ul>
+<li>Select <code>Xcode codesign</code> in the <code>Code Signing &gt; Codesign</code> option.</li>
+<li>Set valid Apple ID certificate identity (certificate "Common Name") in the <code>Code Signing &gt; Identity</code> section.</li>
+</ul>
+<h4 id="to-notarize-exported-app">To notarize exported app</h4>
+<ul>
+<li>Select <code>Xcode notarytool</code> in the <code>Notarization &gt; Notarization</code> option.</li>
+<li>Disable the <code>Debugging</code> entitlement.</li>
+<li>Set valid Apple ID login / app. specific password or <a href="https://developer.apple.com/documentation/appstoreconnectapi">App Store Connect</a> API UUID / Key in the <code>Notarization</code> section.</li>
+</ul>
+<p>You can use the <code>xcrun notarytool history</code> command to check notarization status and use the <code>xcrun notarytool log {ID}</code> command to download the notarization log.</p>
+<p>If you encounter notarization issues, see <a href="https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/resolving_common_notarization_issues">Resolving common notarization issues</a> for more info.</p>
+<p>After notarization is completed, <a href="https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/customizing_the_notarization_workflow">staple the ticket</a> to the exported project.</p>
+<h3 id="if-you-have-an-apple-developer-id-certificate-and-exporting-from-linux-or-windows">If you have an Apple Developer ID Certificate and exporting from Linux or Windows</h3>
+<p>Install <a href="https://github.com/indygreg/apple-platform-rs/tree/main/apple-codesign">rcodesign</a>, and configure the path to <code>rcodesign</code> in the <code>Editor Settings &gt; Export &gt; macOS &gt; rcodesign</code> option.</p>
+<h4 id="to-sign-exported-app-1">To sign exported app</h4>
+<ul>
+<li>Select <code>rcodesign</code> in the <code>Code Signing &gt; Codesign</code> option.</li>
+<li>Set valid Apple ID PKCS #12 certificate file and password in the <code>Code Signing</code> section.</li>
+</ul>
+<h4 id="to-notarize-exported-app-1">To notarize exported app</h4>
+<ul>
+<li>Select <code>rcodesign</code> in the <code>Notarization &gt; Notarization</code> option.</li>
+<li>Disable the <code>Debugging</code> entitlement.</li>
+<li>Set valid <a href="https://developer.apple.com/documentation/appstoreconnectapi">App Store Connect</a> API UUID / Key in the <code>Notarization</code> section.</li>
+</ul>
+<p>You can use the <code>rcodesign notary-log</code> command to check notarization status.</p>
+<p>After notarization is completed, use the <code>rcodesign staple</code> command to staple the ticket to the exported project.</p>
+<h3 id="if-you-do-not-have-an-apple-developer-id-certificate">If you do not have an Apple Developer ID Certificate</h3>
+<ul>
+<li>Select <code>Built-in (ad-hoc only)</code> in the <code>Code Signing &gt; Codesign</code> option.</li>
+<li>Select <code>Disabled</code> in the <code>Notarization &gt; Notarization</code> option.</li>
+</ul>
+<p>In this case Godot will use an ad-hoc signature, which will make running an exported app easier for the end users, see the ref page for more information.</p>
+<h3 id="signing-options">Signing Options</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Codesign</td>
+<td>Tool to use for code signing.</td>
+</tr>
+<tr class="even">
+<td>Identity</td>
+<td>The "Full Name" or "Common Name" of the signing identity, store in the macOS keychain.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></td>
+</tr>
+<tr class="odd">
+<td>Certificate File</td>
+<td>The PKCS #12 certificate file.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></td>
+</tr>
+<tr class="even">
+<td>Certificate Password</td>
+<td>Password for the certificate file.<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></td>
+</tr>
+<tr class="odd">
+<td>Custom Options</td>
+<td>Array of command line arguments passed to the code signing tool.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="notarization-options">Notarization Options</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Notarization</td>
+<td>Tool to use for notarization.</td>
+</tr>
+<tr class="even">
+<td>Apple ID Name</td>
+<td>Apple ID account name (email address).<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a></td>
+</tr>
+<tr class="odd">
+<td>Apple ID Password</td>
+<td>Apple ID app-specific password. See <a href="https://support.apple.com/en-us/HT204397">Using app-specific passwords</a> to enable two-factor authentication and create app password.<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a></td>
+</tr>
+<tr class="even">
+<td>Apple Team ID</td>
+<td>Team ID ("Organization Unit"), if your Apple ID belongs to multiple teams (optional).<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a></td>
+</tr>
+<tr class="odd">
+<td>API UUID</td>
+<td>Apple <a href="https://developer.apple.com/documentation/appstoreconnectapi">App Store Connect</a> API issuer UUID.</td>
+</tr>
+<tr class="even">
+<td>API Key</td>
+<td>Apple <a href="https://developer.apple.com/documentation/appstoreconnectapi">App Store Connect</a> API key.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> You should set either Apple ID Name/Password or App Store Connect API UUID/Key.</p>
+</blockquote>
+<p>See <a href="https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution?language=objc">Notarizing macOS Software Before Distribution</a> for more info.</p>
+<h2 id="entitlements">Entitlements</h2>
+<h3 id="hardened-runtime-entitlements">Hardened Runtime Entitlements</h3>
+<p>Hardened Runtime entitlements manage security options and resource access policy. See <a href="https://developer.apple.com/documentation/security/hardened_runtime?language=objc">Hardened Runtime</a> for more info.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Entitlement</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Allow JIT Code Execution<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a></td>
+<td>Allows creating writable and executable memory for JIT code. If you are using add-ons with dynamic or self-modifying native code, enable them according to the add-on documentation.</td>
+</tr>
+<tr class="even">
+<td>Allow Unsigned Executable Memory<a href="#fn8" class="footnote-ref" id="fnref8" role="doc-noteref"><sup>8</sup></a></td>
+<td>Allows creating writable and executable memory without JIT restrictions. If you are using add-ons with dynamic or self-modifying native code, enable them according to the add-on documentation.</td>
+</tr>
+<tr class="odd">
+<td>Allow DYLD Environment Variables<a href="#fn9" class="footnote-ref" id="fnref9" role="doc-noteref"><sup>9</sup></a></td>
+<td>Allows app to use dynamic linker environment variables to inject code. If you are using add-ons with dynamic or self-modifying native code, enable them according to the add-on documentation.</td>
+</tr>
+<tr class="even">
+<td>Disable Library Validation</td>
+<td>Allows app to load arbitrary libraries and frameworks. Enable it if you are using GDExtension add-ons or ad-hoc signing, or want to support user-provided external add-ons.</td>
+</tr>
+<tr class="odd">
+<td>Audio Input</td>
+<td>Enable if you need to use the microphone or other audio input sources, if it's enabled you should also provide usage message in the privacy/microphone_usage_description option.</td>
+</tr>
+<tr class="even">
+<td>Camera</td>
+<td>Enable if you need to use the camera, if it's enabled you should also provide usage message in the privacy/camera_usage_description option.</td>
+</tr>
+<tr class="odd">
+<td>Location</td>
+<td>Enable if you need to use location information from Location Services, if it's enabled you should also provide usage message in the privacy/location_usage_description option.</td>
+</tr>
+<tr class="even">
+<td>Address Book</td>
+<td><a href="#fn10" class="footnote-ref" id="fnref10" role="doc-noteref"><sup>10</sup></a> Enable to allow access contacts in the user's address book, if it's enabled you should also provide usage message in the privacy/address_book_usage_description option.</td>
+</tr>
+<tr class="odd">
+<td>Calendars</td>
+<td><a href="#fn11" class="footnote-ref" id="fnref11" role="doc-noteref"><sup>11</sup></a> Enable to allow access to the user's calendar, if it's enabled you should also provide usage message in the privacy/calendar_usage_description option.</td>
+</tr>
+<tr class="even">
+<td>Photo Library</td>
+<td><a href="#fn12" class="footnote-ref" id="fnref12" role="doc-noteref"><sup>12</sup></a> Enable to allow access to the user's Photos library, if it's enabled you should also provide usage message in the privacy/photos_library_usage_description option.</td>
+</tr>
+<tr class="odd">
+<td>Apple Events</td>
+<td><a href="#fn13" class="footnote-ref" id="fnref13" role="doc-noteref"><sup>13</sup></a> Enable to allow app to send Apple events to other apps.</td>
+</tr>
+<tr class="even">
+<td>Debugging</td>
+<td><a href="#fn14" class="footnote-ref" id="fnref14" role="doc-noteref"><sup>14</sup></a> You can temporarily enable this entitlement to use native debugger (GDB, LLDB) with the exported app. This entitlement should be disabled for production export.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="app-sandbox-entitlement">App Sandbox Entitlement</h3>
+<p>The App Sandbox restricts access to user data, networking and devices. Sandboxed apps can't access most of the file system, can't use custom file dialogs and execute binaries (using <code>OS.execute</code> and <code>OS.create_process</code>) outside the <code>.app</code> bundle. See <a href="https://developer.apple.com/documentation/security/app_sandbox?language=objc">App Sandbox</a> for more info.</p>
+<blockquote>
+<p><strong>Note:</strong> To distribute an app through the App Store, you must enable the App Sandbox.</p>
+</blockquote>
+<table>
+<thead>
+<tr class="header">
+<th>Entitlement</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Enabled</td>
+<td>Enables App Sandbox.</td>
+</tr>
+<tr class="even">
+<td>Network Server</td>
+<td>Enable to allow app to listen for incoming network connections.</td>
+</tr>
+<tr class="odd">
+<td>Network Client</td>
+<td>Enable to allow app to establish outgoing network connections.</td>
+</tr>
+<tr class="even">
+<td>Device USB</td>
+<td>Enable to allow app to interact with USB devices. This entitlement is required to use wired controllers.</td>
+</tr>
+<tr class="odd">
+<td>Device Bluetooth</td>
+<td>Enable to allow app to interact with Bluetooth devices. This entitlement is required to use wireless controllers.</td>
+</tr>
+<tr class="even">
+<td>Files Downloads<a href="#fn15" class="footnote-ref" id="fnref15" role="doc-noteref"><sup>15</sup></a></td>
+<td>Allows read or write access to the user's "Downloads" folder.</td>
+</tr>
+<tr class="odd">
+<td>Files Pictures<a href="#fn16" class="footnote-ref" id="fnref16" role="doc-noteref"><sup>16</sup></a></td>
+<td>Allows read or write access to the user's "Pictures" folder.</td>
+</tr>
+<tr class="even">
+<td>Files Music<a href="#fn17" class="footnote-ref" id="fnref17" role="doc-noteref"><sup>17</sup></a></td>
+<td>Allows read or write access to the user's "Music" folder.</td>
+</tr>
+<tr class="odd">
+<td>Files Movies<a href="#fn18" class="footnote-ref" id="fnref18" role="doc-noteref"><sup>18</sup></a></td>
+<td>Allows read or write access to the user's "Movies" folder.</td>
+</tr>
+<tr class="even">
+<td>Files User Selected<a href="#fn19" class="footnote-ref" id="fnref19" role="doc-noteref"><sup>19</sup></a></td>
+<td>Allows read or write access to arbitrary folder. To gain access, a folder must be selected from the native file dialog by the user.</td>
+</tr>
+<tr class="odd">
+<td>Helper Executable</td>
+<td>List of helper executables to embedded to the app bundle. Sandboxed app are limited to execute only these executable.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> You can override default entitlements by selecting custom entitlements file, in this case all other entitlement are ignored.</p>
+</blockquote>
+<h2 id="environment-variables">Environment variables</h2>
+<p>You can use the following environment variables to set export options outside of the editor. During the export process, these override the values that you set in the export menu.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Export option</th>
+<th>Environment variable</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Encryption / Encryption Key</td>
+<td><code>GODOT_SCRIPT_ENCRYPTION_KEY</code></td>
+</tr>
+<tr class="even">
+<td>Options / Codesign / Certificate File</td>
+<td><code>GODOT_MACOS_CODESIGN_CERTIFICATE_FILE</code></td>
+</tr>
+<tr class="odd">
+<td>Options / Codesign / Certificate Password</td>
+<td><code>GODOT_MACOS_CODESIGN_CERTIFICATE_PASSWORD</code></td>
+</tr>
+<tr class="even">
+<td>Options / Codesign / Provisioning Profile</td>
+<td><code>GODOT_MACOS_CODESIGN_PROVISIONING_PROFILE</code></td>
+</tr>
+<tr class="odd">
+<td>Options / Notarization / API UUID</td>
+<td><code>GODOT_MACOS_NOTARIZATION_API_UUID</code></td>
+</tr>
+<tr class="even">
+<td>Options / Notarization / API Key</td>
+<td><code>GODOT_MACOS_NOTARIZATION_API_KEY</code></td>
+</tr>
+<tr class="odd">
+<td>Options / Notarization / API Key ID</td>
+<td><code>GODOT_MACOS_NOTARIZATION_API_KEY_ID</code></td>
+</tr>
+<tr class="even">
+<td>Options / Notarization / Apple ID Name</td>
+<td><code>GODOT_MACOS_NOTARIZATION_APPLE_ID_NAME</code></td>
+</tr>
+<tr class="odd">
+<td>Options / Notarization / Apple ID Password</td>
+<td><code>GODOT_MACOS_NOTARIZATION_APPLE_ID_PASSWORD</code></td>
+</tr>
+</tbody>
+</table>
+<p>macOS export environment variables</p>
+<h2 id="export-options">Export options</h2>
+<p>You can find a full list of export options available in the <code>class_EditorExportPlatformMacOS</code> class reference.</p>
+<aside id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>This option is visible only when signing with Xcode codesign.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>These options are visible only when signing with rcodesign.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>These options are visible only when signing with rcodesign.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>These options are visible only when notarizing with Xcode notarytool.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p>These options are visible only when notarizing with Xcode notarytool.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn6"><p>These options are visible only when notarizing with Xcode notarytool.<a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7"><p>The <code>Allow JIT Code Execution</code>, <code>Allow Unsigned Executable Memory</code> and <code>Allow DYLD Environment Variables</code> entitlements are always enabled for the Godot Mono exports, and are not visible in the export options.<a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn8"><p>The <code>Allow JIT Code Execution</code>, <code>Allow Unsigned Executable Memory</code> and <code>Allow DYLD Environment Variables</code> entitlements are always enabled for the Godot Mono exports, and are not visible in the export options.<a href="#fnref8" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn9"><p>The <code>Allow JIT Code Execution</code>, <code>Allow Unsigned Executable Memory</code> and <code>Allow DYLD Environment Variables</code> entitlements are always enabled for the Godot Mono exports, and are not visible in the export options.<a href="#fnref9" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn10"><p>These features aren't supported by Godot out of the box, enable them only if you are using add-ons which require them.<a href="#fnref10" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn11"><p>These features aren't supported by Godot out of the box, enable them only if you are using add-ons which require them.<a href="#fnref11" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn12"><p>These features aren't supported by Godot out of the box, enable them only if you are using add-ons which require them.<a href="#fnref12" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn13"><p>These features aren't supported by Godot out of the box, enable them only if you are using add-ons which require them.<a href="#fnref13" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn14"><p>To notarize an app, you must disable the <code>Debugging</code> entitlement.<a href="#fnref14" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn15"><p>You can optionally provide usage messages for various folders in the privacy/*_folder_usage_description options.<a href="#fnref15" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn16"><p>You can optionally provide usage messages for various folders in the privacy/*_folder_usage_description options.<a href="#fnref16" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn17"><p>You can optionally provide usage messages for various folders in the privacy/*_folder_usage_description options.<a href="#fnref17" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn18"><p>You can optionally provide usage messages for various folders in the privacy/*_folder_usage_description options.<a href="#fnref18" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn19"><p>You can optionally provide usage messages for various folders in the privacy/*_folder_usage_description options.<a href="#fnref19" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</aside>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

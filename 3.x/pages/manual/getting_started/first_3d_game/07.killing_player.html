@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Killing the player — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="killing-the-player">Killing the player</h1>
+<p>We can kill enemies by jumping on them, but the player still can't die. Let's fix this.</p>
+<p>We want to detect being hit by an enemy differently from squashing them. We want the player to die when they're moving on the floor, but not if they're in the air. We could use vector math to distinguish the two kinds of collisions. Instead, though, we will use an <em>Area</em> node, which works well for hitboxes.</p>
+<h2 id="hitbox-with-the-area-node">Hitbox with the Area node</h2>
+<p>Head back to the <em>Player</em> scene and add a new <em>Area</em> node. Name it <em>MobDetector</em>. Add a <em>CollisionShape</em> node as a child of it.</p>
+<p><em>Image: image0</em></p>
+<p>In the <em>Inspector</em>, assign a cylinder shape to it.</p>
+<p><em>Image: image1</em></p>
+<p>Here is a trick you can use to make the collisions only happen when the player is on the ground or close to it. You can reduce the cylinder's height and move it up to the top of the character. This way, when the player jumps, the shape will be too high up for the enemies to collide with it.</p>
+<p><em>Image: image2</em></p>
+<p>You also want the cylinder to be wider than the sphere. This way, the player gets hit before colliding and being pushed on top of the monster's collision box.</p>
+<p>The wider the cylinder, the more easily the player will get killed.</p>
+<p>Next, select the <em>MobDetector</em> node again, and in the <em>Inspector</em>, turn off its <em>Monitorable</em> property. This makes it so other physics nodes cannot detect the area. The complementary <em>Monitoring</em> property allows it to detect collisions. Then, remove the <em>Collision -&gt; Layer</em> and set the mask to the "enemies" layer.</p>
+<p><em>Image: image3</em></p>
+<p>When areas detect a collision, they emit signals. We're going to connect one to the <em>Player</em> node. In the <em>Node</em> tab, double-click the <code>body_entered</code> signal and connect it to the <em>Player</em>.</p>
+<p><em>Image: image4</em></p>
+<p>The <em>MobDetector</em> will emit <code>body_entered</code> when a <em>KinematicBody</em> or a <em>RigidBody</em> node enters it. As it only masks the "enemies" physics layers, it will only detect the <em>Mob</em> nodes.</p>
+<p>Code-wise, we're going to do two things: emit a signal we'll later use to end the game and destroy the player. We can wrap these operations in a <code>die()</code> function that helps us put a descriptive label on the code.</p>
+<pre class="gdscript"><code># Emitted when the player was hit by a mob.
+# Put this at the top of the script.
+signal hit
+
+
+# And this function at the bottom.
+func die():
+    emit_signal(&quot;hit&quot;)
+    queue_free()
+
+
+func _on_MobDetector_body_entered(_body):
+    die()</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Don&#39;t forget to rebuild the project so the editor knows about the new signal.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Emitted when the player was hit by a mob.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">Hit</span><span class="op">();</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">// ...</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">Die</span><span class="op">()</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">EmitSignal</span><span class="op">(</span><span class="fu">nameof</span><span class="op">(</span>Hit<span class="op">));</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">QueueFree</span><span class="op">();</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co">// We also specified this function name in PascalCase in the editor&#39;s connection window</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnMobDetectorBodyEntered</span><span class="op">(</span>Node body<span class="op">)</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Die</span><span class="op">();</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Try the game again by pressing <code>F5</code>. If everything is set up correctly, the character should die when an enemy runs into it.</p>
+<p>However, note that this depends entirely on the size and position of the <em>Player</em> and the <em>Mob</em>'s collision shapes. You may need to move them and resize them to achieve a tight game feel.</p>
+<h2 id="ending-the-game">Ending the game</h2>
+<p>We can use the <em>Player</em>'s <code>hit</code> signal to end the game. All we need to do is connect it to the <em>Main</em> node and stop the <em>MobTimer</em> in reaction.</p>
+<p>Open <code>Main.tscn</code>, select the <em>Player</em> node, and in the <em>Node</em> dock, connect its <code>hit</code> signal to the <em>Main</em> node.</p>
+<p><em>Image: image5</em></p>
+<p>Get and stop the timer in the <code>_on_Player_hit()</code> function.</p>
+<pre class="gdscript"><code>func _on_Player_hit():
+    $MobTimer.stop()</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// We also specified this function name in PascalCase in the editor&#39;s connection window</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnPlayerHit</span><span class="op">()</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Timer<span class="op">&gt;(</span><span class="st">&quot;MobTimer&quot;</span><span class="op">).</span><span class="fu">Stop</span><span class="op">();</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>If you try the game now, the monsters will stop spawning when you die, and the remaining ones will leave the screen.</p>
+<p>You can pat yourself in the back: you prototyped a complete 3D game, even if it's still a bit rough.</p>
+<p>From there, we'll add a score, the option to retry the game, and you'll see how you can make the game feel much more alive with minimalistic animations.</p>
+<h2 id="code-checkpoint">Code checkpoint</h2>
+<p>Here are the complete scripts for the <em>Main</em>, <em>Mob</em>, and <em>Player</em> nodes, for reference. You can use them to compare and check your code.</p>
+<p>Starting with <code>Main.gd</code>.</p>
+<pre class="gdscript"><code>extends Node
+
+export(PackedScene) var mob_scene
+
+
+func _ready():
+    randomize()
+
+
+func _on_MobTimer_timeout():
+    # Create a new instance of the Mob scene.
+    var mob = mob_scene.instance()
+
+    # Choose a random location on the SpawnPath.
+    var mob_spawn_location = get_node(&quot;SpawnPath/SpawnLocation&quot;)
+    # And give it a random offset.
+    mob_spawn_location.unit_offset = randf()
+
+    # Communicate the spawn location and the player&#39;s location to the mob.
+    var player_position = $Player.transform.origin
+    mob.initialize(mob_spawn_location.translation, player_position)
+
+    # Spawn the mob by adding it to the Main scene.
+    add_child(mob)
+
+
+func _on_Player_hit():
+    $MobTimer.stop()</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Main <span class="op">:</span> Node</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>#pragma warning disable <span class="dv">649</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> PackedScene MobScene<span class="op">;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>#pragma warning restore <span class="dv">649</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Randomize</span><span class="op">();</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnMobTimerTimeout</span><span class="op">()</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Create a new instance of the Mob scene.</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> mob <span class="op">=</span> <span class="op">(</span>Mob<span class="op">)</span>MobScene<span class="op">.</span><span class="fu">Instance</span><span class="op">();</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Choose a random location on the SpawnPath.</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// We store the reference to the SpawnLocation node.</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> mobSpawnLocation <span class="op">=</span> GetNode<span class="op">&lt;</span>PathFollow<span class="op">&gt;(</span><span class="st">&quot;SpawnPath/SpawnLocation&quot;</span><span class="op">);</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        <span class="co">// And give it a random offset.</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>        mobSpawnLocation<span class="op">.</span><span class="fu">UnitOffset</span> <span class="op">=</span> GD<span class="op">.</span><span class="fu">Randf</span><span class="op">();</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Communicate the spawn location and the player&#39;s location to the mob.</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>        Vector3 playerPosition <span class="op">=</span> GetNode<span class="op">&lt;</span>Player<span class="op">&gt;(</span><span class="st">&quot;Player&quot;</span><span class="op">).</span><span class="fu">Transform</span><span class="op">.</span><span class="fu">origin</span><span class="op">;</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>        mob<span class="op">.</span><span class="fu">Initialize</span><span class="op">(</span>mobSpawnLocation<span class="op">.</span><span class="fu">Translation</span><span class="op">,</span> playerPosition<span class="op">);</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Spawn the mob by adding it to the Main scene.</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>        <span class="fu">AddChild</span><span class="op">(</span>mob<span class="op">);</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnPlayerHit</span><span class="op">()</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>        GetNode<span class="op">&lt;</span>Timer<span class="op">&gt;(</span><span class="st">&quot;MobTimer&quot;</span><span class="op">).</span><span class="fu">Stop</span><span class="op">();</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Next is <code>Mob.gd</code>.</p>
+<pre class="gdscript"><code>extends KinematicBody
+
+# Emitted when the player jumped on the mob.
+signal squashed
+
+# Minimum speed of the mob in meters per second.
+export var min_speed = 10
+# Maximum speed of the mob in meters per second.
+export var max_speed = 18
+
+var velocity = Vector3.ZERO
+
+
+func _physics_process(_delta):
+    move_and_slide(velocity)
+
+
+func initialize(start_position, player_position):
+    look_at_from_position(start_position, player_position, Vector3.UP)
+    rotate_y(rand_range(-PI / 4, PI / 4))
+
+    var random_speed = rand_range(min_speed, max_speed)
+    velocity = Vector3.FORWARD * random_speed
+    velocity = velocity.rotated(Vector3.UP, rotation.y)
+
+
+ func squash():
+    emit_signal(&quot;squashed&quot;)
+    queue_free()
+
+
+func _on_VisibilityNotifier_screen_exited():
+    queue_free()</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Mob <span class="op">:</span> KinematicBody</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Emitted when the played jumped on the mob.</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">Squashed</span><span class="op">();</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Minimum speed of the mob in meters per second</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> MinSpeed <span class="op">=</span> <span class="dv">10</span><span class="op">;</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Maximum speed of the mob in meters per second</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> MaxSpeed <span class="op">=</span> <span class="dv">18</span><span class="op">;</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector3 _velocity <span class="op">=</span> Vector3<span class="op">.</span><span class="fu">Zero</span><span class="op">;</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_PhysicsProcess</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">MoveAndSlide</span><span class="op">(</span>_velocity<span class="op">);</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">Initialize</span><span class="op">(</span>Vector3 startPosition<span class="op">,</span> Vector3 playerPosition<span class="op">)</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>        <span class="fu">LookAtFromPosition</span><span class="op">(</span>startPosition<span class="op">,</span> playerPosition<span class="op">,</span> Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">);</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">RotateY</span><span class="op">((</span><span class="dt">float</span><span class="op">)</span>GD<span class="op">.</span><span class="fu">RandRange</span><span class="op">(-</span>Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">/</span> <span class="fl">4.0</span><span class="op">,</span> Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">/</span> <span class="fl">4.0</span><span class="op">));</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>        <span class="dt">float</span> randomSpeed <span class="op">=</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>GD<span class="op">.</span><span class="fu">RandRange</span><span class="op">(</span>MinSpeed<span class="op">,</span> MaxSpeed<span class="op">);</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>        _velocity <span class="op">=</span> Vector3<span class="op">.</span><span class="fu">Forward</span> <span class="op">*</span> randomSpeed<span class="op">;</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>        _velocity <span class="op">=</span> _velocity<span class="op">.</span><span class="fu">Rotated</span><span class="op">(</span>Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span> Rotation<span class="op">.</span><span class="fu">y</span><span class="op">);</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">Squash</span><span class="op">()</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>        <span class="fu">EmitSignal</span><span class="op">(</span><span class="fu">nameof</span><span class="op">(</span>Squashed<span class="op">));</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>        <span class="fu">QueueFree</span><span class="op">();</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnVisibilityNotifierScreenExited</span><span class="op">()</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>        <span class="fu">QueueFree</span><span class="op">();</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Finally, the longest script, <code>Player.gd</code>.</p>
+<pre class="gdscript"><code>extends KinematicBody
+
+# Emitted when a mob hit the player.
+signal hit
+
+# How fast the player moves in meters per second.
+export var speed = 14
+# The downward acceleration when in the air, in meters per second squared.
+export var fall_acceleration = 75
+# Vertical impulse applied to the character upon jumping in meters per second.
+export var jump_impulse = 20
+# Vertical impulse applied to the character upon bouncing over a mob in meters per second.
+export var bounce_impulse = 16
+
+var velocity = Vector3.ZERO
+
+
+func _physics_process(delta):
+    var direction = Vector3.ZERO
+
+    if Input.is_action_pressed(&quot;move_right&quot;):
+        direction.x += 1
+    if Input.is_action_pressed(&quot;move_left&quot;):
+        direction.x -= 1
+    if Input.is_action_pressed(&quot;move_back&quot;):
+        direction.z += 1
+    if Input.is_action_pressed(&quot;move_forward&quot;):
+        direction.z -= 1
+
+    if direction != Vector3.ZERO:
+        direction = direction.normalized()
+        $Pivot.look_at(translation + direction, Vector3.UP)
+
+    velocity.x = direction.x * speed
+    velocity.z = direction.z * speed
+
+    # Jumping.
+    if is_on_floor() and Input.is_action_just_pressed(&quot;jump&quot;):
+        velocity.y += jump_impulse
+
+    velocity.y -= fall_acceleration * delta
+    velocity = move_and_slide(velocity, Vector3.UP)
+
+    for index in range(get_slide_count()):
+        var collision = get_slide_collision(index)
+        if collision.collider.is_in_group(&quot;mob&quot;):
+            var mob = collision.collider
+            if Vector3.UP.dot(collision.normal) &gt; 0.1:
+                mob.squash()
+                velocity.y = bounce_impulse
+
+
+func die():
+    emit_signal(&quot;hit&quot;)
+    queue_free()
+
+
+func _on_MobDetector_body_entered(_body):
+    die()</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Player <span class="op">:</span> KinematicBody</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Emitted when the player was hit by a mob.</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">Hit</span><span class="op">();</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// How fast the player moves in meters per second.</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> Speed <span class="op">=</span> <span class="dv">14</span><span class="op">;</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// The downward acceleration when in the air, in meters per second squared.</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> FallAcceleration <span class="op">=</span> <span class="dv">75</span><span class="op">;</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Vertical impulse applied to the character upon jumping in meters per second.</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> JumpImpulse <span class="op">=</span> <span class="dv">20</span><span class="op">;</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Vertical impulse applied to the character upon bouncing over a mob in meters per second.</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> BounceImpulse <span class="op">=</span> <span class="dv">16</span><span class="op">;</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector3 _velocity <span class="op">=</span> Vector3<span class="op">.</span><span class="fu">Zero</span><span class="op">;</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_PhysicsProcess</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> direction <span class="op">=</span> Vector3<span class="op">.</span><span class="fu">Zero</span><span class="op">;</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;move_right&quot;</span><span class="op">))</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>            direction<span class="op">.</span><span class="fu">x</span> <span class="op">+=</span> <span class="dv">1</span>f<span class="op">;</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;move_left&quot;</span><span class="op">))</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>            direction<span class="op">.</span><span class="fu">x</span> <span class="op">-=</span> <span class="dv">1</span>f<span class="op">;</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;move_back&quot;</span><span class="op">))</span></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>            direction<span class="op">.</span><span class="fu">z</span> <span class="op">+=</span> <span class="dv">1</span>f<span class="op">;</span></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;move_forward&quot;</span><span class="op">))</span></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>            direction<span class="op">.</span><span class="fu">z</span> <span class="op">-=</span> <span class="dv">1</span>f<span class="op">;</span></span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>direction <span class="op">!=</span> Vector3<span class="op">.</span><span class="fu">Zero</span><span class="op">)</span></span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a>            direction <span class="op">=</span> direction<span class="op">.</span><span class="fu">Normalized</span><span class="op">();</span></span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a>            GetNode<span class="op">&lt;</span>Spatial<span class="op">&gt;(</span><span class="st">&quot;Pivot&quot;</span><span class="op">).</span><span class="fu">LookAt</span><span class="op">(</span>Translation <span class="op">+</span> direction<span class="op">,</span> Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">);</span></span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>        _velocity<span class="op">.</span><span class="fu">x</span> <span class="op">=</span> direction<span class="op">.</span><span class="fu">x</span> <span class="op">*</span> Speed<span class="op">;</span></span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a>        _velocity<span class="op">.</span><span class="fu">z</span> <span class="op">=</span> direction<span class="op">.</span><span class="fu">z</span> <span class="op">*</span> Speed<span class="op">;</span></span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Jumping.</span></span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span><span class="fu">IsOnFloor</span><span class="op">()</span> <span class="op">&amp;&amp;</span> Input<span class="op">.</span><span class="fu">IsActionJustPressed</span><span class="op">(</span><span class="st">&quot;jump&quot;</span><span class="op">))</span></span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>            _velocity<span class="op">.</span><span class="fu">y</span> <span class="op">+=</span> JumpImpulse<span class="op">;</span></span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a>        _velocity<span class="op">.</span><span class="fu">y</span> <span class="op">-=</span> FallAcceleration <span class="op">*</span> delta<span class="op">;</span></span>
+<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a>        _velocity <span class="op">=</span> <span class="fu">MoveAndSlide</span><span class="op">(</span>_velocity<span class="op">,</span> Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">);</span></span>
+<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a>        <span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> index <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> index <span class="op">&lt;</span> <span class="fu">GetSlideCount</span><span class="op">();</span> index<span class="op">++)</span></span>
+<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a>            KinematicCollision collision <span class="op">=</span> <span class="fu">GetSlideCollision</span><span class="op">(</span>index<span class="op">);</span></span>
+<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>collision<span class="op">.</span><span class="fu">Collider</span> <span class="kw">is</span> Mob mob <span class="op">&amp;&amp;</span> mob<span class="op">.</span><span class="fu">IsInGroup</span><span class="op">(</span><span class="st">&quot;mob&quot;</span><span class="op">))</span></span>
+<span id="cb10-65"><a href="#cb10-65" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb10-66"><a href="#cb10-66" aria-hidden="true" tabindex="-1"></a>                <span class="kw">if</span> <span class="op">(</span>Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">.</span><span class="fu">Dot</span><span class="op">(</span>collision<span class="op">.</span><span class="fu">Normal</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0.1f</span><span class="op">)</span></span>
+<span id="cb10-67"><a href="#cb10-67" aria-hidden="true" tabindex="-1"></a>                <span class="op">{</span></span>
+<span id="cb10-68"><a href="#cb10-68" aria-hidden="true" tabindex="-1"></a>                    mob<span class="op">.</span><span class="fu">Squash</span><span class="op">();</span></span>
+<span id="cb10-69"><a href="#cb10-69" aria-hidden="true" tabindex="-1"></a>                    _velocity<span class="op">.</span><span class="fu">y</span> <span class="op">=</span> BounceImpulse<span class="op">;</span></span>
+<span id="cb10-70"><a href="#cb10-70" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb10-71"><a href="#cb10-71" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb10-72"><a href="#cb10-72" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-73"><a href="#cb10-73" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-74"><a href="#cb10-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-75"><a href="#cb10-75" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">Die</span><span class="op">()</span></span>
+<span id="cb10-76"><a href="#cb10-76" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-77"><a href="#cb10-77" aria-hidden="true" tabindex="-1"></a>        <span class="fu">EmitSignal</span><span class="op">(</span><span class="fu">nameof</span><span class="op">(</span>Hit<span class="op">));</span></span>
+<span id="cb10-78"><a href="#cb10-78" aria-hidden="true" tabindex="-1"></a>        <span class="fu">QueueFree</span><span class="op">();</span></span>
+<span id="cb10-79"><a href="#cb10-79" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-80"><a href="#cb10-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-81"><a href="#cb10-81" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnMobDetectorBodyEntered</span><span class="op">(</span>Node body<span class="op">)</span></span>
+<span id="cb10-82"><a href="#cb10-82" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-83"><a href="#cb10-83" aria-hidden="true" tabindex="-1"></a>        <span class="fu">Die</span><span class="op">();</span></span>
+<span id="cb10-84"><a href="#cb10-84" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-85"><a href="#cb10-85" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>See you in the next lesson to add the score and the retry option.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

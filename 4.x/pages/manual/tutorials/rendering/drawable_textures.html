@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using DrawableTextures — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-drawabletextures">Using DrawableTextures</h1>
+<p>DrawableTextures are a type of Texture2D with additional functions for modifying the texture via the GPU. This can be used for procedural texturing, real-time effects, and much more.</p>
+<h2 id="basic-rectangle-blitting">Basic rectangle blitting</h2>
+<p>The most basic operation on a drawable texture is ref. Blitting (copying) the whole of one texture into the given rectangle on the <code>DrawableTexture</code>.</p>
+<pre class="gdscript"><code>texture.blit_rect(Rect2(20, 50, 60, 60), preload(&quot;res://circle.svg&quot;))
+texture.blit_rect(Rect2(20, 50, 60, 60), preload(&quot;res://circle.svg&quot;), Color.WHITE, 0)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>texture<span class="op">.</span><span class="fu">BlitRect</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Rect2I</span><span class="op">(</span><span class="dv">20</span><span class="op">,</span> <span class="dv">50</span><span class="op">,</span> <span class="dv">60</span><span class="op">,</span> <span class="dv">60</span><span class="op">),</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Texture2D<span class="op">&gt;(</span><span class="st">&quot;res://circle.svg&quot;</span><span class="op">));</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>texture<span class="op">.</span><span class="fu">BlitRect</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Rect2I</span><span class="op">(</span><span class="dv">20</span><span class="op">,</span> <span class="dv">50</span><span class="op">,</span> <span class="dv">60</span><span class="op">,</span> <span class="dv">60</span><span class="op">),</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Texture2D<span class="op">&gt;(</span><span class="st">&quot;res://circle.svg&quot;</span><span class="op">),</span> Colors<span class="op">.</span><span class="fu">White</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span></code></pre></div>
+<p>The code above blits the circle texture into the rectangle <code>(20, 50, 60, 60)</code> on the <code>DrawableTexture</code>. <code>(20, 50)</code> is the top left corner of the rectangle being drawn to, and <code>(60, 60)</code> is its size. If you wanted to draw over the whole texture, simply match the <code>rect</code> parameter to the <code>DrawableTexture</code>'s size.</p>
+<p>The third parameter in <code>blit_rect()</code> is an optional parameter, <code>modulate</code>. This is a color that the output is multiplied by (in the default behavior). This can be used to recolor, or even mask the drawn output of <code>blit_rect()</code>. For example, using a modulate of <code>Color(0, 0, 1, 0)</code> will only draw to and update the blue values of each pixel on the <code>DrawableTexture</code>.</p>
+<p><code>blit_rect()</code>'s fourth parameter, <code>mipmap</code>, can specify a mipmap level to draw to. You only need to use this if you want fine control over each mipmap layer. Keep in mind, you do not need to adjust the rectangle size; it is converted to a portion of the texture's whole size. If you just want to update all the mipmap layers, you should draw to the texture, then call <code>generate_mipmaps()</code> on it.</p>
+<h2 id="blend-modes-and-texture-blit-shaders">Blend modes and texture blit shaders</h2>
+<p>The drawing process for <code>blit_rect()</code> and DrawableTextures is controlled by a ref. Even when the user does not supply one, the engine has a default texture blit shader it uses.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Default texture blit shader.</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>shader_type texture_blit<span class="op">;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>render_mode blend_mix<span class="op">;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">sampler2D</span> source_texture0 <span class="op">:</span> hint_blit_source0<span class="op">;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">sampler2D</span> source_texture1 <span class="op">:</span> hint_blit_source1<span class="op">;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">sampler2D</span> source_texture2 <span class="op">:</span> hint_blit_source2<span class="op">;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">sampler2D</span> source_texture3 <span class="op">:</span> hint_blit_source3<span class="op">;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">blit</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Copies from each whole source texture to a rect on each output texture.</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    COLOR0 <span class="op">=</span> <span class="bu">texture</span><span class="op">(</span>source_texture0<span class="op">,</span> UV<span class="op">)</span> <span class="op">*</span> MODULATE<span class="op">;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    COLOR1 <span class="op">=</span> <span class="bu">texture</span><span class="op">(</span>source_texture1<span class="op">,</span> UV<span class="op">)</span> <span class="op">*</span> MODULATE<span class="op">;</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    COLOR2 <span class="op">=</span> <span class="bu">texture</span><span class="op">(</span>source_texture2<span class="op">,</span> UV<span class="op">)</span> <span class="op">*</span> MODULATE<span class="op">;</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    COLOR3 <span class="op">=</span> <span class="bu">texture</span><span class="op">(</span>source_texture3<span class="op">,</span> UV<span class="op">)</span> <span class="op">*</span> MODULATE<span class="op">;</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The blend mode specified in <code>render_mode</code> defines how the output color value is blended with the current color of the pixel on the DrawableTexture. The engine defaults to <code>blend_mix</code> if no blend mode is specified in <code>render_mode</code>. Texture blit shaders also support <code>blend_add</code> (additive), <code>blend_sub</code> (subtractive), <code>blend_mul</code> (multiply), and <code>blend_disabled</code> (alpha does not act as transparency and is written as-is). The premultiplied alpha blend mode is <em>not</em> supported here.</p>
+<p>It is also possible to use a different blend mode than the one specified in the shader. To do so, you can instantiate and pass in a new <code>class_BlitMaterial</code> in the script.</p>
+<pre class="gdscript"><code>var blit_material = BlitMaterial.new()
+blit_material.blend_mode = BlitMaterial.BLEND_MODE_DISABLED
+texture.blit_rect(Rect2(0, 0, 200, 200), load(&quot;res://icon.svg&quot;), Color.WHITE, 0, blit_material)</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> blitMaterial <span class="op">=</span> <span class="kw">new</span> BlitMaterial</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    BlendMode <span class="op">=</span> BlitMaterial<span class="op">.</span><span class="fu">BlendModeEnum</span><span class="op">.</span><span class="fu">Disabled</span><span class="op">,</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>texture<span class="op">.</span><span class="fu">BlitRect</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Rect2I</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">200</span><span class="op">,</span> <span class="dv">200</span><span class="op">),</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Texture2D<span class="op">&gt;(</span><span class="st">&quot;res://icon.svg&quot;</span><span class="op">),</span> Colors<span class="op">.</span><span class="fu">White</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> blitMaterial<span class="op">);</span></span></code></pre></div>
+<p>If you want more complex behavior, you can write your own texture blit shader. Create a new shader with the <code>texture_blit</code> shader type, write your shader code, and load it into a material to pass to the function.</p>
+<blockquote>
+<p><strong>Note:</strong> The material is passed as a function parameter, rather than bound to the resource. This makes it easier to perform multiple types of draws to the same texture.</p>
+</blockquote>
+<h2 id="using-multiple-blits-in-a-single-texture">Using multiple blits in a single texture</h2>
+<p>DrawableTextures also have a ref method, which allows for up to 4 inputs and outputs in the same step.</p>
+<pre class="gdscript"><code>texture.blit_rect_multi(
+        Rect2(0, 0, 200, 200),
+        [preload(&quot;res://icon.svg&quot;), preload(&quot;res://circle.svg&quot;)],
+        [other_drawable_texture]
+    )</code></pre>
+<div class="sourceCode" id="cb7"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>texture<span class="op">.</span><span class="fu">BlitRectMulti</span><span class="op">(</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Rect2I</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">200</span><span class="op">,</span> <span class="dv">200</span><span class="op">),</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Texture2D<span class="op">&gt;(</span><span class="st">&quot;res://icon.svg&quot;</span><span class="op">),</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Texture2D<span class="op">&gt;(</span><span class="st">&quot;res://circle.svg&quot;</span><span class="op">)],</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>otherDrawableTexture<span class="op">]);</span></span></code></pre></div>
+<p>The default behavior of this is to just match each input and output in order. For example, this can be useful for drawing to an albedo, normal, and height texture simultaneously.</p>
+<p>Of course, this behavior can also be customized via the texture blit shader. In the shader, the extra outputs are written to via <code>COLOR1</code>, <code>COLOR2</code>, and <code>COLOR3</code> (with <code>COLOR0</code> being the primary output). The extra inputs can be read as uniforms with <code>hint_blit_source1</code>, <code>hint_blit_source2</code>, and <code>hint_blit_source3</code>.</p>
+<h2 id="example-1-simple-painting">Example 1: Simple painting</h2>
+<p>One of the most intuitive uses for DrawableTextures is for, well, drawing! For this example, we're going to start a new project, and create a new UI scene with a Control node at its root.</p>
+<p>Next, you'll need to create a <code>class_TextureRect</code> node, which is going to be our user's canvas. Size it appropriately for your screen, and then attach a new script to it. The start of this script should initialize the TextureRect's texture to a new DrawableTexture.</p>
+<pre class="gdscript"><code>extends TextureRect
+
+func _ready():
+    texture = DrawableTexture2D.new()
+    # Be careful; if the dimensions of the node are not equal to the size set here,
+    # our draw call later will seem to happen at the wrong spot.
+    texture.setup(500, 500, DrawableTexture2D.DRAWABLE_FORMAT_RGBA8, false)</code></pre>
+<div class="sourceCode" id="cb9"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> DrawableTexture2D _texture <span class="op">=</span> <span class="kw">new</span> <span class="fu">DrawableTexture2D</span><span class="op">();</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Be careful; if the dimensions of the node are not equal to the size set here,</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// our draw call later will seem to happen at the wrong spot.</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    _texture<span class="op">.</span><span class="fu">Setup</span><span class="op">(</span><span class="dv">500</span><span class="op">,</span> <span class="dv">500</span><span class="op">,</span> DrawableTexture2D<span class="op">.</span><span class="fu">DrawableFormat</span><span class="op">.</span><span class="fu">Rgba8</span><span class="op">,</span> <span class="kw">null</span><span class="op">,</span> <span class="kw">false</span><span class="op">);</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    Texture <span class="op">=</span> _texture<span class="op">;</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Next, we need the TextureRect to respond to the player clicking and dragging as if they are painting. To do this, we can override the <code>_gui_input()</code> method from the TextureRect in our script, and parse InputMouseButton and InputMouseMotion events:</p>
+<pre class="gdscript"><code>var drawing = false
+
+func _gui_input(event):
+    if event is InputEventMouseButton:
+        # Mouse click/unclick - start/stop drawing.
+        drawing = not drawing
+    if event is InputEventMouseMotion and drawing:
+        # Calculate rect to center our drawn rectangle on mouse position
+        # instead of mouse at top left.
+        var rect = Rect2(event.position.x - 10, event.position.y - 10, 20, 20)
+        texture.blit_rect(rect, null)</code></pre>
+<div class="sourceCode" id="cb11"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">bool</span> drawing <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_GuiInput</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventMouseButton<span class="op">)</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Mouse click/unclick - start/stop drawing.</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>        drawing <span class="op">=</span> <span class="op">!</span>drawing<span class="op">;</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventMouseMotion eventMouseMotion <span class="op">&amp;&amp;</span> drawing<span class="op">)</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Calculate rect to center our drawn rectangle on mouse position</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// instead of mouse at top left.</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> rect <span class="op">=</span> <span class="kw">new</span> <span class="fu">Rect2I</span><span class="op">(</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>            <span class="op">(</span><span class="dt">int</span><span class="op">)(</span>eventMouseMotion<span class="op">.</span><span class="fu">Position</span><span class="op">.</span><span class="fu">X</span> <span class="op">-</span> <span class="dv">10</span><span class="op">),</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>            <span class="op">(</span><span class="dt">int</span><span class="op">)(</span>eventMouseMotion<span class="op">.</span><span class="fu">Position</span><span class="op">.</span><span class="fu">Y</span> <span class="op">-</span> <span class="dv">10</span><span class="op">),</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>            <span class="dv">20</span><span class="op">,</span> <span class="dv">20</span><span class="op">);</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>        _texture<span class="op">.</span><span class="fu">BlitRect</span><span class="op">(</span>rect<span class="op">,</span> <span class="kw">null</span><span class="op">);</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This should now draw black squares as you click and drag around the TextureRect. For more natural drawing, we probably want to be drawing a circle shape, and actually coloring it.</p>
+<p>We can adjust what's being drawn by using a Texture to copy from, and the modulate parameter. We will use this download, which we load as the <code>texture</code> parameter in <code>blit_rect()</code>, and use a red color as the <code>modulate</code> parameter.</p>
+<pre class="gdscript"><code>if event is InputEventMouseMotion and drawing:
+    # Calculate rect to center our drawn rectangle on mouse position
+    # instead of mouse at top left.
+    var rect = Rect2(event.position.x - 10, event.position.y - 10, 20, 20)
+    texture.blit_rect(rect, preload(&quot;res://circle.svg&quot;), Color.RED)</code></pre>
+<div class="sourceCode" id="cb13"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventMouseMotion eventMouseMotion <span class="op">&amp;&amp;</span> drawing<span class="op">)</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Calculate rect to center our drawn rectangle on mouse position</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// instead of mouse at top left.</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> rect <span class="op">=</span> <span class="kw">new</span> <span class="fu">Rect2I</span><span class="op">(</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">(</span><span class="dt">int</span><span class="op">)(</span>eventMouseMotion<span class="op">.</span><span class="fu">Position</span><span class="op">.</span><span class="fu">X</span> <span class="op">-</span> <span class="dv">10</span><span class="op">),</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">(</span><span class="dt">int</span><span class="op">)(</span>eventMouseMotion<span class="op">.</span><span class="fu">Position</span><span class="op">.</span><span class="fu">Y</span> <span class="op">-</span> <span class="dv">10</span><span class="op">),</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>        <span class="dv">20</span><span class="op">,</span> <span class="dv">20</span><span class="op">);</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    _texture<span class="op">.</span><span class="fu">BlitRect</span><span class="op">(</span>rect<span class="op">,</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Texture2D<span class="op">&gt;(</span><span class="st">&quot;res://circle.svg&quot;</span><span class="op">),</span> Colors<span class="op">.</span><span class="fu">Red</span><span class="op">);</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The drawing now looks much more natural and colorful. To further customize this, you could connect a <code>class_ColorPickerButton</code> node to the script to store the user's color choice for the <code>modulate</code> parameter of <code>blit_rect()</code>. You could also store a brush size variable, give the user a way to adjust it, and incorporate it into the rectangle calculation so the user can draw larger or smaller strokes.</p>
+<pre class="gdscript"><code>var drawing = false
+var my_color = Color.RED
+var my_size = 20.0
+
+func _gui_input(event):
+    if event is InputEventMouseButton:
+        # Mouse click/unclick - start/stop drawing.
+        drawing = not drawing
+    if event is InputEventMouseMotion and drawing:
+        # Calculate rect to center our drawn rectangle on mouse position
+        # instead of mouse at top left.
+        var rect = Rect2(event.position.x - my_size / 2, event.position.y - my_size / 2, my_size, my_size)
+        texture.blit_rect(rect, preload(&quot;res://circle.svg&quot;), my_color)
+
+func _on_color_picker_button_color_changed(color):
+    my_color = color
+
+func _on_h_slider_value_changed(value):
+    my_size = value</code></pre>
+<div class="sourceCode" id="cb15"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">bool</span> _drawing <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Color _myColor <span class="op">=</span> Colors<span class="op">.</span><span class="fu">Red</span><span class="op">;</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">int</span> _mySize <span class="op">=</span> <span class="dv">20</span><span class="op">;</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_GuiInput</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventMouseButton<span class="op">)</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Mouse click/unclick - start/stop drawing.</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>        _drawing <span class="op">=</span> <span class="op">!</span>_drawing<span class="op">;</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventMouseMotion eventMouseMotion <span class="op">&amp;&amp;</span> _drawing<span class="op">)</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Calculate rect to center our drawn rectangle on mouse position</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// instead of mouse at top left.</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> rect <span class="op">=</span> <span class="kw">new</span> <span class="fu">Rect2I</span><span class="op">(</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>            <span class="op">(</span><span class="dt">int</span><span class="op">)(</span>eventMouseMotion<span class="op">.</span><span class="fu">Position</span><span class="op">.</span><span class="fu">X</span> <span class="op">-</span> _mySize <span class="op">/</span> <span class="dv">2</span><span class="op">),</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>            <span class="op">(</span><span class="dt">int</span><span class="op">)(</span>eventMouseMotion<span class="op">.</span><span class="fu">Position</span><span class="op">.</span><span class="fu">Y</span> <span class="op">-</span> _mySize <span class="op">/</span> <span class="dv">2</span><span class="op">),</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>            _mySize<span class="op">,</span> _mySize<span class="op">);</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>        _texture<span class="op">.</span><span class="fu">BlitRect</span><span class="op">(</span>rect<span class="op">,</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Texture2D<span class="op">&gt;(</span><span class="st">&quot;res://circle.svg&quot;</span><span class="op">),</span> _myColor<span class="op">);</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnColorPickerButtonColorChanged</span><span class="op">(</span>Color color<span class="op">)</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>    _myColor <span class="op">=</span> color<span class="op">;</span></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnHSliderValueChanged</span><span class="op">(</span><span class="dt">float</span> value<span class="op">)</span></span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>    _mySize <span class="op">=</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>value<span class="op">;</span></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

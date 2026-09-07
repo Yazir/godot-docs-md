@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VR starter tutorial part 2 — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="vr-starter-tutorial-part-2">VR starter tutorial part 2</h1>
+<h2 id="introduction">Introduction</h2>
+<p>In this part of the VR starter tutorial series, we will be adding a number of special ref-based nodes that can be used in VR.</p>
+<p>This continues from where we left on in the last tutorial part, where we just finished getting the VR controllers working and defined a custom class called <code>VR_Interactable_Rigidbody</code>.</p>
+<blockquote>
+<p><strong>Tip:</strong> You can find the finished project on the <a href="https://github.com/GodotVR/godot_openvr_fps">OpenVR GitHub repository</a>.</p>
+</blockquote>
+<h2 id="adding-destroyable-targets">Adding destroyable targets</h2>
+<p>Before we make any of the special ref-based nodes, we need something for them to do. Let's make a simple sphere target that will break into a bunch of pieces when destroyed.</p>
+<p>Open up <code>Sphere_Target.tscn</code>, which is in the <code>Scenes</code> folder. The scene is fairly simple, with just a ref with a sphere shaped ref, a ref node displaying a sphere mesh, and an ref node.</p>
+<p>The special ref nodes will handle damaging the sphere, which is why we are using a ref node instead of something like an ref or ref node. Outside of that, there isn't really a lot to talk about, so let's move straight into writing the code.</p>
+<p>Select the <code>Sphere_Target_Root</code> node and make a new script called <code>Sphere_Target.gd</code>. Add the following code:</p>
+<pre class="gdscript"><code>extends Spatial
+
+var destroyed = false
+var destroyed_timer = 0
+const DESTROY_WAIT_TIME = 80
+
+var health = 80
+
+const RIGID_BODY_TARGET = preload(&quot;res://Assets/RigidBody_Sphere.scn&quot;)
+
+
+func _ready():
+    set_physics_process(false)
+
+
+func _physics_process(delta):
+    destroyed_timer += delta
+    if destroyed_timer &gt;= DESTROY_WAIT_TIME:
+        queue_free()
+
+
+func damage(damage):
+    if destroyed == true:
+        return
+
+    health -= damage
+
+    if health &lt;= 0:
+
+        get_node(&quot;CollisionShape&quot;).disabled = true
+        get_node(&quot;Shpere_Target&quot;).visible = false
+
+        var clone = RIGID_BODY_TARGET.instance()
+        add_child(clone)
+        clone.global_transform = global_transform
+
+        destroyed = true
+        set_physics_process(true)
+
+        get_node(&quot;AudioStreamPlayer&quot;).play()
+        get_tree().root.get_node(&quot;Game&quot;).remove_sphere()</code></pre>
+<p>Let's go over how this script works.</p>
+<h3 id="explaining-the-sphere-target-code">Explaining the Sphere Target code</h3>
+<p>First, let's go through all the class variables in the script:</p>
+<ul>
+<li><code>destroyed</code>: A variable to track whether the sphere target has been destroyed.</li>
+<li><code>destroyed_timer</code>: A variable to track how long the sphere target has been destroyed.</li>
+<li><code>DESTROY_WAIT_TIME</code>: A constant to define the length of time the target can be destroyed for before it frees/deletes itself.</li>
+<li><code>health</code>: A variable to store the amount of health the sphere target has.</li>
+<li><code>RIGID_BODY_TARGET</code>: A constant to hold the scene of the destroyed sphere target.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> Feel free to check out the <code>RIGID_BODY_TARGET</code> scene. It is just a bunch of ref nodes and a broken sphere model.</p>
+<p>We'll be instancing this scene so when the target is destroyed, it looks like it broke into a bunch of pieces.</p>
+</blockquote>
+<h4 id="_ready-function-step-by-step-explanation"><code>_ready</code> function step-by-step explanation</h4>
+<p>All the <code>_ready</code> function does is that it stops the <code>_physics_process</code> from being called by calling <code>set_physics_process</code> and passing <code>false</code>. The reason we do this is because all the code in <code>_physics_process</code> is for destroying this node when enough time has passed, which we only want to do when the target has been destroyed.</p>
+<h4 id="_physics_process-function-step-by-step-explanation"><code>_physics_process</code> function step-by-step explanation</h4>
+<p>First this function adds time, <code>delta</code>, to the <code>destroyed_timer</code> variable. It then checks to see if <code>destroyed_timer</code> is greater than or equal to <code>DESTROY_WAIT_TIME</code>. If <code>destroyed_timer</code> is greater than or equal to <code>DESTROY_WAIT_TIME</code>, then the sphere target frees/deletes itself by calling the <code>queue_free</code> function.</p>
+<h4 id="damage-function-step-by-step-explanation"><code>damage</code> function step-by-step explanation</h4>
+<p>The <code>damage</code> function will be called by the special ref nodes, which will pass the amount of damage done to the target, which is a function argument variable called <code>damage</code>. The <code>damage</code> variable will hold the amount of damage the special ref node did to the sphere target.</p>
+<p>First this function checks to make sure the target is not already destroyed by checking if the <code>destroyed</code> variable is equal to <code>true</code>. If <code>destroyed</code> is equal to <code>true</code>, then the function calls <code>return</code> so none of the other code is called. This is just a safety check so that if two things damage the target at exactly the same time, the target cannot be destroyed twice.</p>
+<p>Next the function removes the amount of damage taken, <code>damage</code>, from the target's health, <code>health</code>. If then checks to see if <code>health</code> is equal to zero or less, meaning that the target has just been destroyed.</p>
+<p>If the target has just been destroyed, then we disable the ref by setting it's <code>disabled</code> property to <code>true</code>. We then make the <code>Sphere_Target</code> ref invisible by setting the <code>visible</code> property to <code>false</code>. We do this so the target can no longer effect the physics world and so the non-broken target mesh is not visible.</p>
+<p>After this the function then instances the <code>RIGID_BODY_TARGET</code> scene and adds it as a child of the target. It then sets the <code>global_transform</code> of the newly instanced scene, called <code>clone</code>, to the <code>global_transform</code> of the non-broken target. This makes it where the broken target starts at the same position as the non-broken target with the same rotation and scale.</p>
+<p>Then the function sets the <code>destroyed</code> variable to <code>true</code> so the target knows it has been destroyed and calls the <code>set_physics_process</code> function and passes <code>true</code>. This will start executing the code in <code>_physics_process</code> so that after <code>DESTROY_WAIT_TIME</code> seconds have passed, the sphere target will free/destroy itself.</p>
+<p>The function then gets the ref node and calls the <code>play</code> function so it plays its sound.</p>
+<p>Finally, the <code>remove_sphere</code> function is called in <code>Game.gd</code>. To get <code>Game.gd</code>, the code uses the scene tree and works its way from the root of the scene tree to the root of the <code>Game.tscn</code> scene.</p>
+<h3 id="adding-the-remove_sphere-function-to-gamegd">Adding the <code>remove_sphere</code> function to <code>Game.gd</code></h3>
+<p>You may have noticed we are calling a function in <code>Game.gd</code>, called <code>remove_sphere</code>, that we have not defined yet. Open up <code>Game.gd</code> and add the following additional class variables:</p>
+<pre class="gdscript"><code>var spheres_left = 10
+var sphere_ui = null</code></pre>
+<ul>
+<li><code>spheres_left</code>: The amount of sphere targets left in the world. In the provided <code>Game</code> scene, there are <code>10</code> spheres, so that is the initial value.</li>
+<li><code>sphere_ui</code>: A reference to the sphere UI. We will use this later in the tutorial to display the amount of spheres left in the world.</li>
+</ul>
+<p>With these variables defined, we can now add the <code>remove_sphere</code> function. Add the following code to <code>Game.gd</code>:</p>
+<pre class="gdscript"><code>func remove_sphere():
+    spheres_left -= 1
+
+    if sphere_ui != null:
+        sphere_ui.update_ui(spheres_left)</code></pre>
+<p>Let's go through what this function does real quick:</p>
+<p>First, it removes one from the <code>spheres_left</code> variable. It then checks to see if the <code>sphere_ui</code> variable is not equal to <code>null</code>, and if it is not equal to <code>null</code> it calls the <code>update_ui</code> function on <code>sphere_ui</code>, passing in the number of spheres as an argument to the function.</p>
+<blockquote>
+<p><strong>Note:</strong> We will add the code for <code>sphere_ui</code> later in this tutorial!</p>
+</blockquote>
+<p>Now the <code>Sphere_Target</code> is ready to be used, but we don't have any way to destroy it. Let's fix that by adding some special ref-based nodes that can damage the targets.</p>
+<h2 id="adding-a-pistol">Adding a pistol</h2>
+<p>Let's add a pistol as the first interactable ref node. Open up <code>Pistol.tscn</code>, which you can find in the <code>Scenes</code> folder.</p>
+<p>Let's quickly go over a few things of note in <code>Pistol.tscn</code> real quick before we add the code.</p>
+<p>All of the nodes in <code>Pistol.tscn</code> expect the root node are rotated. This is so the pistol is in the correct rotation relative to the VR controller when it is picked up. The root node is a ref node, which we need because we're going to use the <code>VR_Interactable_Rigidbody</code> class we created in the last part of this tutorial series.</p>
+<p>There is a ref node called <code>Pistol_Flash</code>, which is a simple mesh that we will be using to simulate the muzzle flash on the end of the pistol's barrel. A ref node called <code>LaserSight</code> is used to as a guide for aiming the pistol, and it follows the direction of the ref node, called <code>Raycast</code>, that the pistol uses to detect if its 'bullet' hit something. Finally, there is an ref node at the end of the pistol that we will use to play the sound of the pistol firing.</p>
+<p>Feel free to look at the other parts of the scene if you want. Most of the scene is fairly straightforward, with the major changes mentioned above. Select the ref node called <code>Pistol</code> and make a new script called <code>Pistol.gd</code>. Add the following code:</p>
+<pre class="gdscript"><code>extends VR_Interactable_Rigidbody
+
+var flash_mesh
+const FLASH_TIME = 0.25
+var flash_timer = 0
+
+var laser_sight_mesh
+var pistol_fire_sound
+
+var raycast
+const BULLET_DAMAGE = 20
+const COLLISION_FORCE = 1.5
+
+
+func _ready():
+    flash_mesh = get_node(&quot;Pistol_Flash&quot;)
+    flash_mesh.visible = false
+
+    laser_sight_mesh = get_node(&quot;LaserSight&quot;)
+    laser_sight_mesh.visible = false
+
+    raycast = get_node(&quot;RayCast&quot;)
+    pistol_fire_sound = get_node(&quot;AudioStreamPlayer3D&quot;)
+
+
+func _physics_process(delta):
+    if flash_timer &gt; 0:
+        flash_timer -= delta
+        if flash_timer &lt;= 0:
+            flash_mesh.visible = false
+
+
+func interact():
+    if flash_timer &lt;= 0:
+
+        flash_timer = FLASH_TIME
+        flash_mesh.visible = true
+
+        raycast.force_raycast_update()
+        if raycast.is_colliding():
+
+            var body = raycast.get_collider()
+            var direction_vector = raycast.global_transform.basis.z.normalized()
+            var raycast_distance = raycast.global_transform.origin.distance_to(raycast.get_collision_point())
+
+            if body.has_method(&quot;damage&quot;):
+                body.damage(BULLET_DAMAGE)
+            elif body is RigidBody:
+                var collision_force = (COLLISION_FORCE / raycast_distance) * body.mass
+                body.apply_impulse((raycast.global_transform.origin - body.global_transform.origin).normalized(), direction_vector * collision_force)
+
+        pistol_fire_sound.play()
+
+        if controller != null:
+            controller.rumble = 0.25
+
+
+func picked_up():
+    laser_sight_mesh.visible = true
+
+
+func dropped():
+    laser_sight_mesh.visible = false</code></pre>
+<p>Let's go over how this script works.</p>
+<h3 id="explaining-the-pistol-code">Explaining the pistol code</h3>
+<p>First, notice how instead of <code>extends RigidBody</code>, we instead have <code>extends VR_Interactable_Rigidbody</code>. This makes it where the pistol script extends the <code>VR_Interactable_Rigidbody</code> class so the VR controllers know this object can be interacted with and that the functions defined in <code>VR_Interactable_Rigidbody</code> can be called when this object is held by a VR controller.</p>
+<p>Next, let's look at the class variables:</p>
+<ul>
+<li><code>flash_mesh</code>: A variable to hold the ref node that is used to simulate muzzle flash on the pistol.</li>
+<li><code>FLASH_TIME</code>: A constant to define how long the muzzle flash will be visible. This will also define how fast the pistol can fire.</li>
+<li><code>flash_timer</code>: A variable to hold the amount of time the muzzle flash has been visible for.</li>
+<li><code>laser_sight_mesh</code>: A variable to hold the ref node that acts as the pistol's 'laser sight'.</li>
+<li><code>pistol_fire_sound</code>: A variable to hold the ref node used for the pistol's firing sound.</li>
+<li><code>raycast</code>: A variable to hold the ref node that is used for calculating the bullet's position and normal when the pistol is fired.</li>
+<li><code>BULLET_DAMAGE</code>: A constant to define the amount of damage a single bullet from the pistol does.</li>
+<li><code>COLLISION_FORCE</code>: A constant that defines the amount of force that is applied to ref nodes when the pistol's bullet collides.</li>
+</ul>
+<h4 id="_ready-function-step-by-step-explanation-1"><code>_ready</code> function step-by-step explanation</h4>
+<p>This function gets the nodes and assigns them to their proper variables. For the <code>flash_mesh</code> and <code>laser_sight_mesh</code> nodes, both have their <code>visible</code> property set to <code>false</code> so they are not visible initially.</p>
+<h4 id="_physics_process-function-step-by-step-explanation-1"><code>_physics_process</code> function step-by-step explanation</h4>
+<p>The <code>_physics_process</code> function first checks to see if the pistol's muzzle flash is visible by checking if <code>flash_timer</code> is more than zero. If <code>flash_timer</code> is more than zero, then we remove time, <code>delta</code> from it. Next we check if the <code>flash_timer</code> variable is zero or less now that we removed <code>delta</code> from it. If it is, then the pistol muzzle flash timer just finished and so we need to make <code>flash_mesh</code> invisible by setting it's <code>visible</code> property to <code>false</code>.</p>
+<h4 id="interact-function-step-by-step-explanation"><code>interact</code> function step-by-step explanation</h4>
+<p>The interact function first checks to see if the pistol's muzzle flash is invisible by checking to see if <code>flash_timer</code> is less than or equal to zero. We do this so we can limit the rate of fire of the pistol to the length of time the muzzle flash is visible, which is a simple solution for limiting how fast the player can fire.</p>
+<p>If <code>flash_timer</code> is zero or less, we then set <code>flash_timer</code> to <code>FLASH_TIME</code> so there is a delay before the pistol can fire again. After that we set <code>flash_mesh.visible</code> to <code>true</code> so the muzzle flash at the end of the pistol is visible while <code>flash_timer</code> is more than zero.</p>
+<p>Next we call the <code>force_raycast_update</code> function on the ref node in <code>raycast</code> so that it gets the latest collision info from the physics world. We then check if the <code>raycast</code> hit something by checking if the <code>is_colliding</code> function is equal to <code>true</code>.</p>
+<p>If the <code>raycast</code> hit something, then we get the ref it collided with through the <code>get_collider</code> function. We assign the hit ref to a variable called <code>body</code>.</p>
+<p>We then get the direction of the ref by getting it's positive <code>Z</code> directional axis from the ref on the <code>raycast</code> node's <code>global_transform</code>. This will give us the direction the raycast is pointing on the Z axis, which is the same direction as the blue arrow on the ref gizmo when <code>Local space mode</code> is enabled in the Godot editor. We store this direction in a variable called <code>direction_vector</code>.</p>
+<p>Next we get the distance from the ref origin to the ref collision point by getting the distance from the global position, <code>global_transform.origin</code> of the <code>raycast</code> node to the collision point of the ref, <code>raycast.get_collision_point</code>, using the <code>distance_to</code> function. This will give us the distance the ref traveled before it collided, which we store in a variable called <code>raycast_distance</code>.</p>
+<p>Then the code checks if the ref, <code>body</code>, has a function/method called <code>damage</code> using the <code>has_method</code> function. If the ref has a function/method called <code>damage</code>, then we call the <code>damage</code> function and pass <code>BULLET_DAMAGE</code> so it takes damage from the bullet colliding into it.</p>
+<p>Regardless of whether the ref has a <code>damage</code> function, we then check to see if <code>body</code> is a ref-based node. If <code>body</code> is a ref-based node, then we want to push it when the bullet collides.</p>
+<p>To calculate the amount of force applied, we simply take <code>COLLISION_FORCE</code> and divide it by <code>raycast_distance</code>, then we multiply the whole thing by <code>body.mass</code>. We store this calculation in a variable called <code>collision_force</code>. This will make collisions over a shorter distance apply move force than those over longer distances, giving a <em>slightly</em> more realistic collision response.</p>
+<p>We then push the ref using the <code>apply_impulse</code> function, where the position is a zero Vector3 so the force is applied from the center, and the collision force is the <code>collision_force</code> variable we calculated.</p>
+<p>Regardless of whether the <code>raycast</code> variable hit something or not, we then play the pistol shot sound by calling the <code>play</code> function on the <code>pistol_fire_sound</code> variable.</p>
+<p>Finally, we check to see if the pistol is being held by a VR controller by checking to see if the <code>controller</code> variable is not equal to <code>null</code>. If it is not equal to <code>null</code>, we then set the <code>rumble</code> property of the VR controller to <code>0.25</code>, so there is a slight rumble when the pistol fires.</p>
+<h4 id="picked_up-function-step-by-step-explanation"><code>picked_up</code> function step-by-step explanation</h4>
+<p>This function simply makes the <code>laser_sight_mesh</code> ref visible by setting the <code>visible</code> property to <code>true</code>.</p>
+<h4 id="dropped-function-step-by-step-explanation"><code>dropped</code> function step-by-step explanation</h4>
+<p>This function simply makes the <code>laser_sight_mesh</code> ref invisible by setting the <code>visible</code> property to <code>false</code>.</p>
+<h3 id="pistol-finished">Pistol finished</h3>
+<p>That is all we need to do to have working pistols in the project! Go ahead and run the project. If you climb up the stairs and grab the pistols, you can fire them at the sphere targets in the scene using the trigger button on the VR controller! If you fire at the targets long enough, they will break into pieces.</p>
+<h2 id="adding-a-shotgun">Adding a shotgun</h2>
+<p>Next let's add a shotgun to the VR project.</p>
+<p>Adding a special shotgun ref should be fairly straightforward, as almost everything with the shotgun is the same as the pistol.</p>
+<p>Open up <code>Shotgun.tscn</code>, which you can find in the <code>Scenes</code> folder and take a look at the scene. Almost everything is the same as in <code>Pistol.tscn</code>. The only thing that is different, beyond name changes, is that instead of a single ref, there are five ref nodes. This is because a shotgun generally fires in a cone shape, so we are going to emulate that effect by having several ref nodes that will rotate randomly in a cone shape when the shotgun fires.</p>
+<p>Outside of that, everything is more or less the same as <code>Pistol.tscn</code>.</p>
+<p>Let's write the code for the shotgun. Select the ref node called <code>Shotgun</code> and make a new script called <code>Shotgun.gd</code>. Add the following code:</p>
+<pre class="gdscript"><code>extends VR_Interactable_Rigidbody
+
+var flash_mesh
+const FLASH_TIME = 0.25
+var flash_timer = 0
+
+var laser_sight_mesh
+var shotgun_fire_sound
+
+var raycasts
+const BULLET_DAMAGE = 30
+const COLLISION_FORCE = 4
+
+
+func _ready():
+    flash_mesh = get_node(&quot;Shotgun_Flash&quot;)
+    flash_mesh.visible = false
+
+    laser_sight_mesh = get_node(&quot;LaserSight&quot;)
+    laser_sight_mesh.visible = false
+
+    raycasts = get_node(&quot;Raycasts&quot;)
+    shotgun_fire_sound = get_node(&quot;AudioStreamPlayer3D&quot;)
+
+
+func _physics_process(delta):
+    if flash_timer &gt; 0:
+        flash_timer -= delta
+        if flash_timer &lt;= 0:
+            flash_mesh.visible = false
+
+
+func interact():
+    if flash_timer &lt;= 0:
+
+        flash_timer = FLASH_TIME
+        flash_mesh.visible = true
+
+        for raycast in raycasts.get_children():
+
+            if not raycast is RayCast:
+                continue
+
+            raycast.rotation_degrees = Vector3(90 + rand_range(10, -10), 0, rand_range(10, -10))
+
+            raycast.force_raycast_update()
+            if raycast.is_colliding():
+
+                var body = raycast.get_collider()
+                var direction_vector = raycasts.global_transform.basis.z.normalized()
+                var raycast_distance = raycasts.global_transform.origin.distance_to(raycast.get_collision_point())
+
+                if body.has_method(&quot;damage&quot;):
+                    body.damage(BULLET_DAMAGE)
+
+                if body is RigidBody:
+                    var collision_force = (COLLISION_FORCE / raycast_distance) * body.mass
+                    body.apply_impulse((raycast.global_transform.origin - body.global_transform.origin).normalized(), direction_vector * collision_force)
+
+        shotgun_fire_sound.play()
+
+        if controller != null:
+            controller.rumble = 0.25
+
+
+func picked_up():
+    laser_sight_mesh.visible = true
+
+
+func dropped():
+    laser_sight_mesh.visible = false</code></pre>
+<p>The majority of this code is exactly the same as the code for the pistol with just a few <em>minor</em> changes that are primarily just different names. Due to how similar these scripts are, let's just focus on the changes.</p>
+<h3 id="explaining-the-shotgun-code">Explaining the shotgun code</h3>
+<p>Like with the pistol, the shotgun extends <code>VR_Interactable_Rigidbody</code> so the VR controllers know that this object can be interacted with and what functions are available.</p>
+<p>There is only one new class variable:</p>
+<ul>
+<li><code>raycasts</code>: A variable to hold the node that has all of the ref nodes as its children.</li>
+</ul>
+<p>The new class variable replaces the <code>raycast</code> variable from <code>Pistol.gd</code>, because with the shotgun we need to process multiple ref nodes instead of just one. All of the other class variables are the same as <code>Pistol.gd</code> and function the same way, some just are renamed to be non-pistol specific.</p>
+<h4 id="interact-function-step-by-step-explanation-1"><code>interact</code> function step-by-step explanation</h4>
+<p>The interact function first checks to see if the shotgun's muzzle flash is invisible by checking to see if <code>flash_timer</code> is less than or equal to zero. We do this so we can limit the rate of fire of the shotgun to the length of time the muzzle flash is visible, which is a simple solution for limiting how fast the player can fire.</p>
+<p>If <code>flash_timer</code> is zero or less, we then set <code>flash_timer</code> to <code>FLASH_TIME</code> so there is a delay before the shotgun can fire again. After that we set <code>flash_mesh.visible</code> to <code>true</code> so the muzzle flash at the end of the shotgun is visible while <code>flash_timer</code> is more than zero.</p>
+<p>Next we call the <code>force_raycast_update</code> function on the ref node in <code>raycast</code> so that it gets the latest collision info from the physics world. We then check if the <code>raycast</code> hit something by checking if the <code>is_colliding</code> function is equal to <code>true</code>.</p>
+<p>Next we go through each of the child nodes of the <code>raycasts</code> variable using a for loop. This way the code will go through each of the ref nodes that are children of the <code>raycasts</code> variable.</p>
+<p>For each node, we check to see if <code>raycast</code> is <em>not</em> a ref node. If the node is not a ref node, we simply use <code>continue</code> to skip it.</p>
+<p>Next we rotate the <code>raycast</code> node randomly around a small <code>10</code> degrees cone by settings the <code>rotation_degrees</code> variable of the <code>raycast</code> to a Vector3 where the X and Z axis are a random number from <code>-10</code> to <code>10</code>. This random number is selected using the <code>rand_range</code> function.</p>
+<p>Then we call the <code>force_raycast_update</code> function on the ref node in <code>raycast</code> so that it gets the latest collision info from the physics world. We then check if the <code>raycast</code> hit something by checking if the <code>is_colliding</code> function is equal to <code>true</code>.</p>
+<p>The rest of the code is exactly the same, but this process is repeated for each ref node that is a child of the <code>raycasts</code> variable.</p>
+<p>If the <code>raycast</code> hit something, then we get the ref it collided with through the <code>get_collider</code> function. We assign the hit ref to a variable called <code>body</code>.</p>
+<p>We then get the direction of the raycast by getting it's positive <code>Z</code> directional axis from the ref on the <code>raycast</code> node's <code>global_transform</code>. This will give us the direction the raycast is pointing on the Z axis, which is the same direction as the blue arrow on the ref gizmo when <code>Local space mode</code> is enabled in the Godot editor. We store this direction in a variable called <code>direction_vector</code>.</p>
+<p>Next we get the distance from the raycast origin to the raycast collision point by getting the distance from the global position, <code>global_transform.origin</code> of the <code>raycast</code> node to the collision point of the raycast, <code>raycast.get_collision_point</code>, using the <code>distance_to</code> function. This will give us the distance the ref traveled before it collided, which we store in a variable called <code>raycast_distance</code>.</p>
+<p>Then the code checks if the ref, <code>body</code>, has a function/method called <code>damage</code> using the <code>has_method</code> function. If the ref has a function/method called <code>damage</code>, then we call the <code>damage</code> function and pass <code>BULLET_DAMAGE</code> so it takes damage from the bullet colliding into it.</p>
+<p>Regardless of whether the ref has a <code>damage</code> function, we then check to see if <code>body</code> is a ref-based node. If <code>body</code> is a ref-based node, then we want to push it when the bullet collides.</p>
+<p>To calculate the amount of force applied, we simply take <code>COLLISION_FORCE</code> and divide it by <code>raycast_distance</code>, then we multiply the whole thing by <code>body.mass</code>. We store this calculation in a variable called <code>collision_force</code>. This will make collisions over a shorter distance apply move force than those over longer distances, giving a <em>slightly</em> more realistic collision response.</p>
+<p>We then push the ref using the <code>apply_impulse</code> function, where the position is a zero Vector3 so the force is applied from the center, and the collision force is the <code>collision_force</code> variable we calculated.</p>
+<p>Once all of the refs in the <code>raycast</code> variable have been iterated over, we then play the shotgun shot sound by calling the <code>play</code> function on the <code>shotgun_fire_sound</code> variable.</p>
+<p>Finally, we check to see if the shotgun is being held by a VR controller by checking to see if the <code>controller</code> variable is not equal to <code>null</code>. If it is not equal to <code>null</code>, we then set the <code>rumble</code> property of the VR controller to <code>0.25</code>, so there is a slight rumble when the shotgun fires.</p>
+<h3 id="shotgun-finished">Shotgun finished</h3>
+<p>Everything else is exactly the same as the pistol, with at most just some simple name changes.</p>
+<p>Now the shotgun is finished! You can find the shotgun in the sample scene by looking around the back of one of the walls (not in the building though!).</p>
+<h2 id="adding-a-bomb">Adding a bomb</h2>
+<p>Okay, let's add a different special ref. Instead of adding something that shoots, let's add something we can throw - a bomb!</p>
+<p>Open up <code>Bomb.tscn</code>, which is in the <code>Scenes</code> folder.</p>
+<p>The root node is a ref node that we'll be extending to use <code>VR_Interactable_Rigidbody</code>, which has a ref like the other special ref nodes we've made so far. Likewise, there is a ref called <code>Bomb</code> that is used to display the mesh for the bomb.</p>
+<p>Then we have an ref node simply called <code>Area</code> that has a large ref as its child. We'll use this ref node to effect anything within it when the bomb explodes. Essentially, this ref node will be the blast radius for the bomb.</p>
+<p>There is also a couple ref nodes. One of the ref nodes are for the smoke coming out of the bomb's fuse, while another is for the explosion. You can take a look at the ref resources, which define how the particles work, if you want. We will not be covering how the particles work in this tutorial due to it being outside of the scope of this tutorial.</p>
+<p>There is one thing with the ref nodes that we need to make note of. If you select the <code>Explosion_Particles</code> node, you'll find that its <code>lifetime</code> property is set to <code>0.75</code> and that the <code>one shot</code> checkbox is enabled. This means that the particles will only play once, and the particles will last for <code>0.75</code> seconds. We'll need to know this so we can time the removal of the bomb with the end of the explosion ref.</p>
+<p>Let's write the code for the bomb. Select the <code>Bomb</code> ref node and make a new script called <code>Bomb.gd</code>. Add the following code:</p>
+<pre class="gdscript"><code>extends VR_Interactable_Rigidbody
+
+var bomb_mesh
+
+const FUSE_TIME = 4
+var fuse_timer = 0
+
+var explosion_area
+const EXPLOSION_DAMAGE = 100
+const EXPLOSION_TIME = 0.75
+var explosion_timer = 0
+var exploded = false
+
+const COLLISION_FORCE = 8
+
+var fuse_particles
+var explosion_particles
+var explosion_sound
+
+
+func _ready():
+
+    bomb_mesh = get_node(&quot;Bomb&quot;)
+    explosion_area = get_node(&quot;Area&quot;)
+    fuse_particles = get_node(&quot;Fuse_Particles&quot;)
+    explosion_particles = get_node(&quot;Explosion_Particles&quot;)
+    explosion_sound = get_node(&quot;AudioStreamPlayer3D&quot;)
+
+    set_physics_process(false)
+
+
+func _physics_process(delta):
+
+    if fuse_timer &lt; FUSE_TIME:
+
+        fuse_timer += delta
+
+        if fuse_timer &gt;= FUSE_TIME:
+
+            fuse_particles.emitting = false
+
+            explosion_particles.one_shot = true
+            explosion_particles.emitting = true
+
+            bomb_mesh.visible = false
+
+            collision_layer = 0
+            collision_mask = 0
+            mode = RigidBody.MODE_STATIC
+
+            for body in explosion_area.get_overlapping_bodies():
+                if body == self:
+                    pass
+                else:
+                    if body.has_method(&quot;damage&quot;):
+                        body.damage(EXPLOSION_DAMAGE)
+
+                    if body is RigidBody:
+                        var direction_vector = body.global_transform.origin - global_transform.origin
+                        var bomb_distance = direction_vector.length()
+                        var collision_force = (COLLISION_FORCE / bomb_distance) * body.mass
+                        body.apply_impulse(Vector3.ZERO, direction_vector.normalized() * collision_force)
+
+            exploded = true
+            explosion_sound.play()
+
+
+    if exploded:
+
+        explosion_timer += delta
+
+        if explosion_timer &gt;= EXPLOSION_TIME:
+
+            explosion_area.monitoring = false
+
+            if controller != null:
+                controller.held_object = null
+                controller.hand_mesh.visible = true
+
+                if controller.grab_mode == &quot;RAYCAST&quot;:
+                    controller.grab_raycast.visible = true
+
+            queue_free()
+
+
+func interact():
+    set_physics_process(true)
+
+    fuse_particles.emitting = true</code></pre>
+<p>Let's go over how this script works.</p>
+<h3 id="explaining-the-bomb-code">Explaining the bomb code</h3>
+<p>Like with the other special ref nodes, the bomb extends <code>VR_Interactable_Rigidbody</code> so the VR controllers know this object can be interacted with and that the functions defined defined in <code>VR_Interactable_Rigidbody</code> can be called when this object is held by a VR controller.</p>
+<p>Next, let's look at the class variables:</p>
+<ul>
+<li><code>bomb_mesh</code>: A variable to hold the ref node that is used for the non-exploded bomb.</li>
+<li><code>FUSE_TIME</code>: A constant to define how long the fuse will 'burn' before the bomb explodes</li>
+<li><code>fuse_timer</code>: A variable to hold the length of time that has passed since the bomb's fuse has started to burn.</li>
+<li><code>explosion_area</code>: A variable to hold the ref node used to detect objects within the bomb's explosion.</li>
+<li><code>EXPLOSION_DAMAGE</code>: A constant to define how much damage is applied with the bomb explodes.</li>
+<li><code>EXPLOSION_TIME</code>: A constant to define how long the bomb will last in the scene after it explodes. This value should be the same as the <code>lifetime</code> property of the explosion ref node.</li>
+<li><code>explosion_timer</code> A variable to hold the length of time that has passed since the bomb exploded.</li>
+<li><code>exploded</code>: A variable to hold whether the bomb has exploded or not.</li>
+<li><code>COLLISION_FORCE</code>: A constant that defines the amount of force that is applied to ref nodes when the bomb explodes.</li>
+<li><code>fuse_particles</code>: A variable to hold a reference to the ref node used for the bomb's fuse.</li>
+<li><code>explosion_particles</code>: A variable to hold a reference to the ref node used for the bomb's explosion.</li>
+<li><code>explosion_sound</code>: A variable to hold a reference to the ref node used for the explosion sound.</li>
+</ul>
+<h4 id="_ready-function-step-by-step-explanation-2"><code>_ready</code> function step-by-step explanation</h4>
+<p>The <code>_ready</code> function first gets all of the nodes from the bomb scene and assigns them to their respective class variables for later use.</p>
+<p>Then we call <code>set_physics_process</code> and pass <code>false</code> so <code>_physics_process</code> is not executed. We do this because the code in <code>_physics_process</code> will start burning the fuse and exploding the bomb, which we only want to do when the user interacts with the bomb. If we did not disable <code>_physics_process</code>, the bomb's fuse would start before the user has a chance to get to the bomb.</p>
+<h4 id="_physics_process-function-step-by-step-explanation-2"><code>_physics_process</code> function step-by-step explanation</h4>
+<p>The <code>_physics_process</code> function first checks to see if <code>fuse_timer</code> is less than <code>FUSE_TIME</code>. If it is, then the bomb's fuse is still burning.</p>
+<p>If the bomb's fuse is still burning, we then add time, <code>delta</code>, to the <code>fuse_timer</code> variable. We then check to see if <code>fuse_timer</code> is more than or equal to <code>FUSE_TIME</code> now that we have added <code>delta</code> to it. If <code>fuse_timer</code> is more than or equal to <code>FUSE_TIME</code>, then the fuse has just finished and we need to explode the bomb.</p>
+<p>To explode the bomb, we first stop emitting particles for the fuse by setting <code>emitting</code> to <code>false</code> on <code>fuse_particles</code>. We then tell the explosion ref node, <code>explosion_particles</code>, to emit all of its particle in a single shot by setting <code>one_shot</code> to <code>true</code>. After that, we set <code>emitting</code> to <code>true</code> on <code>explosion_particles</code> so it looks like the bomb has exploded. To help make it look like the bomb exploded, we hide the bomb ref node by setting <code>bomb_mesh.visible</code> to <code>false</code>.</p>
+<p>To keep the bomb from colliding with other objects in the physics world, we set the <code>collision_layer</code> and <code>collision_mask</code> properties of the bomb to <code>0</code>. We also change the ref mode to <code>MODE_STATIC</code> so the bomb ref does not move.</p>
+<p>Then we need to get all of the ref nodes within the <code>explosion_area</code> node. To do this, we use the <code>get_overlapping_bodies</code> in a for loop. The <code>get_overlapping_bodies</code> function will return an array of ref nodes within the ref node, which is exactly what we are looking for.</p>
+<p>For each ref node, which we store in a variable called <code>body</code>, we check to see if it is equal to <code>self</code>. We do this so the bomb does not accidentally explode itself, as the <code>explosion_area</code> could potentially detect the <code>Bomb</code> ref as a PhysicsBody within the explosion area.</p>
+<p>If the ref node, <code>body</code>, is not the bomb, then we first check to see if the ref node has a function called <code>damage</code>. If the ref node has a function called <code>damage</code>, we call it and pass <code>EXPLOSION_DAMAGE</code> to it so it takes damage from the explosion.</p>
+<p>Next we check to see if the ref node is a ref. If <code>body</code> is a ref, we want to move it when the bomb explodes.</p>
+<p>To move the ref node when the bomb explodes, we first need to calculate the direction from the bomb to the ref node. To do this we subtract the global position of the bomb, <code>global_transform.origin</code> from the global position of the ref. This will give us a ref that points from the bomb to the ref node. We store this ref in a variable called <code>direction_vector</code>.</p>
+<p>We then calculate the distance the ref is from the bomb by using the <code>length</code> function on <code>direction_vector</code>. We store the distance in a variable called <code>bomb_distance</code>.</p>
+<p>We then calculate the amount of force the bomb will be applied to the ref node when the bomb explodes by dividing <code>COLLISION_FORCE</code> by <code>bomb_distance</code>, and multiplying that by <code>collision_force</code>. This will make it so if the ref node is closer to the bomb, it will be pushed farther.</p>
+<p>Finally, we push the ref node using the <code>apply_impulse</code> function, with a ref position of zero and <code>collision_force</code> multiplied by <code>direction_vector.normalized</code> as the force. This will send the ref node flying when the bomb explodes.</p>
+<p>After we have looped through all of the ref nodes within the <code>explosion_area</code>, we set the <code>exploded</code> variable to <code>true</code> so the code knows the bomb exploded and call <code>play</code> on <code>explosion_sound</code> so the sound of an explosion is played.</p>
+<p>Alright, the next section of code starts by first checking if <code>exploded</code> is equal to <code>true</code>.</p>
+<p>If <code>exploded</code> is equal to <code>true</code>, then that means the bomb is waiting for the explosion particles to finish before it frees/destroys itself. We add time, <code>delta</code>, to <code>explosion_timer</code> so we can track how long it has been since the bomb has exploded.</p>
+<p>If <code>explosion_timer</code> is greater than or equal to <code>EXPLOSION_TIME</code> after we added <code>delta</code>, then the explosion timer just finished.</p>
+<p>If the explosion timer just finished, we set <code>explosion_area.monitoring</code> to <code>false</code>. The reason we do this is because there was a bug that would print an error when you freed/deleted an ref node when the <code>monitoring</code> property was true. To make sure this doesn't happen, we simply set <code>monitoring</code> to false on <code>explosion_area</code>.</p>
+<p>Next we check to see if the bomb is being held by a VR controller by checking to see if the <code>controller</code> variable is not equal to <code>null</code>. If the bomb is being held by a VR controller, we set the <code>held_object</code> property of the VR controller, <code>controller</code>, to <code>null</code>. Because the VR controller is no longer holding anything, we make the VR controller's hand mesh visible by setting <code>controller.hand_mesh.visible</code> to <code>true</code>. Then we check to see if the VR controller grab mode is <code>RAYCAST</code>, and if it is we set <code>controller.grab_raycast.visible</code> to <code>true</code> so the 'laser sight' for the grab raycast is visible.</p>
+<p>Finally, regardless if the bomb is being held by a VR controller or not, we call <code>queue_free</code> so the bomb scene is freed/removed from the scene.</p>
+<h4 id="interact-function-step-by-step-explanation-2"><code>interact</code> function step-by-step explanation</h4>
+<p>First the <code>interact</code> function calls <code>set_physics_process</code> and passes <code>true</code> so the code in <code>_physics_process</code> starts executing. This will start the bomb's fuse and eventually lead to the bomb exploding.</p>
+<p>Finally, we start the fuse particles by setting <code>fuse_particles.visible</code> to <code>true</code>.</p>
+<h3 id="bomb-finished">Bomb finished</h3>
+<p>Now the bomb is ready to go! You can find the bombs in the orange building.</p>
+<p>Because of how we are calculating the VR controller's velocity, it is easiest to throw the bombs using a thrusting-like motion instead of a more natural throwing-like motion. The smooth curve of a throwing-like motion is harder to track with the code we are using for calculating the velocity of the VR controllers, so it does not always work correctly and can lead inaccurately calculated velocities.</p>
+<h2 id="adding-a-sword">Adding a sword</h2>
+<p>Let's add one last special ref-based node that can destroy targets. Let's add a sword so we can slice through the targets!</p>
+<p>Open up <code>Sword.tscn</code>, which you can find in the <code>Scenes</code> folder.</p>
+<p>There is not a whole lot going on here. All of the child nodes of the root <code>Sword</code> ref node are rotated to they are positioned correctly when the VR controller picks them up, there is a ref node for displaying the sword, and there is an ref node that holds a sound for the sword colliding with something.</p>
+<p>There is one thing that is slightly different though. There is a ref node called <code>Damage_Body</code>. If you take a look at it, you'll find that it is not on any collision layers, and is instead only on a single collision mask. This is so the ref will not effect other ref nodes in the scene, but it will still be effected by ref nodes.</p>
+<p>We are going to use the <code>Damage_Body</code> ref node to detect the collision point and normal when the sword collides with something in the scene.</p>
+<blockquote>
+<p><strong>Tip:</strong> While this is perhaps not the best way of getting the collision information from a performance point of view, it does give us a lot of information we can use for post-processing! Using a ref this way means we can detect exactly where the sword collided with other ref nodes.</p>
+</blockquote>
+<p>That is really the only thing note worthy about the sword scene. Select the <code>Sword</code> ref node and make a new script called <code>Sword.gd</code>. Add the following code:</p>
+<pre class="gdscript"><code>extends VR_Interactable_Rigidbody
+
+const SWORD_DAMAGE = 2
+
+const COLLISION_FORCE = 0.15
+
+var damage_body = null
+
+
+func _ready():
+    damage_body = get_node(&quot;Damage_Body&quot;)
+    damage_body.add_collision_exception_with(self)
+    sword_noise = get_node(&quot;AudioStreamPlayer3D&quot;)
+
+
+func _physics_process(_delta):
+
+    var collision_results = damage_body.move_and_collide(Vector3.ZERO, true, true, true);
+
+    if (collision_results != null):
+        if collision_results.collider.has_method(&quot;damage&quot;):
+            collision_results.collider.damage(SWORD_DAMAGE)
+
+        if collision_results.collider is RigidBody:
+            if controller == null:
+                collision_results.collider.apply_impulse(
+                    collision_results.position,
+                    collision_results.normal * linear_velocity * COLLISION_FORCE)
+            else:
+                collision_results.collider.apply_impulse(
+                    collision_results.position,
+                    collision_results.normal * controller.controller_velocity * COLLISION_FORCE)
+
+        sword_noise.play()</code></pre>
+<p>Let's go over how this script works!</p>
+<h3 id="explaining-the-sword-code">Explaining the sword code</h3>
+<p>Like with the other special ref nodes, the sword extends <code>VR_Interactable_Rigidbody</code> so the VR controllers know this object can be interacted with and that the functions defined defined in <code>VR_Interactable_Rigidbody</code> can be called when this object is held by a VR controller.</p>
+<p>Next, let's look at the class variables:</p>
+<ul>
+<li><code>SWORD_DAMAGE</code>: A constant to define the amount of damage the sword does. This damage is applied to every object in the sword on every <code>_physics_process</code> call</li>
+<li><code>COLLISION_FORCE</code>: A constant that defines the amount of force applied to ref nodes when the sword collides with a ref.</li>
+<li><code>damage_body</code>: A variable to hold the ref node used to detect whether the sword is stabbing a ref node or not.</li>
+<li><code>sword_noise</code>: A variable to hold the ref node used to play a sound when the sword collides with something.</li>
+</ul>
+<h4 id="_ready-function-step-by-step-explanation-3"><code>_ready</code> function step-by-step explanation</h4>
+<p>All we are doing in the <code>_ready</code> function is getting the <code>Damage_Body</code> ref node and assigning it to <code>damage_body</code>. Because we do not want the sword to detect a collision with the root ref node of the sword, we call <code>add_collision_exception_with</code> on <code>damage_body</code> and pass <code>self</code> so the sword will not be detected.</p>
+<p>Finally, we get the ref node for the sword collision sound and apply it to the <code>sword_noise</code> variable.</p>
+<h4 id="_physics_process-function-step-by-step-explanation-3"><code>_physics_process</code> function step-by-step explanation</h4>
+<p>First we need to determine whether the sword is colliding with something or not. To do this, we use the <code>move_and_collide</code> function of the <code>damage_body</code> node. Unlike how <code>move_and_collide</code> is normally used, we are not passing a velocity and instead are passing an empty ref. Because we do not want the <code>damage_body</code> node to move, we set the <code>test_only</code> argument (the fourth argument) as <code>true</code> so the ref generates collision info without actually causing any collisions within the collision world.</p>
+<p>The <code>move_and_collide</code> function will return a ref class that has all of the information we need for detecting collisions on the sword. We assign the return value of <code>move_and_collide</code> to a variable called <code>collision_results</code>.</p>
+<p>Next we check to see if <code>collision_results</code> is not equal to <code>null</code>. If <code>collision_results</code> is not equal to <code>null</code>, then we know that the sword has collided with something.</p>
+<p>We then check to see if the ref the sword collided with has a function/method called <code>damage</code> using the <code>has_method</code> function. If the ref has a function called <code>damage_body</code>, we call it and pass the amount of damage the sword does, <code>SWORD_DAMAGE</code>, to it.</p>
+<p>Next we check to see if the ref the sword collided with is a ref. If what the sword collided with is a ref node, we then check to see if the sword is being held by a VR controller or not by checking to see if <code>controller</code> is equal to <code>null</code>.</p>
+<p>If the sword is not being held by a VR controller, <code>controller</code> is equal to <code>null</code>, then we move the ref node the sword collided with using the <code>apply_impulse</code> function. For the <code>position</code> of the <code>apply_impulse</code> function, we use <code>collision_position</code> variable stored within the ref class in <code>collision_results</code>. For the <code>velocity</code> of the <code>apply_impulse</code> function, we use the <code>collision_normal</code> multiplied by the <code>linear_velocity</code> of the sword's ref node multiplied by <code>COLLISION_FORCE</code>.</p>
+<p>If the sword is being held by a VR controller, <code>controller</code> is not equal to <code>null</code>, then we move the ref node the sword collided with using the <code>apply_impulse</code> function. For the <code>position</code> of the <code>apply_impulse</code> function, we use <code>collision_position</code> variable stored within the ref class in <code>collision_results</code>. For the <code>velocity</code> of the <code>apply_impulse</code> function, we use the <code>collision_normal</code> multiplied by the VR controller's velocity multiplied by <code>COLLISION_FORCE</code>.</p>
+<p>Finally, regardless of whether the ref is a ref or not, we play the sound of the sword colliding with something by calling <code>play</code> on <code>sword_noise</code>.</p>
+<h3 id="sword-finished">Sword finished</h3>
+<p>With that done, you can now slice through the targets! You can find the sword in the corner in between the shotgun and the pistol.</p>
+<h2 id="updating-the-target-ui">Updating the target UI</h2>
+<p>Let's update the UI as the sphere targets are destroyed.</p>
+<p>Open up <code>Main_VR_GUI.tscn</code>, which you can find in the <code>Scenes</code> folder. Feel free to look at how the scene is setup if you want, but in an effort to keep this tutorial from becoming too long, we will not be covering the scene setup in this tutorial.</p>
+<p>Expand the <code>GUI</code> ref node and then select the <code>Base_Control</code> node. Add a new script called <code>Base_Control.gd</code>, and add the following:</p>
+<pre class="gdscript"><code>extends Control
+
+var sphere_count_label
+
+func _ready():
+    sphere_count_label = get_node(&quot;Label_Sphere_Count&quot;)
+
+    get_tree().root.get_node(&quot;Game&quot;).sphere_ui = self
+
+
+func update_ui(sphere_count):
+    if sphere_count &gt; 0:
+        sphere_count_label.text = str(sphere_count) + &quot; Spheres remaining&quot;
+    else:
+        sphere_count_label.text = &quot;No spheres remaining! Good job!&quot;</code></pre>
+<p>Let's go over how this script works real quick.</p>
+<p>First, in <code>_ready</code>, we get the ref that shows how many spheres are left and assign it to the <code>sphere_count_label</code> class variable. Next, we get <code>Game.gd</code> by using <code>get_tree().root</code> and assign <code>sphere_ui</code> to this script.</p>
+<p>In <code>update_ui</code>, we change the sphere ref's text. If there is at least one sphere remaining, we change the text to show how many spheres are still left in the world. If there are no more spheres remaining, we change the text and congratulate the player.</p>
+<h2 id="adding-the-final-special-rigidbody">Adding the final special RigidBody</h2>
+<p>Finally, before we finish this tutorial, let's add a way to reset the game while in VR.</p>
+<p>Open up <code>Reset_Box.tscn</code>, which you will find in <code>Scenes</code>. Select the <code>Reset_Box</code> ref node and make a new script called <code>Reset_Box.gd</code>. Add the following code:</p>
+<pre class="gdscript"><code>extends VR_Interactable_Rigidbody
+
+var start_transform
+
+var reset_timer = 0
+const RESET_TIME = 10
+const RESET_MIN_DISTANCE = 1
+
+
+func _ready():
+    start_transform = global_transform
+
+
+func _physics_process(delta):
+    if start_transform.origin.distance_to(global_transform.origin) &gt;= RESET_MIN_DISTANCE:
+        reset_timer += delta
+        if reset_timer &gt;= RESET_TIME:
+            global_transform = start_transform
+            reset_timer = 0
+
+
+func interact():
+    # (Ignore the unused variable warning)
+    # warning-ignore:return_value_discarded
+    get_tree().change_scene(&quot;res://Game.tscn&quot;)
+
+
+func dropped():
+    global_transform = start_transform
+    reset_timer = 0</code></pre>
+<p>Let's quickly go over how this script works.</p>
+<h3 id="explaining-the-reset-box-code">Explaining the reset box code</h3>
+<p>Like with the other special ref-based objects we've created, the reset box extends <code>VR_Interactable_Rigidbody</code>.</p>
+<p>The <code>start_transform</code> class variable will store the global transform of the reset box when the game starts, the <code>reset_timer</code> class variable will hold the length of time that has passed since the reset box's position has moved, the <code>RESET_TIME</code> constant defines the length of time the reset box has to wait before being reset, and the <code>RESET_MIN_DISTANCE</code> constant defines how far the reset box has to be away from it's initial position before the reset timer starts.</p>
+<p>In the <code>_ready</code> function all we are doing is storing the <code>global_transform</code> of the reset position when the scene starts. This is so we can reset the position, rotation, and scale of the reset box object to this initial transform when enough time has passed.</p>
+<p>In the <code>_physics_process</code> function, the code checks to see if the reset box's initial position to the reset box's current position is farther than <code>RESET_MIN_DISTANCE</code>. If it is farther, then it starts adding time, <code>delta</code>, to <code>reset_timer</code>. Once <code>reset_timer</code> is more than or equal to <code>RESET_TIME</code>, we reset the <code>global_transform</code> to the <code>start_transform</code> so the reset box is back in its initial position. We then set <code>reset_timer</code> to <code>0</code>.</p>
+<p>The <code>interact</code> function simply reloads the <code>Game.tscn</code> scene using <code>get_tree().change_scene</code>. This will reload the game scene, resetting everything.</p>
+<p>Finally, the <code>dropped</code> function resets the <code>global_transform</code> to the initial transform in <code>start_transform</code> so the reset box has its initial position/rotation. Then <code>reset_timer</code> is set to <code>0</code> so the timer is reset.</p>
+<h3 id="reset-box-finished">Reset box finished</h3>
+<p>With that done, when you grab and interact with the reset box, the entire scene will reset/restart and you can destroy all the targets again!</p>
+<blockquote>
+<p><strong>Note:</strong> Resetting the scene abruptly without any sort of transition can lead to discomfort in VR.</p>
+</blockquote>
+<h2 id="final-notes">Final notes</h2>
+<p>Whew! That was a lot of work.</p>
+<p>Now you have a fully working VR project with multiple different types of special ref-based nodes that can be used and extended. Hopefully this will help serve as an introduction to making fully-featured VR games in Godot! The code and concepts detailed in this tutorial can be expanded on to make puzzle games, action games, story-based games, and more!</p>
+<blockquote>
+<p><strong>Warning:</strong> You can download the finished project for this tutorial series on the <a href="https://github.com/GodotVR/godot_openvr_fps">OpenVR GitHub repository</a>, under the releases tab!</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../../../";</script>
+<script src="../../../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spatial gizmo plugins — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="spatial-gizmo-plugins">Spatial gizmo plugins</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Spatial gizmo plugins are used by the editor and custom plugins to define the gizmos attached to any kind of Spatial node.</p>
+<p>This tutorial will show you the two main approaches to defining your own custom gizmos. The first option works well for simple gizmos and creates less clutter in your plugin structure, while the second one will let you store some per-gizmo data.</p>
+<blockquote>
+<p><strong>Note:</strong> This tutorial assumes you already know how to make generic plugins. If in doubt, refer to the <code>doc_making_plugins</code> page.</p>
+</blockquote>
+<h2 id="the-editorspatialgizmoplugin">The EditorSpatialGizmoPlugin</h2>
+<p>Regardless of the approach we choose, we will need to create a new ref. This will allow us to set a name for the new gizmo type and define other behaviors such as whether the gizmo can be hidden or not.</p>
+<p>This would be a basic setup:</p>
+<pre><code># MyCustomGizmoPlugin.gd
+extends EditorSpatialGizmoPlugin
+
+func get_name():
+    return &quot;CustomNode&quot;
+
+# MyCustomEditorPlugin.gd
+tool
+extends EditorPlugin
+
+const MyCustomGizmoPlugin = preload(&quot;res://addons/my-addon/MyCustomGizmoPlugin.gd&quot;)
+
+var gizmo_plugin = MyCustomGizmoPlugin.new()
+
+func _enter_tree():
+    add_spatial_gizmo_plugin(gizmo_plugin)
+
+func _exit_tree():
+    remove_spatial_gizmo_plugin(gizmo_plugin)</code></pre>
+<p>For simple gizmos, just inheriting ref is enough. If you want to store some per-gizmo data or you are porting a Godot 3.0 gizmo to 3.1+, you should go with the second approach.</p>
+<h2 id="simple-approach">Simple approach</h2>
+<p>The first step is to, in our custom gizmo plugin, override the ref method so that it returns <code>true</code> when the spatial parameter is of our target type.</p>
+<pre><code># ...
+
+func has_gizmo(spatial):
+    return spatial is MyCustomSpatial
+
+# ...</code></pre>
+<p>Then we can override methods like ref or all the handle related ones.</p>
+<pre><code># ...
+
+func _init():
+    create_material(&quot;main&quot;, Color(1, 0, 0))
+    create_handle_material(&quot;handles&quot;)
+
+func redraw(gizmo):
+    gizmo.clear()
+
+    var spatial = gizmo.get_spatial_node()
+
+    var lines = PoolVector3Array()
+
+    lines.push_back(Vector3(0, 1, 0))
+    lines.push_back(Vector3(0, spatial.my_custom_value, 0))
+
+    var handles = PoolVector3Array()
+
+    handles.push_back(Vector3(0, 1, 0))
+    handles.push_back(Vector3(0, spatial.my_custom_value, 0))
+
+    gizmo.add_lines(lines, get_material(&quot;main&quot;, gizmo), false)
+    gizmo.add_handles(handles, get_material(&quot;handles&quot;, gizmo))
+
+# ...</code></pre>
+<p>Note that we created a material in the _init method, and retrieved it in the redraw method using ref. This method retrieves one of the material's variants depending on the state of the gizmo (selected and/or editable).</p>
+<p>So the final plugin would look somewhat like this:</p>
+<pre><code>extends EditorSpatialGizmoPlugin
+
+const MyCustomSpatial = preload(&quot;res://addons/my-addon/MyCustomSpatial.gd&quot;)
+
+func _init():
+    create_material(&quot;main&quot;, Color(1,0,0))
+    create_handle_material(&quot;handles&quot;)
+
+func has_gizmo(spatial):
+    return spatial is MyCustomSpatial
+
+func redraw(gizmo):
+    gizmo.clear()
+
+    var spatial = gizmo.get_spatial_node()
+
+    var lines = PoolVector3Array()
+
+    lines.push_back(Vector3(0, 1, 0))
+    lines.push_back(Vector3(0, spatial.my_custom_value, 0))
+
+    var handles = PoolVector3Array()
+
+    handles.push_back(Vector3(0, 1, 0))
+    handles.push_back(Vector3(0, spatial.my_custom_value, 0))
+
+    gizmo.add_lines(lines, get_material(&quot;main&quot;, gizmo), false)
+    gizmo.add_handles(handles, get_material(&quot;handles&quot;, gizmo))
+
+# You should implement the rest of handle-related callbacks
+# (get_handle_name(), get_handle_value(), commit_handle()...).</code></pre>
+<p>Note that we just added some handles in the redraw method, but we still need to implement the rest of handle-related callbacks in ref to get properly working handles.</p>
+<h2 id="alternative-approach">Alternative approach</h2>
+<p>In some cases we want to provide our own implementation of ref, maybe because we want to have some state stored in each gizmo or because we are porting an old gizmo plugin and we don't want to go through the rewriting process.</p>
+<p>In these cases all we need to do is, in our new gizmo plugin, override ref, so it returns our custom gizmo implementation for the Spatial nodes we want to target.</p>
+<pre><code># MyCustomGizmoPlugin.gd
+extends EditorSpatialGizmoPlugin
+
+const MyCustomSpatial = preload(&quot;res://addons/my-addon/MyCustomSpatial.gd&quot;)
+const MyCustomGizmo = preload(&quot;res://addons/my-addon/MyCustomGizmo.gd&quot;)
+
+func _init():
+    create_material(&quot;main&quot;, Color(1, 0, 0))
+    create_handle_material(&quot;handles&quot;)
+
+func create_gizmo(spatial):
+    if spatial is MyCustomSpatial:
+        return MyCustomGizmo.new()
+    else:
+        return null</code></pre>
+<p>This way all the gizmo logic and drawing methods can be implemented in a new class extending ref, like so:</p>
+<pre><code># MyCustomGizmo.gd
+extends EditorSpatialGizmo
+
+# You can store data in the gizmo itself (more useful when working with handles).
+var gizmo_size = 3.0
+
+func redraw():
+    clear()
+
+    var spatial = get_spatial_node()
+
+    var lines = PoolVector3Array()
+
+    lines.push_back(Vector3(0, 1, 0))
+    lines.push_back(Vector3(gizmo_size, spatial.my_custom_value, 0))
+
+    var handles = PoolVector3Array()
+
+    handles.push_back(Vector3(0, 1, 0))
+    handles.push_back(Vector3(gizmo_size, spatial.my_custom_value, 0))
+
+    var material = get_plugin().get_material(&quot;main&quot;, self)
+    add_lines(lines, material, false)
+
+    var handles_material = get_plugin().get_material(&quot;handles&quot;, self)
+    add_handles(handles, handles_material)
+
+# You should implement the rest of handle-related callbacks
+# (get_handle_name(), get_handle_value(), commit_handle()...).</code></pre>
+<p>Note that we just added some handles in the redraw method, but we still need to implement the rest of handle-related callbacks in ref to get properly working handles.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaClassWrapper — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="javaclasswrapper">JavaClassWrapper</h1>
+<p><em>Inherits: <a href="Object.html">Object</a></em></p>
+<p>Provides access to the Java Native Interface.</p>
+<h2 id="description">Description</h2>
+<p>The JavaClassWrapper singleton provides a way for the Godot application to send and receive data through the <a href="https://developer.android.com/training/articles/perf-jni">Java Native Interface</a> (JNI).</p>
+<p><strong>Note:</strong> This singleton is only available in Android builds.</p>
+<pre class="gdscript"><code>var LocalDateTime = JavaClassWrapper.wrap(&quot;java.time.LocalDateTime&quot;)
+var DateTimeFormatter = JavaClassWrapper.wrap(&quot;java.time.format.DateTimeFormatter&quot;)
+
+var datetime = LocalDateTime.now()
+var formatter = DateTimeFormatter.ofPattern(&quot;dd-MM-yyyy HH:mm:ss&quot;)
+
+print(datetime.format(formatter))</code></pre>
+<p><strong>Warning:</strong> When calling Java methods, be sure to check <code>get_exception()</code> to check if the method threw an exception.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/tutorials/platform/android/javaclasswrapper_and_androidruntimeplugin.html">Integrating with Android APIs</a></li>
+</ul>
+<h2 id="methods">Methods</h2>
+<h3 id="javaobject-create_proxyobject-object-interfaces-packedstringarray"><code>JavaObject create_proxy(object: Object, interfaces: PackedStringArray)</code></h3>
+<p>Creates a <a href="JavaObject.html">JavaObject</a> implementing the given Java interfaces using the given <a href="Object.html">Object</a> as the implementation.</p>
+<p>The <code>object</code> must contain methods signatures matching the methods signatures from the passed Java <code>interfaces</code>. Invoking methods from the Java <code>interfaces</code> will route to the matching <code>object</code> method.</p>
+<pre class="gdscript"><code>class PrintProxy:
+    func println(content: String) -&gt; void:
+        print(content)
+
+var print_proxy = PrintProxy.new()
+var printer_object = JavaClassWrapper.create_proxy(print_proxy, [&quot;android.util.Printer&quot;])
+printer_object.println(&quot;Hello Godot World!&quot;)</code></pre>
+<p><strong>Note:</strong> This method only works on Android. On every other platform, this method will always return <code>null</code>.</p>
+<h3 id="javaobject-create_sam_callbacksam_interface-string-callable-callable"><code>JavaObject create_sam_callback(sam_interface: String, callable: Callable)</code></h3>
+<p>Creates a <a href="JavaObject.html">JavaObject</a> implementing the Java Single Abstract Method (SAM) interface using the Godot <a href="Callable.html">Callable</a> as the implementation.</p>
+<p>The <code>sam_interface</code> <strong>must be</strong> a Java SAM interface, meaning it must only have a single abstract method to implement.</p>
+<p>The <code>callable</code> must be able to handle the same parameter types as the SAM interface method, and must provide the same return type. The <code>callable</code> will be invoked as a callback, passing the arguments from the Java SAM interface method.</p>
+<pre class="gdscript"><code>var cb = func (content: String) -&gt; void:
+    print(content)
+var callback = JavaClassWrapper.create_sam_callback(&quot;android.util.Printer&quot;, cb)
+callback.println(&quot;Hello Godot World!&quot;)</code></pre>
+<p><strong>Note:</strong> This method only works on Android. On every other platform, this method will always return <code>null</code>.</p>
+<h3 id="javaobject-get_exception"><code>JavaObject get_exception()</code></h3>
+<p>Returns the Java exception from the last call into a Java class. If there was no exception, it will return <code>null</code>.</p>
+<p><strong>Note:</strong> This method only works on Android. On every other platform, this method will always return <code>null</code>.</p>
+<h3 id="javaclass-wrapname-string"><code>JavaClass wrap(name: String)</code></h3>
+<p>Wraps a class defined in Java, and returns it as a <a href="JavaClass.html">JavaClass</a> <a href="Object.html">Object</a> type that Godot can interact with.</p>
+<p>When wrapping inner (nested) classes, use <code>$</code> instead of <code>.</code> to separate them. For example, <code>JavaClassWrapper.wrap("android.view.WindowManager$LayoutParams")</code> wraps the <strong>WindowManager.LayoutParams</strong> class.</p>
+<p><strong>Note:</strong> To invoke a constructor, call a method with the same name as the class. For example:</p>
+<pre class="gdscript"><code>var Intent = JavaClassWrapper.wrap(&quot;android.content.Intent&quot;)
+var intent = Intent.Intent()</code></pre>
+<p><strong>Note:</strong> This method only works on Android. On every other platform, this method does nothing and returns an empty <a href="JavaClass.html">JavaClass</a>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

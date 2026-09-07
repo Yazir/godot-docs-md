@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Particle collisions — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="3d-particle-collisions">3D Particle collisions</h1>
+<p><em>Image: Particle collisions</em></p>
+<p>Since GPU particles are processed entirely on the GPU, they don't have access to the game's physical world. If you need particles to collide with the environment, you have to set up particle collision nodes. There are four of them: <code>class_GPUParticlesCollisionBox3D</code>, <code>class_GPUParticlesCollisionSphere3D</code>, <code>class_GPUParticlesCollisionSDF3D</code>, and <code>class_GPUParticlesCollisionHeightField3D</code>.</p>
+<h2 id="common-properties">Common properties</h2>
+<p><em>Image: Common particle collision properties</em></p>
+<p>Common collision properties</p>
+<p>There are some properties that you can find on all collision nodes. They're located in the <code>GPUParticlesCollision3D</code> section in the inspector.</p>
+<p>The <code>Cull Mask</code> property controls which particle systems are affected by a collision node based on each system's ref. A particle system collides with a collision node only if at least one of the system's visibility layers is enabled in the collider's cull mask.</p>
+<h2 id="box-collision">Box collision</h2>
+<p><em>Image: Particle collision box</em></p>
+<p>Box collision in the node list</p>
+<p>Box collision nodes are shaped like a solid, rectangular box. You control their size with the <code>Extents</code> property. Box extents always measure half of the sides of its bounds, so a value of <code>(X=1.0,Y=1.0,Z=1.0)</code> creates a box that is 2 meters wide on each side. Box collision nodes are useful for simulating floor and wall geometry that particles should collide against.</p>
+<p>To create a box collision node, add a new child node to your scene and select <code>GPUParticlesCollisionBox3D</code> from the list of available nodes. You can animate the box position or attach it to a moving node for more dynamic effects.</p>
+<p><em>Image: Box collision with particle systems</em></p>
+<p>Two particle systems collide with a box collision node</p>
+<h2 id="sphere-collision">Sphere collision</h2>
+<p><em>Image: Particle collision sphere</em></p>
+<p>Sphere collision in the node list</p>
+<p>Sphere collision nodes are shaped like a solid sphere. The <code>Radius</code> property controls the size of the sphere. While box collision nodes don't have to be perfect cubes, sphere collision nodes will always be spheres. If you want to set width independently from height, you have to change the <code>Scale</code> property in the <code>Node3D</code> section.</p>
+<p>To create a sphere collision node, add a new child node to your scene and select <code>GPUParticlesCollisionSphere3D</code> from the list of available nodes. You can animate the sphere's position or attach it to a moving node for more dynamic effects.</p>
+<p><em>Image: Sphere collision with particle systems</em></p>
+<p>Two particle systems collide with a sphere collision node</p>
+<h2 id="height-field-collision">Height field collision</h2>
+<p><em>Image: Particle collision height field</em></p>
+<p>Height field collision in the node list</p>
+<p>Height field particle collision is very useful for large outdoor areas that need to collide with particles. At runtime, the node creates a height field from all the meshes within its bounds that match its cull mask. Particles collide against the mesh that this height field represents. Since the height field generation is done dynamically, it can follow the player camera around and react to changes in the level. Different settings for the height field density offer a wide range of performance adjustments.</p>
+<p>To create a height field collision node, add a new child node to your scene and select <code>GPUParticlesCollisionHeightField3D</code> from the list of available nodes.</p>
+<p>A height field collision node is shaped like a box. The <code>Extents</code> property controls its size. Extents always measure half of the sides of its bounds, so a value of <code>(X=1.0,Y=1.0,Z=1.0)</code> creates a box that is 2 meters wide on each side. Anything outside of the node's extents is ignored for height field creation.</p>
+<p>The <code>Resolution</code> property controls how detailed the height field is. A lower resolution performs faster at the cost of accuracy. If the height field resolution is too low, it may look like particles penetrate level geometry or get stuck in the air during collision events. They might also ignore some smaller meshes completely.</p>
+<p><em>Image: Height field resolutions</em></p>
+<p>At low resolutions, height field collision misses some finer details (left)</p>
+<p>The <code>Update Mode</code> property controls when the height field is recreated from the meshes within its bounds. Set it to <code>When Moved</code> to make it refresh only when it moves. This performs well and is suited for static scenes that don't change very often. If you need particles to collide with dynamic objects that change position frequently, you can select <code>Always</code> to refresh every frame. This comes with a cost to performance and should only be used when necessary.</p>
+<blockquote>
+<p><strong>Note:</strong> It's important to remember that when <code>Update Mode</code> is set to <code>When Moved</code>, it is the <em>height field node</em> whose movement triggers an update. The height field is not updated when one of the meshes inside it moves.</p>
+</blockquote>
+<p>The <code>Follow Camera Enabled</code> property makes the height field follow the current camera when enabled. It will update whenever the camera moves. This property can be used to make sure that there is always particle collision around the player while not wasting performance on regions that are out of sight or too far away.</p>
+<h2 id="sdf-collision">SDF collision</h2>
+<blockquote>
+<p><strong>Note:</strong> Particle SDF collision is only supported in the Forward+ and Mobile renderers, not Compatibility.</p>
+</blockquote>
+<p><em>Image: Particle collision SDF</em></p>
+<p>SDF collision in the node list</p>
+<p>SDF collision nodes create a <a href="https://www.reddit.com/r/explainlikeimfive/comments/k2zbos/eli5_what_are_distance_fields_in_graphics">signed distance field</a> that particles can collide with. SDF collision is similar to height field collision in that it turns multiple meshes within its bounds into a single collision volume for particles. A major difference is that signed distance fields can represent holes, tunnels and overhangs, which is impossible to do with height fields alone. The performance overhead is larger compared to height fields, so they're best suited for small-to-medium-sized environments.</p>
+<p>To create an SDF collision node, add a new child node to your scene and select <code>GPUParticlesCollisionSDF3D</code> from the list of available nodes. SDF collision nodes have to be baked in order to have any effect on particles in the level. To do that, click the <code>Bake SDF</code> button in the viewport toolbar while the SDF collision node is selected and choose a directory to store the baked data. Since SDF collision needs to be baked in the editor, it's static and cannot change at runtime.</p>
+<p><em>Image: SDF particle collision</em></p>
+<p>SDF particle collision allows for very detailed 3-dimensional collision shapes</p>
+<p>An SDF collision node is shaped like a box. The <code>Extents</code> property controls its size. Extents always measure half of the sides of its bounds, so a value of <code>(X=1.0,Y=1.0,Z=1.0)</code> creates a box that is 2 meters wide on each side. Anything outside of the node's extents is ignored for collision.</p>
+<p>The <code>Resolution</code> property controls how detailed the distance field is. A lower resolution performs faster at the cost of accuracy. If the resolution is too low, it may look like particles penetrate level geometry or get stuck in the air during collision events. They might also ignore some smaller meshes completely.</p>
+<p><em>Image: Resolution comparison</em></p>
+<p>The same area covered by a signed distance field at different resolutions: 16 (left) and 256 (right)</p>
+<p>The <code>Thickness</code> property gives the distance field, which is usually hollow on the inside, a thickness to prevent particles from penetrating at high speeds. If you find that some particles don't collide with the level geometry and instead shoot right through it, try setting this property to a higher value.</p>
+<p>The <code>Bake Mask</code> property controls which meshes will be considered when the SDF is baked. Only meshes that render on the active layers in the bake mask contribute to particle collision.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>For particle collision to work, the particle's ref must overlap with the collider's AABB. If collisions appear to be not working despite colliders being set up, generate an updated visibility AABB by selecting the GPUParticles3D node and choosing <strong>GPUParticles3D &gt; Generate Visibility AABB…</strong> at the top of the 3D editor viewport.</p>
+<p>If the particles move fast and colliders are thin. There are two solutions for this:</p>
+<ul>
+<li>Make the colliders thicker. For instance, if particles cannot get below a solid floor, you could make the collider representing the floor thicker than its actual visual representation. The heightfield collider automatically handles this by design, as heightfields cannot represent "room over room" collision.</li>
+<li>Increased <code>Fixed FPS</code> in the GPUParticles3D node, which will perform collision checks more often. This comes at a performance cost, so avoid setting this too high.</li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

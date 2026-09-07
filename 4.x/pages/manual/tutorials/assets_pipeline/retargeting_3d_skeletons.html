@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retargeting 3D Skeletons — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="retargeting-3d-skeletons">Retargeting 3D Skeletons</h1>
+<h2 id="to-share-animations-among-multiple-skeletons">To share animations among multiple Skeletons</h2>
+<p>Godot has Position/Rotation/Scale 3D tracks (which this document calls "Transform" tracks) with Nodepaths to bones for Skeleton bone animation. This means you can't share animations between multiple Skeletons just by using the same bone names.</p>
+<p>Godot allows each bone to have a parent-child relationship and can have rotation and scale as well as position, which means that bones that share a name can still have different Transform values.</p>
+<p>The Skeleton stores the Transform values necessary for the default pose as Bone Rest. If Bone Pose is equal to Bone Rest, it means that the Skeleton is in the default pose.</p>
+<blockquote>
+<p><strong>Note:</strong> Godot 3 and Godot 4 have different Bone Pose behaviors. In Godot 3, Bone Pose is relative to Bone Rest, but in Godot 4, it includes Bone Rest. See this <a href="https://godotengine.org/article/animation-data-redesign-40">article</a> for more information.</p>
+</blockquote>
+<p>Skeletal models have different Bone Rests depending on the environment from which they were exported. For example, the bones of a glTF model output from Blender have "Edit Bone Orientation" as the Bone Rest rotation. However, there are skeletal models without any Bone Rest rotations, such as the glTF model output from Maya.</p>
+<p>To share animations in Godot, it is necessary to match Bone Rests as well as Bone Names to remove unwanted tracks in some cases. You can do that using the scene importer.</p>
+<h2 id="options-for-retargeting">Options for Retargeting</h2>
+<h3 id="bone-map">Bone Map</h3>
+<p>When you select the Skeleton3D node in the advanced scene import menu, a menu will appear on the right-hand side containing the "Retarget" section. The Retarget section has a single property <code>bone_map</code>.</p>
+<p>With the Skeleton node selected, first set up a new <code>class_bonemap</code> and <code>class_skeletonprofile</code>. Godot has a preset called <code>class_skeletonprofilehumanoid</code> for humanoid models. This tutorial proceeds with the assumption that you are using <code>class_skeletonprofilehumanoid</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> If you need a profile that is different from <code>class_skeletonprofilehumanoid</code>, you can export a <code>class_skeletonprofile</code> from the editor by selecting a Skeleton3D and using the <strong>Skeleton3D</strong> menu in the 3D viewport's toolbar.</p>
+</blockquote>
+<p>When you use <code>class_skeletonprofilehumanoid</code>, auto-mapping will be performed when the <code>class_skeletonprofile</code> is set. If the auto-mapping does not work well, you can map bones manually.</p>
+<p>Any missing, duplicate or incorrect parent-child relationship mappings will be indicated by a magenta / red button (depending on the editor setting). It does not block the import process, but it warns that animations may not be shared correctly.</p>
+<blockquote>
+<p><strong>Note:</strong> The auto-mapping uses pattern matching for the bone names. So we recommend to use common English names for bones.</p>
+</blockquote>
+<p>After you set up the <code>bone_map</code>, several options are available in the sections below.</p>
+<h3 id="remove-tracks">Remove Tracks</h3>
+<p>If you import resources as an <code>class_animationlibrary</code> that will be shared, we recommend to enable these options. However, if you import resources as scenes, these should be disabled in some cases. For example, if you import a character with animated accessories, these options may cause the accessories to not animate.</p>
+<h4 id="except-bone-transform">Except Bone Transform</h4>
+<p>Removes any tracks except the bone Transform track from the animations.</p>
+<h4 id="unimportant-positions">Unimportant Positions</h4>
+<p>Removes Position tracks other than <code>root_bone</code> and <code>scale_base_bone</code> defined in <code>class_skeletonprofile</code> from the animations. In <code>class_skeletonprofilehumanoid</code>, this means that to remove Position tracks other than "Root" and "Hips". Since Godot 4, animations include Bone Rest in the Transform value. If you disable this option, the animation may change the body shape unpredictably.</p>
+<h4 id="unmapped-bones">Unmapped Bones</h4>
+<p>Removes unmapped bone Transform tracks from the animations.</p>
+<h3 id="bone-renamer">Bone Renamer</h3>
+<h4 id="rename-bones">Rename Bones</h4>
+<p>Rename the mapped bones.</p>
+<h4 id="unique-node">Unique Node</h4>
+<p>Makes Skeleton a unique node with the name specified in the <code>skeleton_name</code>. This allows the animation track paths to be unified independent of the scene hierarchy.</p>
+<h3 id="rest-fixer">Rest Fixer</h3>
+<p>Reference poses defined in <code>class_skeletonprofilehumanoid</code> have the following rules:</p>
+<ul>
+<li>The humanoid is T-pose</li>
+<li>The humanoid is facing +Z in the Right-Handed Y-UP Coordinate System</li>
+<li>The humanoid should not have a Transform as Node</li>
+<li>Directs the +Y axis from the parent joint to the child joint</li>
+<li>+X rotation bends the joint like a muscle contracting</li>
+</ul>
+<p>These rules are convenient definitions for blend animation and Inverse Kinematics (IK). If your model does not match this definition, you need to fix it with these options.</p>
+<h4 id="apply-node-transform">Apply Node Transform</h4>
+<p>If the asset is not exported correctly for sharing, the imported Skeleton may have a Transform as a Node. For example, a glTF exported from Blender with no "Apply Transform" executed is one such case. It looks like the model matches the definition, but the internal Transforms are different from the definition. This option fixes such models by applying Transforms on import.</p>
+<blockquote>
+<p><strong>Note:</strong> If the imported scene contains objects other than Skeletons, this option may have a negative effect.</p>
+</blockquote>
+<h4 id="normalize-position-tracks">Normalize Position Tracks</h4>
+<p>Position track is used mostly for model movement, but sharing the moving animation between models with different heights may cause the appearance of slipping due to the difference in stride length. This option normalizes the Position track values based on the <code>scale_base_bone</code> height. The <code>scale_base_bone</code> height is stored in the Skeleton as the <code>motion_scale</code>, and the normalized Position track values is multiplied by that value on playback. If this option is disabled, the Position tracks is not normalized and the Skeleton's <code>motion_scale</code> is always imported as <code>1.0</code>.</p>
+<p>With <code>class_skeletonprofilehumanoid</code>, <code>scale_base_bone</code> is "Hips", therefore the Hips' height is used as the <code>motion_scale</code>.</p>
+<h4 id="overwrite-axis">Overwrite Axis</h4>
+<p>Unifies the models' Bone Rests by overwriting it to match the reference poses defined in the <code>class_skeletonprofile</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> This is the most important option for sharing animations in Godot 4, but be aware that this option can produce horrible results <strong>if the original Bone Rest set externally is important</strong>. If you want to share animations with keeping the original Bone Rest, consider to use the <a href="https://github.com/TokageItLab/realtime_retarget">Realtime Retarget Module</a>.</p>
+</blockquote>
+<h4 id="fix-silhouette">Fix Silhouette</h4>
+<p>Attempts to make the model's silhouette match that of the reference poses defined in the <code>class_skeletonprofile</code>, such as T-Pose. This cannot fix silhouettes which are too different, and it may not work for fixing bone roll.</p>
+<p>With <code>class_skeletonprofilehumanoid</code>, this option does not need to be enabled for T-pose models, but should be enabled for A-pose models. However in that case, the fixed foot results may be bad depending on the heel height of the model, so it may be necessary to add the <code>class_skeletonprofile</code> bone names you do not want fixed in the <code>filter</code> array, as in the below example.</p>
+<p>Also, for models with bent knees or feet, it may be necessary to adjust the <code>scale_base_bone</code> height. For that, you can use <code>base_height_adjustment</code> option.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

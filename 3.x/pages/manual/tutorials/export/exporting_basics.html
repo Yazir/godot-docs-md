@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exporting — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="exporting">Exporting</h1>
+<h2 id="overview">Overview</h2>
+<p>Now that you have a working game, you probably want to share your success with others. However, it's not practical to ask your friends to download Godot just so they can open your project. Instead, you can <em>export</em> your project, converting it into a "package" that can be run by anyone.</p>
+<p>The way you export your game depends on what platform you are targeting. In this tutorial, you'll learn how to export the <em>Dodge the Creeps</em> game for a variety of platforms. First, however, we need to make some changes to the way the game works.</p>
+<blockquote>
+<p><strong>Note:</strong> If you haven't made "Dodge the Creeps" yourself yet, please read <code>doc_your_first_2d_game</code> before continuing with this tutorial.</p>
+</blockquote>
+<h2 id="preparing-the-project">Preparing the project</h2>
+<p>In <em>Dodge the Creeps</em>, we used keyboard controls to move the player's character. This is fine if your game is being played on a PC platform, but on a phone or tablet, you need to support touchscreen input. Because a click event can be treated the same as a touch event, we'll convert the game to a click-and-move input style.</p>
+<p>By default, Godot emulates mouse input from touch input. That means that if anything is coded to happen on a mouse event, touch will trigger it as well. Godot can also emulate touch input from mouse clicks, which we will need to be able to keep playing our game on our computer after we switch to touch input.</p>
+<p>In <strong>Project &gt; Project Settings</strong>, under <strong>Input Devices &gt; Pointing</strong>, enable <strong>Emulate Touch From Mouse</strong>.</p>
+<p>We also want to ensure that the game scales consistently on different-sized screens, so in the project settings go to <strong>Display</strong>, then click on <strong>Window</strong>. In the <strong>Stretch</strong> options, set <strong>Mode</strong> to <code>2d</code> and <strong>Aspect</strong> to <code>keep</code>.</p>
+<p>Since we are already in the <strong>Window</strong> settings, we should also set under <strong>Handheld</strong> the <strong>Orientation</strong> to <code>portrait</code>.</p>
+<p>Next, we need to modify the <code>Player.gd</code> script to change the input method. We'll remove the key inputs and make the player move towards a "target" that's set by the touch (or click) event.</p>
+<p>Here is the full script for the player, with comments noting what we've changed:</p>
+<pre class="gdscript"><code>extends Area2D
+
+signal hit
+
+export var speed = 400
+var screen_size
+# Add this variable to hold the clicked position.
+var target = Vector2()
+
+func _ready():
+    hide()
+    screen_size = get_viewport_rect().size
+
+func start(pos):
+    position = pos
+    # Initial target is the start position.
+    target = pos
+    show()
+    $CollisionShape2D.disabled = false
+
+# Change the target whenever a touch event happens.
+func _input(event):
+    if event is InputEventScreenTouch and event.pressed:
+        target = event.position
+
+func _process(delta):
+    var velocity = Vector2()
+    # Move towards the target and stop when close.
+    if position.distance_to(target) &gt; 10:
+        velocity = target - position
+
+# Remove keyboard controls.
+#    if Input.is_action_pressed(&quot;ui_right&quot;):
+#       velocity.x += 1
+#    if Input.is_action_pressed(&quot;ui_left&quot;):
+#        velocity.x -= 1
+#    if Input.is_action_pressed(&quot;ui_down&quot;):
+#        velocity.y += 1
+#    if Input.is_action_pressed(&quot;ui_up&quot;):
+#        velocity.y -= 1
+
+    if velocity.length() &gt; 0:
+        velocity = velocity.normalized() * speed
+        $AnimatedSprite.play()
+    else:
+        $AnimatedSprite.stop()
+
+    position += velocity * delta
+    # We still need to clamp the player&#39;s position here because on devices that don&#39;t
+    # match your game&#39;s aspect ratio, Godot will try to maintain it as much as possible
+    # by creating black borders, if necessary.
+    # Without clamp(), the player would be able to move under those borders.
+    position.x = clamp(position.x, 0, screen_size.x)
+    position.y = clamp(position.y, 0, screen_size.y)
+
+    if velocity.x != 0:
+        $AnimatedSprite.animation = &quot;walk&quot;
+        $AnimatedSprite.flip_v = false
+        $AnimatedSprite.flip_h = velocity.x &lt; 0
+    elif velocity.y != 0:
+        $AnimatedSprite.animation = &quot;up&quot;
+        $AnimatedSprite.flip_v = velocity.y &gt; 0
+
+func _on_Player_body_entered( body ):
+    hide()
+    emit_signal(&quot;hit&quot;)
+    $CollisionShape2D.set_deferred(&quot;disabled&quot;, true)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Player <span class="op">:</span> Area2D</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">Hit</span><span class="op">();</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> Speed <span class="op">=</span> <span class="dv">400</span><span class="op">;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector2 _screenSize<span class="op">;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add this variable to hold the clicked position.</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector2 _target<span class="op">;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">Hide</span><span class="op">();</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        _screenSize <span class="op">=</span> <span class="fu">GetViewport</span><span class="op">().</span><span class="fu">Size</span><span class="op">;</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">Start</span><span class="op">(</span>Vector2 pos<span class="op">)</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        Position <span class="op">=</span> pos<span class="op">;</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initial target us the start position.</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        _target <span class="op">=</span> pos<span class="op">;</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        <span class="fu">Show</span><span class="op">();</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>        GetNode<span class="op">&lt;</span>CollisionShape2D<span class="op">&gt;(</span><span class="st">&quot;CollisionShape2D&quot;</span><span class="op">).</span><span class="fu">Disabled</span> <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Change the target whenever a touch event happens.</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Input</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventScreenTouch eventMouseButton <span class="op">&amp;&amp;</span> eventMouseButton<span class="op">.</span><span class="fu">Pressed</span><span class="op">)</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>            _target <span class="op">=</span> <span class="op">(</span>@event <span class="kw">as</span> InputEventScreenTouch<span class="op">).</span><span class="fu">Position</span><span class="op">;</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> velocity <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">();</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Move towards the target and stop when close.</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>Position<span class="op">.</span><span class="fu">DistanceTo</span><span class="op">(</span>_target<span class="op">)</span> <span class="op">&gt;</span> <span class="dv">10</span><span class="op">)</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>            velocity <span class="op">=</span> _target <span class="op">-</span> Position<span class="op">;</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Remove keyboard controls.</span></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>        <span class="co">//if (Input.IsActionPressed(&quot;ui_right&quot;))</span></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>        <span class="co">//{</span></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>        <span class="co">//    velocity.x += 1;</span></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>        <span class="co">//}</span></span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>        <span class="co">//if (Input.IsActionPressed(&quot;ui_left&quot;))</span></span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a>        <span class="co">//{</span></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>        <span class="co">//    velocity.x -= 1;</span></span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>        <span class="co">//}</span></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>        <span class="co">//if (Input.IsActionPressed(&quot;ui_down&quot;))</span></span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>        <span class="co">//{</span></span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>        <span class="co">//    velocity.y += 1;</span></span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>        <span class="co">//}</span></span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>        <span class="co">//if (Input.IsActionPressed(&quot;ui_up&quot;))</span></span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a>        <span class="co">//{</span></span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a>        <span class="co">//    velocity.y -= 1;</span></span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>        <span class="co">//}</span></span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> animatedSprite <span class="op">=</span> GetNode<span class="op">&lt;</span>AnimatedSprite<span class="op">&gt;(</span><span class="st">&quot;AnimatedSprite&quot;</span><span class="op">);</span></span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>velocity<span class="op">.</span><span class="fu">Length</span><span class="op">()</span> <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a>            velocity <span class="op">=</span> velocity<span class="op">.</span><span class="fu">Normalized</span><span class="op">()</span> <span class="op">*</span> Speed<span class="op">;</span></span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a>            animatedSprite<span class="op">.</span><span class="fu">Play</span><span class="op">();</span></span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a>        <span class="kw">else</span></span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a>            animatedSprite<span class="op">.</span><span class="fu">Stop</span><span class="op">();</span></span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a>        Position <span class="op">+=</span> velocity <span class="op">*</span> delta<span class="op">;</span></span>
+<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a>        <span class="co">// We still need to clamp the player&#39;s position here because on devices that don&#39;t</span></span>
+<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a>        <span class="co">// match your game&#39;s aspect ratio, Godot will try to maintain it as much as possible</span></span>
+<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a>        <span class="co">// by creating black borders, if necessary.</span></span>
+<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Without clamp(), the player would be able to move under those borders.</span></span>
+<span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a>        Position <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span></span>
+<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a>            x<span class="op">:</span> Mathf<span class="op">.</span><span class="fu">Clamp</span><span class="op">(</span>Position<span class="op">.</span><span class="fu">x</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> _screenSize<span class="op">.</span><span class="fu">x</span><span class="op">),</span></span>
+<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a>            y<span class="op">:</span> Mathf<span class="op">.</span><span class="fu">Clamp</span><span class="op">(</span>Position<span class="op">.</span><span class="fu">y</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> _screenSize<span class="op">.</span><span class="fu">y</span><span class="op">)</span></span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>velocity<span class="op">.</span><span class="fu">x</span> <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a>            animatedSprite<span class="op">.</span><span class="fu">Animation</span> <span class="op">=</span> <span class="st">&quot;walk&quot;</span><span class="op">;</span></span>
+<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a>            animatedSprite<span class="op">.</span><span class="fu">FlipV</span> <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a>            animatedSprite<span class="op">.</span><span class="fu">FlipH</span> <span class="op">=</span> velocity<span class="op">.</span><span class="fu">x</span> <span class="op">&lt;</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a>        <span class="kw">else</span> <span class="kw">if</span><span class="op">(</span>velocity<span class="op">.</span><span class="fu">y</span> <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb2-99"><a href="#cb2-99" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-100"><a href="#cb2-100" aria-hidden="true" tabindex="-1"></a>            animatedSprite<span class="op">.</span><span class="fu">Animation</span> <span class="op">=</span> <span class="st">&quot;up&quot;</span><span class="op">;</span></span>
+<span id="cb2-101"><a href="#cb2-101" aria-hidden="true" tabindex="-1"></a>            animatedSprite<span class="op">.</span><span class="fu">FlipV</span> <span class="op">=</span> velocity<span class="op">.</span><span class="fu">y</span> <span class="op">&gt;</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-102"><a href="#cb2-102" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-103"><a href="#cb2-103" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-104"><a href="#cb2-104" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnPlayerBodyEntered</span><span class="op">(</span>PhysicsBody2D body<span class="op">)</span></span>
+<span id="cb2-105"><a href="#cb2-105" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-106"><a href="#cb2-106" aria-hidden="true" tabindex="-1"></a>        <span class="fu">Hide</span><span class="op">();</span> <span class="co">// Player disappears after being hit.</span></span>
+<span id="cb2-107"><a href="#cb2-107" aria-hidden="true" tabindex="-1"></a>        <span class="fu">EmitSignal</span><span class="op">(</span><span class="st">&quot;Hit&quot;</span><span class="op">);</span></span>
+<span id="cb2-108"><a href="#cb2-108" aria-hidden="true" tabindex="-1"></a>        GetNode<span class="op">&lt;</span>CollisionShape2D<span class="op">&gt;(</span><span class="st">&quot;CollisionShape2D&quot;</span><span class="op">).</span><span class="fu">SetDeferred</span><span class="op">(</span><span class="st">&quot;disabled&quot;</span><span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb2-109"><a href="#cb2-109" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="setting-a-main-scene">Setting a main scene</h2>
+<p>The main scene is the one that your game will start in. For this <em>Dodge the Creeps</em> example, in <strong>Project -&gt; Project Settings -&gt; Application -&gt; Run</strong>, set <strong>Main Scene</strong> to <code>Main.tscn</code> by clicking the folder icon and selecting it.</p>
+<h2 id="export-templates">Export templates</h2>
+<p>To export the project, you need to download the <em>export templates</em> from the <a href="http://godotengine.org/download">http://godotengine.org/download</a>. These templates are optimized versions of the engine without the editor pre-compiled for each platform. You can also download them in Godot by clicking on <strong>Editor -&gt; Manage Export Templates</strong>:</p>
+<blockquote>
+<p><strong>Note:</strong> If you've downloaded Godot from <a href="https://store.steampowered.com/app/404790/Godot_Engine/">Steam</a>, export templates are already included. Therefore, you don't need to download them using the <strong>Manage Export Templates</strong> dialog.</p>
+</blockquote>
+<p>In the window that appears, you can click <strong>Download</strong> to get the template version that matches your version of Godot.</p>
+<blockquote>
+<p><strong>Note:</strong> Export templates are bound to a specific Godot version. If you upgrade Godot, you must download templates that match the new version.</p>
+</blockquote>
+<h2 id="export-presets">Export presets</h2>
+<p>Next, you can configure the export settings by clicking on <strong>Project -&gt; Export</strong>.</p>
+<p>Create a new export preset by clicking <strong>Add...</strong> and selecting a platform. You can make as many presets as you like with different settings.</p>
+<p>At the bottom of the window are two buttons. <strong>Export PCK/ZIP</strong> only creates a packed version of your project's data. This doesn't include an executable so the project can't be run on its own.</p>
+<p>The second button, <strong>Export Project</strong>, creates a complete executable version of your game, such as an <code>.apk</code> for Android or an <code>.exe</code> for Windows.</p>
+<p>In the <strong>Resources</strong> and <strong>Features</strong> tabs, you can customize how the game is exported for each platform. We can leave those settings alone for now.</p>
+<h2 id="exporting-by-platform">Exporting by platform</h2>
+<p>In this section, we'll walk through the process for each platform, including any additional software or requirements you'll need.</p>
+<h3 id="pc-linuxmacoswindows">PC (Linux/macOS/Windows)</h3>
+<p>Exporting PC platforms works the same across the three supported operating systems. Open the export window and click <strong>Add...</strong> to create the preset(s) you want to make. Then click <strong>Export Project</strong> and choose a name and destination folder. Choose a location <em>outside</em> of your project folder.</p>
+<p>Click <strong>Save</strong> and the engine will build the export files.</p>
+<blockquote>
+<p><strong>Note:</strong> When exporting for macOS, if you export from a macOS computer, you'll end up with a <code>.dmg</code> file, while using Linux or Windows produces a <code>.zip</code>. In either case, the compressed file contains a macOS <code>.app</code> that you can double-click and run.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> On Windows, if you want your exported executable to have a different icon than the default one, you need to change it manually. See <code>doc_changing_application_icon_for_windows</code>.</p>
+</blockquote>
+<h3 id="android">Android</h3>
+<blockquote>
+<p><strong>Tip:</strong> Mobile devices come with a wide variety of capabilities. In most cases, Godot's default settings will work, but mobile development is sometimes more art than science, and you may need to do some experimenting and searching for help in order to get everything working.</p>
+</blockquote>
+<p>Before you can export your project for Android, you must download the following software:</p>
+<ul>
+<li>Android SDK: <a href="https://developer.android.com/studio/">https://developer.android.com/studio/</a></li>
+<li>OpenJDK (<strong>version 17 is required</strong>, older or newer versions won't work): <a href="https://adoptopenjdk.net/index.html">https://adoptopenjdk.net/index.html</a></li>
+</ul>
+<p>When you run Android Studio for the first time, click on <strong>Configure -&gt; SDK Manager</strong> and install <strong>Android SDK Platform Tools</strong>. This installs the <code>adb</code> command-line tool that Godot uses to communicate with your device.</p>
+<p>Next, create a debug keystore by running the following command on your system's command line:</p>
+<pre class="shell"><code>keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname &quot;CN=Android Debug,O=Android,C=US&quot; -validity 9999</code></pre>
+<p>Click on <em>Editor -&gt; Editor Settings</em> in Godot and select the <em>Export/Android</em> section. Here, you need to set the paths to the Android SDK applications on your system and the location of the keystore you just created.</p>
+<p>Now you're ready to export. Click on <strong>Project -&gt; Export</strong> and add a preset for Android (see above). Select the newly added Android preset. Under <strong>Options</strong>, go to <strong>Screen</strong> and set <strong>Orientation</strong> to <strong>Portrait</strong>. If your game is in landscape mode (i.e. the window width in pixels is greater than the window height), leave this on <strong>Landscape</strong>.</p>
+<p>Click the <strong>Export Project</strong> button and Godot will build an APK you can download on your device. To do this on the command line, use the following:</p>
+<pre class="shell"><code>adb install dodge.apk</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Your device may need to be in <em>developer mode</em>. Consult your device's documentation for details.</p>
+</blockquote>
+<p>If your system supports it, connecting a compatible Android device will cause a <strong>One-click Deploy</strong> button to appear in Godot's playtest button area:</p>
+<p>Clicking this button builds the APK and copies it onto your device in one step.</p>
+<h3 id="ios">iOS</h3>
+<blockquote>
+<p><strong>Note:</strong> To build your game for iOS, you must have a computer running macOS with Xcode installed.</p>
+</blockquote>
+<p>Before exporting, there are some settings that you <em>must</em> complete for the project to export successfully. First, the <strong>App Store Team Id</strong>, which you can find by logging in to your Apple developer account and looking in the <strong>Membership</strong> section.</p>
+<p>You must also provide icons and splash screen images as shown below:</p>
+<p>Click <strong>Export Project</strong> and select a destination folder.</p>
+<p>Once you have successfully exported the project, you'll find the following folders and files have been created in your selected location:</p>
+<p>You can now open the project in Xcode and build the project for iOS. The Xcode build procedure is beyond the scope of this tutorial. See <a href="https://help.apple.com/xcode/mac/current/#/devc8c2a6be1">https://help.apple.com/xcode/mac/current/#/devc8c2a6be1</a> for more information.</p>
+<h3 id="html5-web">HTML5 (web)</h3>
+<p>Click <strong>Export Project</strong> on the HTML5 preset. We don't need to change any of the default settings.</p>
+<p>When the export is complete, you'll have a folder containing the following files:</p>
+<p>Viewing the <code>.html</code> file in your browser lets you play the game. However, you can't open the file directly. Instead, it needs to be served by a web server. If you don't have one set up on your computer, you can search online to find suggestions for your specific OS.</p>
+<p>Point your browser at the URL where you've placed the HTML file. You may have to wait a few moments while the game loads before you see the start screen.</p>
+<p>The console window beneath the game tells you if anything goes wrong. You can disable it by disabling <strong>Export With Debug</strong> in the final file dialog that appears when you export the project.</p>
+<blockquote>
+<p><strong>Note:</strong> While WebAssembly is supported in all major browsers, it is still an emerging technology and you may find some things that don't work. Make sure you have updated your browser to the most recent version, and report any bugs you find on the <a href="https://github.com/godotengine/godot/issues">Godot GitHub repository</a>.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

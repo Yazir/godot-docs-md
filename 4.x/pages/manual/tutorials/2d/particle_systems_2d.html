@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2D particle systems — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="2d-particle-systems">2D particle systems</h1>
+<h2 id="intro">Intro</h2>
+<p>Particle systems are used to simulate complex physical effects, such as sparks, fire, magic particles, smoke, mist, etc.</p>
+<p>The idea is that a "particle" is emitted at a fixed interval and with a fixed lifetime. During its lifetime, every particle will have the same base behavior. What makes each particle different from the rest and provides a more organic look is the "randomness" associated with each parameter. In essence, creating a particle system means setting base physics parameters and then adding randomness to them.</p>
+<h3 id="particle-nodes">Particle nodes</h3>
+<p>Godot provides two different nodes for 2D particles, <code>class_GPUParticles2D</code> and <code>class_CPUParticles2D</code>. GPUParticles2D is more advanced and uses the GPU to process particle effects. CPUParticles2D is a CPU-driven option with near-feature parity with GPUParticles2D, but lower performance when using large amounts of particles. On the other hand, CPUParticles2D may perform better on low-end systems or in GPU-bottlenecked situations.</p>
+<p>While GPUParticles2D is configured via a <code>class_ParticleProcessMaterial</code> (and optionally with a custom shader), the matching options are provided via node properties in CPUParticles2D (with the exception of the trail settings).</p>
+<p>Going forward there are no plans to add new features to CPUParticles2D, though pull requests to add features already in GPUParticles2D will be accepted. For that reason we recommend using GPUParticles2D unless you have an explicit reason not to.</p>
+<p>You can convert a CPUParticles2D node into a GPUParticles2D node by clicking on the node in the scene tree, selecting the 2D workspace, and selecting <strong>CPUParticles2D &gt; Convert to GPUParticles2D</strong> in the toolbar.</p>
+<p>It is also possible to convert a GPUParticles2D node to a CPUParticles2D node, however there may be issues if you use GPU-only features.</p>
+<p>The rest of this tutorial is going to use the GPUParticles2D node. First, add a GPUParticles2D node to your scene. After creating that node you will notice that only a white dot was created, and that there is a warning icon next to your GPUParticles2D node in the scene dock. This is because the node needs a ParticleProcessMaterial to function.</p>
+<h3 id="particleprocessmaterial">ParticleProcessMaterial</h3>
+<p>To add a process material to your particles node, go to <code>Process Material</code> in your inspector panel. Click on the box next to <code>Material</code>, and from the dropdown menu select <code>New ParticleProcessMaterial</code>.</p>
+<p>Your GPUParticles2D node should now be emitting white points downward.</p>
+<h3 id="texture">Texture</h3>
+<p>A particle system can use a single texture or an animation <em>flipbook</em>. A flipbook is a texture that contains several frames of animation that can be played back, or chosen at random during emission. This is equivalent to a spritesheet for particles.</p>
+<p>The texture is set via the <strong>Texture</strong> property:</p>
+<h4 id="using-an-animation-flipbook">Using an animation flipbook</h4>
+<p>Particle flipbooks are suited to reproduce complex effects such as smoke, fire, explosions. They can also be used to introduce random texture variation, by making every particle use a different texture. You can find existing particle flipbook images online, or pre-render them using external tools such as <a href="https://www.blender.org/">Blender</a> or <a href="https://jangafx.com/software/embergen/">EmberGen</a>.</p>
+<p><em>Image: Example of a particle system that uses a flipbook texture</em></p>
+<p>Example of a particle system that uses a flipbook texture</p>
+<p>Using an animation flipbook requires additional configuration compared to a single texture. For demonstration purposes, we'll use this texture with 5 columns and 7 rows (right-click and choose <strong>Save as…</strong>):</p>
+<p><em>Image: Particle flipbook texture example</em></p>
+<p>Credit: <a href="https://opengameart.org/content/alot-of-particles-indispersal-special-effect-alotofparticles30">JoesAlotofthings</a> (CC BY 4.0)</p>
+<p>To use an animation flipbook, you must create a new CanvasItemMaterial in the Material section of the GPUParticles2D (or CPUParticles2D) node:</p>
+<p><em>Image: Creating a CanvasItemMaterial at the bottom of the particles node inspector</em></p>
+<p>Creating a CanvasItemMaterial at the bottom of the particles node inspector</p>
+<p>In this CanvasItemMaterial, enable <strong>Particle Animation</strong> and set <strong>H Frames</strong> and <strong>V Frames</strong> to the number of columns and rows present in your flipbook texture:</p>
+<p><em>Image: Configuring the CanvasItemMaterial for the example flipbook texture</em></p>
+<p>Configuring the CanvasItemMaterial for the example flipbook texture</p>
+<p>Once this is done, the ref in ParticleProcessMaterial (for GPUParticles2D) or in the CPUParticles2D inspector will be effective.</p>
+<blockquote>
+<p><strong>Tip:</strong> If your flipbook texture has a black background instead of a transparent background, you will also need to set the blend mode to <strong>Add</strong> instead of <strong>Mix</strong> for correct display. Alternatively, you can modify the texture to have a transparent background in an image editor. In <a href="https://gimp.org">GIMP</a>, this can be done using the <strong>Color &gt; Color to Alpha</strong> menu.</p>
+</blockquote>
+<h2 id="time-parameters">Time parameters</h2>
+<h3 id="lifetime">Lifetime</h3>
+<p>The time in seconds that every particle will stay alive. When lifetime ends, a new particle is created to replace it.</p>
+<p>Lifetime: 0.5</p>
+<p>Lifetime: 4.0</p>
+<h3 id="one-shot">One Shot</h3>
+<p>When enabled, a GPUParticles2D node will emit all of its particles once and then never again.</p>
+<h3 id="preprocess">Preprocess</h3>
+<p>Particle systems begin with zero particles emitted, then start emitting. This can be an inconvenience when loading a scene and systems like a torch, mist, etc. begin emitting the moment you enter. Preprocess is used to let the system process a given number of seconds before it is actually drawn the first time.</p>
+<h3 id="speed-scale">Speed Scale</h3>
+<p>The speed scale has a default value of <code>1</code> and is used to adjust the speed of a particle system. Lowering the value will make the particles slower while increasing the value will make the particles much faster.</p>
+<h3 id="explosiveness">Explosiveness</h3>
+<p>If lifetime is <code>1</code> and there are 10 particles, it means a particle will be emitted every 0.1 seconds. The explosiveness parameter changes this, and forces particles to be emitted all together. Ranges are:</p>
+<ul>
+<li>0: Emit particles at regular intervals (default value).</li>
+<li>1: Emit all particles simultaneously.</li>
+</ul>
+<p>Values in the middle are also allowed. This feature is useful for creating explosions or sudden bursts of particles:</p>
+<h3 id="randomness">Randomness</h3>
+<p>All physics parameters can be randomized. Random values range from <code>0</code> to <code>1</code>. The formula to randomize a parameter is:</p>
+<pre><code>initial_value = param_value + param_value * randomness</code></pre>
+<h3 id="fixed-fps">Fixed FPS</h3>
+<p>This setting can be used to set the particle system to render at a fixed FPS. For instance, changing the value to <code>2</code> will make the particles render at 2 frames per second. Note this does not slow down the particle system itself.</p>
+<blockquote>
+<p><strong>Note:</strong> Godot 4.3 does not currently support physics interpolation for 2D particles. As a workaround, disable physics interpolation for the particles node by setting <strong>Node &gt; Physics Interpolation &gt; Mode</strong> at the bottom of the inspector.</p>
+</blockquote>
+<h3 id="fract-delta">Fract Delta</h3>
+<p>Setting Fract Delta to <code>true</code> results in fractional delta calculation, which has a smoother particles display effect. This increased smoothness stems from higher accuracy. The difference is more noticeable in systems with high randomness or fast-moving particles. It helps maintain the visual consistency of the particle system, making sure that each particle's motion aligns with its actual lifespan. Without it, particles might appear to jump or move more than they should in a single frame if they are emitted at a point within the frame. The greater accuracy has a performance tradeoff, particularly in systems with a higher amount of particles.</p>
+<h2 id="drawing-parameters">Drawing parameters</h2>
+<h3 id="visibility-rect">Visibility Rect</h3>
+<p>The visibility rectangle controls the visibility of the particles on screen. If this rectangle is outside of the viewport, the engine will not render the particles on screen.</p>
+<p>The rectangle's <code>W</code> and <code>H</code> properties respectively control its Width and its Height. The <code>X</code> and <code>Y</code> properties control the position of the upper-left corner of the rectangle, relative to the particle emitter.</p>
+<p>You can have Godot generate a Visibility Rect automatically using the toolbar above the 2d view. To do so, select the GPUParticles2D node and Click <code>Particles &gt; Generate Visibility Rect</code>. Godot will simulate the Particles2D node emitting particles for a few seconds and set the rectangle to fit the surface the particles take.</p>
+<p>You can control the emit duration with the <code>Generation Time (sec)</code> option. The maximum value is 25 seconds. If you need more time for your particles to move around, you can temporarily change the <code>preprocess</code> duration on the Particles2D node.</p>
+<h3 id="local-coords">Local Coords</h3>
+<p>By default, this option is off. It means that the space that particles are emitted to is global, and <strong>not</strong> relative to the node. If the node is moved, existing particles are not moved with it:</p>
+<p>If enabled, particles will emit to local space, meaning that if the node is moved, already emitted particles are also affected:</p>
+<h3 id="draw-order">Draw Order</h3>
+<p>This controls the order in which individual particles are drawn. <code>Index</code> means particles are drawn according to their emission order (default). <code>Lifetime</code> means they are drawn in order of remaining lifetime.</p>
+<h2 id="particle-process-material-settings">Particle Process Material Settings</h2>
+<p>For information on the settings in the ParticleProcessMaterial see ref.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

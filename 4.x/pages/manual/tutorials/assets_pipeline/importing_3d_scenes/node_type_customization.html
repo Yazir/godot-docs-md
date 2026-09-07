@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Node type customization using name suffixes — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="node-type-customization-using-name-suffixes">Node type customization using name suffixes</h1>
+<p>Many times, when editing a scene, there are common tasks that need to be done after exporting:</p>
+<ul>
+<li>Adding collision detection to objects.</li>
+<li>Setting objects as navigation meshes.</li>
+<li>Deleting nodes that are not used in the game engine (like specific lights used for modeling).</li>
+</ul>
+<p>To simplify this workflow, Godot offers several suffixes that can be added to the names of the objects in your 3D modeling software. When imported, Godot will detect suffixes in object names and will perform actions automatically.</p>
+<blockquote>
+<p><strong>Warning:</strong> All the suffixes described below can be used with <code>-</code>, <code>$</code>, and <code>_</code> and are <strong>case-insensitive</strong>.</p>
+</blockquote>
+<h2 id="opting-out">Opting out</h2>
+<p>If you do not want Godot to perform any of the actions described below, you can set the <code>nodes/use_node_type_suffixes</code> import option to <code>false</code>. This will disable all node type suffixes, which keeps nodes the same type as the original file indicated. However, the <code>-noimp</code> suffix will still be respected, as well as non-node suffixes like <code>-vcol</code> or <code>-loop</code>.</p>
+<p>Alternatively, you can completely opt out of all name suffixes by setting the <code>nodes/use_name_suffixes</code> import option to <code>false</code>. This will completely stop the general scene import code from looking at name suffixes. However, the format-specific import code may still look at name suffixes, such as the glTF importer checking for the <code>-loop</code> suffix.</p>
+<p>Disabling these options makes editor-imported files more similar to the original files, and more similar to importing files at runtime. For an import workflow that works at runtime, gives more predictable results, and only has explicitly defined behavior, consider setting these options to <code>false</code> and using <code>class_GLTFDocumentExtension</code> instead.</p>
+<h2 id="remove-nodes-and-animations--noimp">Remove nodes and animations (-noimp)</h2>
+<p>Nodes and animations that have the <code>-noimp</code> suffix will be removed at import time no matter what their type is. They will not appear in the imported scene.</p>
+<p>This is equivalent to enabling <strong>Skip Import</strong> for a node in the Advanced Import Settings dialog.</p>
+<h2 id="create-collisions--col--convcol--colonly--convcolonly">Create collisions (-col, -convcol, -colonly, -convcolonly)</h2>
+<p>The option <code>-col</code> will work only for Mesh objects. If it is detected, a child static collision node will be added, using the same geometry as the mesh. This will create a triangle mesh collision shape, which is a slow, but accurate option for collision detection. This option is usually what you want for level geometry (but see also <code>-colonly</code> below).</p>
+<p>The option <code>-convcol</code> will create a <code>class_ConvexPolygonShape3D</code> instead of a <code>class_ConcavePolygonShape3D</code>. Unlike triangle meshes which can be concave, a convex shape can only accurately represent a shape that doesn't have any concave angles (a pyramid is convex, but a hollow box is concave). Due to this, convex collision shapes are generally not suited for level geometry. When representing simple enough meshes, convex collision shapes can result in better performance compared to a triangle collision shape. This option is ideal for simple or dynamic objects that require mostly-accurate collision detection.</p>
+<p>However, in both cases, the visual geometry may be too complex or not smooth enough for collisions. This can create physics glitches and slow down the engine unnecessarily.</p>
+<p>To solve this, the <code>-colonly</code> modifier exists. It will remove the mesh upon importing and will create a <code>class_StaticBody3D</code> collision instead. This helps the visual mesh and actual collision to be separated.</p>
+<p>The option <code>-convcolonly</code> works in a similar way, but will create a <code>class_ConvexPolygonShape3D</code> instead using convex decomposition.</p>
+<p>With Collada files, the option <code>-colonly</code> can also be used with Blender's empty objects. On import, it will create a <code>class_StaticBody3D</code> with a collision node as a child. The collision node will have one of a number of predefined shapes, depending on Blender's empty draw type:</p>
+<p><em>Image: Choosing a draw type for an Empty on creation in Blender</em></p>
+<p>Choosing a draw type for an Empty on creation in Blender</p>
+<ul>
+<li>Single arrow will create a <code>class_SeparationRayShape3D</code>.</li>
+<li>Cube will create a <code>class_BoxShape3D</code>.</li>
+<li>Image will create a <code>class_WorldBoundaryShape3D</code>.</li>
+<li>Sphere (and the others not listed) will create a <code>class_SphereShape3D</code>.</li>
+</ul>
+<p>When possible, <strong>try to use a few primitive collision shapes</strong> instead of triangle mesh or convex shapes. Primitive shapes often have the best performance and reliability.</p>
+<blockquote>
+<p><strong>Note:</strong> For better visibility on Blender's editor, you can set the "X-Ray" option on collision empties and set some distinct color for them by changing <strong>Edit &gt; Preferences &gt; Themes &gt; 3D Viewport &gt; Empty</strong>.</p>
+<p>If using Blender 2.79 or older, follow these steps instead: <strong>User Preferences &gt; Themes &gt; 3D View &gt; Empty</strong>.</p>
+</blockquote>
+<blockquote>
+<p><strong>See also:</strong> See <code>doc_collision_shapes_3d</code> for a comprehensive overview of collision shapes.</p>
+</blockquote>
+<h2 id="create-occluder--occ--occonly">Create Occluder (-occ, -occonly)</h2>
+<p>If a mesh is imported with the <code>-occ</code> suffix an <code>class_occluder3D</code> node will be created based on the geometry of the mesh, it does not replace the mesh. A mesh node with the <code>-occonly</code> suffix will be converted to an <code>class_occluder3D</code> on import.</p>
+<h2 id="create-navigation--navmesh">Create navigation (-navmesh)</h2>
+<p>A mesh node with the <code>-navmesh</code> suffix will be converted to a navigation mesh. The original Mesh object will be removed at import-time.</p>
+<h2 id="create-a-vehiclebody--vehicle">Create a VehicleBody (-vehicle)</h2>
+<p>A mesh node with the <code>-vehicle</code> suffix will be imported as a child to a <code>class_VehicleBody3D</code> node.</p>
+<h2 id="create-a-vehiclewheel--wheel">Create a VehicleWheel (-wheel)</h2>
+<p>A mesh node with the <code>-wheel</code> suffix will be imported as a child to a <code>class_VehicleWheel3D</code> node.</p>
+<h2 id="rigid-body--rigid">Rigid Body (-rigid)</h2>
+<p>A mesh node with the <code>-rigid</code> suffix will be imported as a <code>class_RigidBody3D</code>.</p>
+<h2 id="animation-loop--loop--cycle">Animation loop (-loop, -cycle)</h2>
+<p>Animation clips in the source 3D file that start or end with the token <code>loop</code> or <code>cycle</code> will be imported as a Godot <code>class_Animation</code> with the loop flag set. <strong>Unlike the other suffixes described above, this does not require a hyphen.</strong></p>
+<p>In Blender, this requires using the NLA Editor and naming the Action with the <code>loop</code> or <code>cycle</code> prefix or suffix.</p>
+<h2 id="material-alpha--alpha">Material alpha (-alpha)</h2>
+<p>A material with the <code>-alpha</code> suffix will be imported with the ref transparency mode.</p>
+<h2 id="material-vertex-color--vcol">Material vertex color (-vcol)</h2>
+<p>A material with the <code>-vcol</code> suffix will be imported with the ref and ref flags set.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

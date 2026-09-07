@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Introduction — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="introduction">Introduction</h1>
+<h2 id="physics-ticks-and-rendered-frames">Physics ticks and rendered frames</h2>
+<p>One key concept to understand in Godot is the distinction between physics ticks (sometimes referred to as iterations or physics frames), and rendered frames. The physics proceeds at a fixed tick rate (set in ref), which defaults to 60 ticks per second.</p>
+<p>However, the engine does not necessarily <strong>render</strong> at the same rate. Although many monitors refresh at 60 Hz (cycles per second), many refresh at completely different frequencies (e.g. 75 Hz, 144 Hz, 240 Hz or more). Even though a monitor may be able to show a new frame e.g. 60 times a second, there is no guarantee that the CPU and GPU will be able to <em>supply</em> frames at this rate. For instance, when running with V-Sync, the computer may be too slow for 60 and only reach the deadlines for 30 FPS, in which case the frames you see will change at 30 FPS (resulting in stuttering).</p>
+<p>But there is a problem here. What happens if the physics ticks do not coincide with frames? What happens if the physics tick rate is out of phase with the frame rate? Or worse, what happens if the physics tick rate is <em>lower</em> than the rendered frame rate?</p>
+<p>This problem is easier to understand if we consider an extreme scenario. If you set the physics tick rate to 10 ticks per second, in a simple game with a rendered frame rate of 60 FPS. If we plot a graph of the positions of an object against the rendered frames, you can see that the positions will appear to "jump" every 1/10th of a second, rather than giving a smooth motion. When the physics calculates a new position for a new object, it is not rendered in this position for just one frame, but for 6 frames.</p>
+<p>This jump can be seen in other combinations of tick / frame rate as glitches, or jitter, caused by this staircasing effect due to the discrepancy between physics tick time and rendered frame time.</p>
+<h3 id="what-can-we-do-about-frames-and-ticks-being-out-of-sync">What can we do about frames and ticks being out of sync?</h3>
+<h2 id="lock-the-tick--frame-rate-together">Lock the tick / frame rate together?</h2>
+<p>The most obvious solution is to get rid of the problem, by ensuring there is a physics tick that coincides with every frame. This used to be the approach on old consoles and fixed hardware computers. If you know that every player will be using the same hardware, you can ensure it is fast enough to calculate ticks and frames at e.g. 50 FPS, and you will be sure it will work great for everybody.</p>
+<p>However, modern games are often no longer made for fixed hardware. You will often be planning to release on desktop computers, mobiles and more, all of which have huge variations in performance, as well as different monitor refresh rates. We need to come up with a better way of dealing with the problem.</p>
+<h2 id="adapt-the-tick-rate">Adapt the tick rate?</h2>
+<p>Instead of designing the game at a fixed physics tick rate, we could allow the tick rate to scale according to the end users hardware. We could for example use a fixed tick rate that works for that hardware, or even vary the duration of each physics tick to match a particular frame duration.</p>
+<p>This works, but there is a problem. Physics (<em>and game logic</em>, which is often also run in the <code>_physics_process</code>) work best and most consistently when run at a <strong>fixed</strong>, predetermined tick rate. If you attempt to run a racing game physics that has been designed for 60 TPS (ticks per second) at e.g. 10 TPS, the physics will behave completely differently. Controls may be less responsive, collisions / trajectories can be completely different. You may test your game thoroughly at 60 TPS, then find it breaks on end users machines when it runs at a different tick rate.</p>
+<p>This can make quality assurance difficult with hard to reproduce bugs, especially in AAA games where problems of this sort can be very costly. This can also be problematic for multiplayer games for competitive integrity, as running the game at certain tick rates may be more advantageous than others.</p>
+<h2 id="lock-the-tick-rate-but-use-interpolation-to-smooth-frames-in-between-physics-ticks">Lock the tick rate, but use interpolation to smooth frames in between physics ticks</h2>
+<p>This has become one of the most popular approaches to dealing with the problem. It is supported by Godot 3.5 and later in 3D (although it is optional and disabled by default).</p>
+<p>We have established that the most desirable physics/game logic arrangement for consistency and predictability is a physics tick rate that is fixed at design-time. The problem is the discrepancy between the physics position recorded, and where we "want" a physics object to be shown on a frame to give smooth motion.</p>
+<p>The answer turns out to be simple, but can be a little hard to get your head around at first.</p>
+<p>Instead of keeping track of just the current position of a physics object in the engine, we keep track of <em>both the current position of the object, and the previous position</em> on the previous physics tick.</p>
+<p>Why do we need the previous position <em>(in fact the entire transform, including rotation and scaling)</em>? By using a little math magic, we can use <strong>interpolation</strong> to calculate what the transform of the object would be between those two points, in our ideal world of smooth continuous movement.</p>
+<h2 id="linear-interpolation">Linear interpolation</h2>
+<p>The simplest way to achieve this is linear interpolation, or lerping, which you may have used before.</p>
+<p>Let us consider only the position, and a situation where we know that the previous physics tick X coordinate was 10 units, and the current physics tick X coordinate is 30 units.</p>
+<blockquote>
+<p><strong>Note:</strong> Although the maths is explained here, you do not have to worry about the details, as this step will be performed for you. Under the hood, Godot may use more complex forms of interpolation, but linear interpolation is the easiest in terms of explanation.</p>
+</blockquote>
+<h2 id="the-physics-interpolation-fraction">The physics interpolation fraction</h2>
+<p>If our physics ticks are happening 10 times per second (for this example), what happens if our rendered frame takes place at time 0.12 seconds? We can do some math to figure out where the object would be to obtain a smooth motion between the two ticks.</p>
+<p>First of all, we have to calculate how far through the physics tick we want the object to be. If the last physics tick took place at 0.1 seconds, we are 0.02 seconds <em>(0.12 - 0.1)</em> through a tick that we know will take 0.1 seconds (10 ticks per second). The fraction through the tick is thus:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>fraction <span class="op">=</span> <span class="fl">0.02</span> <span class="op">/</span> <span class="fl">0.10</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>fraction <span class="op">=</span> <span class="fl">0.2</span></span></code></pre></div>
+<p>This is called the <strong>physics interpolation fraction</strong>, and is handily calculated for you by Godot. It can be retrieved on any frame by calling ref.</p>
+<h2 id="calculating-the-interpolated-position">Calculating the interpolated position</h2>
+<p>Once we have the interpolation fraction, we can insert it into a standard linear interpolation equation. The X coordinate would thus be:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>x_interpolated <span class="op">=</span> x_prev <span class="op">+</span> ((x_curr <span class="op">-</span> x_prev) <span class="op">*</span> <span class="fl">0.2</span>)</span></code></pre></div>
+<p>So substituting our <code>x_prev</code> as 10, and <code>x_curr</code> as 30:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>x_interpolated <span class="op">=</span> <span class="dv">10</span> <span class="op">+</span> ((<span class="dv">30</span> <span class="op">-</span> <span class="dv">10</span>) <span class="op">*</span> <span class="fl">0.2</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>x_interpolated <span class="op">=</span> <span class="dv">10</span> <span class="op">+</span> <span class="dv">4</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>x_interpolated <span class="op">=</span> <span class="dv">14</span></span></code></pre></div>
+<p>Let's break that down:</p>
+<ul>
+<li>We know the X starts from the coordinate on the previous tick (<code>x_prev</code>) which is 10 units.</li>
+<li>We know that after the full tick, the difference between the current tick and the previous tick will have been added (<code>x_curr - x_prev</code>) (which is 20 units).</li>
+<li>The only thing we need to vary is the proportion of this difference we add, according to how far we are through the physics tick.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> Although this example interpolates the position, the same thing can be done with the rotation and scale of objects. It is not necessary to know the details as Godot will do all this for you.</p>
+</blockquote>
+<h2 id="smoothed-transformations-between-physics-ticks">Smoothed transformations between physics ticks?</h2>
+<p>Putting all this together shows that it should be possible to have a nice smooth estimation of the transform of objects between the current and previous physics tick.</p>
+<p>But wait, you may have noticed something. If we are interpolating between the current and previous ticks, we are not estimating the position of the object <em>now</em>, we are estimating the position of the object in the past. To be exact, we are estimating the position of the object <em>between 1 and 2 ticks</em> into the past.</p>
+<h2 id="in-the-past">In the past</h2>
+<p>What does this mean? This scheme does work, but it does mean we are effectively introducing a delay between what we see on the screen, and where the objects <em>should</em> be.</p>
+<p>In practice, most people won't notice this delay, or rather, it is typically not <em>objectionable</em>. There are already significant delays involved in games, we just don't typically notice them. The most significant effect is there can be a slight delay to input, which can be a factor in fast twitch games. In some of these fast input situations, you may wish to turn off physics interpolation and use a different scheme, or use a high tick rate, which mitigates these delays.</p>
+<h2 id="why-look-into-the-past-why-not-predict-the-future">Why look into the past? Why not predict the future?</h2>
+<p>There is an alternative to this scheme, which is: instead of interpolating between the previous and current tick, we use maths to <em>extrapolate</em> into the future. We try to predict where the object <em>will be</em>, rather than show it where it was. This can be done and may be offered as an option in future, but there are some significant downsides:</p>
+<ul>
+<li>The prediction may not be correct, especially when an object collides with another object during the physics tick.</li>
+<li>Where a prediction was incorrect, the object may extrapolate into an "impossible" position, like inside a wall.</li>
+<li>Providing the movement speed is slow, these incorrect predictions may not be too much of a problem.</li>
+<li>When a prediction was incorrect, the object may have to jump or snap back onto the corrected path. This can be visually jarring.</li>
+</ul>
+<h2 id="fixed-timestep-interpolation">Fixed timestep interpolation</h2>
+<p>In Godot this whole system is referred to as physics interpolation, but you may also hear it referred to as <strong>"fixed timestep interpolation"</strong>, as it is interpolating between objects moved with a fixed timestep (physics ticks per second). In some ways the second term is more accurate, because it can also be used to interpolate objects that are not driven by physics.</p>
+<blockquote>
+<p><strong>Tip:</strong> Although physics interpolation is usually a good choice, there are exceptions where you may choose not to use Godot's built-in physics interpolation (or use it in a limited fashion). An example category is internet multiplayer games. Multiplayer games often receive tick or timing based information from other players or a server and these may not coincide with local physics ticks, so a custom interpolation technique can often be a better fit.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

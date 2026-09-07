@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custom VisualScript nodes — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="custom-visualscript-nodes">Custom VisualScript nodes</h1>
+<blockquote>
+<p><strong>Warning:</strong> <a href="https://godotengine.org/article/godot-4-will-discontinue-visual-scripting">Godot 4.0 will remove VisualScript from core entirely.</a> As a result, creating new projects using visual scripting in Godot is not recommended. Future Godot 4.x releases may have VisualScript reimplemented as an extension.</p>
+<p>While Godot 3.x will keep VisualScript supported, we recommend ref instead, especially if you intend to migrate your project to Godot 4.</p>
+</blockquote>
+<p>Custom nodes are written in GDScript and can then be used in VisualScript. This is useful for offloading complex code to GDScript and reusing it.</p>
+<h2 id="creating-a-custom-node">Creating a custom node</h2>
+<p>Create a new script that extends <code>class_VisualScriptCustomNode</code> and put a <code>tool</code> keyword at the top. This is needed for the script to run in the editor.</p>
+<p>There are some functions that can be implemented to set parameters of the custom node. Only add functions that are needed, a <code>_has_input_sequence_port</code> function is not necessary if it should return <code>false</code> for example.</p>
+<p>The most important part of a custom node is the <code>_step</code> function. The logic of the node is defined there.</p>
+<p>The <code>inputs</code> parameter holds the value of the input ports.</p>
+<p>The <code>outputs</code> parameter is an array where the indices represent the output port ids. It can be modified to set the values of the output ports.</p>
+<p><code>start_mode</code> can be checked to see if it is the first time <code>_step</code> is called.</p>
+<p><code>working_mem</code> is persistent each <code>_step</code> call. It can be used to store information.</p>
+<p>If you want to throw an error, for example if the input types are incorrect, you can return the error message as a string. When everything goes right, return the id of the sequence port which should be called next. If your custom node doesn't have any, just return 0.</p>
+<p>Example:</p>
+<pre><code>tool
+extends VisualScriptCustomNode
+
+# The name of the custom node as it appears in the search.
+func _get_caption():
+    return &quot;Get Input Direction 2D&quot;
+
+func _get_category():
+    return &quot;Input&quot;
+
+# The text displayed after the input port / sequence arrow.
+func _get_text():
+    return &quot;&quot;
+
+func _get_input_value_port_count():
+    return 0
+
+# The types of the inputs per index starting from 0.
+func _get_input_value_port_type(idx):
+    return TYPE_OBJECT
+
+func _get_output_value_port_count():
+    return 1
+
+# The types of outputs per index starting from 0.
+func _get_output_value_port_type(idx):
+    return TYPE_VECTOR2
+
+# The text displayed before each output node per index.
+func _get_output_value_port_name(idx):
+    return &quot;Direction&quot;
+
+func _has_input_sequence_port():
+    return true
+
+# The number of output sequence ports to use
+# (has to be at least one if you have an input sequence port).
+func _get_output_sequence_port_count():
+    return 1
+
+func _step(inputs, outputs, start_mode, working_mem):
+    # start_mode can be checked to see if it is the first time _step is called.
+    # This is useful if you only want to do an operation once.
+
+    # working_memory is persistent between _step calls.
+
+    # The inputs array contains the value of the input ports.
+
+    var x = int(Input.is_action_pressed(&quot;ui_right&quot;)) - int(Input.is_action_pressed(&quot;ui_left&quot;))
+    var y = int(Input.is_action_pressed(&quot;ui_down&quot;)) - int(Input.is_action_pressed(&quot;ui_up&quot;))
+
+    # The outputs array is used to set the data of the output ports.
+
+    outputs[0] = Vector2(x, y)
+
+    # Return the error string if an error occurred, else the id of the next sequence port.
+    return 0</code></pre>
+<h2 id="using-a-custom-node">Using a custom node</h2>
+<p>To use the script, add a <code>CustomNode</code>, select it and drag your custom node script into the <code>script</code> property shown in the inspector.</p>
+<p>Result:</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

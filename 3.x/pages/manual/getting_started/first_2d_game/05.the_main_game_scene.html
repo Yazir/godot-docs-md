@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The main game scene — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="the-main-game-scene">The main game scene</h1>
+<p>Now it's time to bring everything we did together into a playable game scene.</p>
+<p>Create a new scene and add a ref named <code>Main</code>. (The reason we are using Node instead of Node2D is because this node will be a container for handling game logic. It does not require 2D functionality itself.)</p>
+<p>Click the <strong>Instance</strong> button (represented by a chain link icon) and select your saved <code>Player.tscn</code>.</p>
+<p>Now, add the following nodes as children of <code>Main</code>, and name them as shown (values are in seconds):</p>
+<ul>
+<li>ref (named <code>MobTimer</code>) - to control how often mobs spawn</li>
+<li>ref (named <code>ScoreTimer</code>) - to increment the score every second</li>
+<li>ref (named <code>StartTimer</code>) - to give a delay before starting</li>
+<li>ref (named <code>StartPosition</code>) - to indicate the player's start position</li>
+</ul>
+<p>Set the <code>Wait Time</code> property of each of the <code>Timer</code> nodes as follows:</p>
+<ul>
+<li><code>MobTimer</code>: <code>0.5</code></li>
+<li><code>ScoreTimer</code>: <code>1</code></li>
+<li><code>StartTimer</code>: <code>2</code></li>
+</ul>
+<p>In addition, set the <code>One Shot</code> property of <code>StartTimer</code> to "On" and set <code>Position</code> of the <code>StartPosition</code> node to <code>(240, 450)</code>.</p>
+<h2 id="spawning-mobs">Spawning mobs</h2>
+<p>The Main node will be spawning new mobs, and we want them to appear at a random location on the edge of the screen. Add a ref node named <code>MobPath</code> as a child of <code>Main</code>. When you select <code>Path2D</code>, you will see some new buttons at the top of the editor:</p>
+<p>Select the middle one ("Add Point") and draw the path by clicking to add the points at the corners shown. To have the points snap to the grid, make sure "Use Grid Snap" and "Use Snap" are both selected. These options can be found to the left of the "Lock" button, appearing as a magnet next to some dots and intersecting lines, respectively.</p>
+<blockquote>
+<p><strong>Important:</strong> Draw the path in <em>clockwise</em> order, or your mobs will spawn pointing <em>outwards</em> instead of <em>inwards</em>!</p>
+</blockquote>
+<p>After placing point <code>4</code> in the image, click the "Close Curve" button and your curve will be complete.</p>
+<p>Now that the path is defined, add a ref node as a child of <code>MobPath</code> and name it <code>MobSpawnLocation</code>. This node will automatically rotate and follow the path as it moves, so we can use it to select a random position and direction along the path.</p>
+<p>Your scene should look like this:</p>
+<h2 id="main-script">Main script</h2>
+<p>Add a script to <code>Main</code>. At the top of the script, we use <code>export (PackedScene)</code> to allow us to choose the Mob scene we want to instance.</p>
+<pre class="gdscript"><code>extends Node
+
+export(PackedScene) var mob_scene
+var score</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Main <span class="op">:</span> Node</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Don&#39;t forget to rebuild the project so the editor knows about the new export variable.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>#pragma warning disable <span class="dv">649</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We assign this in the editor, so we don&#39;t need the warning about not being assigned.</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> PackedScene MobScene<span class="op">;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>#pragma warning restore <span class="dv">649</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> Score<span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Copy `player.gdns` to `main.gdns` and replace `Player` with `Main`.</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Attach the `main.gdns` file to the Main node.</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Create two files `main.cpp` and `main.hpp` next to `entry.cpp` in `src`.</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `main.hpp`. We also define the methods we&#39;ll be using here.</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifndef MAIN_H</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#define MAIN_H</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;AudioStreamPlayer.hpp&gt;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;CanvasLayer.hpp&gt;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Godot.hpp&gt;</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Node.hpp&gt;</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;PackedScene.hpp&gt;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;PathFollow2D.hpp&gt;</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;RandomNumberGenerator.hpp&gt;</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Timer.hpp&gt;</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;hud.hpp&quot;</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;player.hpp&quot;</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Main <span class="op">:</span> <span class="kw">public</span> godot<span class="op">::</span>Node <span class="op">{</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    GODOT_CLASS<span class="op">(</span>Main<span class="op">,</span> godot<span class="op">::</span>Node<span class="op">)</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> score<span class="op">;</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    HUD <span class="op">*</span>_hud<span class="op">;</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    Player <span class="op">*</span>_player<span class="op">;</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Node2D <span class="op">*</span>_start_position<span class="op">;</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>PathFollow2D <span class="op">*</span>_mob_spawn_location<span class="op">;</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Timer <span class="op">*</span>_mob_timer<span class="op">;</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Timer <span class="op">*</span>_score_timer<span class="op">;</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Timer <span class="op">*</span>_start_timer<span class="op">;</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>AudioStreamPlayer <span class="op">*</span>_music<span class="op">;</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>AudioStreamPlayer <span class="op">*</span>_death_sound<span class="op">;</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Ref<span class="op">&lt;</span>godot<span class="op">::</span>RandomNumberGenerator<span class="op">&gt;</span> _random<span class="op">;</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Ref<span class="op">&lt;</span>godot<span class="op">::</span>PackedScene<span class="op">&gt;</span> mob_scene<span class="op">;</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _init<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _ready<span class="op">();</span></span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> game_over<span class="op">();</span></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> new_game<span class="op">();</span></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _on_MobTimer_timeout<span class="op">();</span></span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _on_ScoreTimer_timeout<span class="op">();</span></span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _on_StartTimer_timeout<span class="op">();</span></span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> _register_methods<span class="op">();</span></span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif </span><span class="co">// MAIN_H</span></span></code></pre></div>
+<p>We also add a call to <code>randomize()</code> here so that the random number generator generates different random numbers each time the game is run:</p>
+<pre class="gdscript"><code>func _ready():
+    randomize()</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Randomize</span><span class="op">();</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `main.cpp`.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;main.hpp&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;SceneTree.hpp&gt;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;mob.hpp&quot;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Main<span class="op">::</span>_ready<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    _hud <span class="op">=</span> get_node<span class="op">&lt;</span>HUD<span class="op">&gt;(</span><span class="st">&quot;HUD&quot;</span><span class="op">);</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    _player <span class="op">=</span> get_node<span class="op">&lt;</span>Player<span class="op">&gt;(</span><span class="st">&quot;Player&quot;</span><span class="op">);</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    _start_position <span class="op">=</span> get_node<span class="op">&lt;</span>godot<span class="op">::</span>Node2D<span class="op">&gt;(</span><span class="st">&quot;StartPosition&quot;</span><span class="op">);</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    _mob_spawn_location <span class="op">=</span> get_node<span class="op">&lt;</span>godot<span class="op">::</span>PathFollow2D<span class="op">&gt;(</span><span class="st">&quot;MobPath/MobSpawnLocation&quot;</span><span class="op">);</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    _mob_timer <span class="op">=</span> get_node<span class="op">&lt;</span>godot<span class="op">::</span>Timer<span class="op">&gt;(</span><span class="st">&quot;MobTimer&quot;</span><span class="op">);</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    _score_timer <span class="op">=</span> get_node<span class="op">&lt;</span>godot<span class="op">::</span>Timer<span class="op">&gt;(</span><span class="st">&quot;ScoreTimer&quot;</span><span class="op">);</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    _start_timer <span class="op">=</span> get_node<span class="op">&lt;</span>godot<span class="op">::</span>Timer<span class="op">&gt;(</span><span class="st">&quot;StartTimer&quot;</span><span class="op">);</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Uncomment these after adding the nodes in the &quot;Sound effects&quot; section of &quot;Finishing up&quot;.</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">//_music = get_node&lt;godot::AudioStreamPlayer&gt;(&quot;Music&quot;);</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">//_death_sound = get_node&lt;godot::AudioStreamPlayer&gt;(&quot;DeathSound&quot;);</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    _random <span class="op">=</span> <span class="op">(</span>godot<span class="op">::</span>Ref<span class="op">&lt;</span>godot<span class="op">::</span>RandomNumberGenerator<span class="op">&gt;)</span>godot<span class="op">::</span>RandomNumberGenerator<span class="op">::</span>_new<span class="op">();</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    _random<span class="op">-&gt;</span>randomize<span class="op">();</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Click the <code>Main</code> node and you will see the <code>Mob Scene</code> property in the Inspector under "Script Variables".</p>
+<p>You can assign this property's value in two ways:</p>
+<ul>
+<li>Drag <code>Mob.tscn</code> from the "FileSystem" dock and drop it in the <strong>Mob Scene</strong> property.</li>
+<li>Click the down arrow next to "[empty]" and choose "Load". Select <code>Mob.tscn</code>.</li>
+</ul>
+<p>Next, select the <code>Player</code> node in the Scene dock, and access the Node dock on the sidebar. Make sure to have the Signals tab selected in the Node dock.</p>
+<p>You should see a list of the signals for the <code>Player</code> node. Find and double-click the <code>hit</code> signal in the list (or right-click it and select "Connect..."). This will open the signal connection dialog. We want to make a new function named <code>game_over</code>, which will handle what needs to happen when a game ends. Type "game_over" in the "Receiver Method" box at the bottom of the signal connection dialog and click "Connect". Add the following code to the new function, as well as a <code>new_game</code> function that will set everything up for a new game:</p>
+<pre class="gdscript"><code>func game_over():
+    $ScoreTimer.stop()
+    $MobTimer.stop()
+
+func new_game():
+    score = 0
+    $Player.start($StartPosition.position)
+    $StartTimer.start()</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">GameOver</span><span class="op">()</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Timer<span class="op">&gt;(</span><span class="st">&quot;MobTimer&quot;</span><span class="op">).</span><span class="fu">Stop</span><span class="op">();</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Timer<span class="op">&gt;(</span><span class="st">&quot;ScoreTimer&quot;</span><span class="op">).</span><span class="fu">Stop</span><span class="op">();</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">NewGame</span><span class="op">()</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    Score <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> player <span class="op">=</span> GetNode<span class="op">&lt;</span>Player<span class="op">&gt;(</span><span class="st">&quot;Player&quot;</span><span class="op">);</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> startPosition <span class="op">=</span> GetNode<span class="op">&lt;</span>Position2D<span class="op">&gt;(</span><span class="st">&quot;StartPosition&quot;</span><span class="op">);</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    player<span class="op">.</span><span class="fu">Start</span><span class="op">(</span>startPosition<span class="op">.</span><span class="fu">Position</span><span class="op">);</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Timer<span class="op">&gt;(</span><span class="st">&quot;StartTimer&quot;</span><span class="op">).</span><span class="fu">Start</span><span class="op">();</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `main.cpp`.</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Main<span class="op">::</span>game_over<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    _score_timer<span class="op">-&gt;</span>stop<span class="op">();</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    _mob_timer<span class="op">-&gt;</span>stop<span class="op">();</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Main<span class="op">::</span>new_game<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    score <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    _player<span class="op">-&gt;</span>start<span class="op">(</span>_start_position<span class="op">-&gt;</span>get_position<span class="op">());</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    _start_timer<span class="op">-&gt;</span>start<span class="op">();</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Now connect the <code>timeout()</code> signal of each of the Timer nodes (<code>StartTimer</code>, <code>ScoreTimer</code> , and <code>MobTimer</code>) to the main script. <code>StartTimer</code> will start the other two timers. <code>ScoreTimer</code> will increment the score by 1.</p>
+<pre class="gdscript"><code>func _on_ScoreTimer_timeout():
+    score += 1
+
+func _on_StartTimer_timeout():
+    $MobTimer.start()
+    $ScoreTimer.start()</code></pre>
+<div class="sourceCode" id="cb11"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnScoreTimerTimeout</span><span class="op">()</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    Score<span class="op">++;</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnStartTimerTimeout</span><span class="op">()</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Timer<span class="op">&gt;(</span><span class="st">&quot;MobTimer&quot;</span><span class="op">).</span><span class="fu">Start</span><span class="op">();</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Timer<span class="op">&gt;(</span><span class="st">&quot;ScoreTimer&quot;</span><span class="op">).</span><span class="fu">Start</span><span class="op">();</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `main.cpp`.</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Main<span class="op">::</span>_on_ScoreTimer_timeout<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    score <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Main<span class="op">::</span>_on_StartTimer_timeout<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    _mob_timer<span class="op">-&gt;</span>start<span class="op">();</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    _score_timer<span class="op">-&gt;</span>start<span class="op">();</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="co">// Also add this to register all methods and the mob scene property.</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Main<span class="op">::</span>_register_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;_ready&quot;</span><span class="op">,</span> <span class="op">&amp;</span>Main<span class="op">::</span>_ready<span class="op">);</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;game_over&quot;</span><span class="op">,</span> <span class="op">&amp;</span>Main<span class="op">::</span>game_over<span class="op">);</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;new_game&quot;</span><span class="op">,</span> <span class="op">&amp;</span>Main<span class="op">::</span>new_game<span class="op">);</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;_on_MobTimer_timeout&quot;</span><span class="op">,</span> <span class="op">&amp;</span>Main<span class="op">::</span>_on_MobTimer_timeout<span class="op">);</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;_on_ScoreTimer_timeout&quot;</span><span class="op">,</span> <span class="op">&amp;</span>Main<span class="op">::</span>_on_ScoreTimer_timeout<span class="op">);</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;_on_StartTimer_timeout&quot;</span><span class="op">,</span> <span class="op">&amp;</span>Main<span class="op">::</span>_on_StartTimer_timeout<span class="op">);</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_property<span class="op">(</span><span class="st">&quot;mob_scene&quot;</span><span class="op">,</span> <span class="op">&amp;</span>Main<span class="op">::</span>mob_scene<span class="op">,</span> <span class="op">(</span>godot<span class="op">::</span>Ref<span class="op">&lt;</span>godot<span class="op">::</span>PackedScene<span class="op">&gt;)</span><span class="kw">nullptr</span><span class="op">);</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In <code>_on_MobTimer_timeout()</code>, we will create a mob instance, pick a random starting location along the <code>Path2D</code>, and set the mob in motion. The <code>PathFollow2D</code> node will automatically rotate as it follows the path, so we will use that to select the mob's direction as well as its position. When we spawn a mob, we'll pick a random value between <code>150.0</code> and <code>250.0</code> for how fast each mob will move (it would be boring if they were all moving at the same speed).</p>
+<p>Note that a new instance must be added to the scene using <code>add_child()</code>.</p>
+<pre class="gdscript"><code>func _on_MobTimer_timeout():
+    # Create a new instance of the Mob scene.
+    var mob = mob_scene.instance()
+
+    # Choose a random location on Path2D.
+    var mob_spawn_location = get_node(&quot;MobPath/MobSpawnLocation&quot;)
+    mob_spawn_location.offset = randi()
+
+    # Set the mob&#39;s direction perpendicular to the path direction.
+    var direction = mob_spawn_location.rotation + PI / 2
+
+    # Set the mob&#39;s position to a random location.
+    mob.position = mob_spawn_location.position
+
+    # Add some randomness to the direction.
+    direction += rand_range(-PI / 4, PI / 4)
+    mob.rotation = direction
+
+    # Choose the velocity for the mob.
+    var velocity = Vector2(rand_range(150.0, 250.0), 0.0)
+    mob.linear_velocity = velocity.rotated(direction)
+
+    # Spawn the mob by adding it to the Main scene.
+    add_child(mob)</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnMobTimerTimeout</span><span class="op">()</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Note: Normally it is best to use explicit types rather than the `var`</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// keyword. However, var is acceptable to use here because the types are</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// obviously Mob and PathFollow2D, since they appear later on the line.</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Create a new instance of the Mob scene.</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> mob <span class="op">=</span> <span class="op">(</span>Mob<span class="op">)</span>MobScene<span class="op">.</span><span class="fu">Instance</span><span class="op">();</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Choose a random location on Path2D.</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> mobSpawnLocation <span class="op">=</span> GetNode<span class="op">&lt;</span>PathFollow2D<span class="op">&gt;(</span><span class="st">&quot;MobPath/MobSpawnLocation&quot;</span><span class="op">);</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    mobSpawnLocation<span class="op">.</span><span class="fu">Offset</span> <span class="op">=</span> GD<span class="op">.</span><span class="fu">Randi</span><span class="op">();</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Set the mob&#39;s direction perpendicular to the path direction.</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> direction <span class="op">=</span> mobSpawnLocation<span class="op">.</span><span class="fu">Rotation</span> <span class="op">+</span> Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">/</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Set the mob&#39;s position to a random location.</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    mob<span class="op">.</span><span class="fu">Position</span> <span class="op">=</span> mobSpawnLocation<span class="op">.</span><span class="fu">Position</span><span class="op">;</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add some randomness to the direction.</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    direction <span class="op">+=</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>GD<span class="op">.</span><span class="fu">RandRange</span><span class="op">(-</span>Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">/</span> <span class="dv">4</span><span class="op">,</span> Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">/</span> <span class="dv">4</span><span class="op">);</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    mob<span class="op">.</span><span class="fu">Rotation</span> <span class="op">=</span> direction<span class="op">;</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Choose the velocity.</span></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> velocity <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">((</span><span class="dt">float</span><span class="op">)</span>GD<span class="op">.</span><span class="fu">RandRange</span><span class="op">(</span><span class="fl">150.0</span><span class="op">,</span> <span class="fl">250.0</span><span class="op">),</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>    mob<span class="op">.</span><span class="fu">LinearVelocity</span> <span class="op">=</span> velocity<span class="op">.</span><span class="fu">Rotated</span><span class="op">(</span>direction<span class="op">);</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Spawn the mob by adding it to the Main scene.</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">AddChild</span><span class="op">(</span>mob<span class="op">);</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `main.cpp`.</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Main<span class="op">::</span>_on_MobTimer_timeout<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Create a new instance of the Mob scene.</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Node <span class="op">*</span>mob <span class="op">=</span> mob_scene<span class="op">-&gt;</span>instance<span class="op">();</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Choose a random location on Path2D.</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    _mob_spawn_location<span class="op">-&gt;</span>set_offset<span class="op">((</span><span class="dt">real_t</span><span class="op">)</span>_random<span class="op">-&gt;</span>randi<span class="op">());</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Set the mob&#39;s direction perpendicular to the path direction.</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">real_t</span> direction <span class="op">=</span> _mob_spawn_location<span class="op">-&gt;</span>get_rotation<span class="op">()</span> <span class="op">+</span> <span class="op">(</span><span class="dt">real_t</span><span class="op">)</span>Math_PI <span class="op">/</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Set the mob&#39;s position to a random location.</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    mob<span class="op">-&gt;</span>set<span class="op">(</span><span class="st">&quot;position&quot;</span><span class="op">,</span> _mob_spawn_location<span class="op">-&gt;</span>get_position<span class="op">());</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add some randomness to the direction.</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    direction <span class="op">+=</span> _random<span class="op">-&gt;</span>randf_range<span class="op">((</span><span class="dt">real_t</span><span class="op">)-</span>Math_PI <span class="op">/</span> <span class="dv">4</span><span class="op">,</span> <span class="op">(</span><span class="dt">real_t</span><span class="op">)</span>Math_PI <span class="op">/</span> <span class="dv">4</span><span class="op">);</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    mob<span class="op">-&gt;</span>set<span class="op">(</span><span class="st">&quot;rotation&quot;</span><span class="op">,</span> direction<span class="op">);</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Choose the velocity for the mob.</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Vector2 velocity <span class="op">=</span> godot<span class="op">::</span>Vector2<span class="op">(</span>_random<span class="op">-&gt;</span>randf_range<span class="op">(</span><span class="fl">150.0</span><span class="op">,</span> <span class="fl">250.0</span><span class="op">),</span> <span class="fl">0.0</span><span class="op">);</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    mob<span class="op">-&gt;</span>set<span class="op">(</span><span class="st">&quot;linear_velocity&quot;</span><span class="op">,</span> velocity<span class="op">.</span>rotated<span class="op">(</span>direction<span class="op">));</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Spawn the mob by adding it to the Main scene.</span></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>    add_child<span class="op">(</span>mob<span class="op">);</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Important:</strong> Why <code>PI</code>? In functions requiring angles, Godot uses <em>radians</em>, not degrees. Pi represents a half turn in radians, about <code>3.1415</code> (there is also <code>TAU</code> which is equal to <code>2 * PI</code>). If you're more comfortable working with degrees, you'll need to use the <code>deg2rad()</code> and <code>rad2deg()</code> functions to convert between the two.</p>
+</blockquote>
+<h2 id="testing-the-scene">Testing the scene</h2>
+<p>Let's test the scene to make sure everything is working. Add this <code>new_game</code> call to <code>_ready()</code>:</p>
+<pre class="gdscript"><code>func _ready():
+    randomize()
+    new_game()</code></pre>
+<div class="sourceCode" id="cb17"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">NewGame</span><span class="op">();</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `main.cpp`.</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Main<span class="op">::</span>_ready<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    new_game<span class="op">();</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Let's also assign <code>Main</code> as our "Main Scene" - the one that runs automatically when the game launches. Press the "Play" button and select <code>Main.tscn</code> when prompted.</p>
+<blockquote>
+<p><strong>Tip:</strong> If you had already set another scene as the "Main Scene", you can right click <code>Main.tscn</code> in the FileSystem dock and select "Set As Main Scene".</p>
+</blockquote>
+<p>You should be able to move the player around, see mobs spawning, and see the player disappear when hit by a mob.</p>
+<p>When you're sure everything is working, remove the call to <code>new_game()</code> from <code>_ready()</code>.</p>
+<p>What's our game lacking? Some user interface. In the next lesson, we'll add a title screen and display the player's score.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

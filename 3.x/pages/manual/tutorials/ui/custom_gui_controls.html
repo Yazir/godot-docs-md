@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custom GUI controls — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="custom-gui-controls">Custom GUI controls</h1>
+<h2 id="so-many-controls">So many controls...</h2>
+<p>Yet there are never enough. Creating your own custom controls that act just the way you want them to is an obsession of almost every GUI programmer. Godot provides plenty of them, but they may not work exactly the way you want. Before contacting the developers with a pull-request to support diagonal scrollbars, at least it will be good to know how to create these controls easily from script.</p>
+<h2 id="drawing">Drawing</h2>
+<p>For drawing, it is recommended to check the <code>doc_custom_drawing_in_2d</code> tutorial. The same applies. Some functions are worth mentioning due to their usefulness when drawing, so they will be detailed next:</p>
+<h3 id="checking-control-size">Checking control size</h3>
+<p>Unlike 2D nodes, "size" is important with controls, as it helps to organize them in proper layouts. For this, the ref property is provided. Checking it during <code>_draw()</code> is vital to ensure everything is kept in-bounds.</p>
+<h3 id="checking-focus">Checking focus</h3>
+<p>Some controls (such as buttons or text editors) might provide input focus for keyboard or joypad input. Examples of this are entering text or pressing a button. This is controlled with the ref property. When drawing, and if the control supports input focus, it is always desired to show some sort of indicator (highlight, box, etc.) to indicate that this is the currently focused control. To check for this status, the ref method exists. Example</p>
+<pre class="gdscript"><code>func _draw():
+    if has_focus():
+         draw_selected()
+    else:
+         draw_normal()</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span><span class="fu">HasFocus</span><span class="op">())</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">DrawSelected</span><span class="op">()</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">DrawNormal</span><span class="op">();</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="sizing">Sizing</h2>
+<p>As mentioned before, size is important to controls. This allows them to lay out properly, when set into grids, containers, or anchored. Controls, most of the time, provide a <em>minimum size</em> to help properly lay them out. For example, if controls are placed vertically on top of each other using a ref, the minimum size will make sure your custom control is not squished by the other controls in the container.</p>
+<p>To provide this callback, just override ref, for example:</p>
+<pre class="gdscript"><code>func get_minimum_size():
+    return Vector2(30, 30)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> Vector2 <span class="fu">_GetMinimumSize</span><span class="op">()</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">20</span><span class="op">,</span> <span class="dv">20</span><span class="op">);</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Alternatively, set it using a function:</p>
+<pre class="gdscript"><code>func _ready():
+    set_custom_minimum_size(Vector2(30, 30))</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SetCustomMinimumSize</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">20</span><span class="op">,</span> <span class="dv">20</span><span class="op">));</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="input">Input</h2>
+<p>Controls provide a few helpers to make managing input events much easier than regular nodes.</p>
+<h3 id="input-events">Input events</h3>
+<p>There are a few tutorials about input before this one, but it's worth mentioning that controls have a special input method that only works when:</p>
+<ul>
+<li>The mouse pointer is over the control.</li>
+<li>The button was pressed over this control (control always captures input until button is released)</li>
+<li>Control provides keyboard/joypad focus via ref.</li>
+</ul>
+<p>This function is ref. Simply override it in your control. No processing needs to be set.</p>
+<pre class="gdscript"><code>extends Control
+
+func _gui_input(event):
+   if event is InputEventMouseButton and event.button_index == BUTTON_LEFT and event.pressed:
+       print(&quot;Left mouse button was pressed!&quot;)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_GuiInput</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventMouseButton mbe <span class="op">&amp;&amp;</span> mbe<span class="op">.</span><span class="fu">ButtonIndex</span> <span class="op">==</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>ButtonList<span class="op">.</span><span class="fu">Left</span> <span class="op">&amp;&amp;</span> mbe<span class="op">.</span><span class="fu">Pressed</span><span class="op">)</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;Left mouse button was pressed!&quot;</span><span class="op">);</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>For more information about events themselves, check the <code>doc_inputevent</code> tutorial.</p>
+<h3 id="notifications">Notifications</h3>
+<p>Controls also have many useful notifications for which no dedicated callback exists, but which can be checked with the _notification callback:</p>
+<pre class="gdscript"><code>func _notification(what):
+    match what:
+        NOTIFICATION_MOUSE_ENTER:
+            pass # Mouse entered the area of this control.
+        NOTIFICATION_MOUSE_EXIT:
+            pass # Mouse exited the area of this control.
+        NOTIFICATION_FOCUS_ENTER:
+            pass # Control gained focus.
+        NOTIFICATION_FOCUS_EXIT:
+            pass # Control lost focus.
+        NOTIFICATION_THEME_CHANGED:
+            pass # Theme used to draw the control changed;
+            # update and redraw is recommended if using a theme.
+        NOTIFICATION_VISIBILITY_CHANGED:
+            pass # Control became visible/invisible;
+            # check new status with is_visible().
+        NOTIFICATION_RESIZED:
+            pass # Control changed size; check new size
+            # with get_size().
+        NOTIFICATION_MODAL_CLOSE:
+            pass # For modal pop-ups, notification
+            # that the pop-up was closed.</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Notification</span><span class="op">(</span><span class="dt">int</span> what<span class="op">)</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">switch</span> <span class="op">(</span>what<span class="op">)</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">case</span> NotificationMouseEnter<span class="op">:</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Mouse entered the area of this control.</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>            <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">case</span> NotificationMouseExit<span class="op">:</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Mouse exited the area of this control.</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>            <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        <span class="kw">case</span> NotificationFocusEnter<span class="op">:</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Control gained focus.</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>            <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">case</span> NotificationFocusExit<span class="op">:</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Control lost focus.</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>            <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>        <span class="kw">case</span> NotificationThemeChanged<span class="op">:</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Theme used to draw the control changed;</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>            <span class="co">// update and redraw is recommended if using a theme.</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>            <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>        <span class="kw">case</span> NotificationVisibilityChanged<span class="op">:</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Control became visible/invisible;</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>            <span class="co">// check new status with is_visible().</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>            <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>        <span class="kw">case</span> NotificationResized<span class="op">:</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Control changed size; check new size with get_size().</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>            <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>        <span class="kw">case</span> NotificationModalClose<span class="op">:</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>            <span class="co">// For modal pop-ups, notification that the pop-up was closed.</span></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>            <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

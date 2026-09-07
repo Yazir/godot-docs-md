@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shader preprocessor — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="shader-preprocessor">Shader preprocessor</h1>
+<h2 id="why-use-a-shader-preprocessor">Why use a shader preprocessor?</h2>
+<p>In programming languages, a <em>preprocessor</em> allows changing the code before the compiler reads it. Unlike the compiler, the preprocessor does not care about whether the syntax of the preprocessed code is valid. The preprocessor always performs what the <em>directives</em> tell it to do. A directive is a statement starting with a hash symbol (<code>#</code>). It is not a <em>keyword</em> of the shader language (such as <code>if</code> or <code>for</code>), but a special kind of token within the language.</p>
+<p>To avoid repetition and improve code reuse, you can use a shader preprocessor within text-based shaders. The syntax is similar to what most GLSL shader compilers support (which in turn is similar to the C/C++ preprocessor).</p>
+<blockquote>
+<p><strong>Note:</strong> The shader preprocessor is not available in ref. If you need to introduce preprocessor statements to a visual shader, you can convert it to a text-based shader using the <strong>Convert to Shader</strong> option in the VisualShader inspector resource dropdown. This conversion is a one-way operation; text shaders cannot be converted back to visual shaders.</p>
+</blockquote>
+<h2 id="directives">Directives</h2>
+<h3 id="general-syntax">General syntax</h3>
+<ul>
+<li>Preprocessor directives do not use brackets (<code>{}</code>), but can use parentheses.</li>
+<li>Preprocessor directives <strong>never</strong> end with semicolons (with the exception of <code>#define</code>, where this is allowed but potentially dangerous).</li>
+<li>Preprocessor directives can span several lines by ending each line with a backslash (<code>\</code>). The first line break <em>not</em> featuring a backslash will end the preprocessor statement.</li>
+</ul>
+<h3 id="define">#define</h3>
+<p><strong>Syntax:</strong> <code>#define &lt;identifier&gt; [replacement_code]</code>.</p>
+<p>Defines the identifier after that directive as a macro, and replaces all successive occurrences of it with the replacement code given in the shader. Replacement is performed on a "whole words" basis, which means no replacement is performed if the string is part of another string (without any spaces or operators separating it).</p>
+<p>Defines with replacements may also have one or more <em>arguments</em>, which can then be passed when referencing the define (similar to a function call).</p>
+<p>If the replacement code is not defined, the identifier may only be used with <code>#ifdef</code> or <code>#ifndef</code> directives.</p>
+<p>If the <em>concatenation</em> symbol (<code>##</code>) is present in the replacement code then it will be removed upon macro insertion, together with any space surrounding it, and join the surrounding words and arguments into a new token.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">sampler2D</span> material0<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#define SAMPLE(N) vec4 tex##N = texture(material##N, UV)</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SAMPLE</span><span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    ALBEDO <span class="op">=</span> tex0<span class="op">.</span><span class="fu">rgb</span><span class="op">;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Compared to constants (<code>const CONSTANT = value;</code>), <code>#define</code> can be used anywhere within the shader (including in uniform hints). <code>#define</code> can also be used to insert arbitrary shader code at any location, while constants can't do that.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>shader_type spatial<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Notice the lack of semicolon at the end of the line, as the replacement text</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">// shouldn&#39;t insert a semicolon on its own.</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">// If the directive ends with a semicolon, the semicolon is inserted in every usage</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">// of the directive, even when this causes a syntax error.</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#define USE_MY_COLOR</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="pp">#define MY_COLOR vec3(1, 0, 0)</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">// Replacement with arguments.</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">// All arguments are required (no default values can be provided).</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="pp">#define BRIGHTEN_COLOR(r, g, b) vec3(r + 0.5, g + 0.5, b + 0.5)</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">// Multiline replacement using backslashes for continuation:</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="pp">#define SAMPLE(param1, param2, param3, param4) long_function_call( \</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        param1<span class="op">,</span> \</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        param2<span class="op">,</span> \</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        param3<span class="op">,</span> \</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        param4 \</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifdef USE_MY_COLOR</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    ALBEDO <span class="op">=</span> MY_COLOR<span class="op">;</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Defining a <code>#define</code> for an identifier that is already defined results in an error. To prevent this, use #undef.</p>
+<h3 id="undef">#undef</h3>
+<p><strong>Syntax:</strong> <code>#undef identifier</code></p>
+<p>The <code>#undef</code> directive may be used to cancel a previously defined <code>#define</code> directive:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define MY_COLOR vec3(1, 0, 0)</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="dt">vec3</span> <span class="fu">get_red_color</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> MY_COLOR<span class="op">;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#undef MY_COLOR</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="pp">#define MY_COLOR vec3(0, 1, 0)</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="dt">vec3</span> <span class="fu">get_green_color</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> MY_COLOR<span class="op">;</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="co">// Like in most preprocessors, undefining a define that was not previously defined is allowed</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co">// (and won&#39;t print any warning or error).</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="pp">#undef THIS_DOES_NOT_EXIST</span></span></code></pre></div>
+<p>Without <code>#undef</code> in the above example, there would be a macro redefinition error.</p>
+<h3 id="if">#if</h3>
+<p><strong>Syntax:</strong> #if</p>
+<p>The <code>#if</code> directive checks whether the <code>condition</code> passed. If it evaluates to a non-zero value, the code block is included, otherwise it is skipped.</p>
+<p>To evaluate correctly, the condition must be an expression giving a simple floating-point, integer or boolean result. There may be multiple condition blocks connected by <code>&amp;&amp;</code> (AND) or <code>||</code> (OR) operators. It may be continued by an <code>#else</code> block, but <strong>must</strong> be ended with the <code>#endif</code> directive.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define VAR 3</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#define USE_LIGHT 0 // Evaluates to `false`.</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#define USE_COLOR 1 // Evaluates to `true`.</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#if VAR == 3 &amp;&amp; (USE_LIGHT || USE_COLOR)</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Condition is `true`. Include this portion in the final shader.</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<p>Using the <code>defined()</code> <em>preprocessor function</em>, you can check whether the passed identifier is defined a by <code>#define</code> placed above that directive. This is useful for creating multiple shader versions in the same file. It may be continued by an <code>#else</code> block, but must be ended with the <code>#endif</code> directive.</p>
+<p>The <code>defined()</code> function's result can be negated by using the <code>!</code> (boolean NOT) symbol in front of it. This can be used to check whether a define is <em>not</em> set.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define USE_LIGHT</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#define USE_COLOR</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Correct syntax:</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#if defined(USE_LIGHT) || defined(USE_COLOR) || !defined(USE_REFRACTION)</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Condition is `true`. Include this portion in the final shader.</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<p>Be careful, as <code>defined()</code> must only wrap a single identifier within parentheses, never more:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Incorrect syntax (parentheses are not placed where they should be):</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#if defined(USE_LIGHT || USE_COLOR || !USE_REFRACTION)</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">// This will cause an error or not behave as expected.</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<blockquote>
+<p><strong>Tip:</strong> In the shader editor, preprocessor branches that evaluate to <code>false</code> (and are therefore excluded from the final compiled shader) will appear grayed out. This does not apply to runtime <code>if</code> statements.</p>
+</blockquote>
+<p><strong>#if preprocessor versus if statement: Performance caveats</strong></p>
+<p>The ref supports runtime <code>if</code> statements:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">bool</span> USE_LIGHT <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>USE_LIGHT<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// This part is included in the compiled shader, and always run.</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// This part is included in the compiled shader, but never run.</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>If the uniform is never changed, this behaves identical to the following usage of the <code>#if</code> preprocessor statement:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define USE_LIGHT</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#if defined(USE_LIGHT)</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// This part is included in the compiled shader, and always run.</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#else</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">// This part is *not* included in the compiled shader (and therefore never run).</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<p>However, the <code>#if</code> variant can be faster in certain scenarios. This is because all runtime branches in a shader are still compiled and variables within those branches may still take up register space, even if they are never run in practice.</p>
+<p>Modern GPUs are <a href="https://medium.com/@jasonbooth_86226/branching-on-a-gpu-18bfc83694f2">quite effective</a> at performing "static" branching. "Static" branching refers to <code>if</code> statements where <em>all</em> pixels/vertices evaluate to the same result in a given shader invocation. However, high amounts of <code>VGPRs (Vector General-Purpose Register)</code> (which can be caused by having too many branches) can still slow down shader execution significantly.</p>
+<h3 id="elif">#elif</h3>
+<p>The <code>#elif</code> directive stands for "else if" and checks the condition passed if the above <code>#if</code> evaluated to <code>false</code>. <code>#elif</code> can only be used within an <code>#if</code> block. It is possible to use several <code>#elif</code> statements after an <code>#if</code> statement.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define VAR 2</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#if VAR == 0</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Not included.</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#elif VAR == 1</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Not included.</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#elif VAR == 2</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">// Condition is `true`. Include this portion in the final shader.</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="pp">#else</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="co">// Not included.</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<p>Like with <code>#if</code>, the <code>defined()</code> preprocessor function can be used:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define SHADOW_QUALITY_MEDIUM</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#if defined(SHADOW_QUALITY_HIGH)</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">// High shadow quality.</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#elif defined(SHADOW_QUALITY_MEDIUM)</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Medium shadow quality.</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#else</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co">// Low shadow quality.</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<h3 id="ifdef">#ifdef</h3>
+<p><strong>Syntax:</strong> #ifdef</p>
+<p>This is a shorthand for <code>#if defined(...)</code>. Checks whether the passed identifier is defined by <code>#define</code> placed above that directive. This is useful for creating multiple shader versions in the same file. It may be continued by an <code>#else</code> block, but must be ended with the <code>#endif</code> directive.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define USE_LIGHT</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifdef USE_LIGHT</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">// USE_LIGHT is defined. Include this portion in the final shader.</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<p>The processor does <em>not</em> support <code>#elifdef</code> as a shortcut for <code>#elif defined(...)</code>. Instead, use the following series of <code>#ifdef</code> and <code>#else</code> when you need more than two branches:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define SHADOW_QUALITY_MEDIUM</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifdef SHADOW_QUALITY_HIGH</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co">// High shadow quality.</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#else</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifdef SHADOW_QUALITY_MEDIUM</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Medium shadow quality.</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="pp">#else</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co">// Low shadow quality.</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif // This ends `SHADOW_QUALITY_MEDIUM`&#39;s branch.</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif // This ends `SHADOW_QUALITY_HIGH`&#39;s branch.</span></span></code></pre></div>
+<h3 id="ifndef">#ifndef</h3>
+<p><strong>Syntax:</strong> #ifndef</p>
+<p>This is a shorthand for <code>#if !defined(...)</code>. Similar to <code>#ifdef</code>, but checks whether the passed identifier is <strong>not</strong> defined by <code>#define</code> before that directive.</p>
+<p>This is the exact opposite of <code>#ifdef</code>; it will always match in situations where <code>#ifdef</code> would never match, and vice versa.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define USE_LIGHT</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifndef USE_LIGHT</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Evaluates to `false`. This portion won&#39;t be included in the final shader.</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifndef USE_COLOR</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="co">// Evaluates to `true`. This portion will be included in the final shader.</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<h3 id="else">#else</h3>
+<p><strong>Syntax:</strong> <code>#else</code></p>
+<p>Defines the optional block which is included when the previously defined <code>#if</code>, <code>#elif</code>, <code>#ifdef</code> or <code>#ifndef</code> directive evaluates to false.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>shader_type spatial<span class="op">;</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#define MY_COLOR vec3(1.0, 0, 0)</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifdef MY_COLOR</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    ALBEDO <span class="op">=</span> MY_COLOR<span class="op">;</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="pp">#else</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    ALBEDO <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">);</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="endif">#endif</h3>
+<p><strong>Syntax:</strong> <code>#endif</code></p>
+<p>Used as terminator for the <code>#if</code>, <code>#ifdef</code>, <code>#ifndef</code> or subsequent <code>#else</code> directives.</p>
+<h3 id="error">#error</h3>
+<p><strong>Syntax:</strong> #error</p>
+<p>The <code>#error</code> directive forces the preprocessor to emit an error with optional message. For example, it's useful when used within <code>#if</code> block to provide a strict limitation of the defined value.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define MAX_LOD 3</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#define LOD 4</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#if LOD &gt; MAX_LOD</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#error LOD exceeds MAX_LOD</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<h3 id="include">#include</h3>
+<p><strong>Syntax:</strong> <code>#include "path"</code></p>
+<p>The <code>#include</code> directive includes the <em>entire</em> content of a shader include file in a shader. <code>"path"</code> can be an absolute <code>res://</code> path or relative to the current shader file. Relative paths are only allowed in shaders that are saved to <code>.gdshader</code> or <code>.gdshaderinc</code> files, while absolute paths can be used in shaders that are built into a scene/resource file.</p>
+<p>You can create new shader includes by using the <strong>File &gt; Create Shader Include</strong> menu option of the shader editor, or by creating a new ref resource in the FileSystem dock.</p>
+<p>Shader includes can be included from within any shader, or other shader include, at any point in the file.</p>
+<p>When including shader includes in the global scope of a shader, it is recommended to do this after the initial <code>shader_type</code> statement.</p>
+<p>You can also include shader includes from within the body a function. Please note that the shader editor is likely going to report errors for your shader include's code, as it may not be valid outside of the context that it was written for. You can either choose to ignore these errors (the shader will still compile fine), or you can wrap the include in an <code>#ifdef</code> block that checks for a define from your shader.</p>
+<p><code>#include</code> is useful for creating libraries of helper functions (or macros) and reducing code duplication. When using <code>#include</code>, be careful about naming collisions, as redefining functions or macros is not allowed.</p>
+<p><code>#include</code> is subject to several restrictions:</p>
+<ul>
+<li>Only shader include resources (ending with <code>.gdshaderinc</code>) can be included. <code>.gdshader</code> files cannot be included by another shader, but a <code>.gdshaderinc</code> file can include other <code>.gdshaderinc</code> files.</li>
+<li>Cyclic dependencies are <strong>not</strong> allowed and will result in an error.</li>
+<li>To avoid infinite recursion, include depth is limited to 25 steps.</li>
+</ul>
+<p>Example shader include file:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// fancy_color.gdshaderinc</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">// While technically allowed, there is usually no `shader_type` declaration in include files.</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="dt">vec3</span> <span class="fu">get_fancy_color</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">0.3</span><span class="op">,</span> <span class="fl">0.6</span><span class="op">,</span> <span class="fl">0.9</span><span class="op">);</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Example base shader (using the include file we created above):</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">// material.gdshader</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>shader_type spatial<span class="op">;</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include &quot;res://fancy_color.gdshaderinc&quot;</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// No error, as we&#39;ve included a definition for `get_fancy_color()` via the shader include.</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    COLOR <span class="op">=</span> <span class="fu">get_fancy_color</span><span class="op">();</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="pragma">#pragma</h3>
+<p><strong>Syntax:</strong> <code>#pragma value</code></p>
+<p>The <code>#pragma</code> directive provides additional information to the preprocessor or compiler.</p>
+<p>Currently, it may have only one value: <code>disable_preprocessor</code>. If you don't need the preprocessor, use that directive to speed up shader compilation by excluding the preprocessor step.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma disable_preprocessor</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#if USE_LIGHT</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co">// This causes a shader compilation error, as the `#if USE_LIGHT` and `#endif`</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co">// are included as-is in the final shader code.</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<h2 id="built-in-defines">Built-in defines</h2>
+<h3 id="current-renderer">Current renderer</h3>
+<p>Since Godot 4.4, you can check which renderer is currently used with the built-in defines <code>CURRENT_RENDERER</code>, <code>RENDERER_COMPATIBILITY</code>, <code>RENDERER_MOBILE</code>, and <code>RENDERER_FORWARD_PLUS</code>:</p>
+<ul>
+<li><code>CURRENT_RENDERER</code> is set to either <code>0</code>, <code>1</code>, or <code>2</code> depending on the current renderer.</li>
+<li><code>RENDERER_COMPATIBILITY</code> is always <code>0</code>.</li>
+<li><code>RENDERER_MOBILE</code> is always <code>1</code>.</li>
+<li><code>RENDERER_FORWARD_PLUS</code> is always <code>2</code>.</li>
+</ul>
+<p>As an example, this shader sets <code>ALBEDO</code> to a different color in each renderer:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>shader_type spatial<span class="op">;</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#if CURRENT_RENDERER == RENDERER_COMPATIBILITY</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    ALBEDO <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">0.0</span><span class="op">,</span> <span class="fl">0.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">);</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#elif CURRENT_RENDERER == RENDERER_MOBILE</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    ALBEDO <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">1.0</span><span class="op">,</span> <span class="fl">0.0</span><span class="op">,</span> <span class="fl">0.0</span><span class="op">);</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="pp">#else // CURRENT_RENDERER == RENDERER_FORWARD_PLUS</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    ALBEDO <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">0.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">,</span> <span class="fl">0.0</span><span class="op">);</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

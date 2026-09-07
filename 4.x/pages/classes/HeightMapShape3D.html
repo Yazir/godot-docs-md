@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HeightMapShape3D — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="heightmapshape3d">HeightMapShape3D</h1>
+<p><em>Inherits: <a href="Shape3D.html">Shape3D</a> &lt; <a href="Resource.html">Resource</a> &lt; <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>A 3D heightmap shape used for physics collision.</p>
+<h2 id="description">Description</h2>
+<p>A 3D heightmap shape, intended for use in physics to provide a shape for a <a href="CollisionShape3D.html">CollisionShape3D</a>. This type is most commonly used for terrain with vertices placed in a fixed-width grid.</p>
+<p>The heightmap is represented as a 2D grid of height values, which represent the position of grid points on the Y axis. Grid points are spaced 1 unit apart on the X and Z axes, and the grid is centered on the origin of the <a href="CollisionShape3D.html">CollisionShape3D</a> node. Internally, each grid square is divided into two triangles.</p>
+<p>Due to the nature of the heightmap, it cannot be used to model overhangs or caves, which would require multiple vertices at the same vertical location. Holes can be punched through the collision by assigning <code>@GDScript.NAN</code> to the height of the desired vertices (this is supported in both GodotPhysics3D and Jolt Physics). You could then insert meshes with their own separate collision to provide overhangs, caves, and so on.</p>
+<p><strong>Performance:</strong> <strong>HeightMapShape3D</strong> is faster to check collisions against than <a href="ConcavePolygonShape3D.html">ConcavePolygonShape3D</a>, but it is significantly slower than primitive shapes like <a href="BoxShape3D.html">BoxShape3D</a>.</p>
+<p>A heightmap collision shape can also be built by using an <a href="Image.html">Image</a> reference:</p>
+<pre class="gdscript"><code>var heightmap_texture = ResourceLoader.load(&quot;res://heightmap_image.exr&quot;)
+var heightmap_image = heightmap_texture.get_image()
+heightmap_image.convert(Image.FORMAT_RF)
+
+var height_min = 0.0
+var height_max = 10.0
+
+update_map_data_from_image(heightmap_image, height_min, height_max)</code></pre>
+<p><strong>Note:</strong> If you need to use a spacing different than 1 unit, you can adjust the <code>Node3D.scale</code> of the shape. However, keep in mind that GodotPhysics3D does not support non-uniform scaling: you'll need to scale the Y axis by the same amount as the X and Z axes, which means the values in <code>map_data</code> will need to be pre-scaled by the inverse of that scale. Also note that GodotPhysics3D does not support scaling at all for dynamic bodies (that is, non-frozen <a href="RigidBody3D.html">RigidBody3D</a> nodes); to use a scaled <strong>HeightMapShape3D</strong> with those, you will need to use Jolt Physics.</p>
+<h2 id="properties">Properties</h2>
+<h3 id="packedfloat32array-map_data--packedfloat32array0-0-0-0"><code>PackedFloat32Array map_data = PackedFloat32Array(0, 0, 0, 0)</code></h3>
+<ul>
+<li>Setter: <code>set_map_data(value: PackedFloat32Array)</code></li>
+<li>Getter: <code>get_map_data()</code></li>
+</ul>
+<p>Heightmap data. The array's size must be equal to <code>map_width</code> multiplied by <code>map_depth</code>.</p>
+<p><strong>Note:</strong> The returned array is <em>copied</em> and any changes to it will not update the original property value. See <a href="PackedFloat32Array.html">PackedFloat32Array</a> for more details.</p>
+<h3 id="int-map_depth--2"><code>int map_depth = 2</code></h3>
+<ul>
+<li>Setter: <code>set_map_depth(value: int)</code></li>
+<li>Getter: <code>get_map_depth()</code></li>
+</ul>
+<p>Number of vertices in the depth of the heightmap. Changing this will resize the <code>map_data</code>.</p>
+<h3 id="int-map_width--2"><code>int map_width = 2</code></h3>
+<ul>
+<li>Setter: <code>set_map_width(value: int)</code></li>
+<li>Getter: <code>get_map_width()</code></li>
+</ul>
+<p>Number of vertices in the width of the heightmap. Changing this will resize the <code>map_data</code>.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="float-get_max_height-const"><code>float get_max_height() const</code></h3>
+<p>Returns the largest height value found in <code>map_data</code>. Recalculates only when <code>map_data</code> changes.</p>
+<h3 id="float-get_min_height-const"><code>float get_min_height() const</code></h3>
+<p>Returns the smallest height value found in <code>map_data</code>. Recalculates only when <code>map_data</code> changes.</p>
+<h3 id="void-update_map_data_from_imageimage-image-height_min-float-height_max-float"><code>void update_map_data_from_image(image: Image, height_min: float, height_max: float)</code></h3>
+<p>Updates <code>map_data</code> with data read from an <a href="Image.html">Image</a> reference. Automatically resizes heightmap <code>map_width</code> and <code>map_depth</code> to fit the full image width and height.</p>
+<p>The image needs to be in either <code>Image.FORMAT_RF</code> (32 bit), <code>Image.FORMAT_RH</code> (16 bit), or <code>Image.FORMAT_R8</code> (8 bit).</p>
+<p>Each image pixel is read in as a float on the range from <code>0.0</code> (black pixel) to <code>1.0</code> (white pixel). This range value gets remapped to <code>height_min</code> and <code>height_max</code> to form the final height value.</p>
+<p><strong>Note:</strong> Using a heightmap with 16-bit or 32-bit data, stored in EXR or HDR format is recommended. Using 8-bit height data, or a format like PNG that Godot imports as 8-bit, will result in a terraced terrain.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Handling compatibility breakages — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="handling-compatibility-breakages">Handling compatibility breakages</h1>
+<p>So you've added a new parameter to a method, changed the return type, changed the type of a parameter, or changed its default value, and now the automated testing is complaining about compatibility breakages?</p>
+<p>Breaking compatibility should be avoided, but when necessary there are systems in place to handle this in a way that makes the transition as smooth as possible.</p>
+<h2 id="a-practical-example">A practical example</h2>
+<p>These changes are taken from <a href="https://github.com/godotengine/godot/pull/88047">pull request #88047</a>, which added new pathing options to <code>AStarGrid2D</code> and other AStar classes. Among other changes, these methods were modified in <code>core/math/a_star_grid_2d.h</code>:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>Vector<span class="op">&lt;</span>Vector2<span class="op">&gt;</span> get_point_path<span class="op">(</span><span class="at">const</span> Vector2i <span class="op">&amp;</span>p_from<span class="op">,</span> <span class="at">const</span> Vector2i <span class="op">&amp;</span>p_to<span class="op">);</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>TypedArray<span class="op">&lt;</span>Vector2i<span class="op">&gt;</span> get_id_path<span class="op">(</span><span class="at">const</span> Vector2i <span class="op">&amp;</span>p_from<span class="op">,</span> <span class="at">const</span> Vector2i <span class="op">&amp;</span>p_to<span class="op">);</span></span></code></pre></div>
+<p>To:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>Vector<span class="op">&lt;</span>Vector2<span class="op">&gt;</span> get_point_path<span class="op">(</span><span class="at">const</span> Vector2i <span class="op">&amp;</span>p_from<span class="op">,</span> <span class="at">const</span> Vector2i <span class="op">&amp;</span>p_to<span class="op">,</span> <span class="dt">bool</span> p_allow_partial_path <span class="op">=</span> <span class="kw">false</span><span class="op">);</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>TypedArray<span class="op">&lt;</span>Vector2i<span class="op">&gt;</span> get_id_path<span class="op">(</span><span class="at">const</span> Vector2i <span class="op">&amp;</span>p_from<span class="op">,</span> <span class="at">const</span> Vector2i <span class="op">&amp;</span>p_to<span class="op">,</span> <span class="dt">bool</span> p_allow_partial_path <span class="op">=</span> <span class="kw">false</span><span class="op">);</span></span></code></pre></div>
+<p>This meant adding new compatibility method bindings to the file, which should be in the <code>protected</code> section of the code, usually placed next to <code>_bind_methods()</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifndef DISABLE_DEPRECATED</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    TypedArray<span class="op">&lt;</span>Vector2i<span class="op">&gt;</span> _get_id_path_bind_compat_88047<span class="op">(</span><span class="at">const</span> Vector2i <span class="op">&amp;</span>p_from<span class="op">,</span> <span class="at">const</span> Vector2i <span class="op">&amp;</span>p_to<span class="op">);</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    Vector<span class="op">&lt;</span>Vector2<span class="op">&gt;</span> _get_point_path_bind_compat_88047<span class="op">(</span><span class="at">const</span> Vector2i <span class="op">&amp;</span>p_from<span class="op">,</span> <span class="at">const</span> Vector2i <span class="op">&amp;</span>p_to<span class="op">);</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> _bind_compatibility_methods<span class="op">();</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<p>They should start with an <code>_</code> to indicate that they are internal, and end with <code>_bind_compat_</code> followed by the PR number that introduced the change (<code>88047</code> in this example). These compatibility methods need to be implemented in a dedicated file, like <code>core/math/a_star_grid_2d.compat.inc</code> in this case:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**************************************************************************/</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">/*  a_star_grid_2d.compat.inc                                             */</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">/**************************************************************************/</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">/*                         This file is part of:                          */</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">/*                             GODOT ENGINE                               */</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">/*                        https://godotengine.org                         */</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">/**************************************************************************/</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">/* Copyright (c) 2014-present Godot Engine contributors (see AUTHORS.md). */</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co">/* Copyright (c) 2007-2014 Juan Linietsky, Ariel Manzur.                  */</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">/*                                                                        */</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co">/* Permission is hereby granted, free of charge, to any person obtaining  */</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co">/* a copy of this software and associated documentation files (the        */</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="co">/* &quot;Software&quot;), to deal in the Software without restriction, including    */</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="co">/* without limitation the rights to use, copy, modify, merge, publish,    */</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co">/* distribute, sublicense, and/or sell copies of the Software, and to     */</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="co">/* permit persons to whom the Software is furnished to do so, subject to  */</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="co">/* the following conditions:                                              */</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="co">/*                                                                        */</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="co">/* The above copyright notice and this permission notice shall be         */</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="co">/* included in all copies or substantial portions of the Software.        */</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="co">/*                                                                        */</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="co">/* THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND,        */</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="co">/* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF     */</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="co">/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. */</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="co">/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY   */</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="co">/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,   */</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a><span class="co">/* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE      */</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a><span class="co">/* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="co">/**************************************************************************/</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifndef DISABLE_DEPRECATED</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;core/variant/typed_array.h&quot;</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>TypedArray<span class="op">&lt;</span>Vector2i<span class="op">&gt;</span> AStarGrid2D<span class="op">::</span>_get_id_path_bind_compat_88047<span class="op">(</span><span class="at">const</span> Vector2i <span class="op">&amp;</span>p_from_id<span class="op">,</span> <span class="at">const</span> Vector2i <span class="op">&amp;</span>p_to_id<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> get_id_path<span class="op">(</span>p_from_id<span class="op">,</span> p_to_id<span class="op">,</span> <span class="kw">false</span><span class="op">);</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>Vector<span class="op">&lt;</span>Vector2<span class="op">&gt;</span> AStarGrid2D<span class="op">::</span>_get_point_path_bind_compat_88047<span class="op">(</span><span class="at">const</span> Vector2i <span class="op">&amp;</span>p_from_id<span class="op">,</span> <span class="at">const</span> Vector2i <span class="op">&amp;</span>p_to_id<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> get_point_path<span class="op">(</span>p_from_id<span class="op">,</span> p_to_id<span class="op">,</span> <span class="kw">false</span><span class="op">);</span></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> AStarGrid2D<span class="op">::</span>_bind_compatibility_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>bind_compatibility_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;get_id_path&quot;</span><span class="op">,</span> <span class="st">&quot;from_id&quot;</span><span class="op">,</span> <span class="st">&quot;to_id&quot;</span><span class="op">),</span> <span class="op">&amp;</span>AStarGrid2D<span class="op">::</span>_get_id_path_bind_compat_88047<span class="op">);</span></span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>bind_compatibility_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;get_point_path&quot;</span><span class="op">,</span> <span class="st">&quot;from_id&quot;</span><span class="op">,</span> <span class="st">&quot;to_id&quot;</span><span class="op">),</span> <span class="op">&amp;</span>AStarGrid2D<span class="op">::</span>_get_point_path_bind_compat_88047<span class="op">);</span></span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif </span><span class="co">// DISABLE_DEPRECATED</span></span></code></pre></div>
+<p>Unless the change in compatibility is complex, the compatibility method should call the modified method directly, instead of duplicating that method. Make sure to match the default arguments for that method (in the example above this would be <code>false</code>).</p>
+<p>This file should always be placed next to the original file, and have <code>.compat.inc</code> at the end instead of <code>.cpp</code> or <code>.h</code>. Next, this should be included in the <code>.cpp</code> file we're adding compatibility methods to, so <code>core/math/a_star_grid_2d.cpp</code>:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;a_star_grid_2d.h&quot;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;a_star_grid_2d.compat.inc&quot;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;core/variant/typed_array.h&quot;</span></span></code></pre></div>
+<p>Finally, the GDExtension API changes need to be recorded. To do this, first compile Godot on the <code>master</code> branch, and then run it with the <code>--dump-extension-api</code> flag:</p>
+<pre class="shell"><code>git switch master
+scons
+godot --dump-extension-api</code></pre>
+<p>This will create a file named <code>extension_api.json</code> in your current directory. Switch to your feature branch, recompile Godot, and then run it with the <code>--validate-extension-api</code> flag followed by the path to the <code>extension_api.json</code> file you just generated:</p>
+<pre class="shell"><code>git switch my-feature-branch
+scons
+godot --validate-extension-api /path/to/extension_api.json</code></pre>
+<p>This will generate some lines starting with <code>Validate extension JSON</code> like so:</p>
+<pre class="text"><code>Validate extension JSON: Error: Field &#39;classes/AStar2D/methods/get_id_path/arguments&#39;: size changed value in new API, from 2 to 3.
+Validate extension JSON: Error: Field &#39;classes/AStar2D/methods/get_point_path/arguments&#39;: size changed value in new API, from 2 to 3.
+Validate extension JSON: Error: Field &#39;classes/AStar3D/methods/get_id_path/arguments&#39;: size changed value in new API, from 2 to 3.
+Validate extension JSON: Error: Field &#39;classes/AStar3D/methods/get_point_path/arguments&#39;: size changed value in new API, from 2 to 3.
+Validate extension JSON: Error: Field &#39;classes/AStarGrid2D/methods/get_id_path/arguments&#39;: size changed value in new API, from 2 to 3.
+Validate extension JSON: Error: Field &#39;classes/AStarGrid2D/methods/get_point_path/arguments&#39;: size changed value in new API, from 2 to 3.</code></pre>
+<blockquote>
+<p><strong>Attention:</strong> If you get a <code>Hash changed</code> error for a method, it means that the compatibility binding is missing or incorrect. Such lines shouldn't be added to the validation file, but fixed by binding the proper compatibility method. Make sure to double-check the following:</p>
+<ul>
+<li>For the compatibility method (the one whose name ends with the PR number), the argument types, names, and default values must be identical to the version of the method from before your changes.</li>
+<li>In <code>_bind_compatibility_methods()</code>, argument names provided to the <code>D_METHOD()</code> macro in <code>ClassDB::bind_compatibility_method()</code> must be identical to those from the <code>ClassDB::bind_method()</code> call for the original method.</li>
+</ul>
+</blockquote>
+<p>Add these lines, followed by a comment explaining what the API change was and the actions taken to prevent breakage, to a validation file named after the GitHub pull request ID and placed in the folder of the Godot version it would have broken compatibility for.</p>
+<p>Since this example was for PR #88047, its file name would be <code>GH-88047.txt</code>, and because this was done during the development of 4.3 (thus changing from 4.2), the file would be in the <code>misc/extension_api_validation/4.2-stable/</code> folder.</p>
+<p>See below for a complete example of such a file for this PR:</p>
+<pre class="text"><code>GH-88047
+--------
+Validate extension JSON: Error: Field &#39;classes/AStar2D/methods/get_id_path/arguments&#39;: size changed value in new API, from 2 to 3.
+Validate extension JSON: Error: Field &#39;classes/AStar2D/methods/get_point_path/arguments&#39;: size changed value in new API, from 2 to 3.
+Validate extension JSON: Error: Field &#39;classes/AStar3D/methods/get_id_path/arguments&#39;: size changed value in new API, from 2 to 3.
+Validate extension JSON: Error: Field &#39;classes/AStar3D/methods/get_point_path/arguments&#39;: size changed value in new API, from 2 to 3.
+Validate extension JSON: Error: Field &#39;classes/AStarGrid2D/methods/get_id_path/arguments&#39;: size changed value in new API, from 2 to 3.
+Validate extension JSON: Error: Field &#39;classes/AStarGrid2D/methods/get_point_path/arguments&#39;: size changed value in new API, from 2 to 3.
+
+Added optional &quot;allow_partial_path&quot; argument to get_id_path and get_point_path methods in AStar classes.
+Compatibility methods registered.</code></pre>
+<p>And that's it! You might run into a bit more complicated cases, like rearranging arguments, changing return types, etc., but this covers the basics on how to use this system.</p>
+<p>For more information, see <a href="https://github.com/godotengine/godot/pull/76446">pull request #76446</a>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

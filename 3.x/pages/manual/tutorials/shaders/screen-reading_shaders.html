@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screen-reading shaders — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="screen-reading-shaders">Screen-reading shaders</h1>
+<h2 id="introduction">Introduction</h2>
+<p>It is often desired to make a shader that reads from the same screen to which it's writing. 3D APIs, such as OpenGL or DirectX, make this very difficult because of internal hardware limitations. GPUs are extremely parallel, so reading and writing causes all sorts of cache and coherency problems. As a result, not even the most modern hardware supports this properly.</p>
+<p>The workaround is to make a copy of the screen, or a part of the screen, to a back-buffer and then read from it while drawing. Godot provides a few tools that make this process easy.</p>
+<h2 id="screen_texture-built-in-texture">SCREEN_TEXTURE built-in texture</h2>
+<p>Godot <code>doc_shading_language</code> has a special texture, <code>SCREEN_TEXTURE</code> (and <code>DEPTH_TEXTURE</code> for depth, in the case of 3D). It takes as argument the UV of the screen and returns a vec3 RGB with the color. A special built-in varying: SCREEN_UV can be used to obtain the UV for the current fragment. As a result, this simple canvas_item fragment shader:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    COLOR <span class="op">=</span> <span class="bu">textureLod</span><span class="op">(</span>SCREEN_TEXTURE<span class="op">,</span> SCREEN_UV<span class="op">,</span> <span class="fl">0.0</span><span class="op">);</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>results in an invisible object, because it just shows what lies behind.</p>
+<p>The reason why textureLod must be used is because, when Godot copies back a chunk of the screen, it also does an efficient separatable gaussian blur to its mipmaps.</p>
+<p>This allows for not only reading from the screen, but reading from it with different amounts of blur at no cost.</p>
+<blockquote>
+<p><strong>Note:</strong> Mipmaps are not generated in GLES2 due to poor performance and compatibility with older devices.</p>
+</blockquote>
+<h2 id="screen_texture-example">SCREEN_TEXTURE example</h2>
+<p><code>SCREEN_TEXTURE</code> can be used for many things. There is a special demo for <em>Screen Space Shaders</em>, that you can download to see and learn. One example is a simple shader to adjust brightness, contrast and saturation:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>shader_type canvas_item<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> brightness <span class="op">=</span> <span class="fl">1.0</span><span class="op">;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> contrast <span class="op">=</span> <span class="fl">1.0</span><span class="op">;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> saturation <span class="op">=</span> <span class="fl">1.0</span><span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vec3</span> c <span class="op">=</span> <span class="bu">textureLod</span><span class="op">(</span>SCREEN_TEXTURE<span class="op">,</span> SCREEN_UV<span class="op">,</span> <span class="fl">0.0</span><span class="op">).</span><span class="fu">rgb</span><span class="op">;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    c<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> <span class="bu">mix</span><span class="op">(</span><span class="dt">vec3</span><span class="op">(</span><span class="fl">0.0</span><span class="op">),</span> c<span class="op">.</span><span class="fu">rgb</span><span class="op">,</span> brightness<span class="op">);</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    c<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> <span class="bu">mix</span><span class="op">(</span><span class="dt">vec3</span><span class="op">(</span><span class="fl">0.5</span><span class="op">),</span> c<span class="op">.</span><span class="fu">rgb</span><span class="op">,</span> contrast<span class="op">);</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    c<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> <span class="bu">mix</span><span class="op">(</span><span class="dt">vec3</span><span class="op">(</span><span class="bu">dot</span><span class="op">(</span><span class="dt">vec3</span><span class="op">(</span><span class="fl">1.0</span><span class="op">),</span> c<span class="op">.</span><span class="fu">rgb</span><span class="op">)</span> <span class="op">*</span> <span class="fl">0.33333</span><span class="op">),</span> c<span class="op">.</span><span class="fu">rgb</span><span class="op">,</span> saturation<span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    COLOR<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> c<span class="op">;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="behind-the-scenes">Behind the scenes</h2>
+<p>While this seems magical, it's not. In 2D, the <code>SCREEN_TEXTURE</code> built-in, when first found in a node that is about to be drawn, does a full-screen copy to a back-buffer. Subsequent nodes that use it in shaders will not have the screen copied for them, because this ends up being inefficient. In 3D, the screen is copied after the opaque geometry pass, but before the transparent geometry pass, so transparent objects will not be captured in the <code>SCREEN_TEXTURE</code>.</p>
+<p>As a result, in 2D, if shaders that use <code>SCREEN_TEXTURE</code> overlap, the second one will not use the result of the first one, resulting in unexpected visuals:</p>
+<p>In the above image, the second sphere (top right) is using the same source for <code>SCREEN_TEXTURE</code> as the first one below, so the first one "disappears", or is not visible.</p>
+<p>In 2D, this can be corrected via the ref node, which can be instantiated between both spheres. BackBufferCopy can work by either specifying a screen region or the whole screen:</p>
+<p>With correct back-buffer copying, the two spheres blend correctly:</p>
+<blockquote>
+<p>Materials that use <code>SCREEN_TEXTURE</code> are considered transparent themselves and will not appear in the resulting <code>SCREEN_TEXTURE</code> of other materials. If you plan to instance a scene that uses a material with <code>SCREEN_TEXTURE</code>, you will need to use a BackBufferCopy node.</p>
+</blockquote>
+<p>In 3D, there is less flexibility to solve this particular issue because the <code>SCREEN_TEXTURE</code> is only captured once. Be careful when using <code>SCREEN_TEXTURE</code> in 3D as it won't capture transparent objects and may capture some opaque objects that are in front of the object.</p>
+<p>You can reproduce the back-buffer logic in 3D by creating a ref with a camera in the same position as your object, and then use the ref texture instead of <code>SCREEN_TEXTURE</code>.</p>
+<h2 id="back-buffer-logic">Back-buffer logic</h2>
+<p>So, to make it clearer, here's how the backbuffer copying logic works in Godot:</p>
+<ul>
+<li>If a node uses the <code>SCREEN_TEXTURE</code>, the entire screen is copied to the back buffer before drawing that node. This only happens the first time; subsequent nodes do not trigger this.</li>
+<li>If a BackBufferCopy node was processed before the situation in the point above (even if <code>SCREEN_TEXTURE</code> was not used), the behavior described in the point above does not happen. In other words, automatic copying of the entire screen only happens if <code>SCREEN_TEXTURE</code> is used in a node for the first time and no BackBufferCopy node (not disabled) was found before in tree-order.</li>
+<li>BackBufferCopy can copy either the entire screen or a region. If set to only a region (not the whole screen) and your shader uses pixels not in the region copied, the result of that read is undefined (most likely garbage from previous frames). In other words, it's possible to use BackBufferCopy to copy back a region of the screen and then use <code>SCREEN_TEXTURE</code> on a different region. Avoid this behavior!</li>
+</ul>
+<h2 id="depth_texture">DEPTH_TEXTURE</h2>
+<p>For 3D shaders, it's also possible to access the screen depth buffer. For this, the <code>DEPTH_TEXTURE</code> built-in is used. This texture is not linear; it must be converted via the inverse projection matrix.</p>
+<p>The following code retrieves the 3D position below the pixel being drawn:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> depth <span class="op">=</span> <span class="bu">textureLod</span><span class="op">(</span>DEPTH_TEXTURE<span class="op">,</span> SCREEN_UV<span class="op">,</span> <span class="fl">0.0</span><span class="op">).</span><span class="fu">r</span><span class="op">;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vec4</span> upos <span class="op">=</span> INV_PROJECTION_MATRIX <span class="op">*</span> <span class="dt">vec4</span><span class="op">(</span>SCREEN_UV <span class="op">*</span> <span class="fl">2.0</span> <span class="op">-</span> <span class="fl">1.0</span><span class="op">,</span> depth <span class="op">*</span> <span class="fl">2.0</span> <span class="op">-</span> <span class="fl">1.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">);</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vec3</span> pixel_position <span class="op">=</span> upos<span class="op">.</span><span class="fu">xyz</span> <span class="op">/</span> upos<span class="op">.</span><span class="fu">w</span><span class="op">;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

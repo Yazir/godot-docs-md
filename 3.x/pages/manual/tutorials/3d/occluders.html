@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Occluder Nodes — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="occluder-nodes">Occluder Nodes</h1>
+<p>In addition to occlusion via <code>doc_rooms_and_portals</code>, Godot also has the ability to provide basic occlusion using simple geometric <code>Occluder</code> nodes. These are geometric shapes that are shown in the editor using gizmos, but are invisible at runtime.</p>
+<p>Any object that is fully occluded by the shape (behind or in some cases inside) will be culled at runtime. They are designed to be simple to use and inexpensive at runtime, but the trade off is they may not be as effective at culling as <code>doc_rooms_and_portals</code>. Nevertheless they can still significantly boost performance in some situations.</p>
+<blockquote>
+<p><strong>Note:</strong> It is important to understand that geometric occluders work by testing the axis aligned bounding box (<code>AABB</code>) of the occludee against the occluder. The AABB must be <em>fully occluded</em> to be culled. The consequence of this is that smaller objects are more likely to be effectively culled than larger objects, and larger occluders tend to be much more effective than smaller ones.</p>
+</blockquote>
+<p>A major advantage to Occluder nodes is that they are fully dynamic. For example if you place an occluder node as a child of a spaceship, it will move as you move the parent object.</p>
+<p>The reason that Occluder nodes are so cheap in performance terms is that the engine dynamically chooses the most relevant occluders at runtime, based on the current viewpoint of the Camera. This means you can often have hundreds of occluders present in the scene. Only the most relevant will be active at any one time.</p>
+<p>The Occluder node itself is a holder for an OccluderShape resource, which determines the functionality. To get started, add an Occluder node to your scene tree.</p>
+<blockquote>
+<p><strong>Tip:</strong> You will see a yellow warning triangle that lets you know that you must set an OccluderShape from the inspector before the <code>Occluder</code> becomes functional.</p>
+</blockquote>
+<h2 id="occludershapesphere">OccluderShapeSphere</h2>
+<p>The sphere is one of the simplest and fastest occluders, and is easy to setup and position. The downside is that the sphere only tends to make sense in certain game level designs, and is more suited to terrain or organic background geometry.</p>
+<p>Once you have added an OccluderNode and chosen to add a new <code>OccluderShapeSphere</code> in the inspector, click the OccluderShapeSphere in the inspector to bring up the parameters.</p>
+<p>Unlike many Nodes, the <code>OccluderShapeSphere</code> can store multiple spheres in the same object. This is more efficient in the engine, and keeps your SceneTree clearer. You don't have to store all your spheres in one Occluder as it could become tricky to manage, but it is perfectly reasonable to add 10 or so spheres or more. They are very cheap, and often the more you place, the better the match you will get to your geometry.</p>
+<p>In order to store multiple spheres, they are stored as an Array. If you click on the Array in the inspector, you can increase the size of the Array to add one.</p>
+<p>The sphere will appear as a small pink spherical object in the editor window. There are two handles on each sphere. The larger middle handle enables you to move the sphere around in the local space of the Occluder, and the small handle enables you to adjust the radius.</p>
+<p>Although you can change the position of the sphere using the Occluder Node transform in the inspector, this moves <em>the entire array</em> of spheres. When you want to use multiple spheres in one occluder, the handles do this job. In order to allow positioning in 3D, the gizmo will only move the 3D position in the two principal axes depending on the viewpoint in the editor. This is easier for you to get the hang of by trying it out than by explanation.</p>
+<blockquote>
+<p><strong>Tip:</strong> There is one more handy function in the editor when using multiple spheres. If you click the Center Node toolbar button it will recalculate the local positions of the spheres relative to the average of the entire node, and change the transform of the Occluder Node. This is a handy convenience function to make it easier to place them.</p>
+</blockquote>
+<p>At runtime the spheres can be switched on and off changing the Occluder node visibility, and the Node can be moved and scaled and rotated etc.</p>
+<p>A common use case for occluder spheres is providing occlusion on mountainous / hilly terrain. By placing spheres inside mountains you can prevent trees, plants, building and objects rendering behind mountains. With some creativity they can also be used for moving objects such as large spacecraft, planets etc.</p>
+<h2 id="occludershapepolygon">OccluderShapePolygon</h2>
+<p>The polygon is a generalist occluder. It can be made to work well in almost all situations, and can quickly provide a degree of occlusion culling to most scenes.</p>
+<p>As with all geometric occluders, the key to success is to make them large. They do not have to match rendered geometry, and in many cases they will work better if you extend them past rendered geometry to make them as big as possible (without blocking legitimate lines of sight). The reason why they need to be large is that in general, they will only cull objects whose <code>AABB</code> is completely hidden by the polygon. For large objects to be culled, you will need large occluders.</p>
+<blockquote>
+<p><strong>Note:</strong> Like all occluders, polygons <strong>can</strong> overlap, and in many cases they will work better if you overlap them (they are more likely to cull objects on boundaries).</p>
+</blockquote>
+<h3 id="editing-and-details">Editing and details</h3>
+<p>Occluder polygons are edited as a list of points which define a <em>convex</em> polygon, on a single plane. In order to confine the polygon to a single plane, the points are defined in 2D space rather than 3D. The orientation, position and scale of the polygon is taken instead from the transform of the <code>Occluder</code> Node.</p>
+<p>If you create an Occluder and add to it a <code>OccluderShapePolygon</code> resource, by default it will create 4 starting points forming a rectangle. If you move the position and rotation of the Occluder Node you will see how the rectangle follows the node. When the Occluder is selected in the editor, handles will appear for each of the points. You can actually click and drag these handles, to match your polygon to the environment of your scene.</p>
+<p>You are not restricted to 4 points, you can add and remove points in the Inspector, but note that:</p>
+<ul>
+<li>The editor will automatically sanitize your points to form a convex polygon. If you drag a point into a position that would form a concave polygon, it will be ignored.</li>
+<li>In general, the less edges (and thus points), the faster the polygon will work at runtime. A polygon with 6 edges will have to make twice the calculations of a polygon with 3 edges. In most cases 4 is a good number.</li>
+</ul>
+<h3 id="holes">Holes</h3>
+<p>Real world game levels don't always have large continuous areas that should be occluded. Often walls will have a door or windows, caves will have an entrance, etc. In some cases we have to make do by placing several OccluderShapePolygons around such an opening, but Occluder polygons have one more trick up their sleeve - they can have "holes".</p>
+<p>In the inspector you will notice that as well as a set of points for the polygon, the polygon has a set of points for a single "hole". If you add 3 or 4 to your polygon, you will see they appear in the editor as smaller handles. You can drag these around just like the polygon handles, to form a convex hole.</p>
+<p>The hole can be totally within the polygon (such as a window), abutting the edge (like a door) or crossing the edge of the polygon completely, to make the occluder concave. The way the hole works is that the culling follows a simple rule:</p>
+<ul>
+<li>If the object to be culled is totally hidden by the polygon, it then looks to see whether it can be seen <em>through</em> the hole. If the object touches the hole, it is not culled, but if hidden by the polygon and not seen through the hole it is culled.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> Placing holes is usually far more convenient, and works faster and better at runtime, than creating lots of smaller OccluderShapePolygons.</p>
+</blockquote>
+<h4 id="hole-limits">Hole Limits</h4>
+<p>The main limitation of holes is that there can only be one per polygon. If you have a situation which requires two or more holes, you have a choice:</p>
+<ul>
+<li>Combine the area of the two holes into one bigger hole (if they are close together).</li>
+<li>Use two or more OccluderPolygons.</li>
+</ul>
+<blockquote>
+<p><strong>Tip:</strong> Remember that if you are using more than one polygon, they can overlap, and you should use this to your advantage.</p>
+</blockquote>
+<h4 id="how-many-occluder-polys-are-needed">How many Occluder polys are needed?</h4>
+<p>This very much depends on your scene, but generally you can start getting a good benefit from 3 or 4 well placed polygons. After that it is totally up to you how much time you want to spend. Placing occluders is a bit of an art form, and you will get better at it and learn new tricks the more you work with them.</p>
+<h4 id="some-ideas">Some ideas:</h4>
+<ul>
+<li>Build your levels to take advantage of occlusion.</li>
+</ul>
+<p>This is one of the secrets of the pros. A good level design is not just about what the gameplay demands, it should also be built with occlusion in mind.</p>
+<ul>
+<li>When in a building with multiple floors, try placing an occluder polygon between each floor, with a hole for where the staircase transitions between them. This can potentially cull out entire floors and greatly improve performance.</li>
+<li>Don't be afraid to extend your occluder polygons far past the edges of visible geometry to cull more objects - for instance far into the ground or sky.</li>
+</ul>
+<h3 id="using-polygons-dynamically">Using polygons dynamically</h3>
+<p>Like all geometric occluders, polygons are not confined to static (non-moving) geometry. You can place them on moving objects. You can even change the relative position of the points in realtime.</p>
+<p>Some guidelines:</p>
+<ul>
+<li>There is a slight cost to moving polygons, the points of the polygons must be transformed on the CPU each time their transform changes.</li>
+</ul>
+<p>This is not something to worry excessively about, even CPUs are reasonably fast at transforming points, and generally polygons have very few points compared to rendered geometry. But it is something to consider, if you wanted to create e.g. 10,000 simultaneous spaceships all with occluder polys.</p>
+<ul>
+<li>Changing the transform of the polygon Node (e.g. by moving the parent object) is cheaper than changing the points themselves. Use the former rather than the latter wherever possible.</li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

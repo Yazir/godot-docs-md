@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XR full screen effects — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="xr-full-screen-effects">XR full screen effects</h1>
+<p>When adding custom full screen effects to your XR application, one approach is using a full screen quad and applying effects to that quad's shader. Add a ref node to your scene as a child of your ref, and set the <code>mesh</code> property to a ref. Set the width and height of the quad to <code>2</code>.</p>
+<p>You can then add a shader to your quad to make it cover the screen. This is done by setting the vertex shader's <code>POSITION</code> built-in to <code>vec4(VERTEX.xy, 1.0, 1.0)</code>. However, when creating an effect that is centered straight ahead in the user's view (such as a vignette effect), the end result may look incorrect in XR.</p>
+<p>Below shows captures of the right-eye view with a vignette shader, both from the headset and the render target itself. The left captures are an unmodified shader; the right captures adjust the full screen quad using the projection matrix. While the capture on the left is centered in the render target, it is off-center in the headset view. But, after applying the projection matrix, we see that the effect is centered in the headset itself.</p>
+<h2 id="applying-the-projection-matrix">Applying the projection matrix</h2>
+<p>To properly center the effect, the <code>POSITION</code> of the full screen quad needs to take the asymmetric field of view into account. To do this while also ensuring the quad has full coverage of the entire render target, we can subdivide the quad and apply the projection matrix to the inner vertices. Let's increase the subdivide width and depth of the quad.</p>
+<p>Then, in the vertex function of our shader, we apply an offset from the projection matrix to the inner vertices. Here's an example of how you might do this with the above simple vignette shader:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>shader_type spatial<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>render_mode depth_test_disabled<span class="op">,</span> skip_vertex_transform<span class="op">,</span> unshaded<span class="op">,</span> cull_disabled<span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Modify VERTEX.xy using the projection matrix to correctly center the effect.</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">vertex</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vec2</span> vert_pos <span class="op">=</span> VERTEX<span class="op">.</span><span class="fu">xy</span><span class="op">;</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span><span class="bu">length</span><span class="op">(</span>vert_pos<span class="op">)</span> <span class="op">&lt;</span> <span class="fl">0.99</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">vec4</span> <span class="dt">offset</span> <span class="op">=</span> PROJECTION_MATRIX <span class="op">*</span> <span class="dt">vec4</span><span class="op">(</span><span class="fl">0.0</span><span class="op">,</span> <span class="fl">0.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">);</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        vert_pos <span class="op">+=</span> <span class="op">(</span><span class="dt">offset</span><span class="op">.</span><span class="fu">xy</span> <span class="op">/</span> <span class="dt">offset</span><span class="op">.</span><span class="fu">w</span><span class="op">);</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    POSITION <span class="op">=</span> <span class="dt">vec4</span><span class="op">(</span>vert_pos<span class="op">,</span> <span class="fl">1.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">);</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    ALBEDO <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">0.0</span><span class="op">);</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    ALPHA <span class="op">=</span> <span class="bu">dot</span><span class="op">(</span>UV <span class="op">*</span> <span class="fl">2.0</span> <span class="op">-</span> <span class="fl">1.0</span><span class="op">,</span> UV <span class="op">*</span> <span class="fl">2.0</span> <span class="op">-</span> <span class="fl">1.0</span><span class="op">)</span> <span class="op">*</span> <span class="fl">2.0</span><span class="op">;</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> For more info on asymmetric FOV and its purpose, see this <a href="https://developers.meta.com/horizon/documentation/unity/unity-asymmetric-fov-faq/">Meta Asymmetric Field of View FAQ</a>.</p>
+</blockquote>
+<h2 id="limitations">Limitations</h2>
+<p>This full screen effect method has no performance concerns for per-pixel effects such as the above vignette shader. However, it is not recommended to read from the screen texture when using this technique. Full screen effects that require reading from the screen texture effectively disable all rendering performance optimizations in XR. This is because, when reading from the screen texture, Godot makes a full copy of the render buffer; this drastically increases the workload for the GPU and can create performance concerns.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

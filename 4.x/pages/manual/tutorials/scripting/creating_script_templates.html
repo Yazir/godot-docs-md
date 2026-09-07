@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creating script templates — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="creating-script-templates">Creating script templates</h1>
+<p>Godot provides a way to use script templates as seen in the <code>Script Create Dialog</code> while creating a new script:</p>
+<p>A set of built-in script templates are provided with the editor, but it is also possible to create new ones and set them by default, both per project and at editor scope.</p>
+<p>Templates are linked to a specific node type, so when you create a script you will only see the templates corresponding to that particular node, or one of its parent types. For example, if you are creating a script for a CharacterBody3D, you will only see templates defined for CharacterBody3Ds, Node3Ds or Nodes.</p>
+<h2 id="locating-the-templates">Locating the templates</h2>
+<p>There are two places where templates can be managed.</p>
+<h3 id="editor-defined-templates">Editor-defined templates</h3>
+<p>These are available globally throughout any project. The location of these templates are determined per each OS:</p>
+<ul>
+<li>Windows: <code>%APPDATA%\Godot\script_templates\</code></li>
+<li>Linux: <code>$HOME/.config/godot/script_templates/</code></li>
+<li>macOS: <code>$HOME/Library/Application Support/Godot/script_templates/</code></li>
+</ul>
+<p>If you're getting Godot from somewhere other than the official website, such as Steam, the folder might be in a different location. You can find it using the Godot editor. Go to <code>Editor &gt; Open Editor Data/Settings Folder</code> and it will open a folder in your file browser, inside that folder is the <code>script_templates</code> folder.</p>
+<h3 id="project-defined-templates">Project-defined templates</h3>
+<p>The default path to search for templates is the <code>res://script_templates/</code> directory. The path can be changed by configuring the project setting ref, both via code and the editor.</p>
+<p>If no <code>script_templates</code> directory is found within a project, it is simply ignored.</p>
+<h3 id="template-organization-and-naming">Template organization and naming</h3>
+<p>Both editor and project defined templates are organized in the following way:</p>
+<pre><code>template_path/node_type/file.extension</code></pre>
+<p>where:</p>
+<ul>
+<li><code>template_path</code> is one of the 2 locations discussed in the previous two sections.</li>
+<li><code>node_type</code> is the node it will apply to (for example, ref, or ref), This is <strong>case-sensitive</strong>. If a script isn't in the proper <code>node_type</code> folder, it won't be detected.</li>
+<li><code>file</code> is the custom name you can choose for the template (for example, <code>platformer_movement</code> or <code>smooth_camera</code>).</li>
+<li><code>extension</code> indicates which language the template will apply to (it should be <code>gd</code> for GDScript or <code>cs</code> for C#).</li>
+</ul>
+<p>For example:</p>
+<ul>
+<li><code>script_templates/Node/smooth_camera.gd</code></li>
+<li><code>script_templates/CharacterBody3D/platformer_movement.gd</code></li>
+</ul>
+<h2 id="default-behavior-and-overriding-it">Default behavior and overriding it</h2>
+<p>By default:</p>
+<ul>
+<li>the template's name is the same as the file name (minus the extension, prettyfied)</li>
+<li>the description is empty</li>
+<li>the space indent is set to 4</li>
+<li>the template will not be set as the default for the given node</li>
+</ul>
+<p>It is possible to customize this behavior by adding meta headers at the start of your file, like this:</p>
+<pre class="gdscript"><code># meta-name: Platformer movement
+# meta-description: Predefined movement for classical platformers
+# meta-default: true
+# meta-space-indent: 4</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// meta-name: Platformer movement</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">// meta-description: Predefined movement for classical platformers</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">// meta-default: true</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">// meta-space-indent: 4</span></span></code></pre></div>
+<p>In this case, the name will be set to "Platformer movement", with the given custom description, and it will be set as the default template for the node in which directory it has been saved.</p>
+<p>This is an example of utilizing custom templates at editor and project level:</p>
+<blockquote>
+<p><strong>Note:</strong> The script templates have the same extension as the regular script files. This may lead to an issue of a script parser treating those templates as actual scripts within a project. To avoid this, make sure to ignore the directory containing them by creating an empty <code>.gdignore</code> file. The directory won't be visible throughout the project's filesystem anymore, yet the templates can be modified by an external text editor anytime.</p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> By default, every C# file inside the project directory is included in the compilation. Script templates must be manually excluded from the C# project to avoid build errors. See <a href="https://learn.microsoft.com/en-us/visualstudio/msbuild/how-to-exclude-files-from-the-build">Exclude files from the build</a> in the Microsoft documentation.</p>
+</blockquote>
+<p>It is possible to create editor-level templates that have the same level as a project-specific templates, and also that have the same name as a built-in one, all will be shown on the new script dialog.</p>
+<h2 id="default-template">Default template</h2>
+<p>To override the default template, create a custom template at editor or project level inside a <code>Node</code> directory (or a more specific type, if only a subtype wants to be overridden) and start the file with the <code>meta-default: true</code> header.</p>
+<p>Only one template can be set as default at the same time for the same node type.</p>
+<p>The <code>Default</code> templates for basic Nodes, for both GDScript and C#, are shown here so you can use these as the base for creating other templates:</p>
+<pre class="gdscript"><code># meta-description: Base template for Node with default Godot cycle methods
+
+extends _BASE_
+
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -&gt; void:
+    pass # Replace with function body.
+
+
+# Called every frame. &#39;delta&#39; is the elapsed time since the previous frame.
+func _process(delta: float) -&gt; void:
+    pass</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// meta-description: Base template for Node with default Godot cycle methods</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> _BINDINGS_NAMESPACE_<span class="op">;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> _CLASS_ <span class="op">:</span> _BASE_</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Called when the node enters the scene tree for the first time.</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Called every frame. &#39;delta&#39; is the elapsed time since the previous frame.</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The Godot editor provides a set of useful built-in node-specific templates, such as <code>basic_movement</code> for both ref and ref and <code>plugin</code> for ref.</p>
+<h2 id="list-of-template-placeholders">List of template placeholders</h2>
+<p>The following describes the complete list of built-in template placeholders which are currently implemented.</p>
+<h3 id="base-placeholders">Base placeholders</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Placeholder</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>_BINDINGS_NAMESPACE_</code></td>
+<td>The name of the Godot namespace (used in C# only).</td>
+</tr>
+<tr class="even">
+<td><code>_CLASS_</code></td>
+<td>The name of the new class.</td>
+</tr>
+<tr class="odd">
+<td><code>_CLASS_SNAKE_CASE_</code></td>
+<td>The name of the new class as <code>snake_case</code> (used in GDScript only).</td>
+</tr>
+<tr class="even">
+<td><code>_BASE_</code></td>
+<td>The base type a new script inherits from.</td>
+</tr>
+<tr class="odd">
+<td><code>_TS_</code></td>
+<td>Indentation placeholder. The exact type and number of whitespace characters used for indentation is determined by the <code>text_editor/indent/type</code> and <code>text_editor/indent/size</code> settings in the ref | respectively. Can be overridden by the <code>meta-space-indent</code> header on the template.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="type-placeholders">Type placeholders</h3>
+<p>There used to be, in Godot 3.x, placeholders for GDScript type hints that would get replaced whenever a template was used to create a new script, such as: <code>%INT_TYPE%</code>, <code>%STRING_TYPE%</code>, <code>%FLOAT_TYPE%</code> or <code>%VOID_RETURN%</code>.</p>
+<p>The placeholders no longer work for Godot 4.x, but if the setting <code>text_editor/completion/add_type_hints</code> from ref is disabled, type hints for parameters and return types will be automatically removed for a few base types:</p>
+<ul>
+<li><code>int</code></li>
+<li><code>String</code></li>
+<li><code>Array[String]</code></li>
+<li><code>float</code></li>
+<li><code>void</code></li>
+<li><code>:=</code> will be transformed into <code>=</code></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

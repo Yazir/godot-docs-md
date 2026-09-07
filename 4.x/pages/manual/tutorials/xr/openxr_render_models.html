@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenXR Render Models — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="openxr-render-models">OpenXR Render Models</h1>
+<p>A cornerstone of OpenXR's API design is being as platform agnostic as possible. A great example of this is OpenXR's action map system where XR runtimes have to support core interaction profiles to fall back on, if no interaction profile exists for the hardware being used. This ensures that OpenXR applications keep functioning even when used on hardware that didn't exist when the application was released, or that the developers of the application did not have access too.</p>
+<p>A consequence of this is that the application developer doesn't know with any certainty what hardware is being used, as the XR runtime could be mimicking other hardware. The application developer thus can't show anything in relation to the actual hardware used, the most common use case being showing the controllers the user is currently holding.</p>
+<p>Showing the correct controller models and having these models correctly positioned is important to a proper sense of immersion.</p>
+<p>This is where OpenXR's <a href="https://registry.khronos.org/OpenXR/specs/1.1/html/xrspec.html#XR_EXT_render_models">render models API</a> comes in. This API allows us to query the XR runtime for 3D assets that are correct for the physical hardware being used. The API also allows us to query the position of this hardware within the tracking volume and the correct positioning of subcomponents of this hardware.</p>
+<p>For instance, we can correctly position and animate the trigger or show buttons being pressed.</p>
+<p>For those runtimes that support the <a href="https://registry.khronos.org/OpenXR/specs/1.1/html/xrspec.html#XR_EXT_hand_tracking_data_source">controller data source for hand tracking</a> , we can also correctly position the user's fingers and hand according to the shape of the controller. Do note that this works in combination with the <a href="https://registry.khronos.org/OpenXR/specs/1.1/html/xrspec.html#XR_EXT_hand_joints_motion_range">hand joints motion range extension</a> to prevent clipping of the fingers.</p>
+<h2 id="openxr-render-models-node">OpenXR Render models node</h2>
+<p>The ref node can be used to automate most of the render models functionality. This node keeps track of the active render models currently made available by the XR runtime.</p>
+<p>It will create child nodes for each active render model resulting in that render model being displayed.</p>
+<p>This node must have an ref node as an ancestor.</p>
+<p>If <code>tracker</code> is set to <code>Any</code> our node will show all render models currently being tracked. In this scenario this node must be a direct child of our ref node.</p>
+<p>If <code>tracker</code> is set to <code>None set</code> our node will only show render models for which no tracker has been identified. In this scenario this node must also be a direct child of our ref node.</p>
+<p>If <code>tracker</code> is set to <code>Left Hand</code> or <code>Right Hand</code> our node will only show render models related to our left or right hand respectively. In this scenario, our node can be placed deeper in the scene tree.</p>
+<blockquote>
+<p><strong>Warning:</strong> For most XR runtimes this means the render model represents a controller that is actually being held by the user but this is not a guarantee. Some XR runtimes will always set the tracker to either the left or right hand even if the controller is not currently held but is being tracked. You should always test this as this will lead to unwanted behavior.</p>
+</blockquote>
+<p>In this scenario we can also specify an action for a pose in the action map by setting the <code>make_local_to_pose</code> property to the pose action. Use this in combination with an ref node that is using the same pose and you can now add a layer that allows you to deviate from the tracked position of both your controller and the related render model (see example below).</p>
+<blockquote>
+<p><strong>Note:</strong> Combining the above with hand tracking does introduce the problem that hand tracking is completely independent from the action map system. You will need to combine the hand tracking and controller tracking poses to properly offset the render models.</p>
+<p>This falls beyond the scope of this documentation.</p>
+</blockquote>
+<h3 id="render-model-manager-example">Render model manager example</h3>
+<p>You can download <a href="https://github.com/godotengine/godot-demo-projects/tree/master/xr/openxr_render_models">our render models demo</a> which implements the setup described below.</p>
+<p>In this setup we find an ref node directly underneath our ref node. On this node our <code>target</code> property is set to <code>None set</code> and will handle showing all render models that are currently not related to our left or right hand controllers.</p>
+<p>We then see the same setup for our left and right hand so we'll focus on just the left hand.</p>
+<p>We have an ref that will track the location of our hand.</p>
+<blockquote>
+<p><strong>Note:</strong> We are using the <code>grip</code> pose in this example. The <code>palm</code> pose is arguably more suitable and predictable however it is not supported by all XR runtimes. See the hand tracking demo project for a solution to switching between these poses based on what is supported.</p>
+</blockquote>
+<p>As a child of the node we have an ref node that follows the tracked location of the hand <strong>but</strong> will interact with physics objects to stop the player's hand from going through walls etc. This node has a collision shape that encapsulates the hand.</p>
+<blockquote>
+<p><strong>Note:</strong> It is important to set the physics priority so that this logic runs after any physics logic that moves the XROrigin3D node or the hand will lag a frame behind.</p>
+</blockquote>
+<p>The script below shows a basic implementation for this that you can build upon.</p>
+<pre class="gdscript"><code>class_name CollisionHands3D
+extends AnimatableBody3D
+
+func _ready():
+    # Make sure these are set correctly.
+    top_level = true
+    sync_to_physics = false
+    process_physics_priority = -90
+
+func _physics_process(_delta):
+    # Follow our parent node around.
+    var dest_transform = get_parent().global_transform
+
+    # We just apply rotation for this example.
+    global_basis = dest_transform.basis
+
+    # Attempt to move to where our tracked hand is.
+    move_and_collide(dest_transform.origin - global_position)</code></pre>
+<p>Finally we see another ref node, this one with <code>target</code> set to the appropriate hand and <code>make_local_to_pose</code> set to the correct pose. This will ensure that the render models related to this hand are properly shown and offset if our collision handler has altered the location.</p>
+<h2 id="render-model-node">Render model node</h2>
+<p>The ref node implements all the logic to display and position a given render model provided by the render models API.</p>
+<p>Instances of this node are added by the render model manager node we used up above but you can interact with these directly if you wish.</p>
+<p>Whenever Godot obtains information about a new render model an RID is created to reference that render model.</p>
+<p>By assigning that RID to the <code>render_model</code> property on this node, the node will start displaying the render model and manage both the transform that places the render model in the correct place and animates all the sub objects.</p>
+<p>The <code>get_top_level_path</code> function will return the top level path associated with this render model. This will point to either the left or right hand. As the top level path can be set or cleared depending on whether the user picks up, or puts down, the controller you can connect to the <code>render_model_top_level_path_changes</code> signal and react to these changes.</p>
+<p>Depending on your setup of the ref nodes, render models will be removed or added as their top level path changes.</p>
+<h2 id="backend-access">Backend access</h2>
+<p>The nodes we've detailed out above handle all the display logic for us but it is possible to interact with the data that drives this directly and create your own implementation.</p>
+<p>For this you can access the ref singleton.</p>
+<p>This object also lets you query whether render models are supported and enabled on the device currently being used by calling the <code>is_active</code> function on this object.</p>
+<p>The built-in logic implements the <a href="https://registry.khronos.org/OpenXR/specs/1.1/html/xrspec.html#XR_EXT_interaction_render_model">interaction render model API</a> that lists all render models related to controllers and similar devices that are present in the action map. It will automatically create and remove render model entities that are exposed through this API.</p>
+<p>As other extensions become available these can be implemented in a GDExtension plugin. Such a plugin can call <code>render_model_create</code> and <code>render_model_destroy</code> to create the object that will provide access to that render model through the core render models API.</p>
+<p>You should not destroy a render model outside of this logic.</p>
+<p>You can connect to the <code>render_model_added</code> and <code>render_model_removed</code> signals to be informed when new render models are added or removed.</p>
+<p>The core methods for working with this API are listed below:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>render_model_get_all</td>
+<td>Provides an array of RIDs for all render models that are being tracked.</td>
+</tr>
+<tr class="even">
+<td>render_model_new_scene_instance</td>
+<td>Provides a new scene that contains all meshes needed to display the render model.</td>
+</tr>
+<tr class="odd">
+<td>render_model_get_subaction_paths</td>
+<td>Provides a list of subaction paths from your action map related to this render mode.</td>
+</tr>
+<tr class="even">
+<td>render_model_get_top_level_path</td>
+<td>Returns the top level path associated with this render model (if any). Use the <code>render_model_top_level_path_changed</code> signal to react to this changing.</td>
+</tr>
+<tr class="odd">
+<td>render_model_get_confidence</td>
+<td>Returns the tracking confidence for the tracking data for this render model.</td>
+</tr>
+<tr class="even">
+<td>render_model_get_root_transform</td>
+<td>Returns the root transform for this render model within our current reference space. This can be used to place the render model in space.</td>
+</tr>
+<tr class="odd">
+<td>render_model_get_animatable_node_count</td>
+<td>Returns the number of nodes in our render model scene that can be animated</td>
+</tr>
+<tr class="even">
+<td>render_model_get_animatable_node_name</td>
+<td>Returns the name of the node that we can animate. Note that this node can be any number of levels deep within the scene.</td>
+</tr>
+<tr class="odd">
+<td>render_model_is_animatable_node_visible</td>
+<td>Returns true if this animatable node should be visible</td>
+</tr>
+<tr class="even">
+<td>render_model_get_animatable_node_transform</td>
+<td>Returns the transform for this animatable node. This is a local transform that can be directly applied.</td>
+</tr>
+</tbody>
+</table>
+<p>Render model extension functions</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

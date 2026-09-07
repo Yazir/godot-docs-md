@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custom drawing in 2D — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="custom-drawing-in-2d">Custom drawing in 2D</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Godot has nodes to draw sprites, polygons, particles, text, and many other common game development needs. However, if you need something specific not covered with the standard nodes you can make any 2D node (for example, ref or ref-based) draw on screen using custom commands.</p>
+<p>Custom drawing in a 2D node is <em>really</em> useful. Here are some use cases:</p>
+<ul>
+<li>Drawing shapes or logic that existing nodes can't do, such as an image with trails or a special animated polygon.</li>
+<li>Drawing a large number of simple objects, such as a grid or a board for a 2d game. Custom drawing avoids the overhead of using a large number of nodes, possibly lowering memory usage and improving performance.</li>
+<li>Making a custom UI control. There are plenty of controls available, but when you have unusual needs, you will likely need a custom control.</li>
+</ul>
+<h2 id="drawing">Drawing</h2>
+<p>Add a script to any ref derived node, like ref or ref. Then override the ref function.</p>
+<pre class="gdscript"><code>extends Node2D
+
+func _draw():
+    pass  # Your draw commands here.</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2D <span class="op">:</span> Node2D</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Your draw commands here.</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Draw commands are described in the ref class reference. There are plenty of them and we will see some of them in the examples below.</p>
+<h2 id="updating">Updating</h2>
+<p>The ref function is only called once, and then the draw commands are cached and remembered, so further calls are unnecessary.</p>
+<p>If re-drawing is required because a variable or something else changed, call ref in that same node and a new <code>_draw()</code> call will happen.</p>
+<p>Here is a little more complex example, where we have a texture variable that can be modified at any time, and using a ref, it forces a redraw of the texture when modified:</p>
+<pre class="gdscript"><code>extends Node2D
+
+@export var texture : Texture2D:
+    set(value):
+        texture = value
+        queue_redraw()
+
+func _draw():
+    draw_texture(texture, Vector2())</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2D <span class="op">:</span> Node2D</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Texture2D _texture<span class="op">;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Texture2D Texture</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        get</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span> _texture<span class="op">;</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        set</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>            _texture <span class="op">=</span> value<span class="op">;</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>            <span class="fu">QueueRedraw</span><span class="op">();</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">DrawTexture</span><span class="op">(</span>_texture<span class="op">,</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">());</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>To see it in action, you can set the texture to be the Godot icon on the editor by dragging and dropping the default <code>icon.svg</code> from the <code>FileSystem</code> tab to the Texture property on the <code>Inspector</code> tab. When changing the <code>Texture</code> property value while the previous script is running, the texture will also change automatically.</p>
+<p>In some cases, we may need to redraw every frame. For this, call ref from the ref method, like this:</p>
+<pre class="gdscript"><code>extends Node2D
+
+func _draw():
+    pass  # Your draw commands here.
+
+func _process(_delta):
+    queue_redraw()</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2D <span class="op">:</span> Node2D</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Your draw commands here.</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        <span class="fu">QueueRedraw</span><span class="op">();</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="coordinates-and-line-width-alignment">Coordinates and line width alignment</h2>
+<p>The drawing API uses the CanvasItem's coordinate system, not necessarily pixel coordinates. This means <code>_draw()</code> uses the coordinate space created after applying the CanvasItem's transform. Additionally, you can apply a custom transform on top of it by using ref or ref.</p>
+<p>When using ref, you should consider the width of the line. When using a width that is an odd size, the position of the start and end points should be shifted by <code>0.5</code> to keep the line centered, as shown below.</p>
+<pre class="gdscript"><code>func _draw():
+    draw_line(Vector2(1.5, 1.0), Vector2(1.5, 4.0), Color.GREEN, 1.0)
+    draw_line(Vector2(4.0, 1.0), Vector2(4.0, 4.0), Color.GREEN, 2.0)
+    draw_line(Vector2(7.5, 1.0), Vector2(7.5, 4.0), Color.GREEN, 3.0)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawLine</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">1.5f</span><span class="op">,</span> <span class="fl">1.0f</span><span class="op">),</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">1.5f</span><span class="op">,</span> <span class="fl">4.0f</span><span class="op">),</span> Colors<span class="op">.</span><span class="fu">Green</span><span class="op">,</span> <span class="fl">1.0f</span><span class="op">);</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawLine</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">4.0f</span><span class="op">,</span> <span class="fl">1.0f</span><span class="op">),</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">4.0f</span><span class="op">,</span> <span class="fl">4.0f</span><span class="op">),</span> Colors<span class="op">.</span><span class="fu">Green</span><span class="op">,</span> <span class="fl">2.0f</span><span class="op">);</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawLine</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">7.5f</span><span class="op">,</span> <span class="fl">1.0f</span><span class="op">),</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">7.5f</span><span class="op">,</span> <span class="fl">4.0f</span><span class="op">),</span> Colors<span class="op">.</span><span class="fu">Green</span><span class="op">,</span> <span class="fl">3.0f</span><span class="op">);</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The same applies to the ref method with <code>filled = false</code>.</p>
+<pre class="gdscript"><code>func _draw():
+    draw_rect(Rect2(1.0, 1.0, 3.0, 3.0), Color.GREEN)
+    draw_rect(Rect2(5.5, 1.5, 2.0, 2.0), Color.GREEN, false, 1.0)
+    draw_rect(Rect2(9.0, 1.0, 5.0, 5.0), Color.GREEN)
+    draw_rect(Rect2(16.0, 2.0, 3.0, 3.0), Color.GREEN, false, 2.0)</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawRect</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Rect2</span><span class="op">(</span><span class="fl">1.0f</span><span class="op">,</span> <span class="fl">1.0f</span><span class="op">,</span> <span class="fl">3.0f</span><span class="op">,</span> <span class="fl">3.0f</span><span class="op">),</span> Colors<span class="op">.</span><span class="fu">Green</span><span class="op">);</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawRect</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Rect2</span><span class="op">(</span><span class="fl">5.5f</span><span class="op">,</span> <span class="fl">1.5f</span><span class="op">,</span> <span class="fl">2.0f</span><span class="op">,</span> <span class="fl">2.0f</span><span class="op">),</span> Colors<span class="op">.</span><span class="fu">Green</span><span class="op">,</span> <span class="kw">false</span><span class="op">,</span> <span class="fl">1.0f</span><span class="op">);</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawRect</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Rect2</span><span class="op">(</span><span class="fl">9.0f</span><span class="op">,</span> <span class="fl">1.0f</span><span class="op">,</span> <span class="fl">5.0f</span><span class="op">,</span> <span class="fl">5.0f</span><span class="op">),</span> Colors<span class="op">.</span><span class="fu">Green</span><span class="op">);</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawRect</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Rect2</span><span class="op">(</span><span class="fl">16.0f</span><span class="op">,</span> <span class="fl">2.0f</span><span class="op">,</span> <span class="fl">3.0f</span><span class="op">,</span> <span class="fl">3.0f</span><span class="op">),</span> Colors<span class="op">.</span><span class="fu">Green</span><span class="op">,</span> <span class="kw">false</span><span class="op">,</span> <span class="fl">2.0f</span><span class="op">);</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="antialiased-drawing">Antialiased drawing</h2>
+<p>Godot offers method parameters in ref to enable antialiasing, but not all custom drawing methods offer this <code>antialiased</code> parameter.</p>
+<p>For custom drawing methods that don't provide an <code>antialiased</code> parameter, you can enable 2D MSAA instead, which affects rendering in the entire viewport. This provides high-quality antialiasing, but a higher performance cost and only on specific elements. See <code>doc_2d_antialiasing</code> for more information.</p>
+<p>Here is a comparison of a line of minimal width (<code>width=-1</code>) drawn with <code>antialiased=false</code>, <code>antialiased=true</code>, and <code>antialiased=false</code> with 2D MSAA 2x, 4x, and 8x enabled.</p>
+<h2 id="tools">Tools</h2>
+<p>Drawing your own nodes might also be desired while running them in the editor. This can be used as a preview or visualization of some feature or behavior.</p>
+<p>To do this, you can use the ref on both GDScript and C#. See ref and <code>doc_running_code_in_the_editor</code> for more information.</p>
+<h2 id="example-1-drawing-a-custom-shape">Example 1: drawing a custom shape</h2>
+<p>We will now use the custom drawing functionality of the Godot Engine to draw something that Godot doesn't provide functions for. We will recreate the Godot logo but with code- only using drawing functions.</p>
+<p>You will have to code a function to perform this and draw it yourself.</p>
+<blockquote>
+<p><strong>Note:</strong> The following instructions use a fixed set of coordinates that could be too small for high resolution screens (larger than 1080p). If that is your case, and the drawing is too small consider increasing your window scale in the project setting ref to adjust the project to a higher resolution (a 2 or 4 scale tends to work well).</p>
+</blockquote>
+<h3 id="drawing-a-custom-polygon-shape">Drawing a custom polygon shape</h3>
+<p>While there is a dedicated node to draw custom polygons ( ref), we will use in this case exclusively lower level drawing functions to combine them on the same node and be able to create more complex shapes later on.</p>
+<p>First, we will define a set of points -or X and Y coordinates- that will form the base of our shape:</p>
+<pre class="gdscript"><code>extends Node2D
+
+var coords_head : Array = [
+    [ 22.952, 83.271 ],  [ 28.385, 98.623 ],
+    [ 53.168, 107.647 ], [ 72.998, 107.647 ],
+    [ 99.546, 98.623 ],  [ 105.048, 83.271 ],
+    [ 105.029, 55.237 ], [ 110.740, 47.082 ],
+    [ 102.364, 36.104 ], [ 94.050, 40.940 ],
+    [ 85.189, 34.445 ],  [ 85.963, 24.194 ],
+    [ 73.507, 19.930 ],  [ 68.883, 28.936 ],
+    [ 59.118, 28.936 ],  [ 54.494, 19.930 ],
+    [ 42.039, 24.194 ],  [ 42.814, 34.445 ],
+    [ 33.951, 40.940 ],  [ 25.637, 36.104 ],
+    [ 17.262, 47.082 ],  [ 22.973, 55.237 ]
+]</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2D <span class="op">:</span> Node2D</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span><span class="op">[,]</span> _coordsHead <span class="op">=</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="fl">22.952f</span><span class="op">,</span> <span class="fl">83.271f</span> <span class="op">},</span>  <span class="op">{</span> <span class="fl">28.385f</span><span class="op">,</span> <span class="fl">98.623f</span> <span class="op">},</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="fl">53.168f</span><span class="op">,</span> <span class="fl">107.647f</span> <span class="op">},</span> <span class="op">{</span> <span class="fl">72.998f</span><span class="op">,</span> <span class="fl">107.647f</span> <span class="op">},</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="fl">99.546f</span><span class="op">,</span> <span class="fl">98.623f</span> <span class="op">},</span>  <span class="op">{</span> <span class="fl">105.048f</span><span class="op">,</span> <span class="fl">83.271f</span> <span class="op">},</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="fl">105.029f</span><span class="op">,</span> <span class="fl">55.237f</span> <span class="op">},</span> <span class="op">{</span> <span class="fl">110.740f</span><span class="op">,</span> <span class="fl">47.082f</span> <span class="op">},</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="fl">102.364f</span><span class="op">,</span> <span class="fl">36.104f</span> <span class="op">},</span> <span class="op">{</span> <span class="fl">94.050f</span><span class="op">,</span> <span class="fl">40.940f</span> <span class="op">},</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="fl">85.189f</span><span class="op">,</span> <span class="fl">34.445f</span> <span class="op">},</span>  <span class="op">{</span> <span class="fl">85.963f</span><span class="op">,</span> <span class="fl">24.194f</span> <span class="op">},</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="fl">73.507f</span><span class="op">,</span> <span class="fl">19.930f</span> <span class="op">},</span>  <span class="op">{</span> <span class="fl">68.883f</span><span class="op">,</span> <span class="fl">28.936f</span> <span class="op">},</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="fl">59.118f</span><span class="op">,</span> <span class="fl">28.936f</span> <span class="op">},</span>  <span class="op">{</span> <span class="fl">54.494f</span><span class="op">,</span> <span class="fl">19.930f</span> <span class="op">},</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="fl">42.039f</span><span class="op">,</span> <span class="fl">24.194f</span> <span class="op">},</span>  <span class="op">{</span> <span class="fl">42.814f</span><span class="op">,</span> <span class="fl">34.445f</span> <span class="op">},</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="fl">33.951f</span><span class="op">,</span> <span class="fl">40.940f</span> <span class="op">},</span>  <span class="op">{</span> <span class="fl">25.637f</span><span class="op">,</span> <span class="fl">36.104f</span> <span class="op">},</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="fl">17.262f</span><span class="op">,</span> <span class="fl">47.082f</span> <span class="op">},</span>  <span class="op">{</span> <span class="fl">22.973f</span><span class="op">,</span> <span class="fl">55.237f</span> <span class="op">}</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This format, while compact, is not the one that Godot understands to draw a polygon. In a different scenario we could have to load these coordinates from a file or calculate the positions while the application is running, so some transformation may be needed.</p>
+<p>To transform these coordinates into the right format, we will create a new method <code>float_array_to_Vector2Array()</code>. Then we will override the <code>_ready()</code> function, which Godot will call only once -at the start of the execution-to load those coordinates into a variable:</p>
+<pre class="gdscript"><code>var head : PackedVector2Array
+
+func float_array_to_Vector2Array(coords : Array) -&gt; PackedVector2Array:
+    # Convert the array of floats into a PackedVector2Array.
+    var array : PackedVector2Array = []
+    for coord in coords:
+        array.append(Vector2(coord[0], coord[1]))
+    return array
+
+func _ready():
+    head = float_array_to_Vector2Array(coords_head);</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Vector2<span class="op">[]</span> _head<span class="op">;</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Vector2<span class="op">[]</span> <span class="fu">FloatArrayToVector2Array</span><span class="op">(</span><span class="dt">float</span><span class="op">[,]</span> coords<span class="op">)</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Convert the array of floats into an array of Vector2.</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> size <span class="op">=</span> coords<span class="op">.</span><span class="fu">GetUpperBound</span><span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    Vector2<span class="op">[]</span> array <span class="op">=</span> <span class="kw">new</span> Vector2<span class="op">[</span>size <span class="op">+</span> <span class="dv">1</span><span class="op">];</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;=</span> size<span class="op">;</span> i<span class="op">++)</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        array<span class="op">[</span>i<span class="op">]</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span>coords<span class="op">[</span>i<span class="op">,</span> <span class="dv">0</span><span class="op">],</span> coords<span class="op">[</span>i<span class="op">,</span> <span class="dv">1</span><span class="op">]);</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> array<span class="op">;</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    _head <span class="op">=</span> <span class="fu">FloatArrayToVector2Array</span><span class="op">(</span>_coordsHead<span class="op">);</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>To finally draw our first shape, we will use the method ref and pass the points (as an array of Vector2 coordinates) and its color, like this:</p>
+<pre class="gdscript"><code>func _draw():
+    # We are going to paint with this color.
+    var godot_blue : Color = Color(&quot;478cbf&quot;)
+    # We pass the PackedVector2Array to draw the shape.
+    draw_polygon(head, [ godot_blue ])</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We are going to paint with this color.</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    Color godotBlue <span class="op">=</span> <span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="st">&quot;478cbf&quot;</span><span class="op">);</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We pass the array of Vector2 to draw the shape.</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawPolygon</span><span class="op">(</span>_head<span class="op">,</span> <span class="op">[</span>godotBlue<span class="op">]);</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>When running it you should see something like this:</p>
+<p>Note the lower part of the logo looks segmented- this is because a low amount of points were used to define that part. To simulate a smooth curve, we could add more points to our array, or maybe use a mathematical function to interpolate a curve and create a smooth shape from code (see ref).</p>
+<p>Polygons will always <strong>connect its last defined point to its first one</strong> in order to have a closed shape.</p>
+<h3 id="drawing-connected-lines">Drawing connected lines</h3>
+<p>Drawing a sequence of connected lines that don't close down to form a polygon is very similar to the previous method. We will use a connected set of lines to draw Godot's logo mouth.</p>
+<p>First, we will define the list of coordinates that form the mouth shape, like this:</p>
+<pre class="gdscript"><code>var coords_mouth = [
+    [ 22.817, 81.100 ], [ 38.522, 82.740 ],
+    [ 39.001, 90.887 ], [ 54.465, 92.204 ],
+    [ 55.641, 84.260 ], [ 72.418, 84.177 ],
+    [ 73.629, 92.158 ], [ 88.895, 90.923 ],
+    [ 89.556, 82.673 ], [ 105.005, 81.100 ]
+]</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">float</span><span class="op">[,]</span> _coordsMouth <span class="op">=</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span> <span class="fl">22.817f</span><span class="op">,</span> <span class="fl">81.100f</span> <span class="op">},</span> <span class="op">{</span> <span class="fl">38.522f</span><span class="op">,</span> <span class="fl">82.740f</span> <span class="op">},</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span> <span class="fl">39.001f</span><span class="op">,</span> <span class="fl">90.887f</span> <span class="op">},</span> <span class="op">{</span> <span class="fl">54.465f</span><span class="op">,</span> <span class="fl">92.204f</span> <span class="op">},</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span> <span class="fl">55.641f</span><span class="op">,</span> <span class="fl">84.260f</span> <span class="op">},</span> <span class="op">{</span> <span class="fl">72.418f</span><span class="op">,</span> <span class="fl">84.177f</span> <span class="op">},</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span> <span class="fl">73.629f</span><span class="op">,</span> <span class="fl">92.158f</span> <span class="op">},</span> <span class="op">{</span> <span class="fl">88.895f</span><span class="op">,</span> <span class="fl">90.923f</span> <span class="op">},</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span> <span class="fl">89.556f</span><span class="op">,</span> <span class="fl">82.673f</span> <span class="op">},</span> <span class="op">{</span> <span class="fl">105.005f</span><span class="op">,</span> <span class="fl">81.100f</span> <span class="op">}</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>We will load these coordinates into a variable and define an additional variable with the configurable line thickness:</p>
+<pre class="gdscript"><code>var mouth : PackedVector2Array
+var _mouth_width : float = 4.4
+
+func _ready():
+    head = float_array_to_Vector2Array(coords_head);
+    mouth = float_array_to_Vector2Array(coords_mouth);</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Vector2<span class="op">[]</span> _mouth<span class="op">;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">float</span> _mouthWidth <span class="op">=</span> <span class="fl">4.4f</span><span class="op">;</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    _head <span class="op">=</span> <span class="fu">FloatArrayToVector2Array</span><span class="op">(</span>_coordsHead<span class="op">);</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    _mouth <span class="op">=</span> <span class="fu">FloatArrayToVector2Array</span><span class="op">(</span>_coordsMouth<span class="op">);</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>And finally we will use the method ref to actually draw the line, like this:</p>
+<pre class="gdscript"><code>func _draw():
+    # We will use white to draw the line.
+    var white : Color = Color.WHITE
+    var godot_blue : Color = Color(&quot;478cbf&quot;)
+
+    draw_polygon(head, [ godot_blue ])
+
+    # We draw the while line on top of the previous shape.
+    draw_polyline(mouth, white, _mouth_width)</code></pre>
+<div class="sourceCode" id="cb22"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We will use white to draw the line.</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    Color white <span class="op">=</span> Colors<span class="op">.</span><span class="fu">White</span><span class="op">;</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    Color godotBlue <span class="op">=</span> <span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="st">&quot;478cbf&quot;</span><span class="op">);</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawPolygon</span><span class="op">(</span>_head<span class="op">,</span> <span class="op">[</span>godotBlue<span class="op">]);</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We draw the while line on top of the previous shape.</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawPolyline</span><span class="op">(</span>_mouth<span class="op">,</span> white<span class="op">,</span> _mouthWidth<span class="op">);</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>You should get the following output:</p>
+<p>Unlike <code>draw_polygon()</code>, polylines can only have a single unique color for all its points (the second argument). This method has 2 additional arguments: the width of the line (which is as small as possible by default) and enabling or disabling the antialiasing (it is disabled by default).</p>
+<p>The order of the <code>_draw</code> calls is important- like with the Node positions on the tree hierarchy, the different shapes will be drawn from top to bottom, resulting in the latest shapes hiding earlier ones if they overlap. In this case we want the mouth drawn over the head, so we put it afterwards.</p>
+<p>Notice how we can define colors in different ways, either with a hexadecimal code or a predefined color name. Check the class ref for other constants and ways to define Colors.</p>
+<h3 id="drawing-circles">Drawing circles</h3>
+<p>To create the eyes, we are going to add 4 additional calls to draw the eye shapes, in different sizes, colors and positions.</p>
+<p>To draw a circle, you position it based on its center using the ref method. The first parameter is a ref with the coordinates of its center, the second is its radius, and the third is its color:</p>
+<pre class="gdscript"><code>func _draw():
+    var white : Color = Color.WHITE
+    var godot_blue : Color = Color(&quot;478cbf&quot;)
+    var grey : Color = Color(&quot;414042&quot;)
+
+    draw_polygon(head, [ godot_blue ])
+    draw_polyline(mouth, white, _mouth_width)
+
+    # Four circles for the 2 eyes: 2 white, 2 grey.
+    draw_circle(Vector2(42.479, 65.4825), 9.3905, white)
+    draw_circle(Vector2(85.524, 65.4825), 9.3905, white)
+    draw_circle(Vector2(43.423, 65.92), 6.246, grey)
+    draw_circle(Vector2(84.626, 66.008), 6.246, grey)</code></pre>
+<div class="sourceCode" id="cb24"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    Color white <span class="op">=</span> Colors<span class="op">.</span><span class="fu">White</span><span class="op">;</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    Color godotBlue <span class="op">=</span> <span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="st">&quot;478cbf&quot;</span><span class="op">);</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    Color grey <span class="op">=</span> <span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="st">&quot;414042&quot;</span><span class="op">);</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawPolygon</span><span class="op">(</span>_head<span class="op">,</span> <span class="op">[</span>godotBlue<span class="op">]);</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawPolyline</span><span class="op">(</span>_mouth<span class="op">,</span> white<span class="op">,</span> _mouthWidth<span class="op">);</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Four circles for the 2 eyes: 2 white, 2 grey.</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawCircle</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">42.479f</span><span class="op">,</span> <span class="fl">65.4825f</span><span class="op">),</span> <span class="fl">9.3905f</span><span class="op">,</span> white<span class="op">);</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawCircle</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">85.524f</span><span class="op">,</span> <span class="fl">65.4825f</span><span class="op">),</span> <span class="fl">9.3905f</span><span class="op">,</span> white<span class="op">);</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawCircle</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">43.423f</span><span class="op">,</span> <span class="fl">65.92f</span><span class="op">),</span> <span class="fl">6.246f</span><span class="op">,</span> grey<span class="op">);</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawCircle</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">84.626f</span><span class="op">,</span> <span class="fl">66.008f</span><span class="op">),</span> <span class="fl">6.246f</span><span class="op">,</span> grey<span class="op">);</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>When executing it, you should have something like this:</p>
+<p>For partial, unfilled arcs (portions of a circle shape between certain arbitrary angles), you can use the method ref.</p>
+<h3 id="drawing-lines">Drawing lines</h3>
+<p>To draw the final shape (the nose) we will use a line to approximate it.</p>
+<p>ref can be used to draw a single segment by providing its start and end coordinates as arguments, like this:</p>
+<pre class="gdscript"><code>func _draw():
+    var white : Color = Color.WHITE
+    var godot_blue : Color = Color(&quot;478cbf&quot;)
+    var grey : Color = Color(&quot;414042&quot;)
+
+    draw_polygon(head, [ godot_blue ])
+    draw_polyline(mouth, white, _mouth_width)
+    draw_circle(Vector2(42.479, 65.4825), 9.3905, white)
+    draw_circle(Vector2(85.524, 65.4825), 9.3905, white)
+    draw_circle(Vector2(43.423, 65.92), 6.246, grey)
+    draw_circle(Vector2(84.626, 66.008), 6.246, grey)
+
+    # Draw a short but thick white vertical line for the nose.
+    draw_line(Vector2(64.273, 60.564), Vector2(64.273, 74.349), white, 5.8)</code></pre>
+<div class="sourceCode" id="cb26"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    Color white <span class="op">=</span> Colors<span class="op">.</span><span class="fu">White</span><span class="op">;</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    Color godotBlue <span class="op">=</span> <span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="st">&quot;478cbf&quot;</span><span class="op">);</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    Color grey <span class="op">=</span> <span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="st">&quot;414042&quot;</span><span class="op">);</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawPolygon</span><span class="op">(</span>_head<span class="op">,</span> <span class="op">[</span>godotBlue<span class="op">]);</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawPolyline</span><span class="op">(</span>_mouth<span class="op">,</span> white<span class="op">,</span> _mouthWidth<span class="op">);</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawCircle</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">42.479f</span><span class="op">,</span> <span class="fl">65.4825f</span><span class="op">),</span> <span class="fl">9.3905f</span><span class="op">,</span> white<span class="op">);</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawCircle</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">85.524f</span><span class="op">,</span> <span class="fl">65.4825f</span><span class="op">),</span> <span class="fl">9.3905f</span><span class="op">,</span> white<span class="op">);</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawCircle</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">43.423f</span><span class="op">,</span> <span class="fl">65.92f</span><span class="op">),</span> <span class="fl">6.246f</span><span class="op">,</span> grey<span class="op">);</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawCircle</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">84.626f</span><span class="op">,</span> <span class="fl">66.008f</span><span class="op">),</span> <span class="fl">6.246f</span><span class="op">,</span> grey<span class="op">);</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Draw a short but thick white vertical line for the nose.</span></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawLine</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">64.273f</span><span class="op">,</span> <span class="fl">60.564f</span><span class="op">),</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">64.273f</span><span class="op">,</span> <span class="fl">74.349f</span><span class="op">),</span></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>             white<span class="op">,</span> <span class="fl">5.8f</span><span class="op">);</span></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>You should now be able to see the following shape on screen:</p>
+<p>Note that if multiple unconnected lines are going to be drawn at the same time, you may get additional performance by drawing all of them in a single call, using the ref method.</p>
+<h3 id="drawing-text">Drawing text</h3>
+<p>While using the ref Node is the most common way to add text to your application, the low-level _draw function includes functionality to add text to your custom Node drawing. We will use it to add the name "GODOT" under the robot head.</p>
+<p>We will use the ref method to do it, like this:</p>
+<pre class="gdscript"><code>var default_font : Font = ThemeDB.fallback_font;
+
+func _draw():
+    var white : Color = Color.WHITE
+    var godot_blue : Color = Color(&quot;478cbf&quot;)
+    var grey : Color = Color(&quot;414042&quot;)
+
+    draw_polygon(head, [ godot_blue ])
+    draw_polyline(mouth, white, _mouth_width)
+    draw_circle(Vector2(42.479, 65.4825), 9.3905, white)
+    draw_circle(Vector2(85.524, 65.4825), 9.3905, white)
+    draw_circle(Vector2(43.423, 65.92), 6.246, grey)
+    draw_circle(Vector2(84.626, 66.008), 6.246, grey)
+    draw_line(Vector2(64.273, 60.564), Vector2(64.273, 74.349), white, 5.8)
+
+    # Draw GODOT text below the logo with the default font, size 22.
+    draw_string(default_font, Vector2(20, 130), &quot;GODOT&quot;,
+                HORIZONTAL_ALIGNMENT_CENTER, 90, 22)</code></pre>
+<div class="sourceCode" id="cb28"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Font _defaultFont <span class="op">=</span> ThemeDB<span class="op">.</span><span class="fu">FallbackFont</span><span class="op">;</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    Color white <span class="op">=</span> Colors<span class="op">.</span><span class="fu">White</span><span class="op">;</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    Color godotBlue <span class="op">=</span> <span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="st">&quot;478cbf&quot;</span><span class="op">);</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>    Color grey <span class="op">=</span> <span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="st">&quot;414042&quot;</span><span class="op">);</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawPolygon</span><span class="op">(</span>_head<span class="op">,</span> <span class="op">[</span>godotBlue<span class="op">]);</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawPolyline</span><span class="op">(</span>_mouth<span class="op">,</span> white<span class="op">,</span> _mouthWidth<span class="op">);</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawCircle</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">42.479f</span><span class="op">,</span> <span class="fl">65.4825f</span><span class="op">),</span> <span class="fl">9.3905f</span><span class="op">,</span> white<span class="op">);</span></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawCircle</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">85.524f</span><span class="op">,</span> <span class="fl">65.4825f</span><span class="op">),</span> <span class="fl">9.3905f</span><span class="op">,</span> white<span class="op">);</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawCircle</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">43.423f</span><span class="op">,</span> <span class="fl">65.92f</span><span class="op">),</span> <span class="fl">6.246f</span><span class="op">,</span> grey<span class="op">);</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawCircle</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">84.626f</span><span class="op">,</span> <span class="fl">66.008f</span><span class="op">),</span> <span class="fl">6.246f</span><span class="op">,</span> grey<span class="op">);</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawLine</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">64.273f</span><span class="op">,</span> <span class="fl">60.564f</span><span class="op">),</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">64.273f</span><span class="op">,</span> <span class="fl">74.349f</span><span class="op">),</span></span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>             white<span class="op">,</span> <span class="fl">5.8f</span><span class="op">);</span></span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Draw GODOT text below the logo with the default font, size 22.</span></span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawString</span><span class="op">(</span>_defaultFont<span class="op">,</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">20</span>f<span class="op">,</span> <span class="dv">130</span>f<span class="op">),</span> <span class="st">&quot;GODOT&quot;</span><span class="op">,</span></span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>               HorizontalAlignment<span class="op">.</span><span class="fu">Center</span><span class="op">,</span> <span class="dv">90</span><span class="op">,</span> <span class="dv">22</span><span class="op">);</span></span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Here we first load into the defaultFont variable the configured default theme font (a custom one can be set instead) and then we pass the following parameters: font, position, text, horizontal alignment, width, and font size.</p>
+<p>You should see the following on your screen:</p>
+<p>Additional parameters as well as other methods related to text and characters can be found on the ref class reference.</p>
+<h3 id="show-the-drawing-while-editing">Show the drawing while editing</h3>
+<p>While the code so far is able to draw the logo on a running window, it will not show up on the <code>2D view</code> on the editor. In certain cases you would also like to show your custom Node2D or control on the editor, to position and scale it appropriately, like most other nodes do.</p>
+<p>To show the logo directly on the editor (without running it), you can use the ref annotation to request the custom drawing of the node to also appear while editing, like this:</p>
+<pre class="gdscript"><code>@tool
+extends Node2D</code></pre>
+<div class="sourceCode" id="cb30"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2D <span class="op">:</span> Node2D</span></code></pre></div>
+<p>You will need to save your scene, rebuild your project (for C# only) and reload the current scene manually at the menu option <code>Scene &gt; Reload Saved Scene</code> to refresh the current node in the <code>2D</code> view the first time you add or remove the <code>@tool</code> annotation.</p>
+<h3 id="animation">Animation</h3>
+<p>If we wanted to make the custom shape change at runtime, we could modify the methods called or its arguments at execution time, or apply a transform.</p>
+<p>For example, if we want the custom shape we just designed to rotate, we could add the following variable and code to the <code>_ready</code> and <code>_process</code> methods:</p>
+<pre class="gdscript"><code>extends Node2D
+
+@export var rotation_speed : float = 1  # In radians per second.
+
+func _ready():
+    rotation = 0
+    ...
+
+func _process(delta: float):
+    rotation -= rotation_speed * delta</code></pre>
+<div class="sourceCode" id="cb32"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">float</span> RotationSpeed <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> <span class="fl">1.0f</span><span class="op">;</span>  <span class="co">// In radians per second.</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>    Rotation <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>    Rotation <span class="op">-=</span> RotationSpeed <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta<span class="op">;</span></span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The problem with the above code is that because we have created the points approximately on a rectangle starting from the upper left corner, the <code>(0, 0)</code> coordinate and extending to the right and down, we see that the rotation is done using the top left corner as pivot. A position transform change on the node won't help us here, as the rotation transform is applied first.</p>
+<p>While we could rewrite all of the points' coordinates to be centered around <code>(0, 0)</code>, including negative coordinates, that would be a lot of work.</p>
+<p>One possible way to work around this is to use the lower level ref method to fix this issue, translating all points in the CanvasItem's own space, and then moving it back to its original place with a regular node transform, either in the editor or in code, like this:</p>
+<pre class="gdscript"><code>func _ready():
+    rotation = 0
+    position = Vector2(60, 60)
+    ...
+
+func _draw():
+    draw_set_transform(Vector2(-60, -60))
+    ...</code></pre>
+<div class="sourceCode" id="cb34"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    Rotation <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    Position <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">60</span><span class="op">,</span> <span class="dv">60</span><span class="op">);</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawSetTransform</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(-</span><span class="fl">60.0f</span><span class="op">,</span> <span class="op">-</span><span class="fl">60.0f</span><span class="op">));</span></span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This is the result, rotating around a pivot now on <code>(60, 60)</code>:</p>
+<p>If what we wanted to animate was a property inside the <code>_draw()</code> call, we must remember to call <code>queue_redraw()</code> to force a refresh, as otherwise it would not be updated on screen.</p>
+<p>For example, this is how we can make the robot appear to open and close its mouth, by changing the width of its mouth line follow a sinusoidal (ref) curve:</p>
+<pre class="gdscript"><code>var _mouth_width : float = 4.4
+var _max_width : float = 7
+var _time : float = 0
+
+func _process(delta : float):
+    _time += delta
+    _mouth_width = abs(sin(_time) * _max_width)
+    queue_redraw()
+
+func _draw():
+    ...
+    draw_polyline(mouth, white, _mouth_width)
+    ...</code></pre>
+<div class="sourceCode" id="cb36"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">float</span> _mouthWidth <span class="op">=</span> <span class="fl">4.4f</span><span class="op">;</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">float</span> _maxWidth <span class="op">=</span> <span class="dv">7</span>f<span class="op">;</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">float</span> _time <span class="op">=</span> <span class="dv">0</span>f<span class="op">;</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>    _time <span class="op">+=</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta<span class="op">;</span></span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>    _mouthWidth <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Abs</span><span class="op">(</span>Mathf<span class="op">.</span><span class="fu">Sin</span><span class="op">(</span>_time<span class="op">)</span> <span class="op">*</span> _maxWidth<span class="op">);</span></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">QueueRedraw</span><span class="op">();</span></span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
+<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawPolyline</span><span class="op">(</span>_mouth<span class="op">,</span> white<span class="op">,</span> _mouthWidth<span class="op">);</span></span>
+<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
+<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>It will look somewhat like this when run:</p>
+<p>Please note that <code>_mouth_width</code> is a user defined property like any other and it or any other used as a drawing argument can be animated using more standard and high-level methods such as a ref or an ref Node. The only difference is that a <code>queue_redraw()</code> call is needed to apply those changes so they get shown on screen.</p>
+<h2 id="example-2-drawing-a-dynamic-line">Example 2: drawing a dynamic line</h2>
+<p>The previous example was useful to learn how to draw and modify nodes with custom shapes and animations. This could have some advantages, such as using exact coordinates and vectors for drawing, rather than bitmaps -which means they will scale well when transformed on screen. In some cases, similar results could be achieved composing higher level functionality with nodes such as ref or ref loading SVG resources (which are also images defined with vectors) and the ref node.</p>
+<p>In other cases that will not be possible because we will not know what the resulting graphical representation will be before running the code. Here we will see how to draw a dynamic line whose coordinates are not known beforehand, and are affected by the user's input.</p>
+<h3 id="drawing-a-straight-line-between-2-points">Drawing a straight line between 2 points</h3>
+<p>Let's assume we want to draw a straight line between 2 points, the first one will be fixed on the upper left corner <code>(0, 0)</code> and the second will be defined by the cursor position on screen.</p>
+<p>We could draw a dynamic line between those 2 points like this:</p>
+<pre class="gdscript"><code>extends Node2D
+
+var point1 : Vector2 = Vector2(0, 0)
+var width : int = 10
+var color : Color = Color.GREEN
+
+var _point2 : Vector2
+
+func _process(_delta):
+    var mouse_position = get_viewport().get_mouse_position()
+    if mouse_position != _point2:
+        _point2 = mouse_position
+        queue_redraw()
+
+func _draw():
+    draw_line(point1, _point2, color, width)</code></pre>
+<div class="sourceCode" id="cb38"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2DLine <span class="op">:</span> Node2D</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Vector2 Point1 <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">0</span>f<span class="op">,</span> <span class="dv">0</span>f<span class="op">);</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> Width <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> <span class="dv">10</span><span class="op">;</span></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Color Color <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> Colors<span class="op">.</span><span class="fu">Green</span><span class="op">;</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector2 _point2<span class="op">;</span></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>        Vector2 mousePosition <span class="op">=</span> <span class="fu">GetViewport</span><span class="op">().</span><span class="fu">GetMousePosition</span><span class="op">();</span></span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>mousePosition <span class="op">!=</span> _point2<span class="op">)</span></span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>            _point2 <span class="op">=</span> mousePosition<span class="op">;</span></span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>            <span class="fu">QueueRedraw</span><span class="op">();</span></span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">DrawLine</span><span class="op">(</span>Point1<span class="op">,</span> _point2<span class="op">,</span> Color<span class="op">,</span> Width<span class="op">);</span></span>
+<span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb38-26"><a href="#cb38-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In this example we obtain the position of the mouse in the default viewport every frame with the method ref. If the position has changed since the last draw request (a small optimization to avoid redrawing on every frame)- we will schedule a redraw. Our <code>_draw()</code> method only has one line: requesting the drawing of a green line of width 10 pixels between the top left corner and that obtained position.</p>
+<p>The width, color, and position of the starting point can be configured with with the corresponding properties.</p>
+<p>It should look like this when run:</p>
+<h3 id="drawing-an-arc-between-2-points">Drawing an arc between 2 points</h3>
+<p>The above example works, but we may want to join those 2 points with a different shape or function, other than a straight line.</p>
+<p>Let's try now creating an arc (a portion of a circumference) between both points.</p>
+<p>Exporting the line starting point, segments, width, color, and antialiasing will allow us to modify those properties very easily directly from the editor inspector panel:</p>
+<pre class="gdscript"><code>extends Node2D
+
+@export var point1 : Vector2 = Vector2(0, 0)
+@export_range(1, 1000) var segments : int = 100
+@export var width : int = 10
+@export var color : Color = Color.GREEN
+@export var antialiasing : bool = false
+
+var _point2 : Vector2</code></pre>
+<div class="sourceCode" id="cb40"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2DLine <span class="op">:</span> Node2D</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Vector2 Point1 <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">0</span>f<span class="op">,</span> <span class="dv">0</span>f<span class="op">);</span></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">float</span> Length <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> <span class="dv">350</span>f<span class="op">;</span></span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span><span class="fu">Export</span><span class="op">(</span>PropertyHint<span class="op">.</span><span class="fu">Range</span><span class="op">,</span> <span class="st">&quot;1,1000,&quot;</span><span class="op">)]</span></span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> Segments <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> <span class="dv">100</span><span class="op">;</span></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> Width <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> <span class="dv">10</span><span class="op">;</span></span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Color Color <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> Colors<span class="op">.</span><span class="fu">Green</span><span class="op">;</span></span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">bool</span> AntiAliasing <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector2 _point2<span class="op">;</span></span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>To draw the arc, we can use the method ref. There are many arcs that pass through 2 points, so we will chose for this example the semicircle that has its center in the middle point between the 2 initial points.</p>
+<p>Calculating this arc will be more complex than in the case of the line:</p>
+<pre class="gdscript"><code>func _draw():
+    # Average points to get center.
+    var center : Vector2 = Vector2((_point2.x + point1.x) / 2,
+                                   (_point2.y + point1.y) / 2)
+    # Calculate the rest of the arc parameters.
+    var radius : float = point1.distance_to(_point2) / 2
+    var start_angle : float = (_point2 - point1).angle()
+    var end_angle : float = (point1 - _point2).angle()
+    if end_angle &lt; 0:  # end_angle is likely negative, normalize it.
+        end_angle += TAU
+
+    # Finally, draw the arc.
+    draw_arc(center, radius, start_angle, end_angle, segments, color,
+             width, antialiasing)</code></pre>
+<div class="sourceCode" id="cb42"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Average points to get center.</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    Vector2 center <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">((</span>_point2<span class="op">.</span><span class="fu">X</span> <span class="op">+</span> Point1<span class="op">.</span><span class="fu">X</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2.0f</span><span class="op">,</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>                                    <span class="op">(</span>_point2<span class="op">.</span><span class="fu">Y</span> <span class="op">+</span> Point1<span class="op">.</span><span class="fu">Y</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2.0f</span><span class="op">);</span></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Calculate the rest of the arc parameters.</span></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> radius <span class="op">=</span> Point1<span class="op">.</span><span class="fu">DistanceTo</span><span class="op">(</span>_point2<span class="op">)</span> <span class="op">/</span> <span class="fl">2.0f</span><span class="op">;</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> startAngle <span class="op">=</span> <span class="op">(</span>_point2 <span class="op">-</span> Point1<span class="op">).</span><span class="fu">Angle</span><span class="op">();</span></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> endAngle <span class="op">=</span> <span class="op">(</span>Point1 <span class="op">-</span> _point2<span class="op">).</span><span class="fu">Angle</span><span class="op">();</span></span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>endAngle <span class="op">&lt;</span> <span class="fl">0.0f</span><span class="op">)</span>  <span class="co">// endAngle is likely negative, normalize it.</span></span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>        endAngle <span class="op">+=</span> Mathf<span class="op">.</span><span class="fu">Tau</span><span class="op">;</span></span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Finally, draw the arc.</span></span>
+<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawArc</span><span class="op">(</span>center<span class="op">,</span> radius<span class="op">,</span> startAngle<span class="op">,</span> endAngle<span class="op">,</span> Segments<span class="op">,</span> Color<span class="op">,</span></span>
+<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a>            Width<span class="op">,</span> AntiAliasing<span class="op">);</span></span>
+<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The center of the semicircle will be the middle point between both points. The radius will be half the distance between both points. The start and end angles will be the angles of the vector from point1 to point2 and vice-versa. Note we had to normalize the <code>end_angle</code> in positive values because if <code>end_angle</code> is less than <code>start_angle</code>, the arc will be drawn counter-clockwise, which we don't want in this case (the arc would be upside-down).</p>
+<p>The result should be something like this, with the arc going down and between the points:</p>
+<p>Feel free to play with the parameters in the inspector to obtain different results: change the color, the width, the antialiasing, and increase the number of segments to increase the curve smoothness, at the cost of extra performance.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

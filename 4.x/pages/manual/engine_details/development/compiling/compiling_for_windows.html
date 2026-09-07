@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compiling for Windows — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="compiling-for-windows">Compiling for Windows</h1>
+<blockquote>
+<p><strong>See also:</strong> This page describes how to compile Windows editor and export template binaries from source. If you're looking to export your project to Windows instead, read <code>doc_exporting_for_windows</code>.</p>
+</blockquote>
+<h2 id="requirements">Requirements</h2>
+<p>For compiling under Windows, the following is required:</p>
+<ul>
+<li><p>A C++ compiler. Use one of the following:</p>
+<blockquote>
+<ul>
+<li><a href="https://www.visualstudio.com/vs/community/">Visual Studio Community</a>, version 2019 or later. Visual Studio 2022 is recommended. <strong>During installation make sure to select C++ in the list of workflows, and select the following individual components:</strong></li>
+</ul>
+</blockquote></li>
+</ul>
+<p><strong>Visual Studio 2019</strong></p>
+<ul>
+<li><strong>MSVC v142 - VS 2019 C++ {arch} build tools (Latest)</strong> for the target architectures.</li>
+<li><strong>Windows 11 SDK (10.0.22621.0)</strong> (exact version).</li>
+</ul>
+<p><strong>Visual Studio 2022</strong></p>
+<ul>
+<li><strong>MSVC v143 - VS 2022 C++ {arch} build tools (Latest)</strong> for the target architectures.</li>
+<li><strong>Windows 11 SDK (10.0.22621.0)</strong> or newer.</li>
+</ul>
+<p><strong>Visual Studio 2026</strong></p>
+<ul>
+<li><p><strong>MSVC Build Tools for {arch} (Latest)</strong> for the target architectures.</p></li>
+<li><p><strong>Windows 11 SDK (10.0.22621.0)</strong> or newer.</p>
+<blockquote>
+<p>If you've already installed Visual Studio without C++ support for the target architecture, or without the Windows SDK, run the installer again; it should present you a <strong>Modify</strong> button. Supports <code>x86_64</code>, <code>x86_32</code>, and <code>arm64</code>. - <a href="https://mingw-w64.org/">MinGW-w64</a> with GCC can be used as an alternative to Visual Studio. Be sure to install/configure it to use the <code>posix</code> thread model. <strong>Important:</strong> When using MinGW to compile the <code>master</code> branch, you need GCC 12 or later. Supports <code>x86_64</code> and <code>x86_32</code> only. - <a href="https://github.com/mstorsjo/llvm-mingw/releases">MinGW-LLVM</a> with clang can be used as an alternative to Visual Studio and MinGW-w64. <strong>Important:</strong> When using MinGW to compile the <code>master</code> branch, you need clang 14 or later. Supports <code>x86_64</code>, <code>x86_32</code>, and <code>arm64</code>.</p>
+</blockquote></li>
+<li><p><a href="https://www.python.org/downloads/windows/">Python 3.9+</a>. <strong>Make sure to enable the option to add Python to the</strong> <code>PATH</code> <strong>in the installer.</strong></p></li>
+<li><p><a href="https://scons.org/pages/download.html">SCons 4.4+</a> build system. Using the latest release is recommended, especially for proper support of recent Visual Studio releases.</p></li>
+<li><p>ref (can be skipped with the <code>d3d12=no</code> SCons option if Direct3D 12 support is not desired).</p></li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> If you have <a href="https://scoop.sh/">Scoop</a> installed, you can easily install MinGW and other dependencies using the following command:</p>
+<pre><code>scoop install python mingw</code></pre>
+<p>Scons will still need to be installed via pip</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> If you have <a href="https://www.msys2.org/">MSYS2</a> installed, you can easily install MinGW and other dependencies using the following command:</p>
+<pre><code>pacman -S mingw-w64-x86_64-gcc mingw-w64-i686-gcc make python-pip</code></pre>
+<p>For each MSYS2 MinGW subsystem, you should then run pip3 install scons in its shell.</p>
+</blockquote>
+<blockquote>
+<p><strong>See also:</strong> To get the Godot source code for compiling, see <code>doc_getting_source</code>.</p>
+<p>For a general overview of SCons usage for Godot, see <code>doc_introduction_to_the_buildsystem</code>.</p>
+</blockquote>
+<h2 id="setting-up-scons">Setting up SCons</h2>
+<p>To install SCons, open the command prompt and run the following command:</p>
+<pre><code>python -m pip install scons</code></pre>
+<p>If you are prompted with the message <code>Defaulting to user installation because normal site-packages is not writeable</code>, you may have to run that command again using elevated permissions. Open a new command prompt as an Administrator then run the command again to ensure that SCons is available from the <code>PATH</code>.</p>
+<p>To check whether you have installed Python and SCons correctly, you can type <code>python --version</code> and <code>scons --version</code> into a command prompt (<code>cmd.exe</code>).</p>
+<p>If the commands above don't work, make sure to add Python to your <code>PATH</code> environment variable after installing it, then check again. You can do so by running the Python installer again and enabling the option to add Python to the <code>PATH</code>.</p>
+<p>If SCons cannot detect your Visual Studio installation, it might be that your SCons version is too old. Update it to the latest version with <code>python -m pip install --upgrade scons</code>.</p>
+<h2 id="downloading-godots-source">Downloading Godot's source</h2>
+<p>Refer to <code>doc_getting_source</code> for detailed instructions.</p>
+<p>The tutorial will assume from now on that you placed the source code in <code>C:\godot</code>.</p>
+<blockquote>
+<p><strong>Warning:</strong> To prevent slowdowns caused by continuous virus scanning during compilation, add the Godot source folder to the list of exceptions in your antivirus software.</p>
+<p>For Windows Defender, hit the <code>Windows</code> key, type "Windows Security" then hit <code>Enter</code>. Click on <strong>Virus &amp; threat protection</strong> on the left panel. Under <strong>Virus &amp; threat protection settings</strong> click on <strong>Manage Settings</strong> and scroll down to <strong>Exclusions</strong>. Click <strong>Add or remove exclusions</strong> then add the Godot source folder.</p>
+</blockquote>
+<h2 id="compiling">Compiling</h2>
+<h3 id="selecting-a-compiler">Selecting a compiler</h3>
+<p>SCons will automatically find and use an existing Visual Studio installation. If you do not have Visual Studio installed, it will attempt to use MinGW instead. If you already have Visual Studio installed and want to use MinGW-w64, pass <code>use_mingw=yes</code> to the SCons command line. Note that MSVC builds cannot be performed from the MSYS2 or MinGW shells. Use either <code>cmd.exe</code> or PowerShell instead. If you are using MinGW-LLVM, pass both <code>use_mingw=yes</code> and <code>use_llvm=yes</code> to the SCons command line.</p>
+<blockquote>
+<p><strong>Tip:</strong> During development, using the Visual Studio compiler is usually a better idea, as it links the Godot binary much faster than MinGW. However, MinGW can produce more optimized binaries using link-time optimization (see below), making it a better choice for production use. This is particularly the case for the GDScript VM which performs much better with MinGW compared to MSVC. Therefore, it's recommended to use MinGW to produce builds that you distribute to players.</p>
+<p>All official Godot binaries are built in <a href="https://github.com/godotengine/build-containers">custom containers</a> using MinGW.</p>
+</blockquote>
+<h3 id="running-scons">Running SCons</h3>
+<p>After opening a command prompt, change to the root directory of the engine source code (using <code>cd</code>) and type:</p>
+<pre class="doscon"><code>C:\godot&gt; scons platform=windows</code></pre>
+<blockquote>
+<p><strong>Note:</strong> When compiling with multiple CPU threads, SCons may warn about pywin32 being missing. You can safely ignore this warning.</p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> If you are compiling Godot to make changes or contribute to the engine, you may want to use the SCons options <code>dev_build=yes</code> or <code>dev_mode=yes</code>. See <code>doc_introduction_to_the_buildsystem_development_and_production_aliases</code> for more info.</p>
+</blockquote>
+<p>If all goes well, the resulting binary executable will be placed in <code>C:\godot\bin\</code> with the name <code>godot.windows.editor.x86_32.exe</code> or <code>godot.windows.editor.x86_64.exe</code>. By default, SCons will build a binary matching your CPU architecture, but this can be overridden using <code>arch=x86_64</code>, <code>arch=x86_32</code>, or <code>arch=arm64</code>.</p>
+<p>This executable file contains the whole engine and runs without any dependencies. Running it will bring up the Project Manager.</p>
+<blockquote>
+<p><strong>Tip:</strong> If you are compiling Godot for production use, you can make the final executable smaller and faster by adding the SCons option <code>production=yes</code>. This enables additional compiler optimizations and link-time optimization.</p>
+<p>LTO takes some time to run and requires up to 30 GB of available RAM while compiling (depending on toolchain). If you're running out of memory with the above option, use <code>production=yes lto=none</code> or <code>production=yes lto=thin</code> (LLVM only) for a lightweight but less effective form of LTO.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> If you want to use separate editor settings for your own Godot builds and official releases, you can enable <code>doc_data_paths_self_contained_mode</code> by creating a file called <code>._sc_</code> or <code>_sc_</code> in the <code>bin/</code> folder.</p>
+</blockquote>
+<h2 id="installing-direct3d-12-requirements">Installing Direct3D 12 requirements</h2>
+<p>By default, Windows builds of Godot contain support for the Direct3D 12 graphics API. Compiling with Direct3D 12 support requires additional dependencies to be installed. If you wish to skip this step, you can use the <code>d3d12=no</code> SCons option; Vulkan and OpenGL support will remain available if you do so.</p>
+<p>You can install the required dependencies by running <code>python misc/scripts/install_d3d12_sdk_windows.py</code> in the Godot source repository. After running this script, compile Godot as usual. This will use the default paths for the various dependencies, which match the ones used in the script.</p>
+<p>You can find the detailed steps below if you wish to set up dependencies manually, but the above script handles everything for you (including the optional PIX and Agility SDK components).</p>
+<ul>
+<li><a href="https://github.com/godotengine/godot-nir-static/releases/">godot-nir-static library</a>. We compile the Mesa libraries you will need into a static library. Download it anywhere, unzip it and remember the path to the unzipped folder, you will need it below.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> You can optionally build the godot-nir-static libraries yourself with the following steps:</p>
+<ol type="1">
+<li>Install the Python package <a href="https://www.makotemplates.org">mako</a> which is needed to generate some files.</li>
+<li>Clone the <a href="https://github.com/godotengine/godot-nir-static">godot-nir-static</a> directory and navigate to it.</li>
+<li>Run the following:</li>
+</ol>
+<!-- -->
+
+<pre><code>git submodule update --init
+./update_mesa.sh
+scons</code></pre>
+<p>If you are building with MinGW-w64, add <code>use_mingw=yes</code> to the <code>scons</code> command, you can also specify the build architecture using <code>arch={architecture}</code>. If you are building with MinGW-LLVM, add both <code>use_mingw=yes</code> and <code>use_llvm=yes</code> to the <code>scons</code> command.</p>
+<p>If you are building with MinGW and the binaries are not located in the <code>PATH</code>, add <code>mingw_prefix="/path/to/mingw"</code> to the <code>scons</code> command.</p>
+<p>The Mesa static library should be built using the same compiler and the same CRT (if you are building with MinGW) you are using for building Godot.</p>
+</blockquote>
+<p>Optionally, you can compile with the following for additional features:</p>
+<ul>
+<li><a href="https://devblogs.microsoft.com/pix/download">PIX</a> is a performance tuning and debugging application for Direct3D12 applications. If you compile-in support for it, you can get much more detailed information through PIX that will help you optimize your game and troubleshoot graphics bugs. To use it, download the WinPixEventRuntime package. You will be taken to a NuGet package page where you can click "Download package" to get it. Once downloaded, change the file extension to .zip and unzip the file to some path.</li>
+<li><a href="https://devblogs.microsoft.com/directx/directx12agility">Agility SDK</a> can be used to provide access to the latest Direct3D 12 features without relying on driver updates. To use it, download the latest Agility SDK package. You will be taken to a NuGet package page where you can click "Download package" to get it. Once downloaded, change the file extension to .zip and unzip the file to some path.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> If you use a preview version of the Agility SDK, remember to enable developer mode in Windows; otherwise it won't be used.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> If you want to use a PIX with MinGW build, navigate to PIX runtime directory and use the following commands to generate import library:</p>
+<pre><code># For x86-64:
+gendef ./bin/x64/WinPixEventRuntime.dll
+dlltool --machine i386:x86-64 --no-leading-underscore -d WinPixEventRuntime.def -D WinPixEventRuntime.dll -l ./bin/x64/libWinPixEventRuntime.a
+
+# For ARM64:
+gendef ./bin/ARM64/WinPixEventRuntime.dll
+dlltool --machine arm64 --no-leading-underscore -d WinPixEventRuntime.def -D WinPixEventRuntime.dll -l ./bin/ARM64/libWinPixEventRuntime.a</code></pre>
+</blockquote>
+<p>When building Godot, you will need to tell SCons where to look for the additional libraries:</p>
+<pre class="doscon"><code>C:\godot&gt; scons platform=windows mesa_libs=&lt;...&gt;</code></pre>
+<p>Or, with all options enabled:</p>
+<pre class="doscon"><code>C:\godot&gt; scons platform=windows mesa_libs=&lt;...&gt; agility_sdk_path=&lt;...&gt; pix_path=&lt;...&gt;</code></pre>
+<blockquote>
+<p><strong>Note:</strong> PIX support is disabled by default, even if you have it installed. To enable it, pass <code>use_pix=yes</code> to SCons.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> For the Agility SDK's DLLs, you have to explicitly choose the kind of workflow. Single-arch is the default (DLLs copied to <code>bin/</code>). If you pass <code>agility_sdk_multi_arch=yes</code> to SCons, you'll opt-in for multi-arch. DLLs will be copied to the appropriate <code>bin/&lt;arch&gt;/</code> subdirectories and at runtime, the right one will be loaded.</p>
+</blockquote>
+<h2 id="compiling-with-accesskit-support">Compiling with AccessKit support</h2>
+<p>AccessKit provides support for screen readers.</p>
+<p>Compiling with AccessKit requires additional dependencies to be installed. If you wish to skip this step, you can use the <code>accesskit=no</code> SCons option.</p>
+<p>You can install the required dependencies by running <code>python misc/scripts/install_accesskit.py</code> in the Godot source repository. After running this script, compile Godot as usual.</p>
+<blockquote>
+<p><strong>Note:</strong> You can optionally build the AccessKit libraries yourself with the following steps:</p>
+<ol type="1">
+<li>Clone the <a href="https://github.com/godotengine/godot-accesskit-c-static/">godot-accesskit-c-static</a> directory and navigate to it.</li>
+<li>Run the following command:</li>
+</ol>
+<!-- -->
+
+<pre><code>cd accesskit-c
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+cmake --install build</code></pre>
+<p>The AccessKit static library should be built using the same compiler and the same CRT (if you are building with MinGW) you are using for building Godot.</p>
+<p>To compile Godot with a custom build of AccessKit, add <code>accesskit_sdk_path={path}</code> to tell SCons where to look for the AccessKit libraries:</p>
+<pre><code>scons platform=windows accesskit_sdk_path=&lt;...&gt;</code></pre>
+</blockquote>
+<h2 id="compiling-with-winrt-support">Compiling with WinRT support</h2>
+<p>WinRT provides support for OneCore TTS (accessing Windows 10+ voices), HDR color information monitoring, and emoji picker.</p>
+<p>If you are building with MinGW, compiling with WinRT requires additional dependencies to be installed. If you wish to skip this step, you can use the <code>winrt=no</code> SCons option.</p>
+<p>You can install the required dependencies by running <code>python misc/scripts/install_winrt.py</code> in the Godot source repository. After running this script, compile Godot as usual.</p>
+<blockquote>
+<p><strong>Note:</strong> You can optionally build the WinRT headers yourself with the following steps:</p>
+<ol type="1">
+<li>Clone the <a href="https://github.com/godotengine/winrt-mingw">winrt-mingw</a> directory and navigate to it.</li>
+<li>Run the following command:</li>
+</ol>
+<!-- -->
+
+<pre><code>cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DCPPWINRT_BUILD_VERSION=2.0.250303.1 -DBUILD_TESTING=OFF cppwinrt/
+echo &quot;&quot; &gt; build/app.manifest.rc
+cmake --build build
+./build/cppwinrt.exe -input windows-rs/crates/libs/bindgen/default/ -output include/</code></pre>
+<p>To compile Godot with a custom build of WinRT, add <code>winrt_path={path}</code> to tell SCons where to look for the AccessKit headers:</p>
+<pre><code>scons platform=windows winrt_path=&lt;...&gt;</code></pre>
+</blockquote>
+<h2 id="compiling-with-angle-support">Compiling with ANGLE support</h2>
+<p>ANGLE provides a translation layer from OpenGL ES 3.x to Direct3D 11 and can be used to improve support for the Compatibility renderer on some older GPUs with outdated OpenGL drivers and on Windows for ARM.</p>
+<p>Compiling with ANGLE requires additional dependencies to be installed. If you wish to skip this step, you can use the <code>angle=no</code> SCons option.</p>
+<p>You can install the required dependencies by running <code>python misc/scripts/install_angle.py</code> in the Godot source repository. After running this script, compile Godot as usual.</p>
+<blockquote>
+<p><strong>Note:</strong> You can optionally build the godot-angle-static libraries yourself with the following steps:</p>
+<ol type="1">
+<li>Clone the <a href="https://github.com/godotengine/godot-angle-static">godot-angle-static</a> directory and navigate to it.</li>
+<li>Run the following command:</li>
+</ol>
+<!-- -->
+
+<pre><code>git submodule update --init
+./update_angle.sh
+scons</code></pre>
+<p>If you are buildng with MinGW, add <code>use_mingw=yes</code> to the command, you can also specify the build architecture using <code>arch={architecture}</code>. If you are building with MinGW-LLVM, add both <code>use_mingw=yes</code> and <code>use_llvm=yes</code> to the <code>scons</code> command.</p>
+<p>If you are building with MinGW and the binaries are not located in the <code>PATH</code>, add <code>mingw_prefix="/path/to/mingw"</code> to the <code>scons</code> command.</p>
+<p>The ANGLE static library should be built using the same compiler and the same CRT (if you are building with MinGW) you are using for building Godot.</p>
+<p>To compile Godot with a custom build of ANGLE, add <code>angle_libs={path}</code> to tell SCons where to look for the ANGLE libraries:</p>
+<pre><code>scons platform=windows angle_libs=&lt;...&gt;</code></pre>
+</blockquote>
+<h2 id="development-in-visual-studio">Development in Visual Studio</h2>
+<p>Using an IDE is not required to compile Godot, as SCons takes care of everything. But if you intend to do engine development or debugging of the engine's C++ code, you may be interested in configuring a code editor or an IDE.</p>
+<p>Folder-based editors don't require any particular setup to start working with Godot's codebase. To edit projects with Visual Studio they need to be set up as a solution.</p>
+<p>You can create a Visual Studio solution via SCons by running SCons with the <code>vsproj=yes</code> parameter, like this:</p>
+<pre><code>scons platform=windows vsproj=yes</code></pre>
+<p>You will be able to open Godot's source in a Visual Studio solution now, and able to build Godot using Visual Studio's <strong>Build</strong> button.</p>
+<blockquote>
+<p><strong>See also:</strong> See <code>doc_configuring_an_ide_vs</code> for further details.</p>
+</blockquote>
+<h3 id="troubleshooting">Troubleshooting</h3>
+<p>If you get a compilation failure when using MSVC, make sure to apply the latest updates. You can do so by starting the Visual Studio IDE and using <code>Continue without code</code>, then <code>Help &gt; Check for Updates</code> in the menu bar at the top. Install all updates, then try compiling again.</p>
+<h2 id="cross-compiling-for-windows-from-other-operating-systems">Cross-compiling for Windows from other operating systems</h2>
+<p>If you are a Linux or macOS user, you need to install <a href="https://www.mingw-w64.org/">MinGW-w64</a>, which typically comes in 32-bit and 64-bit variants, or <a href="https://github.com/mstorsjo/llvm-mingw/releases">MinGW-LLVM</a>, which comes as a single archive for all target architectures. The package names may differ based on your distribution, here are some known ones:</p>
+<table>
+<colgroup>
+<col style="width: 21%" />
+<col style="width: 78%" />
+</colgroup>
+<tbody>
+<tr class="odd">
+<td><strong>Arch Linux</strong></td>
+<td><pre><code>pacman -S mingw-w64</code></pre></td>
+</tr>
+<tr class="even">
+<td><strong>Debian</strong> / <strong>Ubuntu</strong></td>
+<td><pre><code>apt install mingw-w64</code></pre></td>
+</tr>
+<tr class="odd">
+<td><strong>Fedora</strong></td>
+<td><pre><code>dnf install mingw64-gcc-c++ mingw64-winpthreads-static \
+            mingw32-gcc-c++ mingw32-winpthreads-static</code></pre></td>
+</tr>
+<tr class="even">
+<td><strong>macOS</strong></td>
+<td><pre><code>brew install mingw-w64</code></pre></td>
+</tr>
+<tr class="odd">
+<td><strong>Mageia</strong></td>
+<td><pre><code>urpmi mingw64-gcc-c++ mingw64-winpthreads-static \
+      mingw32-gcc-c++ mingw32-winpthreads-static</code></pre></td>
+</tr>
+</tbody>
+</table>
+
+<p>Before attempting the compilation, SCons will check for the following binaries in your <code>PATH</code> environment variable:</p>
+<pre><code># for MinGW-w64
+i686-w64-mingw32-gcc
+x86_64-w64-mingw32-gcc
+
+# for MinGW-LLVM
+aarch64-w64-mingw32-clang
+i686-w64-mingw32-clang
+x86_64-w64-mingw32-clang</code></pre>
+<p>If the binaries are not located in the <code>PATH</code> (e.g. <code>/usr/bin</code>), you can define the following environment variable to give a hint to the build system:</p>
+<pre><code>export MINGW_PREFIX=&quot;/path/to/mingw&quot;</code></pre>
+<p>Where <code>/path/to/mingw</code> is the path containing the <code>bin</code> directory where <code>i686-w64-mingw32-gcc</code> and <code>x86_64-w64-mingw32-gcc</code> are located (e.g. <code>/opt/mingw-w64</code> if the binaries are located in <code>/opt/mingw-w64/bin</code>).</p>
+<p>To make sure you are doing things correctly, executing the following in the shell should result in a working compiler (the version output may differ based on your system):</p>
+<pre><code>${MINGW_PREFIX}/bin/x86_64-w64-mingw32-gcc --version
+# x86_64-w64-mingw32-gcc (GCC) 13.2.0</code></pre>
+<blockquote>
+<p><strong>Note:</strong> If you are building with MinGW-LLVM, add <code>use_llvm=yes</code> to the <code>scons</code> command.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> When cross-compiling for Windows using MinGW-w64, keep in mind only <code>x86_64</code> and <code>x86_32</code> architectures are supported. MinGW-LLVM supports <code>arm64</code> as well. Be sure to specify the right <code>arch=</code> option when invoking SCons if building from a different architecture.</p>
+</blockquote>
+<h3 id="troubleshooting-1">Troubleshooting</h3>
+<p>Cross-compiling from some Ubuntu versions may lead to <a href="https://github.com/godotengine/godot/issues/9258">this bug</a>, due to a default configuration lacking support for POSIX threading.</p>
+<p>You can change that configuration following those instructions, for 64-bit:</p>
+<pre><code>sudo update-alternatives --config x86_64-w64-mingw32-gcc
+&lt;choose x86_64-w64-mingw32-gcc-posix from the list&gt;
+sudo update-alternatives --config x86_64-w64-mingw32-g++
+&lt;choose x86_64-w64-mingw32-g++-posix from the list&gt;</code></pre>
+<p>And for 32-bit:</p>
+<pre><code>sudo update-alternatives --config i686-w64-mingw32-gcc
+&lt;choose i686-w64-mingw32-gcc-posix from the list&gt;
+sudo update-alternatives --config i686-w64-mingw32-g++
+&lt;choose i686-w64-mingw32-g++-posix from the list&gt;</code></pre>
+<h2 id="creating-windows-export-templates">Creating Windows export templates</h2>
+<p>Windows export templates are created by compiling Godot without the editor, with the following flags:</p>
+<pre class="doscon"><code>C:\godot&gt; scons platform=windows target=template_debug arch=x86_32
+C:\godot&gt; scons platform=windows target=template_release arch=x86_32
+C:\godot&gt; scons platform=windows target=template_debug arch=x86_64
+C:\godot&gt; scons platform=windows target=template_release arch=x86_64
+C:\godot&gt; scons platform=windows target=template_debug arch=arm64
+C:\godot&gt; scons platform=windows target=template_release arch=arm64</code></pre>
+<p>If you plan on replacing the standard export templates, copy these to the following location, replacing <code>&lt;version&gt;</code> with the version identifier (such as <code>4.2.1.stable</code> or <code>4.3.dev</code>):</p>
+<pre class="none"><code>%APPDATA%\Godot\export_templates\&lt;version&gt;\</code></pre>
+<p>With the following names:</p>
+<pre><code>windows_debug_x86_32_console.exe
+windows_debug_x86_32.exe
+windows_debug_x86_64_console.exe
+windows_debug_x86_64.exe
+windows_debug_arm64_console.exe
+windows_debug_arm64.exe
+windows_release_x86_32_console.exe
+windows_release_x86_32.exe
+windows_release_x86_64_console.exe
+windows_release_x86_64.exe
+windows_release_arm64_console.exe
+windows_release_arm64.exe</code></pre>
+<p>However, if you are using custom modules or custom engine code, you may instead want to configure your binaries as custom export templates in the project export menu. You must have <strong>Advanced Options</strong> enabled to set this.</p>
+<p>You don't need to copy them in this case, just reference the resulting files in the <code>bin\</code> directory of your Godot source folder, so the next time you build, you will automatically have the custom templates referenced.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

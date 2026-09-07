@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDScript exported properties — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="gdscript-exported-properties">GDScript exported properties</h1>
+<p>In Godot, class members can be exported. This means their value gets saved along with the resource (such as the ref) they're attached to, and get transferred over when using ref. They will also be available for editing in the property editor. Exporting is done by using the <code>@export</code> annotation.</p>
+<pre><code>@export var number: int = 5</code></pre>
+<p>In that example the value <code>5</code> will be saved and visible in the property editor.</p>
+<p>An exported variable must be initialized to a constant expression or have a type specifier in the variable. Some of the export annotations have a specific type and don't need the variable to be typed (see the <em>Examples</em> section below).</p>
+<p>One of the fundamental benefits of exporting member variables is to have them visible and editable in the editor. This way, artists and game designers can modify values that later influence how the program runs. For this, a special export syntax is provided. Additionally, ref can be used for tooltip descriptions, visible on mouse over.</p>
+<blockquote>
+<p><strong>Note:</strong> Exporting properties can also be done in other languages such as C#. The syntax varies depending on the language. See <code>doc_c_sharp_exports</code> for information on C# exports.</p>
+</blockquote>
+<h2 id="basic-use">Basic use</h2>
+<p>If the exported value assigns a constant or constant expression, the type will be inferred and used in the editor.</p>
+<pre><code>@export var number = 5</code></pre>
+<p>If there's no default value, you can add a type to the variable.</p>
+<pre><code>@export var number: int</code></pre>
+<p>Resources and nodes can be exported.</p>
+<pre><code>@export var resource: Resource
+@export var node: Node</code></pre>
+<p>Even if a script is not executed in the editor, exported properties can still be edited. However, getters and setters will only be used if the script is in <code>doc_gdscript_tool_mode</code>.</p>
+<h2 id="grouping-exports">Grouping exports</h2>
+<p>It is possible to group your exported properties inside the Inspector with the ref annotation. Every exported property after this annotation will be added to the group. Start a new group or use <code>@export_group("")</code> to break out.</p>
+<pre><code>@export_group(&quot;My Properties&quot;)
+@export var number = 3</code></pre>
+<p>The second argument of the annotation can be used to only group properties with the specified prefix.</p>
+<p>Groups cannot be nested, use ref to create subgroups within a group.</p>
+<pre><code>@export_subgroup(&quot;Extra Properties&quot;)
+@export var string = &quot;&quot;
+@export var flag = false</code></pre>
+<p>You can also change the name of your main category, or create additional categories in the property list with the ref annotation.</p>
+<pre><code>@export_category(&quot;Main Category&quot;)
+@export var number = 3
+@export var string = &quot;&quot;
+
+@export_category(&quot;Extra Category&quot;)
+@export var flag = false</code></pre>
+<blockquote>
+<p><strong>Note:</strong> The list of properties is organized based on the class inheritance and new categories break that expectation. Use them carefully, especially when creating projects for public use.</p>
+</blockquote>
+<h2 id="strings-as-paths">Strings as paths</h2>
+<p>String as a path to a file. See ref.</p>
+<pre><code>@export_file var f</code></pre>
+<p>String as a path to a directory. See ref.</p>
+<pre><code>@export_dir var f</code></pre>
+<p>String as a path to a file, custom filter provided as hint. See again ref.</p>
+<pre><code>@export_file(&quot;*.txt&quot;) var f</code></pre>
+<p>Using paths in the global filesystem is also possible, but only in scripts in tool mode.</p>
+<p>String as a path to a PNG file in the global filesystem. See ref.</p>
+<pre><code>@export_global_file(&quot;*.png&quot;) var tool_image</code></pre>
+<p>String as a path to a directory in the global filesystem. See ref.</p>
+<pre><code>@export_global_dir var tool_dir</code></pre>
+<p>The multiline annotation tells the editor to show a large input field for editing over multiple lines. See ref.</p>
+<pre><code>@export_multiline var text</code></pre>
+<h2 id="strings-as-input-actions">Strings as input actions</h2>
+<p>String as an input action defined in the project's input map.</p>
+<pre><code>@export_custom(PROPERTY_HINT_INPUT_NAME) var my_input</code></pre>
+<p>String as an input action defined in the project's input map, plus default built-in values such as <code>ui_accept</code> and <code>ui_cancel</code>.</p>
+<pre><code>@export_custom(PROPERTY_HINT_INPUT_NAME, &quot;show_builtin&quot;) var my_input</code></pre>
+<p>String as an input action defined in the project's input map, plus arbitrary values that can manually be entered.</p>
+<pre><code>@export_custom(PROPERTY_HINT_INPUT_NAME, &quot;loose_mode&quot;) var my_input</code></pre>
+<p>String as an input action defined in the project's input map, plus default built-in values such as <code>ui_accept</code> and <code>ui_cancel</code> and arbitrary values that can manually be entered.</p>
+<pre><code>@export_custom(PROPERTY_HINT_INPUT_NAME, &quot;show_builtin,loose_mode&quot;) var my_input</code></pre>
+<h2 id="limiting-editor-input-ranges">Limiting editor input ranges</h2>
+<p>See ref for all of the following.</p>
+<p>Allow integer values from 0 to 20.</p>
+<pre><code>@export_range(0, 20) var i</code></pre>
+<p>Allow integer values from -10 to 20.</p>
+<pre><code>@export_range(-10, 20) var j</code></pre>
+<p>Allow floats from -10 to 20 and snap the value to multiples of 0.2.</p>
+<pre><code>@export_range(-10, 20, 0.2) var k: float</code></pre>
+<p>The limits can be made to affect only the slider if you add the hints <code>"or_less"</code> and/or <code>"or_greater"</code>. If either these hints are used, it will be possible for the user to enter any value or drag the value with the mouse when not using the slider, even if outside the specified range.</p>
+<pre><code>@export_range(0, 100, 1, &quot;or_less&quot;, &quot;or_greater&quot;) var l: int</code></pre>
+<p>The <code>"exp"</code> hint can be used to make a value have an exponential slider instead of a linear slider. This means that when dragging the slider towards the right, changes will become progressively faster when dragging the mouse. This is useful to make editing values that can be either very small or very large easier, at the cost of being less intuitive.</p>
+<pre><code>@export_range(0, 100000, 0.01, &quot;exp&quot;) var exponential: float</code></pre>
+<p>For values that are meant to represent an easing factor, use <code>doc_gdscript_exports_floats_with_easing_hint</code> instead.</p>
+<p>The <code>"hide_slider"</code> hint can be used to hide the horizontal bar that appears below <code>float</code> properties, or the up/down arrows that appear besides <code>int</code> properties:</p>
+<pre><code>@export_range(0, 1000, 0.01, &quot;hide_slider&quot;) var no_slider: float</code></pre>
+<p>On the other hand, the <code>"prefer_slider"</code> hint can be used to show a horizontal bar below <code>int</code> properties instead of up/down arrows:</p>
+<pre><code>@export_range(0, 100, 1, &quot;prefer_slider&quot;) var with_slider: int</code></pre>
+<h2 id="adding-suffixes-and-handling-degreesradians">Adding suffixes and handling degrees/radians</h2>
+<p>A suffix can also be defined to make the value more self-explanatory in the inspector. For example, to define a value that is meant to be configured as "meters" (<code>m</code>) by the user:</p>
+<pre><code>@export_range(0, 100, 1, &quot;suffix:m&quot;) var m: int</code></pre>
+<p>For angles that are stored in radians but displayed as degrees to the user, use the "radians_as_degrees" hint:</p>
+<pre><code>@export_range(0, 360, 0.1, &quot;radians_as_degrees&quot;) var angle: float</code></pre>
+<p>This performs automatic conversion when the value is displayed or modified in the inspector and also displays a degree (<code>°</code>) suffix. This approach is used by Godot's own rotation properties throughout the editor.</p>
+<p>If the angle is stored in degrees instead, use the "degrees" hint to display the degree symbol while disabling the automatic degrees-to-radians conversion when the value is modified from the inspector.</p>
+<h2 id="linking-vector-values-together">Linking vector values together</h2>
+<p>It is possible to link vector values together. When the user adjusts one of the vector's components, the other components are automatically adjusted proportionally. For example, this is useful to maintain the aspect ratio of a 2D sprite when adjusting its scale. This feature can be temporarily disabled by the user by clicking the link icon to the right of the property.</p>
+<pre><code># Leave the hint string empty if you don&#39;t want to add a suffix.
+@export_custom(PROPERTY_HINT_LINK, &quot;suffix:px&quot;) var vector2_linked: Vector2 = Vector2(16, 16)</code></pre>
+<p>Results in:</p>
+<p><em>Image: Linked Vector2i property with the "px" suffix</em></p>
+<p>Linked Vector2i property with the "px" suffix</p>
+<p>ref is effective on Vector2, Vector2i, Vector3, Vector3i, Vector4, and Vector4i. It can be used at the same time as a property suffix, as seen in the example above.</p>
+<h2 id="floats-with-easing-hint">Floats with easing hint</h2>
+<p>Display a visual representation of the <code>ease()</code> function when editing. See ref.</p>
+<pre><code>@export_exp_easing var transition_speed</code></pre>
+<h2 id="colors">Colors</h2>
+<p>Regular color given as red-green-blue-alpha value.</p>
+<pre><code>@export var col: Color</code></pre>
+<p>Color given as red-green-blue value (alpha will always be 1). See ref.</p>
+<pre><code>@export_color_no_alpha var col: Color</code></pre>
+<h2 id="nodes">Nodes</h2>
+<p>Nodes can also be directly exported as properties in a script without having to use NodePaths:</p>
+<pre><code># Allows any node.
+@export var node: Node
+
+# Allows any node that inherits from BaseButton.
+# Custom classes declared with `class_name` can also be used.
+@export var some_button: BaseButton</code></pre>
+<p>Exporting NodePaths like in Godot 3.x is still possible, in case you need it:</p>
+<pre><code>@export var node_path: NodePath
+var node = get_node(node_path)</code></pre>
+<p>If you want to limit the types of nodes for NodePaths, you can use the ref annotation:</p>
+<pre><code>@export_node_path(&quot;Button&quot;, &quot;TouchScreenButton&quot;) var some_button</code></pre>
+<h2 id="resources">Resources</h2>
+<pre><code>@export var resource: Resource</code></pre>
+<p>In the Inspector, you can then drag and drop a resource file from the FileSystem dock into the variable slot.</p>
+<p>Opening the inspector dropdown may result in an extremely long list of possible classes to create, however. Therefore, if you specify an extension of Resource such as:</p>
+<pre><code>@export var resource: AnimationNode</code></pre>
+<p>The drop-down menu will be limited to AnimationNode and all its derived classes.</p>
+<blockquote>
+<p><strong>Note:</strong> Using <code>@export</code> variables for ref objects makes them a dependency of the instance, meaning that all the resources referenced by <code>@export</code> variables are loaded when the scene containing the script is loaded. If you want to reference a ref object but load it manually when you need it (which, for example, is often the case for ref containing a whole level), use <code>@export_file</code> or <code>@export_file_path</code> instead.</p>
+</blockquote>
+<h2 id="exporting-bit-flags">Exporting bit flags</h2>
+<p>See ref.</p>
+<p>Integers used as bit flags can store multiple <code>true</code>/<code>false</code> (boolean) values in one property. By using the <code>@export_flags</code> annotation, they can be set from the editor:</p>
+<pre><code># Set any of the given flags from the editor.
+@export_flags(&quot;Fire&quot;, &quot;Water&quot;, &quot;Earth&quot;, &quot;Wind&quot;) var spell_elements = 0</code></pre>
+<p>You must provide a string description for each flag. In this example, <code>Fire</code> has value 1, <code>Water</code> has value 2, <code>Earth</code> has value 4 and <code>Wind</code> corresponds to value 8. Usually, constants should be defined accordingly (e.g. <code>const ELEMENT_WIND = 8</code> and so on).</p>
+<p>You can add explicit values using a colon:</p>
+<pre><code>@export_flags(&quot;Self:4&quot;, &quot;Allies:8&quot;, &quot;Foes:16&quot;) var spell_targets = 0</code></pre>
+<p>Only power of 2 values are valid as bit flags options. The lowest allowed value is 1, as 0 means that nothing is selected. You can also add options that are a combination of other flags:</p>
+<pre><code>@export_flags(&quot;Self:4&quot;, &quot;Allies:8&quot;, &quot;Self and Allies:12&quot;, &quot;Foes:16&quot;)
+var spell_targets = 0</code></pre>
+<p>Export annotations are also provided for the physics, render, and navigation layers defined in the project settings:</p>
+<pre><code>@export_flags_2d_physics var layers_2d_physics
+@export_flags_2d_render var layers_2d_render
+@export_flags_2d_navigation var layers_2d_navigation
+@export_flags_3d_physics var layers_3d_physics
+@export_flags_3d_render var layers_3d_render
+@export_flags_3d_navigation var layers_3d_navigation</code></pre>
+<p>Using bit flags requires some understanding of bitwise operations. If in doubt, use boolean variables instead.</p>
+<h2 id="exporting-enums">Exporting enums</h2>
+<p>See ref.</p>
+<p>Properties can be exported with a type hint referencing an enum to limit their values to the values of the enumeration. The editor will create a widget in the Inspector, enumerating the following as "Thing 1", "Thing 2", "Another Thing". The value will be stored as an integer.</p>
+<pre><code>enum NamedEnum {THING_1, THING_2, ANOTHER_THING = -1}
+@export var x: NamedEnum</code></pre>
+<p>Integer and string properties can also be limited to a specific list of values using the ref annotation. The editor will create a widget in the Inspector, enumerating the following as Warrior, Magician, Thief. The value will be stored as an integer, corresponding to the index of the selected option (i.e. <code>0</code>, <code>1</code>, or <code>2</code>).</p>
+<pre><code>@export_enum(&quot;Warrior&quot;, &quot;Magician&quot;, &quot;Thief&quot;) var character_class: int</code></pre>
+<p>You can add explicit values using a colon:</p>
+<pre><code>@export_enum(&quot;Slow:30&quot;, &quot;Average:60&quot;, &quot;Very Fast:200&quot;) var character_speed: int</code></pre>
+<p>If the type is String, the value will be stored as a string.</p>
+<pre><code>@export_enum(&quot;Rebecca&quot;, &quot;Mary&quot;, &quot;Leah&quot;) var character_name: String</code></pre>
+<p>If you want to set an initial value, you must specify it explicitly:</p>
+<pre><code>@export_enum(&quot;Rebecca&quot;, &quot;Mary&quot;, &quot;Leah&quot;) var character_name: String = &quot;Rebecca&quot;</code></pre>
+<h2 id="exporting-arrays">Exporting arrays</h2>
+<p>Exported arrays can have initializers, but they must be constant expressions.</p>
+<p>If the exported array specifies a type which inherits from Resource, the array values can be set in the inspector by dragging and dropping multiple files from the FileSystem dock at once.</p>
+<p>The default value <strong>must</strong> be a constant expression.</p>
+<pre><code>@export var a = [1, 2, 3]</code></pre>
+<p>Exported arrays can specify type (using the same hints as before).</p>
+<pre><code>@export var ints: Array[int] = [1, 2, 3]
+
+# Nested typed arrays such as `Array[Array[float]]` are not supported yet.
+@export var two_dimensional: Array[Array] = [[1.0, 2.0], [3.0, 4.0]]</code></pre>
+<p>You can omit the default value, but it would then be <code>null</code> if not assigned.</p>
+<pre><code>@export var b: Array
+@export var scenes: Array[PackedScene]</code></pre>
+<p>Arrays with specified types which inherit from resource can be set by drag-and-dropping multiple files from the FileSystem dock.</p>
+<pre><code>@export var textures: Array[Texture] = []
+@export var scenes: Array[PackedScene] = []</code></pre>
+<p>Packed arrays also work, but only if initialized empty:</p>
+<pre><code>@export var vector3s = PackedVector3Array()
+@export var strings = PackedStringArray()</code></pre>
+<p>Other export variants can also be used when exporting arrays:</p>
+<pre><code>@export_range(-360, 360, 0.001, &quot;degrees&quot;) var laser_angles: Array[float] = []
+@export_file(&quot;*.json&quot;) var skill_trees: Array[String] = []
+@export_color_no_alpha var hair_colors = PackedColorArray()
+@export_enum(&quot;Espresso&quot;, &quot;Mocha&quot;, &quot;Latte&quot;, &quot;Capuccino&quot;) var barista_suggestions: Array[String] = []</code></pre>
+<h2 id="export_storage"><code>@export_storage</code></h2>
+<p>See ref.</p>
+<p>By default, exporting a property has two effects:</p>
+<ol type="1">
+<li>makes the property stored in the scene/resource file (ref);</li>
+<li>adds a field to the Inspector (ref).</li>
+</ol>
+<p>However, sometimes you may want to make a property serializable, but not display it in the editor to prevent unintentional changes and cluttering the interface.</p>
+<p>To do this you can use ref. This can be useful for ref scripts. Also the property value is copied when ref or ref is called, unlike non-exported variables.</p>
+<pre><code>var a # Not stored in the file, not displayed in the editor.
+@export_storage var b # Stored in the file, not displayed in the editor.
+@export var c: int # Stored in the file, displayed in the editor.</code></pre>
+<h2 id="export_custom"><code>@export_custom</code></h2>
+<p>If you need more control than what's exposed with the built-in <code>@export</code> annotations, you can use <code>@export_custom</code> instead. This allows defining any property hint, hint string and usage flags, with a syntax similar to the one used by the editor for built-in nodes.</p>
+<p>For example, this exposes the <code>altitude</code> property with no range limits but an <code>m</code> (meter) suffix defined:</p>
+<pre><code>@export_custom(PROPERTY_HINT_NONE, &quot;suffix:m&quot;) var altitude: float</code></pre>
+<p>The above is normally not feasible with the standard <code>@export_range</code> syntax, since it requires defining a range.</p>
+<p>See the ref for a list of parameters and their allowed values.</p>
+<blockquote>
+<p><strong>Warning:</strong> When using <code>@export_custom</code>, GDScript does not perform any validation on the syntax. Invalid syntax may have unexpected behavior in the inspector.</p>
+</blockquote>
+<h2 id="export_tool_button"><code>@export_tool_button</code></h2>
+<p>If you need to create a clickable inspector button, you can use <code>@export_tool_button</code>. This exports a <code>Callable</code> property as a clickable button. When the button is pressed, the callable is called.</p>
+<p>You can specify a custom icon name, which must match one of the icon file names from the <a href="https://github.com/godotengine/godot/tree/master/editor/icons">editor/icons</a> folder of the Godot source repository (case-sensitive). You can also browse the editor icons using the <a href="https://godot-editor-icons.github.io/">Godot editor icons</a> website.</p>
+<p>For example, if you wish to use <code>Node2D.svg</code> from that folder, you must specify <code>"Node2D"</code> as the second parameter of <code>@export_tool_button</code>. It is not currently possible to use custom icons from the project folder; only built-in editor icons can be used.</p>
+<p>This exports a button with label <code>"Hello"</code> and icon <code>"Callable"</code> (which is the default if no icon is specified). When you press it, it will print <code>"Hello world!"</code>.</p>
+<pre><code>@tool
+extends Node
+
+@export_tool_button(&quot;Hello&quot;, &quot;Callable&quot;) var hello_action = hello
+
+func hello():
+    print(&quot;Hello world!&quot;)</code></pre>
+<h2 id="setting-exported-variables-from-a-tool-script">Setting exported variables from a tool script</h2>
+<p>When changing an exported variable's value from a script in <code>doc_gdscript_tool_mode</code>, the value in the inspector won't be updated automatically. To update it, call ref after setting the exported variable's value.</p>
+<h2 id="reading-an-exported-variables-value-early-on">Reading an exported variable's value early on</h2>
+<p>If you read an exported variable's value in ref, it will return the default value specified in the export annotation instead of the value that was set in the inspector. This is because assigning values from the saved scene/resource file occurs <em>after</em> object initialization; until then, the default value is used.</p>
+<p>To get the value that was set in the inspector (and therefore saved in the scene/resource file), you need to read it <em>after</em> the object is constructed, such as in ref. You can also read the value in a setter that's defined on the exported property, which is useful in custom resources where <code>_ready()</code> is not available:</p>
+<pre><code># Set this property to 3 in the inspector.
+@export var exported_variable = 2:
+    set(value):
+        exported_variable = value
+        print(&quot;Inspector-set value: &quot;, exported_variable)
+
+func _init():
+    print(&quot;Initial value: &quot;, exported_variable)</code></pre>
+<p>Results in:</p>
+<pre class="none"><code>Initial value: 2
+Inspector-set value: 3</code></pre>
+<h2 id="advanced-exports">Advanced exports</h2>
+<p>Not every type of export can be provided on the level of the language itself to avoid unnecessary design complexity. The following describes some more or less common exporting features which can be implemented with a low-level API.</p>
+<p>Before reading further, you should get familiar with the way properties are handled and how they can be customized with ref, ref, and ref methods as described in <code>doc_accessing_data_or_logic_from_object</code>.</p>
+<blockquote>
+<p><strong>See also:</strong> For binding properties using the above methods in C++, see <code>doc_binding_properties_using_set_get_property_list</code>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> The script must operate in the <code>@tool</code> mode so the above methods can work from within the editor.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

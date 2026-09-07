@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Input examples — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="input-examples">Input examples</h1>
+<h2 id="introduction">Introduction</h2>
+<p>In this tutorial, you'll learn how to use Godot's ref system to capture player input. There are many different types of input your game may use - keyboard, gamepad, mouse, etc. - and many different ways to turn those inputs into actions in your game. This document will show you some of the most common scenarios, which you can use as starting points for your own projects.</p>
+<blockquote>
+<p><strong>Note:</strong> For a detailed overview of how Godot's input event system works, see <code>doc_inputevent</code>.</p>
+</blockquote>
+<h2 id="events-versus-polling">Events versus polling</h2>
+<p>Sometimes you want your game to respond to a certain input event - pressing the "jump" button, for example. For other situations, you might want something to happen as long as a key is pressed, such as movement. In the first case, you can use the <code>_input()</code> function, which will be called whenever an input event occurs. In the second case, Godot provides the ref singleton, which you can use to query the state of an input.</p>
+<p>Examples:</p>
+<pre class="gdscript"><code>func _input(event):
+    if event.is_action_pressed(&quot;jump&quot;):
+        jump()
+
+
+func _physics_process(delta):
+    if Input.is_action_pressed(&quot;move_right&quot;):
+        # Move as long as the key/button is pressed.
+        position.x += speed * delta</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Input</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;jump&quot;</span><span class="op">))</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">Jump</span><span class="op">();</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_PhysicsProcess</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;move_right&quot;</span><span class="op">))</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Move as long as the key/button is pressed.</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        position<span class="op">.</span><span class="fu">X</span> <span class="op">+=</span> speed <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta<span class="op">;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This gives you the flexibility to mix-and-match the type of input processing you do.</p>
+<p>For the remainder of this tutorial, we'll focus on capturing individual events in <code>_input()</code>.</p>
+<h2 id="input-events">Input events</h2>
+<p>Input events are objects that inherit from ref. Depending on the event type, the object will contain specific properties related to that event. To see what events actually look like, add a Node and attach the following script:</p>
+<pre class="gdscript"><code>extends Node
+
+
+func _input(event):
+    print(event.as_text())</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> Node <span class="op">:</span> Godot<span class="op">.</span><span class="fu">Node</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Input</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>@event<span class="op">.</span><span class="fu">AsText</span><span class="op">());</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>As you press keys, move the mouse, and perform other inputs, you'll see each event scroll by in the output window. Here's an example of the output:</p>
+<pre><code>A
+Mouse motion at position ((971, 5)) with velocity ((0, 0))
+Right Mouse Button
+Mouse motion at position ((870, 243)) with velocity ((0.454937, -0.454937))
+Left Mouse Button
+Mouse Wheel Up
+A
+B
+Shift
+Alt+Shift
+Alt
+Shift+T
+Mouse motion at position ((868, 242)) with velocity ((-2.134768, 2.134768))</code></pre>
+<p>As you can see, the results are very different for the different types of input. Key events are even printed as their key symbols. For example, let's consider ref. It inherits from the following classes:</p>
+<ul>
+<li>ref - the base class for all input events</li>
+<li>ref - adds the ability to check if modifiers are pressed, such as <code>Shift</code> or <code>Alt</code>.</li>
+<li>ref - adds mouse event properties, such as <code>position</code></li>
+<li>ref - contains the index of the button that was pressed, whether it was a double-click, etc.</li>
+</ul>
+<blockquote>
+<p><strong>Tip:</strong> It's a good idea to keep the class reference open while you're working with events so you can check the event type's available properties and methods.</p>
+</blockquote>
+<p>You can encounter errors if you try to access a property on an input type that doesn't contain it - calling <code>position</code> on <code>InputEventKey</code> for example. To avoid this, make sure to test the event type first:</p>
+<pre class="gdscript"><code>func _input(event):
+    if event is InputEventMouseButton:
+        print(&quot;mouse button event at &quot;, event.position)</code></pre>
+<div class="sourceCode" id="cb7"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Input</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventMouseButton mouseEvent<span class="op">)</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;mouse button event at &quot;</span><span class="op">,</span> mouseEvent<span class="op">.</span><span class="fu">Position</span><span class="op">);</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="inputmap">InputMap</h2>
+<p>The ref is the most flexible way to handle a variety of inputs. You use this by creating named input <em>actions</em>, to which you can assign any number of input events, such as keypresses or mouse clicks. To see them, and to add your own, open Project -&gt; Project Settings and select the InputMap tab:</p>
+<blockquote>
+<p><strong>Tip:</strong> A new Godot project includes a number of default actions already defined. To see them, turn on <code>Show Built-in Actions</code> in the InputMap dialog.</p>
+<p>While not strictly required, it's recommended to use the <code>snake_case</code> naming convention for input action names.</p>
+</blockquote>
+<h3 id="capturing-actions">Capturing actions</h3>
+<p>Once you've defined your actions, you can process them in your scripts using <code>is_action_pressed()</code> and <code>is_action_released()</code> by passing the name of the action you're looking for:</p>
+<pre class="gdscript"><code>func _input(event):
+    if event.is_action_pressed(&quot;my_action&quot;):
+        print(&quot;my_action occurred!&quot;)</code></pre>
+<div class="sourceCode" id="cb9"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Input</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;my_action&quot;</span><span class="op">))</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;my_action occurred!&quot;</span><span class="op">);</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="keyboard-events">Keyboard events</h2>
+<p>Keyboard events are captured in ref. While it's recommended to use input actions instead, there may be cases where you want to specifically look at key events. For this example, let's check for the <code>T</code>:</p>
+<pre class="gdscript"><code>func _input(event):
+    if event is InputEventKey and event.pressed:
+        if event.keycode == KEY_T:
+            print(&quot;T was pressed&quot;)</code></pre>
+<div class="sourceCode" id="cb11"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Input</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventKey keyEvent <span class="op">&amp;&amp;</span> keyEvent<span class="op">.</span><span class="fu">Pressed</span><span class="op">)</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>keyEvent<span class="op">.</span><span class="fu">Keycode</span> <span class="op">==</span> Key<span class="op">.</span><span class="fu">T</span><span class="op">)</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;T was pressed&quot;</span><span class="op">);</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Tip:</strong> See ref for a list of keycode constants.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Due to <em>keyboard ghosting</em>, not all key inputs may be registered at a given time if you press too many keys at once. Due to their location on the keyboard, certain keys are more prone to ghosting than others. Some keyboards feature antighosting at a hardware level, but this feature is generally not present on low-end keyboards and laptop keyboards.</p>
+<p>As a result, it's recommended to use a default keyboard layout that is designed to work well on a keyboard without antighosting. See <a href="https://gamedev.stackexchange.com/a/109002">this Gamedev Stack Exchange question</a> for more information.</p>
+</blockquote>
+<h3 id="keyboard-modifiers">Keyboard modifiers</h3>
+<p>Modifier properties are inherited from ref. This allows you to check for modifier combinations using boolean properties. Let's imagine you want one thing to happen when the <code>T</code> is pressed, but something different when it's <code>Shift + T</code>:</p>
+<pre class="gdscript"><code>func _input(event):
+    if event is InputEventKey and event.pressed:
+        if event.keycode == KEY_T:
+            if event.shift_pressed:
+                print(&quot;Shift+T was pressed&quot;)
+            else:
+                print(&quot;T was pressed&quot;)</code></pre>
+<div class="sourceCode" id="cb13"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Input</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventKey keyEvent <span class="op">&amp;&amp;</span> keyEvent<span class="op">.</span><span class="fu">Pressed</span><span class="op">)</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">switch</span> <span class="op">(</span>keyEvent<span class="op">.</span><span class="fu">Keycode</span><span class="op">)</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>            <span class="kw">case</span> Key<span class="op">.</span><span class="fu">T</span><span class="op">:</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>                GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>keyEvent<span class="op">.</span><span class="fu">ShiftPressed</span> <span class="op">?</span> <span class="st">&quot;Shift+T was pressed&quot;</span> <span class="op">:</span> <span class="st">&quot;T was pressed&quot;</span><span class="op">);</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>                <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Tip:</strong> See ref for a list of keycode constants.</p>
+</blockquote>
+<h2 id="mouse-events">Mouse events</h2>
+<p>Mouse events stem from the ref class, and are separated into two types: ref and ref. Note that this means that all mouse events will contain a <code>position</code> property.</p>
+<h3 id="mouse-buttons">Mouse buttons</h3>
+<p>Capturing mouse buttons is very similar to handling key events. ref contains a list of <code>MOUSE_BUTTON_*</code> constants for each possible button, which will be reported in the event's <code>button_index</code> property. Note that the scrollwheel also counts as a button - two buttons, to be precise, with both <code>MOUSE_BUTTON_WHEEL_UP</code> and <code>MOUSE_BUTTON_WHEEL_DOWN</code> being separate events.</p>
+<pre class="gdscript"><code>func _input(event):
+    if event is InputEventMouseButton:
+        if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+            print(&quot;Left button was clicked at &quot;, event.position)
+        if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
+            print(&quot;Wheel up&quot;)</code></pre>
+<div class="sourceCode" id="cb15"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Input</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventMouseButton mouseEvent <span class="op">&amp;&amp;</span> mouseEvent<span class="op">.</span><span class="fu">Pressed</span><span class="op">)</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">switch</span> <span class="op">(</span>mouseEvent<span class="op">.</span><span class="fu">ButtonIndex</span><span class="op">)</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>            <span class="kw">case</span> MouseButton<span class="op">.</span><span class="fu">Left</span><span class="op">:</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>                GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>$<span class="st">&quot;Left button was clicked at {mouseEvent.Position}&quot;</span><span class="op">);</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>                <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>            <span class="kw">case</span> MouseButton<span class="op">.</span><span class="fu">WheelUp</span><span class="op">:</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>                GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;Wheel up&quot;</span><span class="op">);</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>                <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="mouse-motion">Mouse motion</h3>
+<p>ref events occur whenever the mouse moves. You can find the move's distance with the <code>relative</code> property.</p>
+<p>Here's an example using mouse events to drag-and-drop a ref node:</p>
+<pre class="gdscript"><code>extends Node
+
+
+var dragging = false
+var click_radius = 32 # Size of the sprite.
+
+
+func _input(event):
+    if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+        if (event.position - $Sprite2D.position).length() &lt; click_radius:
+            # Start dragging if the click is on the sprite.
+            if not dragging and event.pressed:
+                dragging = true
+        # Stop dragging if the button is released.
+        if dragging and not event.pressed:
+            dragging = false
+
+    if event is InputEventMouseMotion and dragging:
+        # While dragging, move the sprite with the mouse.
+        $Sprite2D.position = event.position</code></pre>
+<div class="sourceCode" id="cb17"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2D <span class="op">:</span> Node2D</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">bool</span> _dragging <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">int</span> _clickRadius <span class="op">=</span> <span class="dv">32</span><span class="op">;</span> <span class="co">// Size of the sprite.</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Input</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>        Sprite2D sprite <span class="op">=</span> GetNodeOrNull<span class="op">&lt;</span>Sprite2D<span class="op">&gt;(</span><span class="st">&quot;Sprite2D&quot;</span><span class="op">);</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>sprite <span class="op">==</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span><span class="op">;</span> <span class="co">// No suitable node was found.</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventMouseButton mouseEvent <span class="op">&amp;&amp;</span> mouseEvent<span class="op">.</span><span class="fu">ButtonIndex</span> <span class="op">==</span> MouseButton<span class="op">.</span><span class="fu">Left</span><span class="op">)</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">((</span>mouseEvent<span class="op">.</span><span class="fu">Position</span> <span class="op">-</span> sprite<span class="op">.</span><span class="fu">Position</span><span class="op">).</span><span class="fu">Length</span><span class="op">()</span> <span class="op">&lt;</span> _clickRadius<span class="op">)</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>                <span class="co">// Start dragging if the click is on the sprite.</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>                <span class="kw">if</span> <span class="op">(!</span>_dragging <span class="op">&amp;&amp;</span> mouseEvent<span class="op">.</span><span class="fu">Pressed</span><span class="op">)</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>                <span class="op">{</span></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>                    _dragging <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Stop dragging if the button is released.</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>_dragging <span class="op">&amp;&amp;</span> <span class="op">!</span>mouseEvent<span class="op">.</span><span class="fu">Pressed</span><span class="op">)</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>                _dragging <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>        <span class="kw">else</span></span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventMouseMotion motionEvent <span class="op">&amp;&amp;</span> _dragging<span class="op">)</span></span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>                <span class="co">// While dragging, move the sprite with the mouse.</span></span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>                sprite<span class="op">.</span><span class="fu">Position</span> <span class="op">=</span> motionEvent<span class="op">.</span><span class="fu">Position</span><span class="op">;</span></span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb17-40"><a href="#cb17-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-41"><a href="#cb17-41" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="touch-events">Touch events</h2>
+<p>If you are using a touchscreen device, you can generate touch events. ref is equivalent to a mouse click event, and ref works much the same as mouse motion.</p>
+<blockquote>
+<p><strong>Tip:</strong> To test your touch events on a non-touchscreen device, open Project Settings and go to the "Input Devices/Pointing" section. Enable "Emulate Touch From Mouse" and your project will interpret mouse clicks and motion as touch events.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

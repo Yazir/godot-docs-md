@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PacketPeerUDP — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="packetpeerudp">PacketPeerUDP</h1>
+<p><em>Inherits: <a href="PacketPeer.html">PacketPeer</a> &lt; <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>UDP packet peer.</p>
+<h2 id="description">Description</h2>
+<p>UDP packet peer. Can be used to send and receive raw UDP packets as well as <a href="Variant.html">Variant</a> s.</p>
+<p><strong>Example:</strong> Send a packet:</p>
+<pre class="gdscript"><code>var peer = PacketPeerUDP.new()
+
+# Optionally, you can select the local port used to send the packet.
+peer.bind(4444)
+
+peer.set_dest_address(&quot;1.1.1.1&quot;, 4433)
+peer.put_packet(&quot;hello&quot;.to_utf8_buffer())</code></pre>
+<p><strong>Example:</strong> Listen for packets:</p>
+<pre class="gdscript"><code>var peer
+
+func _ready():
+    peer = PacketPeerUDP.new()
+    peer.bind(4433)
+
+
+func _process(_delta):
+    if peer.get_available_packet_count() &gt; 0:
+        var array_bytes = peer.get_packet()
+        var packet_string = array_bytes.get_string_from_ascii()
+        print(&quot;Received message: &quot;, packet_string)</code></pre>
+<p><strong>Note:</strong> When exporting to Android, make sure to enable the <code>INTERNET</code> permission in the Android export preset before exporting the project or using one-click deploy. Otherwise, network communication of any kind will be blocked by Android.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="globalscopeerror-bindport-int-bind_address-string---recv_buf_size-int--65536">``@GlobalScope.Error<code> bind(port: int, bind_address: String = "*", recv_buf_size: int = 65536)</code></h3>
+<p>Binds this <strong>PacketPeerUDP</strong> to the specified <code>port</code> and <code>bind_address</code> with a buffer size <code>recv_buf_size</code>, allowing it to receive incoming packets.</p>
+<p>If <code>bind_address</code> is set to <code>"*"</code> (default), the peer will be bound on all available addresses (both IPv4 and IPv6).</p>
+<p>If <code>bind_address</code> is set to <code>"0.0.0.0"</code> (for IPv4) or <code>"::"</code> (for IPv6), the peer will be bound to all available addresses matching that IP type.</p>
+<p>If <code>bind_address</code> is set to any valid address (e.g. <code>"192.168.1.101"</code>, <code>"::1"</code>, etc.), the peer will only be bound to the interface with that address (or fail if no interface with the given address exists).</p>
+<h3 id="void-close"><code>void close()</code></h3>
+<p>Closes the <strong>PacketPeerUDP</strong>'s underlying UDP socket.</p>
+<h3 id="globalscopeerror-connect_to_hosthost-string-port-int">``@GlobalScope.Error<code> connect_to_host(host: String, port: int)</code></h3>
+<p>Calling this method connects this UDP peer to the given <code>host</code>/<code>port</code> pair. UDP is in reality connectionless, so this option only means that incoming packets from different addresses are automatically discarded, and that outgoing packets are always sent to the connected address (future calls to <code>set_dest_address()</code> are not allowed). This method does not send any data to the remote peer, to do that, use <code>PacketPeer.put_var()</code> or <code>PacketPeer.put_packet()</code> as usual. See also <a href="UDPServer.html">UDPServer</a>.</p>
+<p><strong>Note:</strong> Connecting to the remote peer does not help to protect from malicious attacks like IP spoofing, etc. Think about using an encryption technique like TLS or DTLS if you feel like your application is transferring sensitive information.</p>
+<h3 id="int-get_local_port-const"><code>int get_local_port() const</code></h3>
+<p>Returns the local port to which this peer is bound.</p>
+<h3 id="string-get_packet_ip-const"><code>String get_packet_ip() const</code></h3>
+<p>Returns the IP of the remote peer that sent the last packet(that was received with <code>PacketPeer.get_packet()</code> or <code>PacketPeer.get_var()</code>).</p>
+<h3 id="int-get_packet_port-const"><code>int get_packet_port() const</code></h3>
+<p>Returns the port of the remote peer that sent the last packet(that was received with <code>PacketPeer.get_packet()</code> or <code>PacketPeer.get_var()</code>).</p>
+<h3 id="bool-is_bound-const"><code>bool is_bound() const</code></h3>
+<p>Returns whether this <strong>PacketPeerUDP</strong> is bound to an address and can receive packets.</p>
+<h3 id="bool-is_socket_connected-const"><code>bool is_socket_connected() const</code></h3>
+<p>Returns <code>true</code> if the UDP socket is open and has been connected to a remote address. See <code>connect_to_host()</code>.</p>
+<h3 id="globalscopeerror-join_multicast_groupmulticast_address-string-interface_name-string">``@GlobalScope.Error<code> join_multicast_group(multicast_address: String, interface_name: String)</code></h3>
+<p>Joins the multicast group specified by <code>multicast_address</code> using the interface identified by <code>interface_name</code>.</p>
+<p>You can join the same multicast group with multiple interfaces. Use <code>IP.get_local_interfaces()</code> to know which are available.</p>
+<p><strong>Note:</strong> Some Android devices might require the <code>CHANGE_WIFI_MULTICAST_STATE</code> permission for multicast to work.</p>
+<h3 id="globalscopeerror-leave_multicast_groupmulticast_address-string-interface_name-string">``@GlobalScope.Error<code> leave_multicast_group(multicast_address: String, interface_name: String)</code></h3>
+<p>Removes the interface identified by <code>interface_name</code> from the multicast group specified by <code>multicast_address</code>.</p>
+<h3 id="void-set_broadcast_enabledenabled-bool"><code>void set_broadcast_enabled(enabled: bool)</code></h3>
+<p>Enable or disable sending of broadcast packets (e.g. <code>set_dest_address("255.255.255.255", 4343)</code>. This option is disabled by default.</p>
+<p><strong>Note:</strong> Some Android devices might require the <code>CHANGE_WIFI_MULTICAST_STATE</code> permission and this option to be enabled to receive broadcast packets too.</p>
+<h3 id="globalscopeerror-set_dest_addresshost-string-port-int">``@GlobalScope.Error<code> set_dest_address(host: String, port: int)</code></h3>
+<p>Sets the destination address and port for sending packets and variables. A hostname will be resolved using DNS if needed.</p>
+<p><strong>Note:</strong> <code>set_broadcast_enabled()</code> must be enabled before sending packets to a broadcast address (e.g. <code>255.255.255.255</code>).</p>
+<h3 id="globalscopeerror-wait">``@GlobalScope.Error<code> wait()</code></h3>
+<p>Waits for a packet to arrive on the bound address. See <code>bind()</code>.</p>
+<p><strong>Note:</strong> <code>wait()</code> can't be interrupted once it has been called. This can be worked around by allowing the other party to send a specific "death pill" packet like this:</p>
+<pre class="gdscript"><code>socket = PacketPeerUDP.new()
+# Server
+socket.set_dest_address(&quot;127.0.0.1&quot;, 789)
+socket.put_packet(&quot;Time to stop&quot;.to_ascii_buffer())
+
+# Client
+while socket.wait() == OK:
+    var data = socket.get_packet().get_string_from_ascii()
+    if data == &quot;Time to stop&quot;:
+        return</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> socket <span class="op">=</span> <span class="kw">new</span> <span class="fu">PacketPeerUdp</span><span class="op">();</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Server</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>socket<span class="op">.</span><span class="fu">SetDestAddress</span><span class="op">(</span><span class="st">&quot;127.0.0.1&quot;</span><span class="op">,</span> <span class="dv">789</span><span class="op">);</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>socket<span class="op">.</span><span class="fu">PutPacket</span><span class="op">(</span><span class="st">&quot;Time to stop&quot;</span><span class="op">.</span><span class="fu">ToAsciiBuffer</span><span class="op">());</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Client</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="kw">while</span> <span class="op">(</span>socket<span class="op">.</span><span class="fu">Wait</span><span class="op">()</span> <span class="op">==</span> OK<span class="op">)</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">string</span> data <span class="op">=</span> socket<span class="op">.</span><span class="fu">GetPacket</span><span class="op">().</span><span class="fu">GetStringFromASCII</span><span class="op">();</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>data <span class="op">==</span> <span class="st">&quot;Time to stop&quot;</span><span class="op">)</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span><span class="op">;</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

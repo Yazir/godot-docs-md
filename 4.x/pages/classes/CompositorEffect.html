@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CompositorEffect — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="compositoreffect">CompositorEffect</h1>
+<p><em>Inherits: <a href="Resource.html">Resource</a> &lt; <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p><strong>Experimental:</strong> The implementation may change as more of the rendering internals are exposed over time.</p>
+<p>This resource allows for creating a custom rendering effect.</p>
+<h2 id="description">Description</h2>
+<p>This resource defines a custom rendering effect that can be applied to <a href="Viewport.html">Viewport</a> s through the viewports' <a href="Environment.html">Environment</a>. You can implement a callback that is called during rendering at a given stage of the rendering pipeline and allows you to insert additional passes. Note that this callback happens on the rendering thread. CompositorEffect is an abstract base class and must be extended to implement specific rendering logic.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/tutorials/rendering/compositor.html">The Compositor</a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="bool-access_resolved_color"><code>bool access_resolved_color</code></h3>
+<ul>
+<li>Setter: <code>set_access_resolved_color(value: bool)</code></li>
+<li>Getter: <code>get_access_resolved_color()</code></li>
+</ul>
+<p>If <code>true</code> and MSAA is enabled, this will trigger a color buffer resolve before the effect is run.</p>
+<p><strong>Note:</strong> In <code>_render_callback()</code>, to access the resolved buffer use:</p>
+<pre class="gdscript"><code>var render_scene_buffers = render_data.get_render_scene_buffers()
+var color_buffer = render_scene_buffers.get_texture(&quot;render_buffers&quot;, &quot;color&quot;)</code></pre>
+<h3 id="bool-access_resolved_depth"><code>bool access_resolved_depth</code></h3>
+<ul>
+<li>Setter: <code>set_access_resolved_depth(value: bool)</code></li>
+<li>Getter: <code>get_access_resolved_depth()</code></li>
+</ul>
+<p>If <code>true</code> and MSAA is enabled, this will trigger a depth buffer resolve before the effect is run.</p>
+<p><strong>Note:</strong> In <code>_render_callback()</code>, to access the resolved buffer use:</p>
+<pre class="gdscript"><code>var render_scene_buffers = render_data.get_render_scene_buffers()
+var depth_buffer = render_scene_buffers.get_texture(&quot;render_buffers&quot;, &quot;depth&quot;)</code></pre>
+<h3 id="effectcallbacktype-effect_callback_type">``EffectCallbackType<code> effect_callback_type</code></h3>
+<ul>
+<li>Setter: <code>set_effect_callback_type(value: </code>EffectCallbackType<code>)</code></li>
+<li>Getter: <code>get_effect_callback_type()</code></li>
+</ul>
+<p>The type of effect that is implemented, determines at what stage of rendering the callback is called.</p>
+<h3 id="bool-enabled"><code>bool enabled</code></h3>
+<ul>
+<li>Setter: <code>set_enabled(value: bool)</code></li>
+<li>Getter: <code>get_enabled()</code></li>
+</ul>
+<p>If <code>true</code> this rendering effect is applied to any viewport it is added to.</p>
+<h3 id="bool-needs_motion_vectors"><code>bool needs_motion_vectors</code></h3>
+<ul>
+<li>Setter: <code>set_needs_motion_vectors(value: bool)</code></li>
+<li>Getter: <code>get_needs_motion_vectors()</code></li>
+</ul>
+<p>If <code>true</code> this triggers motion vectors being calculated during the opaque render state.</p>
+<p><strong>Note:</strong> In <code>_render_callback()</code>, to access the motion vector buffer use:</p>
+<pre class="gdscript"><code>var render_scene_buffers = render_data.get_render_scene_buffers()
+var motion_buffer = render_scene_buffers.get_velocity_texture()</code></pre>
+<h3 id="bool-needs_normal_roughness"><code>bool needs_normal_roughness</code></h3>
+<ul>
+<li>Setter: <code>set_needs_normal_roughness(value: bool)</code></li>
+<li>Getter: <code>get_needs_normal_roughness()</code></li>
+</ul>
+<p>If <code>true</code> this triggers normal and roughness data to be output during our depth pre-pass, only applicable for the Forward+ renderer.</p>
+<p><strong>Note:</strong> In <code>_render_callback()</code>, to access the roughness buffer use:</p>
+<pre class="gdscript"><code>var render_scene_buffers = render_data.get_render_scene_buffers()
+var roughness_buffer = render_scene_buffers.get_texture(&quot;forward_clustered&quot;, &quot;normal_roughness&quot;)</code></pre>
+<p>The raw normal and roughness buffer is stored in an optimized format, different than the one available in Spatial shaders. When sampling the buffer, a conversion function must be applied. Use this function, copied from <a href="https://github.com/godotengine/godot/blob/da5f39889f155658cef7f7ec3cc1abb94e17d815/servers/rendering/renderer_rd/shaders/forward_clustered/scene_forward_clustered_inc.glsl#L334-L341">here</a>:</p>
+<pre class="gdscript"><code>vec4 normal_roughness_compatibility(vec4 p_normal_roughness) {
+    float roughness = p_normal_roughness.w;
+    if (roughness &gt; 0.5) {
+        roughness = 1.0 - roughness;
+    }
+    roughness /= (127.0 / 255.0);
+    return vec4(normalize(p_normal_roughness.xyz * 2.0 - 1.0) * 0.5 + 0.5, roughness);
+}</code></pre>
+<h3 id="bool-needs_separate_specular"><code>bool needs_separate_specular</code></h3>
+<ul>
+<li>Setter: <code>set_needs_separate_specular(value: bool)</code></li>
+<li>Getter: <code>get_needs_separate_specular()</code></li>
+</ul>
+<p>If <code>true</code> this triggers specular data being rendered to a separate buffer and combined after effects have been applied, only applicable for the Forward+ renderer.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-_render_callbackeffect_callback_type-int-render_data-renderdata-virtual"><code>void _render_callback(effect_callback_type: int, render_data: RenderData) virtual</code></h3>
+<p>Implement this function with your custom rendering code. <code>effect_callback_type</code> should always match the effect callback type you've specified in <code>effect_callback_type</code>. <code>render_data</code> provides access to the rendering state, it is only valid during rendering and should not be stored.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-effectcallbacktype"><code>enum EffectCallbackType</code></h3>
+<ul>
+<li><p><code>EFFECT_CALLBACK_TYPE_PRE_OPAQUE = 0</code></p>
+<p>The callback is called before our opaque rendering pass, but after depth prepass (if applicable).</p></li>
+<li><p><code>EFFECT_CALLBACK_TYPE_POST_OPAQUE = 1</code></p>
+<p>The callback is called after our opaque rendering pass, but before our sky is rendered.</p></li>
+<li><p><code>EFFECT_CALLBACK_TYPE_POST_SKY = 2</code></p>
+<p>The callback is called after our sky is rendered, but before our back buffers are created (and if enabled, before subsurface scattering and/or screen space reflections).</p></li>
+<li><p><code>EFFECT_CALLBACK_TYPE_PRE_TRANSPARENT = 3</code></p>
+<p>The callback is called before our transparent rendering pass, but after our sky is rendered and we've created our back buffers.</p></li>
+<li><p><code>EFFECT_CALLBACK_TYPE_POST_TRANSPARENT = 4</code></p>
+<p>The callback is called after our transparent rendering pass, but before any built-in post-processing effects and output to our render target.</p></li>
+<li><p><code>EFFECT_CALLBACK_TYPE_MAX = 5</code></p>
+<p>Represents the size of the <code>EffectCallbackType</code> enum.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

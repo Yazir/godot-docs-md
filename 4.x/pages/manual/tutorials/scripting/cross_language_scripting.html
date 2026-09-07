@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cross-language scripting — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="cross-language-scripting">Cross-language scripting</h1>
+<p>Godot allows you to mix and match scripting languages to suit your needs. This means a single project can define nodes in both C# and GDScript. This page will go through the possible interactions between two nodes written in different languages.</p>
+<p>The following two scripts will be used as references throughout this page.</p>
+<pre class="gdscript"><code>extends Node
+
+var my_property: String = &quot;my gdscript value&quot;:
+    get:
+        return my_property
+    set(value):
+        my_property = value
+
+signal my_signal
+signal my_signal_with_params(msg: String, n: int)
+
+func print_node_name(node: Node) -&gt; void:
+    print(node.get_name())
+
+func print_array(arr: Array) -&gt; void:
+    for element in arr:
+        print(element)
+
+func print_n_times(msg: String, n: int) -&gt; void:
+    for i in range(n):
+        print(msg)
+
+func my_signal_handler():
+    print(&quot;The signal handler was called!&quot;)
+
+func my_signal_with_params_handler(msg: String, n: int):
+    print_n_times(msg, n)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyCSharpNode <span class="op">:</span> Node</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">string</span> MyProperty <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> <span class="st">&quot;my c# value&quot;</span><span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Signal<span class="op">]</span> <span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">MySignalEventHandler</span><span class="op">();</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Signal<span class="op">]</span> <span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">MySignalWithParamsEventHandler</span><span class="op">(</span><span class="dt">string</span> msg<span class="op">,</span> <span class="dt">int</span> n<span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">PrintNodeName</span><span class="op">(</span>Node node<span class="op">)</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>node<span class="op">.</span><span class="fu">Name</span><span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">PrintArray</span><span class="op">(</span><span class="dt">string</span><span class="op">[]</span> arr<span class="op">)</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">foreach</span> <span class="op">(</span><span class="dt">string</span> element <span class="kw">in</span> arr<span class="op">)</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>element<span class="op">);</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">PrintNTimes</span><span class="op">(</span><span class="dt">string</span> msg<span class="op">,</span> <span class="dt">int</span> n<span class="op">)</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        <span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> n<span class="op">;</span> <span class="op">++</span>i<span class="op">)</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>msg<span class="op">);</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">MySignalHandler</span><span class="op">()</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;The signal handler was called!&quot;</span><span class="op">);</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">MySignalWithParamsHandler</span><span class="op">(</span><span class="dt">string</span> msg<span class="op">,</span> <span class="dt">int</span> n<span class="op">)</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>        <span class="fu">PrintNTimes</span><span class="op">(</span>msg<span class="op">,</span> n<span class="op">);</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="instantiating-nodes">Instantiating nodes</h2>
+<p>If you're not using nodes from the scene tree, you'll probably want to instantiate nodes directly from the code.</p>
+<h3 id="instantiating-c-nodes-from-gdscript">Instantiating C# nodes from GDScript</h3>
+<p>Using C# from GDScript doesn't need much work. Once loaded (see <code>doc_gdscript_classes_as_resources</code>), the script can be instantiated with ref.</p>
+<pre class="gdscript"><code>var MyCSharpScript = load(&quot;res://Path/To/MyCSharpNode.cs&quot;)
+var my_csharp_node = MyCSharpScript.new()</code></pre>
+<blockquote>
+<p><strong>Warning:</strong> When creating <code>.cs</code> scripts, you should always keep in mind that the class Godot will use is the one named like the <code>.cs</code> file itself. If that class does not exist in the file, you'll see the following error: <code>Invalid call. Nonexistent function `new` in base</code>.</p>
+<p>For example, MyCoolNode.cs should contain a class named MyCoolNode.</p>
+<p>The C# class needs to derive a Godot class, for example <code>GodotObject</code>. Otherwise, the same error will occur.</p>
+<p>You also need to check your <code>.cs</code> file is referenced in the project's <code>.csproj</code> file. Otherwise, the same error will occur.</p>
+</blockquote>
+<h3 id="instantiating-gdscript-nodes-from-c">Instantiating GDScript nodes from C#</h3>
+<p>From the C# side, everything work the same way. Once loaded, the GDScript can be instantiated with ref.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> myGDScript <span class="op">=</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>GDScript<span class="op">&gt;(</span><span class="st">&quot;res://path/to/my_gd_script.gd&quot;</span><span class="op">);</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> myGDScriptNode <span class="op">=</span> <span class="op">(</span>GodotObject<span class="op">)</span>myGDScript<span class="op">.</span><span class="fu">New</span><span class="op">();</span> <span class="co">// This is a GodotObject.</span></span></code></pre></div>
+<p>Here we are using an <code>class_Object</code>, but you can use type conversion like explained in <code>doc_c_sharp_features_type_conversion_and_casting</code>.</p>
+<h2 id="accessing-fields">Accessing fields</h2>
+<h3 id="accessing-c-fields-from-gdscript">Accessing C# fields from GDScript</h3>
+<p>Accessing C# fields from GDScript is straightforward, you shouldn't have anything to worry about.</p>
+<pre class="gdscript"><code># Output: &quot;my c# value&quot;.
+print(my_csharp_node.MyProperty)
+my_csharp_node.MyProperty = &quot;MY C# VALUE&quot;
+# Output: &quot;MY C# VALUE&quot;.
+print(my_csharp_node.MyProperty)</code></pre>
+<h3 id="accessing-gdscript-fields-from-c">Accessing GDScript fields from C#</h3>
+<p>As C# is statically typed, accessing GDScript from C# is a bit more convoluted. You will have to use ref and ref. The first argument is the name of the field you want to access.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Output: &quot;my gdscript value&quot;.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myGDScriptNode<span class="op">.</span><span class="fu">Get</span><span class="op">(</span><span class="st">&quot;my_property&quot;</span><span class="op">));</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>myGDScriptNode<span class="op">.</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;my_property&quot;</span><span class="op">,</span> <span class="st">&quot;MY GDSCRIPT VALUE&quot;</span><span class="op">);</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Output: &quot;MY GDSCRIPT VALUE&quot;.</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myGDScriptNode<span class="op">.</span><span class="fu">Get</span><span class="op">(</span><span class="st">&quot;my_property&quot;</span><span class="op">));</span></span></code></pre></div>
+<p>Keep in mind that when setting a field value you should only use types the GDScript side knows about. Essentially, you want to work with built-in types as described in <code>doc_gdscript_builtin_types</code> or classes extending <code>class_Object</code>.</p>
+<h2 id="calling-methods">Calling methods</h2>
+<h3 id="calling-c-methods-from-gdscript">Calling C# methods from GDScript</h3>
+<p>Again, calling C# methods from GDScript should be straightforward. The marshalling process will do its best to cast the arguments to match function signatures. If that's impossible, you'll see the following error: <code>Invalid call. Nonexistent function `FunctionName</code>`.</p>
+<pre class="gdscript"><code># Output: &quot;my_gd_script_node&quot; (or name of node where this code is placed).
+my_csharp_node.PrintNodeName(self)
+# This line will fail.
+# my_csharp_node.PrintNodeName()
+
+# Outputs &quot;Hello there!&quot; twice, once per line.
+my_csharp_node.PrintNTimes(&quot;Hello there!&quot;, 2)
+
+# Output: &quot;a&quot;, &quot;b&quot;, &quot;c&quot; (one per line).
+my_csharp_node.PrintArray([&quot;a&quot;, &quot;b&quot;, &quot;c&quot;])
+# Output: &quot;1&quot;, &quot;2&quot;, &quot;3&quot;  (one per line).
+my_csharp_node.PrintArray([1, 2, 3])</code></pre>
+<h3 id="calling-gdscript-methods-from-c">Calling GDScript methods from C#</h3>
+<p>To call GDScript methods from C# you'll need to use ref. The first argument is the name of the method you want to call. The following arguments will be passed to said method.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Output: &quot;MyCSharpNode&quot; (or name of node where this code is placed).</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>myGDScriptNode<span class="op">.</span><span class="fu">Call</span><span class="op">(</span><span class="st">&quot;print_node_name&quot;</span><span class="op">,</span> <span class="kw">this</span><span class="op">);</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">// This line will fail silently and won&#39;t error out.</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// myGDScriptNode.Call(&quot;print_node_name&quot;);</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Outputs &quot;Hello there!&quot; twice, once per line.</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>myGDScriptNode<span class="op">.</span><span class="fu">Call</span><span class="op">(</span><span class="st">&quot;print_n_times&quot;</span><span class="op">,</span> <span class="st">&quot;Hello there!&quot;</span><span class="op">,</span> <span class="dv">2</span><span class="op">);</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="dt">string</span><span class="op">[]</span> arr <span class="op">=</span> <span class="op">[</span><span class="st">&quot;a&quot;</span><span class="op">,</span> <span class="st">&quot;b&quot;</span><span class="op">,</span> <span class="st">&quot;c&quot;</span><span class="op">];</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co">// Output: &quot;a&quot;, &quot;b&quot;, &quot;c&quot; (one per line).</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>myGDScriptNode<span class="op">.</span><span class="fu">Call</span><span class="op">(</span><span class="st">&quot;print_array&quot;</span><span class="op">,</span> arr<span class="op">);</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co">// Output: &quot;1&quot;, &quot;2&quot;, &quot;3&quot;  (one per line).</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>myGDScriptNode<span class="op">.</span><span class="fu">Call</span><span class="op">(</span><span class="st">&quot;print_array&quot;</span><span class="op">,</span> <span class="kw">new</span> <span class="dt">int</span><span class="op">[]</span> <span class="op">{</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span> <span class="op">});</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="co">// Note how the type of each array entry does not matter</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co">// as long as it can be handled by the marshaller.</span></span></code></pre></div>
+<h2 id="connecting-to-signals">Connecting to signals</h2>
+<h3 id="connecting-to-c-signals-from-gdscript">Connecting to C# signals from GDScript</h3>
+<p>Connecting to a C# signal from GDScript is the same as connecting to a signal defined in GDScript:</p>
+<pre class="gdscript"><code>my_csharp_node.MySignal.connect(my_signal_handler)
+
+my_csharp_node.MySignalWithParams.connect(my_signal_with_params_handler)</code></pre>
+<h3 id="connecting-to-gdscript-signals-from-c">Connecting to GDScript signals from C#</h3>
+<p>Connecting to a GDScript signal from C# only works with the <code>Connect</code> method because no C# static types exist for signals defined by GDScript:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>myGDScriptNode<span class="op">.</span><span class="fu">Connect</span><span class="op">(</span><span class="st">&quot;my_signal&quot;</span><span class="op">,</span> Callable<span class="op">.</span><span class="fu">From</span><span class="op">(</span>MySignalHandler<span class="op">));</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>myGDScriptNode<span class="op">.</span><span class="fu">Connect</span><span class="op">(</span><span class="st">&quot;my_signal_with_params&quot;</span><span class="op">,</span> Callable<span class="op">.</span><span class="fu">From</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;(</span>MySignalWithParamsHandler<span class="op">));</span></span></code></pre></div>
+<h2 id="inheritance">Inheritance</h2>
+<p>A GDScript file may not inherit from a C# script. Likewise, a C# script may not inherit from a GDScript file. Due to how complex this would be to implement, this limitation is unlikely to be lifted in the future. See <a href="https://github.com/godotengine/godot/issues/38352">this GitHub issue</a> for more information.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

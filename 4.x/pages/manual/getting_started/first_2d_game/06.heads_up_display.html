@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heads up display — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="heads-up-display">Heads up display</h1>
+<p>The final piece our game needs is a User Interface (UI) to display things like score, a "game over" message, and a restart button.</p>
+<p>Create a new scene, click the "Other Node" button and add a ref node named <code>HUD</code>. "HUD" stands for "heads-up display", an informational display that appears as an overlay on top of the game view.</p>
+<p>The ref node lets us draw our UI elements on a layer above the rest of the game, so that the information it displays isn't covered up by any game elements like the player or mobs.</p>
+<p>The HUD needs to display the following information:</p>
+<ul>
+<li>Score, changed by <code>ScoreTimer</code>.</li>
+<li>A message, such as "Game Over" or "Get Ready!"</li>
+<li>A "Start" button to begin the game.</li>
+</ul>
+<p>The basic node for UI elements is ref. To create our UI, we'll use two types of ref nodes: ref and ref.</p>
+<p>Create the following as children of the <code>HUD</code> node:</p>
+<ul>
+<li>ref named <code>ScoreLabel</code>.</li>
+<li>ref named <code>Message</code>.</li>
+<li>ref named <code>StartButton</code>.</li>
+<li>ref named <code>MessageTimer</code>.</li>
+</ul>
+<p>Click on the <code>ScoreLabel</code> and type a number into the <code>Text</code> field in the Inspector. The default font for <code>Control</code> nodes is small and doesn't scale well. There is a font file included in the game assets called "Xolonium-Regular.ttf". To use this font, do the following:</p>
+<p>Under "Theme Overrides &gt; Fonts", choose "Load" and select the "Xolonium-Regular.ttf" file.</p>
+<p>The font size is still too small, increase it to <code>64</code> under "Theme Overrides &gt; Font Sizes". Once you've done this with the <code>ScoreLabel</code>, repeat the changes for the <code>Message</code> and <code>StartButton</code> nodes.</p>
+<blockquote>
+<p><strong>Note:</strong> <strong>Anchors:</strong> <code>Control</code> nodes have a position and size, but they also have anchors. Anchors define the origin -the reference point for the edges of the node.</p>
+</blockquote>
+<p>Arrange the nodes as shown below. You can drag the nodes to place them manually, or for more precise placement, use "Anchor Presets".</p>
+<h2 id="scorelabel">ScoreLabel</h2>
+<ol type="1">
+<li>Add the text <code>0</code>.</li>
+<li>Set the "Horizontal Alignment" and "Vertical Alignment" to <code>Center</code>.</li>
+<li>Choose the "Anchor Preset" <code>Center Top</code>.</li>
+</ol>
+<h2 id="message">Message</h2>
+<ol type="1">
+<li>Add the text <code>Dodge the Creeps!</code>.</li>
+<li>Set the "Horizontal Alignment" and "Vertical Alignment" to <code>Center</code>.</li>
+<li>Set the "Autowrap Mode" to <code>Word</code>, otherwise the label will stay on one line.</li>
+<li>Under "Control - Layout/Transform" set "Size X" to <code>480</code> to use the entire width of the screen.</li>
+<li>Choose the "Anchor Preset" <code>Center</code>.</li>
+</ol>
+<h2 id="startbutton">StartButton</h2>
+<ol type="1">
+<li>Add the text <code>Start</code>.</li>
+<li>Under "Control - Layout/Transform", set "Size X" to <code>200</code> and "Size Y" to <code>100</code> to add a little bit more padding between the border and text.</li>
+<li>Choose the "Anchor Preset" <code>Center Bottom</code>.</li>
+<li>Under "Control - Layout/Transform", set "Position Y" to <code>580</code>.</li>
+</ol>
+<p>On the <code>MessageTimer</code>, set the <code>Wait Time</code> to <code>2</code> and set the <code>One Shot</code> property to "On".</p>
+<p>Now add this script to <code>HUD</code>:</p>
+<pre class="gdscript"><code>extends CanvasLayer
+
+# Notifies `Main` node that the button has been pressed
+signal start_game</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> HUD <span class="op">:</span> CanvasLayer</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Don&#39;t forget to rebuild the project so the editor knows about the new signal.</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">StartGameEventHandler</span><span class="op">();</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>We now want to display a message temporarily, such as "Get Ready", so we add the following code</p>
+<pre class="gdscript"><code>func show_message(text):
+    $Message.text = text
+    $Message.show()
+    $MessageTimer.start()</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">ShowMessage</span><span class="op">(</span><span class="dt">string</span> text<span class="op">)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> message <span class="op">=</span> GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;Message&quot;</span><span class="op">);</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    message<span class="op">.</span><span class="fu">Text</span> <span class="op">=</span> text<span class="op">;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    message<span class="op">.</span><span class="fu">Show</span><span class="op">();</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Timer<span class="op">&gt;(</span><span class="st">&quot;MessageTimer&quot;</span><span class="op">).</span><span class="fu">Start</span><span class="op">();</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>We also need to process what happens when the player loses. The code below will show "Game Over" for 2 seconds, then return to the title screen and, after a brief pause, show the "Start" button.</p>
+<pre class="gdscript"><code>func show_game_over():
+    show_message(&quot;Game Over&quot;)
+    # Wait until the MessageTimer has counted down.
+    await $MessageTimer.timeout
+
+    $Message.text = &quot;Dodge the Creeps!&quot;
+    $Message.show()
+    # Make a one-shot timer and wait for it to finish.
+    await get_tree().create_timer(1.0).timeout
+    $StartButton.show()</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>async <span class="kw">public</span> <span class="dt">void</span> <span class="fu">ShowGameOver</span><span class="op">()</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ShowMessage</span><span class="op">(</span><span class="st">&quot;Game Over&quot;</span><span class="op">);</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> messageTimer <span class="op">=</span> GetNode<span class="op">&lt;</span>Timer<span class="op">&gt;(</span><span class="st">&quot;MessageTimer&quot;</span><span class="op">);</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    await <span class="fu">ToSignal</span><span class="op">(</span>messageTimer<span class="op">,</span> Timer<span class="op">.</span><span class="fu">SignalName</span><span class="op">.</span><span class="fu">Timeout</span><span class="op">);</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> message <span class="op">=</span> GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;Message&quot;</span><span class="op">);</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    message<span class="op">.</span><span class="fu">Text</span> <span class="op">=</span> <span class="st">&quot;Dodge the Creeps!&quot;</span><span class="op">;</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    message<span class="op">.</span><span class="fu">Show</span><span class="op">();</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    await <span class="fu">ToSignal</span><span class="op">(</span><span class="fu">GetTree</span><span class="op">().</span><span class="fu">CreateTimer</span><span class="op">(</span><span class="fl">1.0</span><span class="op">),</span> SceneTreeTimer<span class="op">.</span><span class="fu">SignalName</span><span class="op">.</span><span class="fu">Timeout</span><span class="op">);</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;StartButton&quot;</span><span class="op">).</span><span class="fu">Show</span><span class="op">();</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> When you need to pause for a brief time, an alternative to using a Timer node is to use the SceneTree's <code>create_timer()</code> function. This can be very useful to add delays such as in the above code, where we want to wait some time before showing the "Start" button.</p>
+</blockquote>
+<p>Add the code below to <code>HUD</code> to update the score</p>
+<pre class="gdscript"><code>func update_score(score):
+    $ScoreLabel.text = str(score)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">UpdateScore</span><span class="op">(</span><span class="dt">int</span> score<span class="op">)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;ScoreLabel&quot;</span><span class="op">).</span><span class="fu">Text</span> <span class="op">=</span> score<span class="op">.</span><span class="fu">ToString</span><span class="op">();</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Connect the <code>pressed()</code> signal of <code>StartButton</code> and the <code>timeout()</code> signal of <code>MessageTimer</code> to the <code>HUD</code> node, and add the following code to the new functions:</p>
+<pre class="gdscript"><code>func _on_start_button_pressed():
+    $StartButton.hide()
+    start_game.emit()
+
+func _on_message_timer_timeout():
+    $Message.hide()</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// We also specified this function name in PascalCase in the editor&#39;s connection window.</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnStartButtonPressed</span><span class="op">()</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;StartButton&quot;</span><span class="op">).</span><span class="fu">Hide</span><span class="op">();</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">EmitSignal</span><span class="op">(</span>SignalName<span class="op">.</span><span class="fu">StartGame</span><span class="op">);</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co">// We also specified this function name in PascalCase in the editor&#39;s connection window.</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnMessageTimerTimeout</span><span class="op">()</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;Message&quot;</span><span class="op">).</span><span class="fu">Hide</span><span class="op">();</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="connecting-hud-to-main">Connecting HUD to Main</h2>
+<p>Now that we're done creating the <code>HUD</code> scene, go back to <code>Main</code>. Instance the <code>HUD</code> scene in <code>Main</code> like you did the <code>Player</code> scene. The scene tree should look like this, so make sure you didn't miss anything:</p>
+<p>Now we need to connect the <code>HUD</code> functionality to our <code>Main</code> script. This requires a few additions to the <code>Main</code> scene:</p>
+<p>In the Signals tab, connect the HUD's <code>start_game</code> signal to the <code>new_game()</code> function of the Main node by clicking the "Pick" button in the "Connect a Signal" window and selecting the <code>new_game()</code> method or type "new_game" below "Receiver Method" in the window. Verify that the green connection icon now appears next to <code>func new_game()</code> in the script.</p>
+<p>In <code>new_game()</code>, update the score display and show the "Get Ready" message:</p>
+<pre class="gdscript"><code>$HUD.update_score(score)
+$HUD.show_message(&quot;Get Ready&quot;)</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> hud <span class="op">=</span> GetNode<span class="op">&lt;</span>HUD<span class="op">&gt;(</span><span class="st">&quot;HUD&quot;</span><span class="op">);</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>hud<span class="op">.</span><span class="fu">UpdateScore</span><span class="op">(</span>_score<span class="op">);</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>hud<span class="op">.</span><span class="fu">ShowMessage</span><span class="op">(</span><span class="st">&quot;Get Ready!&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>In <code>game_over()</code> we need to call the corresponding <code>HUD</code> function:</p>
+<pre class="gdscript"><code>$HUD.show_game_over()</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>HUD<span class="op">&gt;(</span><span class="st">&quot;HUD&quot;</span><span class="op">).</span><span class="fu">ShowGameOver</span><span class="op">();</span></span></code></pre></div>
+<p>Finally, add this to <code>_on_score_timer_timeout()</code> to keep the display in sync with the changing score:</p>
+<pre class="gdscript"><code>$HUD.update_score(score)</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>HUD<span class="op">&gt;(</span><span class="st">&quot;HUD&quot;</span><span class="op">).</span><span class="fu">UpdateScore</span><span class="op">(</span>_score<span class="op">);</span></span></code></pre></div>
+<blockquote>
+<p><strong>Warning:</strong> Remember to remove the call to <code>new_game()</code> from <code>_ready()</code> if you haven't already, otherwise your game will start automatically.</p>
+</blockquote>
+<p>Now you're ready to play! Click the "Play the Project" button.</p>
+<h2 id="removing-old-creeps">Removing old creeps</h2>
+<p>If you play until "Game Over" and then start a new game right away, the creeps from the previous game may still be on the screen. It would be better if they all disappeared at the start of a new game. We just need a way to tell <em>all</em> the mobs to remove themselves. We can do this with the "group" feature.</p>
+<p>In the <code>Mob</code> scene, select the root node and click the <code>Groups</code> tab next to the <code>Signals</code> tab and the "+" button to open the "Create New Group" dialog.</p>
+<p>Name the group <code>mobs</code> and click "ok" to add a new scene group.</p>
+<p>Now all mobs will be in the "mobs" group.</p>
+<p>We can then add the following line to the <code>new_game()</code> function in <code>Main</code>:</p>
+<pre class="gdscript"><code>get_tree().call_group(&quot;mobs&quot;, &quot;queue_free&quot;)</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Note that for calling Godot-provided methods with strings,</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co">// we have to use the original Godot snake_case name.</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="fu">GetTree</span><span class="op">().</span><span class="fu">CallGroup</span><span class="op">(</span><span class="st">&quot;mobs&quot;</span><span class="op">,</span> Node<span class="op">.</span><span class="fu">MethodName</span><span class="op">.</span><span class="fu">QueueFree</span><span class="op">);</span></span></code></pre></div>
+<p>The <code>call_group()</code> function calls the named function on every node in a group - in this case we are telling every mob to delete itself.</p>
+<p>The game's mostly done at this point. In the next and last part, we'll polish it a bit by adding a background, looping music, and some keyboard shortcuts.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

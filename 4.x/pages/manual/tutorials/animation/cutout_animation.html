@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cutout animation — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="cutout-animation">Cutout animation</h1>
+<h2 id="what-is-it">What is it?</h2>
+<p>Traditionally, <a href="https://en.wikipedia.org/wiki/Cutout_animation">cutout animation</a> is a type of <a href="https://en.wikipedia.org/wiki/Stop_motion">stop motion animation</a> in which pieces of paper (or other thin material) are cut into special shapes and arranged in two-dimensional representations of characters and objects. Characters' bodies are usually made out of several pieces. The pieces are arranged and photographed once for each frame of the film. The animator moves and rotates the parts in small increments between each shot to create the illusion of movement when the images are played back quickly in sequence.</p>
+<p>Simulations of cutout animation can now be created using software as seen in <a href="https://en.wikipedia.org/wiki/South_Park">South Park</a> and <a href="https://en.wikipedia.org/wiki/Jake_and_the_Never_Land_Pirates">Jake and the Never Land Pirates</a>.</p>
+<p>In video games, this technique has also become popular. Examples of this are <a href="https://en.wikipedia.org/wiki/Super_Paper_Mario">Paper Mario</a> or <a href="https://en.wikipedia.org/wiki/Rayman_Origins">Rayman Origins</a> .</p>
+<h2 id="cutout-animation-in-godot">Cutout animation in Godot</h2>
+<p>Godot provides tools for working with cutout rigs, and is ideal for the workflow:</p>
+<ul>
+<li><strong>The animation system is fully integrated with the engine</strong>: This means animations can control much more than just motion of objects. Textures, sprite sizes, pivots, opacity, color modulation, and more, can all be animated and blended.</li>
+<li><strong>Combine animation styles</strong>: AnimatedSprite2D allows traditional cel animation to be used alongside cutout animation. In cel animation different animation frames use entirely different drawings rather than the same pieces positioned differently. In an otherwise cutout-based animation, cel animation can be used selectively for complex parts such as hands, feet, changing facial expressions, etc.</li>
+<li><strong>Custom Shaped Elements</strong>: Custom shapes can be created with ref allowing UV animation, deformations, etc.</li>
+<li><strong>Particle Systems</strong>: A cutout animation rig can be combined with particle systems. This can be useful for magic effects, jetpacks, etc.</li>
+<li><strong>Custom Colliders</strong>: Set colliders and influence areas in different parts of the skeletons, great for bosses and fighting games.</li>
+<li><strong>Animation Tree</strong>: Allows complex combinations and blending between several animations, the same way it works in 3D.</li>
+</ul>
+<p>And much more!</p>
+<h2 id="making-of-gbot">Making of GBot</h2>
+<p>For this tutorial, we will use as demo content the pieces of the <a href="https://www.youtube.com/watch?v=S13FrWuBMx4&amp;list=UUckpus81gNin1aV8WSffRKw">GBot</a> character, created by Andreas Esau.</p>
+<p>Get your assets: <a href="https://github.com/godotengine/godot-docs-project-starters/releases/download/latest-4.x/cutout_animation_assets.zip">cutout_animation_assets.zip</a>.</p>
+<h2 id="setting-up-the-rig">Setting up the rig</h2>
+<p>Create an empty Node2D as root of the scene, we will work under it:</p>
+<p>The first node of the model is the hip. Generally, both in 2D and 3D, the hip is the root of the skeleton. This makes it easier to animate:</p>
+<p>Next will be the torso. The torso needs to be a child of the hip, so create a child sprite and load the torso texture, later accommodate it properly:</p>
+<p>This looks good. Let's see if our hierarchy works as a skeleton by rotating the torso. We can do this be pressing <code>E</code> to enter rotate mode, and dragging with the left mouse button. To exit rotate mode hit <code>ESC</code>.</p>
+<p>The rotation pivot is wrong and needs to be adjusted.</p>
+<p>This small cross in the middle of the ref is the rotation pivot:</p>
+<h2 id="adjusting-the-pivot">Adjusting the pivot</h2>
+<p>The pivot can be adjusted by changing the <em>offset</em> property in the Sprite2D:</p>
+<p>The pivot can also be adjusted <em>visually</em>. While hovering over the desired pivot point, press <code>V</code> to move the pivot there for the selected Sprite2D. There is also a tool in the tool bar that has a similar function.</p>
+<p>Continue adding body pieces, starting with the right arm. Make sure to put each sprite in its correct place in the hierarchy, so its rotations and translations are relative to its parent:</p>
+<p>With the left arm there's a problem. In 2D, child nodes appear in front of their parents:</p>
+<p>We want the left arm to appear <em>behind</em> the hip and the torso. We could move the left arm nodes behind the hip (above the hip node in the scene hierarchy), but then the left arm is no longer in its proper place in the hierarchy. This means it wouldn't be affected by the movement of the torso. We'll fix this problem with <code>RemoteTransform2D</code> nodes.</p>
+<blockquote>
+<p><strong>Note:</strong> You can also fix depth ordering problems by adjusting the Z property of any node inheriting from Node2D.</p>
+</blockquote>
+<h2 id="remotetransform2d-node">RemoteTransform2D node</h2>
+<p>The ref node transforms nodes somewhere else in the hierarchy. This node applies its own transform (including any transformation it inherits from its parents) to the remote node it targets.</p>
+<p>This allows us to correct the visibility order of our elements, independently of the locations of those parts in the cutout hierarchy.</p>
+<p>Create a <code>RemoteTransform2D</code> node as a child of the torso. Call it <code>remote_arm_l</code>. Create another RemoteTransform2D node inside the first and call it <code>remote_hand_l</code>. Use the <code>Remote Path</code> property of the two new nodes to target the <code>arm_l</code> and <code>hand_l</code> sprites respectively:</p>
+<p>Moving the <code>RemoteTransform2D</code> nodes now moves the sprites. So we can create animations by adjusting the <code>RemoteTransform2D</code> transforms:</p>
+<h2 id="completing-the-skeleton">Completing the skeleton</h2>
+<p>Complete the skeleton by following the same steps for the rest of the parts. The resulting scene should look similar to this:</p>
+<p>The resulting rig will be easy to animate. By selecting the nodes and rotating them you can animate forward kinematics (FK) efficiently.</p>
+<p>For simple objects and rigs this is fine, but there are limitations:</p>
+<ul>
+<li>Selecting sprites in the main viewport can become difficult in complex rigs. The scene tree ends up being used to select parts instead, which can be slower.</li>
+<li>Inverse Kinematics (IK) is useful for animating extremities like hands and feet, and can't be used with our rig in its current state.</li>
+</ul>
+<p>To solve these problems we'll use Godot's skeletons.</p>
+<h2 id="skeletons">Skeletons</h2>
+<p>In Godot there is a helper to create "bones" between nodes. The bone-linked nodes are called skeletons.</p>
+<p>As an example, let's turn the right arm into a skeleton. To create a skeleton, a chain of nodes must be selected from top to bottom:</p>
+<p>Then, click on the Skeleton menu and select <code>Make Bones</code>.</p>
+<p>This will add bones covering the arm, but the result may be surprising.</p>
+<p>Why does the hand lack a bone? In Godot, a bone connects a node with its parent. And there's currently no child of the hand node. With this knowledge let's try again.</p>
+<p>The first step is creating an endpoint node. Any kind of node will do, but ref is preferred because it's visible in the editor. The endpoint node will ensure that the last bone has orientation.</p>
+<p>Now select the whole chain, from the endpoint to the arm and create bones:</p>
+<p>The result resembles a skeleton a lot more, and now the arm and forearm can be selected and animated.</p>
+<p>Create endpoints for all important extremities. Generate bones for all articulable parts of the cutout, with the hip as the ultimate connection between all of them.</p>
+<p>You may notice that an extra bone is created when connecting the hip and torso. Godot has connected the hip node to the scene root with a bone, and we don't want that. To fix this, select the root and hip node, open the Skeleton menu, click <code>clear bones</code>.</p>
+<p>Your final skeleton should look something like this:</p>
+<p>You might have noticed a second set of endpoints in the hands. This will make sense soon.</p>
+<p>Now that the whole figure is rigged, the next step is setting up the IK chains. IK chains allow for more natural control of extremities.</p>
+<h2 id="ik-chains">IK chains</h2>
+<p>IK stands for inverse kinematics. It's a convenient technique for animating the position of hands, feet and other extremities of rigs like the one we've made. Imagine you want to pose a character's foot in a specific position on the ground. Without IK chains, each motion of the foot would require rotating and positioning several other bones (the shin and the thigh at least). This would be quite complex and lead to imprecise results. IK allows us to move the foot directly while the shin and thigh self-adjust.</p>
+<blockquote>
+<p><strong>Note:</strong> <strong>IK chains in Godot currently work in the editor only</strong>, not at runtime. They are intended to ease the process of setting keyframes, and are not currently useful for techniques like procedural animation.</p>
+</blockquote>
+<p>To create an IK chain, select a chain of bones from endpoint to the base for the chain. For example, to create an IK chain for the right leg, select the following:</p>
+<p>Then enable this chain for IK. Go to Edit &gt; Make IK Chain.</p>
+<p>As a result, the base of the chain will turn <em>Yellow</em>.</p>
+<p>Once the IK chain is set up, grab any child or grand-child of the base of the chain (e.g. a foot), and move it. You'll see the rest of the chain adjust as you adjust its position.</p>
+<h2 id="animation-tips">Animation tips</h2>
+<p>The following section will be a collection of tips for creating animation for your cutout rigs. For more information on how the animation system in Godot works, see <code>doc_introduction_animation</code>.</p>
+<h3 id="setting-keyframes-and-excluding-properties">Setting keyframes and excluding properties</h3>
+<p>Special contextual elements appear in the top toolbar when the animation editor window is open:</p>
+<p>The key button inserts location, rotation, and scale keyframes for the selected objects or bones at the current playhead position.</p>
+<p>The "loc", "rot", and "scl" toggle buttons to the left of the key button modify its function, allowing you to specify which of the three properties keyframes will be created for.</p>
+<p>Here's an illustration of how this can be useful: Imagine you have a node which already has two keyframes animating its scale only. You want to add an overlapping rotation movement to the same node. The rotation movement should begin and end at different times from the scale change that's already set up. You can use the toggle buttons to have only rotation information added when you add a new keyframe. This way, you can avoid adding unwanted scale keyframes which would disrupt the existing scale animation.</p>
+<h2 id="creating-a-rest-pose">Creating a rest pose</h2>
+<p>Think of a rest pose as a default pose that your cutout rig should be set to when no other pose is active in your game. Create a rest pose as follows:</p>
+<p>1. Make sure the rig parts are positioned in what looks like a "resting" arrangement.</p>
+<ol start="2" type="1">
+<li>Create a new animation, rename it "rest".</li>
+<li>Select all nodes in your rig (box selection should work fine).</li>
+</ol>
+<p>4. Make sure the "loc", "rot", and "scl" toggle buttons are all active in the toolbar.</p>
+<p>5. Press the key button. Keys will be inserted for all selected parts storing their current arrangement. This pose can now be recalled when necessary in your game by playing the "rest" animation you've created.</p>
+<h2 id="modifying-rotation-only">Modifying rotation only</h2>
+<p>When animating a cutout rig, often it's only the rotation of the nodes that needs to change. Location and scale are rarely used.</p>
+<p>So when inserting keys, you might find it convenient to have only the "rot" toggle active most of the time:</p>
+<p>This will avoid the creation of unwanted animation tracks for position and scale.</p>
+<h2 id="keyframing-ik-chains">Keyframing IK chains</h2>
+<p>When editing IK chains, it's not necessary to select the whole chain to add keyframes. Selecting the endpoint of the chain and inserting a keyframe will automatically insert keyframes for all other parts of the chain too.</p>
+<h2 id="visually-move-a-sprite-behind-its-parent">Visually move a sprite behind its parent</h2>
+<p>Sometimes it is necessary to have a node change its visual depth relative to its parent node during an animation. Think of a character facing the camera, who pulls something out from behind his back and holds it out in front of him. During this animation the whole arm and the object in his hand would need to change their visual depth relative to the body of the character.</p>
+<p>To help with this there's a keyframable "Behind Parent" property on all Node2D-inheriting nodes. When planning your rig, think about the movements it will need to perform and give some thought to how you'll use "Behind Parent" and/or RemoteTransform2D nodes. They provide overlapping functionality.</p>
+<h2 id="setting-easing-curves-for-multiple-keys">Setting easing curves for multiple keys</h2>
+<p>To apply the same easing curve to multiple keyframes at once:</p>
+<ol type="1">
+<li>Select the relevant keys.</li>
+<li>Click on the pencil icon in the bottom right of the animation panel. This will open the transition editor.</li>
+<li>In the transition editor, click on the desired curve to apply it.</li>
+</ol>
+<h2 id="2d-skeletal-deform">2D Skeletal deform</h2>
+<p>Skeletal deform can be used to augment a cutout rig, allowing single pieces to deform organically (e.g. antennae that wobble as an insect character walks).</p>
+<p>This process is described in a ref.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

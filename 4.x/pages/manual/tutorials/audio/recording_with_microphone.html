@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recording with microphone — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="recording-with-microphone">Recording with microphone</h1>
+<p>Godot supports in-game audio recording for Windows, macOS, Linux, Android and iOS.</p>
+<p>A simple demo is included in the official demo projects and will be used as support for this tutorial: <a href="https://github.com/godotengine/godot-demo-projects/tree/master/audio/mic_record">https://github.com/godotengine/godot-demo-projects/tree/master/audio/mic_record</a>.</p>
+<p>You will need to enable audio input in the ref project setting, or you'll just get empty audio files.</p>
+<p>On iOS and iPadOS, it is also important to set the advanced <strong>Audio &gt; General &gt; iOS &gt; Session Category</strong> setting to include <strong>Record</strong> or <strong>Play and Record</strong>.</p>
+<h2 id="the-structure-of-the-demo">The structure of the demo</h2>
+<p>The demo consists of a single scene. This scene includes two major parts: the GUI and the audio.</p>
+<p>We will focus on the audio part. In this demo, a bus named <code>Record</code> with the effect <code>Record</code> is created to handle the audio recording. An <code>AudioStreamPlayer</code> named <code>AudioStreamRecord</code> is used for recording.</p>
+<pre class="gdscript"><code>var effect
+var recording
+
+
+func _ready():
+    # We get the index of the &quot;Record&quot; bus.
+    var idx = AudioServer.get_bus_index(&quot;Record&quot;)
+    # And use it to retrieve its first effect, which has been defined
+    # as an &quot;AudioEffectRecord&quot; resource.
+    effect = AudioServer.get_bus_effect(idx, 0)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> AudioEffectRecord _effect<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> AudioStreamSample _recording<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We get the index of the &quot;Record&quot; bus.</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> idx <span class="op">=</span> AudioServer<span class="op">.</span><span class="fu">GetBusIndex</span><span class="op">(</span><span class="st">&quot;Record&quot;</span><span class="op">);</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// And use it to retrieve its first effect, which has been defined</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// as an &quot;AudioEffectRecord&quot; resource.</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    _effect <span class="op">=</span> <span class="op">(</span>AudioEffectRecord<span class="op">)</span>AudioServer<span class="op">.</span><span class="fu">GetBusEffect</span><span class="op">(</span>idx<span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The audio recording is handled by the <code>class_AudioEffectRecord</code> resource which has three methods: ref, ref, and ref.</p>
+<pre class="gdscript"><code>func _on_record_button_pressed():
+    if effect.is_recording_active():
+        recording = effect.get_recording()
+        $PlayButton.disabled = false
+        $SaveButton.disabled = false
+        effect.set_recording_active(false)
+        $RecordButton.text = &quot;Record&quot;
+        $Status.text = &quot;&quot;
+    else:
+        $PlayButton.disabled = true
+        $SaveButton.disabled = true
+        effect.set_recording_active(true)
+        $RecordButton.text = &quot;Stop&quot;
+        $Status.text = &quot;Recording...&quot;</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnRecordButtonPressed</span><span class="op">()</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>_effect<span class="op">.</span><span class="fu">IsRecordingActive</span><span class="op">())</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        _recording <span class="op">=</span> _effect<span class="op">.</span><span class="fu">GetRecording</span><span class="op">();</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;PlayButton&quot;</span><span class="op">).</span><span class="fu">Disabled</span> <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;SaveButton&quot;</span><span class="op">).</span><span class="fu">Disabled</span> <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        _effect<span class="op">.</span><span class="fu">SetRecordingActive</span><span class="op">(</span><span class="kw">false</span><span class="op">);</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;RecordButton&quot;</span><span class="op">).</span><span class="fu">Text</span> <span class="op">=</span> <span class="st">&quot;Record&quot;</span><span class="op">;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;Status&quot;</span><span class="op">).</span><span class="fu">Text</span> <span class="op">=</span> <span class="st">&quot;&quot;</span><span class="op">;</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;PlayButton&quot;</span><span class="op">).</span><span class="fu">Disabled</span> <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;SaveButton&quot;</span><span class="op">).</span><span class="fu">Disabled</span> <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        _effect<span class="op">.</span><span class="fu">SetRecordingActive</span><span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;RecordButton&quot;</span><span class="op">).</span><span class="fu">Text</span> <span class="op">=</span> <span class="st">&quot;Stop&quot;</span><span class="op">;</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;Status&quot;</span><span class="op">).</span><span class="fu">Text</span> <span class="op">=</span> <span class="st">&quot;Recording...&quot;</span><span class="op">;</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>At the start of the demo, the recording effect is not active. When the user presses the <code>RecordButton</code>, the effect is enabled with <code>set_recording_active(true)</code>.</p>
+<p>On the next button press, as <code>effect.is_recording_active()</code> is <code>true</code>, the recorded stream can be stored into the <code>recording</code> variable by calling <code>effect.get_recording()</code>.</p>
+<pre class="gdscript"><code>func _on_play_button_pressed():
+    print(recording)
+    print(recording.format)
+    print(recording.mix_rate)
+    print(recording.stereo)
+    var data = recording.get_data()
+    print(data.size())
+    $AudioStreamPlayer.stream = recording
+    $AudioStreamPlayer.play()</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnPlayButtonPressed</span><span class="op">()</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>_recording<span class="op">);</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>_recording<span class="op">.</span><span class="fu">Format</span><span class="op">);</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>_recording<span class="op">.</span><span class="fu">MixRate</span><span class="op">);</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>_recording<span class="op">.</span><span class="fu">Stereo</span><span class="op">);</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">byte</span><span class="op">[]</span> data <span class="op">=</span> _recording<span class="op">.</span><span class="fu">Data</span><span class="op">;</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>data<span class="op">.</span><span class="fu">Length</span><span class="op">);</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> audioStreamPlayer <span class="op">=</span> GetNode<span class="op">&lt;</span>AudioStreamPlayer<span class="op">&gt;(</span><span class="st">&quot;AudioStreamPlayer&quot;</span><span class="op">);</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    audioStreamPlayer<span class="op">.</span><span class="fu">Stream</span> <span class="op">=</span> _recording<span class="op">;</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    audioStreamPlayer<span class="op">.</span><span class="fu">Play</span><span class="op">();</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>To playback the recording, you assign the recording as the stream of the <code>AudioStreamPlayer</code> and call <code>play()</code>.</p>
+<pre class="gdscript"><code>func _on_save_button_pressed():
+    var save_path = $SaveButton/Filename.text
+    recording.save_to_wav(save_path)
+    $Status.text = &quot;Saved WAV file to: %s\n(%s)&quot; % [save_path, ProjectSettings.globalize_path(save_path)]</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnSaveButtonPressed</span><span class="op">()</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">string</span> savePath <span class="op">=</span> GetNode<span class="op">&lt;</span>LineEdit<span class="op">&gt;(</span><span class="st">&quot;SaveButton/Filename&quot;</span><span class="op">).</span><span class="fu">Text</span><span class="op">;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    _recording<span class="op">.</span><span class="fu">SaveToWav</span><span class="op">(</span>savePath<span class="op">);</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;Status&quot;</span><span class="op">).</span><span class="fu">Text</span> <span class="op">=</span> <span class="dt">string</span><span class="op">.</span><span class="fu">Format</span><span class="op">(</span><span class="st">&quot;Saved WAV file to: {0}</span><span class="sc">\n</span><span class="st">({1})&quot;</span><span class="op">,</span> savePath<span class="op">,</span> ProjectSettings<span class="op">.</span><span class="fu">GlobalizePath</span><span class="op">(</span>savePath<span class="op">));</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>To save the recording, you call <code>save_to_wav()</code> with the path to a file. In this demo, the path is defined by the user via a <code>LineEdit</code> input box.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

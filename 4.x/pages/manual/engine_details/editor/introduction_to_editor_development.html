@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Introduction to editor development — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="introduction-to-editor-development">Introduction to editor development</h1>
+<p>On this page, you will learn:</p>
+<ul>
+<li>The <strong>design decisions</strong> behind the Godot editor.</li>
+<li>How to work efficiently on the Godot editor's C++ code.</li>
+</ul>
+<p>This guide is aimed at current or future engine contributors. To create editor plugins in GDScript, see <code>doc_making_plugins</code> instead.</p>
+<blockquote>
+<p><strong>See also:</strong> If you are new to Godot, we recommended you to read <code>doc_godot_design_philosophy</code> before continuing. Since the Godot editor is a Godot project written in C++, much of the engine's philosophy applies to the editor.</p>
+</blockquote>
+<h2 id="technical-choices">Technical choices</h2>
+<p>The Godot editor is drawn using Godot's renderer and ref. It does <em>not</em> rely on a toolkit such as GTK or Qt. This is similar in spirit to software like Blender. While using toolkits makes it easier to achieve a "native" appearance, they are also quite heavy and their licensing is not compatible with Godot's.</p>
+<p>The editor is fully written in C++. It can't contain any GDScript or C# code.</p>
+<h2 id="directory-structure">Directory structure</h2>
+<p>The editor's code is fully self-contained in the <a href="https://github.com/godotengine/godot/tree/master/editor">editor/</a> folder of the Godot source repository.</p>
+<p>Some editor functionality is also implemented via ref. Some of these are only enabled in editor builds to decrease the binary size of export templates. See the <a href="https://github.com/godotengine/godot/tree/master/modules">modules/</a> folder in the Godot source repository.</p>
+<p>Some important files in the editor are:</p>
+<ul>
+<li><a href="https://github.com/godotengine/godot/blob/master/editor/editor_node.cpp">editor/editor_node.cpp</a>: Main editor initialization file. Effectively the "main scene" of the editor.</li>
+<li><a href="https://github.com/godotengine/godot/blob/master/editor/project_manager/project_manager.cpp">editor/project_manager/project_manager.cpp</a>: Main Project Manager initialization file. Effectively the "main scene" of the Project Manager.</li>
+<li><a href="https://github.com/godotengine/godot/blob/master/editor/scene/canvas_item_editor_plugin.cpp">editor/scene/canvas_item_editor_plugin.cpp</a>: The 2D editor viewport and related functionality (toolbar at the top, editing modes, overlaid helpers/panels, …).</li>
+<li><a href="https://github.com/godotengine/godot/blob/master/editor/scene/3d/node_3d_editor_plugin.cpp">editor/scene/3d/node_3d_editor_plugin.cpp</a>: The 3D editor viewport and related functionality (toolbar at the top, editing modes, overlaid panels, …).</li>
+<li><a href="https://github.com/godotengine/godot/blob/master/editor/scene/3d/node_3d_editor_gizmos.cpp">editor/scene/3d/node_3d_editor_gizmos.cpp</a>: Where the 3D editor gizmos are defined and drawn. This file doesn't have a 2D counterpart as 2D gizmos are drawn by the nodes themselves.</li>
+</ul>
+<h2 id="editor-dependencies-in-scene-files">Editor dependencies in <code>scene/</code> files</h2>
+<p>When working on an editor feature, you may have to modify files in Godot's GUI nodes, which you can find in the <code>scene/</code> folder.</p>
+<p>One rule to keep in mind is that you must <strong>not</strong> introduce new dependencies to <code>editor/</code> includes in other folders such as <code>scene/</code>. This applies even if you use <code>#ifdef TOOLS_ENABLED</code>.</p>
+<p>To make the codebase easier to follow and more self-contained, the allowed dependency order is:</p>
+<ul>
+<li><code>editor/</code> -&gt; <code>scene/</code> -&gt; <code>servers/</code> -&gt; <code>core/</code></li>
+</ul>
+<p>This means that files in <code>editor/</code> can depend on includes from <code>scene/</code>, <code>servers/</code>, and <code>core/</code>. But, for example, while <code>scene/</code> can depend on includes from <code>servers/</code> and <code>core/</code>, it cannot depend on includes from <code>editor/</code>.</p>
+<p>Currently, there are some dependencies to <code>editor/</code> includes in <code>scene/</code> files, but <a href="https://github.com/godotengine/godot/issues/53295">they are in the process of being removed</a>.</p>
+<h2 id="development-tips">Development tips</h2>
+<p>To iterate quickly on the editor, we recommend to set up a test project and ref after compiling the editor. This way, you don't have to go through the Project Manager every time you start Godot.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

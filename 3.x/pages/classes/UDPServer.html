@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UDPServer — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="udpserver">UDPServer</h1>
+<p><em>Inherits: <a href="Reference.html">Reference</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Helper class to implement a UDP server.</p>
+<h2 id="description">Description</h2>
+<p>A simple server that opens a UDP socket and returns connected <a href="PacketPeerUDP.html">PacketPeerUDP</a> upon receiving new packets. See also <code>PacketPeerUDP.connect_to_host</code>.</p>
+<p>After starting the server (<code>listen</code>), you will need to <code>poll</code> it at regular intervals (e.g. inside <code>Node._process</code>) for it to process new packets, delivering them to the appropriate <a href="PacketPeerUDP.html">PacketPeerUDP</a>, and taking new connections.</p>
+<p>Below a small example of how it can be used:</p>
+<pre class="gdscript"><code># server.gd
+extends Node
+
+var server := UDPServer.new()
+var peers = []
+
+func _ready():
+    server.listen(4242)
+
+func _process(delta):
+    server.poll() # Important!
+    if server.is_connection_available():
+        var peer : PacketPeerUDP = server.take_connection()
+        var pkt = peer.get_packet()
+        print(&quot;Accepted peer: %s:%s&quot; % [peer.get_packet_ip(), peer.get_packet_port()])
+        print(&quot;Received data: %s&quot; % [pkt.get_string_from_utf8()])
+        # Reply so it knows we received the message.
+        peer.put_packet(pkt)
+        # Keep a reference so we can keep contacting the remote peer.
+        peers.append(peer)
+
+    for i in range(0, peers.size()):
+        pass # Do something with the connected peers.</code></pre>
+<pre class="gdscript"><code># client.gd
+extends Node
+
+var udp := PacketPeerUDP.new()
+var connected = false
+
+func _ready():
+    udp.connect_to_host(&quot;127.0.0.1&quot;, 4242)
+
+func _process(delta):
+    if !connected:
+        # Try to contact server
+        udp.put_packet(&quot;The answer is... 42!&quot;.to_utf8())
+    if udp.get_available_packet_count() &gt; 0:
+        print(&quot;Connected: %s&quot; % udp.get_packet().get_string_from_utf8())
+        connected = true</code></pre>
+<h2 id="properties">Properties</h2>
+<h3 id="int-max_pending_connections--16"><code>int max_pending_connections = 16</code></h3>
+<ul>
+<li>Setter: <code>set_max_pending_connections(value: int)</code></li>
+<li>Getter: <code>get_max_pending_connections()</code></li>
+</ul>
+<p>Define the maximum number of pending connections, during <code>poll</code>, any new pending connection exceeding that value will be automatically dropped. Setting this value to <code>0</code> effectively prevents any new pending connection to be accepted (e.g. when all your players have connected).</p>
+<h2 id="methods">Methods</h2>
+<h3 id="bool-is_connection_available-const"><code>bool is_connection_available() const</code></h3>
+<p>Returns <code>true</code> if a packet with a new address/port combination was received on the socket.</p>
+<h3 id="bool-is_listening-const"><code>bool is_listening() const</code></h3>
+<p>Returns <code>true</code> if the socket is open and listening on a port.</p>
+<h3 id="globalscopeerror-listenport-int-bind_address-string">``@GlobalScope.Error<code> listen(port: int, bind_address="*": String)</code></h3>
+<p>Starts the server by opening a UDP socket listening on the given port. You can optionally specify a <code>bind_address</code> to only listen for packets sent to that address. See also <code>PacketPeerUDP.listen</code>.</p>
+<h3 id="globalscopeerror-poll">``@GlobalScope.Error<code> poll()</code></h3>
+<p>Call this method at regular intervals (e.g. inside <code>Node._process</code>) to process new packets. And packet from known address/port pair will be delivered to the appropriate <a href="PacketPeerUDP.html">PacketPeerUDP</a>, any packet received from an unknown address/port pair will be added as a pending connection (see <code>is_connection_available</code>, <code>take_connection</code>). The maximum number of pending connection is defined via <code>max_pending_connections</code>.</p>
+<h3 id="void-stop"><code>void stop()</code></h3>
+<p>Stops the server, closing the UDP socket if open. Will close all connected <a href="PacketPeerUDP.html">PacketPeerUDP</a> accepted via <code>take_connection</code> (remote peers will not be notified).</p>
+<h3 id="packetpeerudp-take_connection"><code>PacketPeerUDP take_connection()</code></h3>
+<p>Returns the first pending connection (connected to the appropriate address/port). Will return <code>null</code> if no new connection is available. See also <code>is_connection_available</code>, <code>PacketPeerUDP.connect_to_host</code>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scene organization — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="scene-organization">Scene organization</h1>
+<p>This article covers topics related to the effective organization of scene content. Which nodes should you use? Where should you place them? How should they interact?</p>
+<h2 id="how-to-build-relationships-effectively">How to build relationships effectively</h2>
+<p>When Godot users begin crafting their own scenes, they often run into the following problem:</p>
+<p>They create their first scene and fill it with content only to eventually end up saving branches of their scene into separate scenes as the nagging feeling that they should split things up starts to accumulate. However, they then notice that the hard references they were able to rely on before are no longer possible. Reusing the scene in multiple places creates issues because the node paths do not find their targets and signal connections established in the editor break.</p>
+<p>To fix these problems, you must instantiate the sub-scenes without them requiring details about their environment. You need to be able to trust that the sub-scene will create itself without being picky about how it's used.</p>
+<p>One of the biggest things to consider in <a href="https://en.wikipedia.org/wiki/Object-oriented_programming">Object-Oriented Programming (OOP)</a> is maintaining focused, singular-purpose classes with <a href="https://en.wikipedia.org/wiki/Loose_coupling">loose coupling</a> to other parts of the codebase. This keeps the size of objects small (for maintainability) and improves their reusability.</p>
+<p>These OOP best practices have <em>several</em> implications for best practices in scene structure and script usage.</p>
+<p><strong>If at all possible, you should design scenes to have no dependencies.</strong> That is, you should create scenes that keep everything they need within themselves.</p>
+<p>If a scene must interact with an external context, experienced developers recommend the use of <a href="https://en.wikipedia.org/wiki/Dependency_injection">Dependency Injection</a>. This technique involves having a high-level API provide the dependencies of the low-level API. Why do this? Because classes which rely on their external environment can inadvertently trigger bugs and unexpected behavior.</p>
+<p>To do this, you must expose data and then rely on a parent context to initialize it:</p>
+<ol type="1">
+<li>Connect to a signal. Extremely safe, but should be used only to "respond" to behavior, not start it. By convention, signal names are usually past-tense verbs like "entered", "skill_activated", or "item_collected".</li>
+</ol>
+<pre class="gdscript"><code># Parent
+$Child.signal_name.connect(method_on_the_object)
+
+# Child
+signal_name.emit() # Triggers parent-specified behavior.</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Child&quot;</span><span class="op">).</span><span class="fu">Connect</span><span class="op">(</span><span class="st">&quot;SignalName&quot;</span><span class="op">,</span> Callable<span class="op">.</span><span class="fu">From</span><span class="op">(</span>ObjectWithMethod<span class="op">.</span><span class="fu">MethodOnTheObject</span><span class="op">));</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">EmitSignal</span><span class="op">(</span><span class="st">&quot;SignalName&quot;</span><span class="op">);</span> <span class="co">// Triggers parent-specified behavior.</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Node <span class="op">*</span>node <span class="op">=</span> get_node<span class="op">&lt;</span>Node<span class="op">&gt;(</span><span class="st">&quot;Child&quot;</span><span class="op">);</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>node <span class="op">!=</span> <span class="kw">nullptr</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Note that get_node may return a nullptr, which would make calling the connect method crash the engine if &quot;Child&quot; does not exist!</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// So unless you are 1000% sure get_node will never return a nullptr, it&#39;s a good idea to always do a nullptr check.</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    node<span class="op">-&gt;</span><span class="fu">connect</span><span class="op">(</span><span class="st">&quot;signal_name&quot;</span><span class="op">,</span> callable_mp<span class="op">(</span><span class="kw">this</span><span class="op">,</span> <span class="op">&amp;</span>ObjectWithMethod<span class="op">::</span>method_on_the_object<span class="op">));</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>emit_signal<span class="op">(</span><span class="st">&quot;signal_name&quot;</span><span class="op">);</span> <span class="co">// Triggers parent-specified behavior.</span></span></code></pre></div>
+<ol start="2" type="1">
+<li>Call a method. Used to start behavior.</li>
+</ol>
+<pre class="gdscript"><code># Parent
+$Child.method_name = &quot;do&quot;
+
+# Child, assuming it has String property &#39;method_name&#39; and method &#39;do&#39;.
+call(method_name) # Call parent-specified method (which child must own).</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Child&quot;</span><span class="op">).</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;MethodName&quot;</span><span class="op">,</span> <span class="st">&quot;Do&quot;</span><span class="op">);</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">Call</span><span class="op">(</span>MethodName<span class="op">);</span> <span class="co">// Call parent-specified method (which child must own).</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>Node <span class="op">*</span>node <span class="op">=</span> get_node<span class="op">&lt;</span>Node<span class="op">&gt;(</span><span class="st">&quot;Child&quot;</span><span class="op">);</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>node <span class="op">!=</span> <span class="kw">nullptr</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    node<span class="op">-&gt;</span>set<span class="op">(</span><span class="st">&quot;method_name&quot;</span><span class="op">,</span> <span class="st">&quot;do&quot;</span><span class="op">);</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>call<span class="op">(</span>method_name<span class="op">);</span> <span class="co">// Call parent-specified method (which child must own).</span></span></code></pre></div>
+<ol start="3" type="1">
+<li>Initialize a ref property. Safer than a method as ownership of the method is unnecessary. Used to start behavior.</li>
+</ol>
+<pre class="gdscript"><code># Parent
+$Child.func_property = object_with_method.method_on_the_object
+
+# Child
+func_property.call() # Call parent-specified method (can come from anywhere).</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Child&quot;</span><span class="op">).</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;FuncProperty&quot;</span><span class="op">,</span> Callable<span class="op">.</span><span class="fu">From</span><span class="op">(</span>ObjectWithMethod<span class="op">.</span><span class="fu">MethodOnTheObject</span><span class="op">));</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>FuncProperty<span class="op">.</span><span class="fu">Call</span><span class="op">();</span> <span class="co">// Call parent-specified method (can come from anywhere).</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>Node <span class="op">*</span>node <span class="op">=</span> get_node<span class="op">&lt;</span>Node<span class="op">&gt;(</span><span class="st">&quot;Child&quot;</span><span class="op">);</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>node <span class="op">!=</span> <span class="kw">nullptr</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    node<span class="op">-&gt;</span>set<span class="op">(</span><span class="st">&quot;func_property&quot;</span><span class="op">,</span> Callable<span class="op">(&amp;</span>ObjectWithMethod<span class="op">::</span>method_on_the_object<span class="op">));</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>func_property<span class="op">.</span>call<span class="op">();</span> <span class="co">// Call parent-specified method (can come from anywhere).</span></span></code></pre></div>
+<ol start="4" type="1">
+<li>Initialize a Node or other Object reference.</li>
+</ol>
+<pre class="gdscript"><code># Parent
+$Child.target = self
+
+# Child
+print(target) # Use parent-specified node.</code></pre>
+<div class="sourceCode" id="cb11"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Child&quot;</span><span class="op">).</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;Target&quot;</span><span class="op">,</span> <span class="kw">this</span><span class="op">);</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>Target<span class="op">);</span> <span class="co">// Use parent-specified node.</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>Node <span class="op">*</span>node <span class="op">=</span> get_node<span class="op">&lt;</span>Node<span class="op">&gt;(</span><span class="st">&quot;Child&quot;</span><span class="op">);</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>node <span class="op">!=</span> <span class="kw">nullptr</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    node<span class="op">-&gt;</span>set<span class="op">(</span><span class="st">&quot;target&quot;</span><span class="op">,</span> <span class="kw">this</span><span class="op">);</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>UtilityFunctions<span class="op">::</span>print<span class="op">(</span>target<span class="op">);</span></span></code></pre></div>
+<ol start="5" type="1">
+<li>Initialize a NodePath.</li>
+</ol>
+<pre class="gdscript"><code># Parent
+$Child.target_path = &quot;..&quot;
+
+# Child
+get_node(target_path) # Use parent-specified NodePath.</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Child&quot;</span><span class="op">).</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;TargetPath&quot;</span><span class="op">,</span> <span class="fu">NodePath</span><span class="op">(</span><span class="st">&quot;..&quot;</span><span class="op">));</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span>TargetPath<span class="op">);</span> <span class="co">// Use parent-specified NodePath.</span></span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>Node <span class="op">*</span>node <span class="op">=</span> get_node<span class="op">&lt;</span>Node<span class="op">&gt;(</span><span class="st">&quot;Child&quot;</span><span class="op">);</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>node <span class="op">!=</span> <span class="kw">nullptr</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    node<span class="op">-&gt;</span>set<span class="op">(</span><span class="st">&quot;target_path&quot;</span><span class="op">,</span> NodePath<span class="op">(</span><span class="st">&quot;..&quot;</span><span class="op">));</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>get_node<span class="op">&lt;</span>Node<span class="op">&gt;(</span>target_path<span class="op">);</span> <span class="co">// Use parent-specified NodePath.</span></span></code></pre></div>
+<p>These options hide the points of access from the child node. This in turn keeps the child <strong>loosely coupled</strong> to its environment. You can reuse it in another context without any extra changes to its API.</p>
+<blockquote>
+<p><strong>Note:</strong> Although the examples above illustrate parent-child relationships, the same principles apply towards all object relations. Nodes which are siblings should only be aware of their own hierarchies while an ancestor mediates their communications and references.</p>
+</blockquote>
+<pre class="gdscript"><code># Parent
+$Left.target = $Right.get_node(&quot;Receiver&quot;)
+
+# Left
+var target: Node
+func execute():
+    # Do something with &#39;target&#39;.
+
+# Right
+func _init():
+    var receiver = Receiver.new()
+    add_child(receiver)</code></pre>
+<div class="sourceCode" id="cb17"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>Left<span class="op">&gt;(</span><span class="st">&quot;Left&quot;</span><span class="op">).</span><span class="fu">Target</span> <span class="op">=</span> <span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Right/Receiver&quot;</span><span class="op">);</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> Left <span class="op">:</span> Node</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Node Target <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">Execute</span><span class="op">()</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Do something with &#39;Target&#39;.</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> Right <span class="op">:</span> Node</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Node Receiver <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="fu">Right</span><span class="op">()</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>        Receiver <span class="op">=</span> ResourceLoader<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Script<span class="op">&gt;(</span><span class="st">&quot;Receiver.cs&quot;</span><span class="op">).</span><span class="fu">New</span><span class="op">();</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">AddChild</span><span class="op">(</span>Receiver<span class="op">);</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>get_node<span class="op">&lt;</span>Left<span class="op">&gt;(</span><span class="st">&quot;Left&quot;</span><span class="op">)-&gt;</span>target <span class="op">=</span> get_node<span class="op">&lt;</span>Node<span class="op">&gt;(</span><span class="st">&quot;Right/Receiver&quot;</span><span class="op">);</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Left <span class="op">:</span> <span class="kw">public</span> Node <span class="op">{</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    GDCLASS<span class="op">(</span>Left<span class="op">,</span> Node<span class="op">)</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">protected</span><span class="op">:</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>        <span class="at">static</span> <span class="dt">void</span> _bind_methods<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span><span class="op">:</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>        Node <span class="op">*</span>target <span class="op">=</span> <span class="kw">nullptr</span><span class="op">;</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>        Left<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">void</span> execute<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Do something with &#39;target&#39;.</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Right <span class="op">:</span> <span class="kw">public</span> Node <span class="op">{</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    GDCLASS<span class="op">(</span>Right<span class="op">,</span> Node<span class="op">)</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">protected</span><span class="op">:</span></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>        <span class="at">static</span> <span class="dt">void</span> _bind_methods<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span><span class="op">:</span></span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>        Node <span class="op">*</span>receiver <span class="op">=</span> <span class="kw">nullptr</span><span class="op">;</span></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>        Right<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>            receiver <span class="op">=</span> memnew<span class="op">(</span>Node<span class="op">);</span></span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>            add_child<span class="op">(</span>receiver<span class="op">);</span></span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>The same principles also apply to non<span class="op">-</span>Node objects that maintain dependencies</span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>on other objects<span class="op">.</span> Whichever object owns the other objects should manage</span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>the relationships between them<span class="op">.</span></span></code></pre></div>
+<blockquote>
+<p><strong>Warning:</strong> You should favor keeping data in-house (internal to a scene), though, as placing a dependency on an external context, even a loosely coupled one, still means that the node will expect something in its environment to be true. The project's design philosophies should prevent this from happening. If not, the code's inherent liabilities will force developers to use documentation to keep track of object relations on a microscopic scale; this is otherwise known as development hell. Writing code that relies on external documentation to use it safely is error-prone by default.</p>
+<p>To avoid creating and maintaining such documentation, you convert the dependent node ("child" above) into a tool script that implements <code>_get_configuration_warnings()</code>. Returning a non-empty PackedStringArray from it will make the Scene dock generate a warning icon with the string(s) as a tooltip by the node. This is the same icon that appears for nodes such as the ref node when it has no child ref nodes defined. The editor then self-documents the scene through the script code. No content duplication via documentation is necessary.</p>
+<p>A <a href="https://en.wikipedia.org/wiki/Graphical_user_interface">Graphical User Interface (GUI)</a> like this can better inform project users of critical information about a Node. Does it have external dependencies? Have those dependencies been satisfied? Other programmers, and especially designers and writers, will need clear instructions in the messages telling them what to do to configure it.</p>
+</blockquote>
+<p>So, why does all this complex switcheroo work? Well, because scenes operate best when they operate alone. If unable to work alone, then working with others anonymously (with minimal hard dependencies, i.e. loose coupling) is the next best thing. Inevitably, changes may need to be made to a class, and if these changes cause it to interact with other scenes in unforeseen ways, then things will start to break down. The whole point of all this indirection is to avoid ending up in a situation where changing one class results in adversely affecting other classes dependent on it.</p>
+<p>Scripts and scenes, as extensions of engine classes, should abide by <em>all</em> OOP principles. Examples include...</p>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/SOLID">SOLID:</a>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Single-responsibility_principle">Single responsibility</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Open%E2%80%93closed_principle">Open for extension, closed for modification</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Liskov_substitution_principle">Liskov substitution</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Interface_segregation_principle">Interface segregation</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Dependency_inversion_principle">Dependency inversion</a></li>
+</ul></li>
+<li><a href="https://en.wikipedia.org/wiki/Don%27t_repeat_yourself">DRY: Don't Repeat Yourself</a></li>
+<li><a href="https://en.wikipedia.org/wiki/KISS_principle">KISS: Keep It Simple Stupid</a></li>
+<li><a href="https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it">YAGNI: You Aren't Gonna Need It</a></li>
+</ul>
+<h2 id="choosing-a-node-tree-structure">Choosing a node tree structure</h2>
+<p>You might start to work on a game but get overwhelmed by the vast possibilities before you. You might know what you want to do, what systems you want to have, but <em>where</em> do you put them all? How you go about making your game is always up to you. You can construct node trees in countless ways. If you are unsure, this guide can give you a sample of a decent structure to start with.</p>
+<p>A game should always have an "entry point"; somewhere you can definitively track where things begin so that you can follow the logic as it continues elsewhere. It also serves as a bird's eye view of all other data and logic in the program. For traditional applications, this is normally a "main" function. In Godot, it's a Main node.</p>
+<ul>
+<li>Node "Main" (main.gd)</li>
+</ul>
+<p>The <code>main.gd</code> script will serve as the primary controller of your game.</p>
+<p>Then you have an in-game "World" (a 2D or 3D one). This can be a child of Main. In addition, you will need a primary GUI for your game that manages the various menus and widgets the project needs.</p>
+<ul>
+<li>Node "Main" (main.gd)
+<ul>
+<li>Node2D/Node3D "World" (game_world.gd)</li>
+<li>Control "GUI" (gui.gd)</li>
+</ul></li>
+</ul>
+<p>When changing levels, you can then swap out the children of the "World" node. ref gives you full control over how your game world transitions.</p>
+<p>The next step is to consider what gameplay systems your project requires. If you have a system that...</p>
+<ol type="1">
+<li>tracks all of its data internally</li>
+<li>should be globally accessible</li>
+<li>should exist in isolation</li>
+</ol>
+<p>... then you should create an ref.</p>
+<blockquote>
+<p><strong>Note:</strong> For smaller games, a simpler alternative with less control would be to have a "Game" singleton that simply calls the ref method to swap out the main scene's content. This structure more or less keeps the "World" as the main game node.</p>
+<p>Any GUI would also need to be either a singleton, a transitory part of the "World", or manually added as a direct child of the root. Otherwise, the GUI nodes would also delete themselves during scene transitions.</p>
+</blockquote>
+<p>If you have systems that modify other systems' data, you should define those as their own scripts or scenes, rather than autoloads. For more information, see ref.</p>
+<p>Each subsystem within your game should have its own section within the SceneTree. You should use parent-child relationships only in cases where nodes are effectively elements of their parents. Does removing the parent reasonably mean that the children should also be removed? If not, then it should have its own place in the hierarchy as a sibling or some other relation.</p>
+<blockquote>
+<p><strong>Note:</strong> In some cases, you need these separated nodes to <em>also</em> position themselves relative to each other. You can use the ref / ref nodes for this purpose. They will allow a target node to conditionally inherit selected transform elements from the Remote* node. To assign the <code>target</code> ref, use one of the following:</p>
+<ol type="1">
+<li>A reliable third party, likely a parent node, to mediate the assignment.</li>
+<li>A group, to pull a reference to the desired node (assuming there will only ever be one of the targets).</li>
+</ol>
+<p>When you should do this is subjective. The dilemma arises when you must micro-manage when a node must move around the SceneTree to preserve itself. For example...</p>
+<ul>
+<li><p>Add a "player" node to a "room".</p></li>
+<li><p>Need to change rooms, so you must delete the current room.</p></li>
+<li><p>Before the room can be deleted, you must preserve and/or move the player.</p>
+<p>If memory is not a concern, you can...</p>
+<ul>
+<li>Create the new room.</li>
+<li>Move the player to the new room.</li>
+<li>Delete the old room.</li>
+</ul>
+<p>If memory is a concern, instead you will need to...</p>
+<ul>
+<li>Move the player somewhere else in the tree.</li>
+<li>Delete the room.</li>
+<li>Instantiate and add the new room.</li>
+<li>Re-add the player to the new room.</li>
+</ul></li>
+</ul>
+<p>The issue is that the player here is a "special case" where the developers must <em>know</em> that they need to handle the player this way for the project. The only way to reliably share this information as a team is to <em>document</em> it. Keeping implementation details in documentation is dangerous. It's a maintenance burden, strains code readability, and unnecessarily bloats the intellectual content of a project.</p>
+<p>In a more complex game with larger assets, it can be a better idea to keep the player somewhere else in the SceneTree entirely. This results in:</p>
+<ol type="1">
+<li>More consistency.</li>
+<li>No "special cases" that must be documented and maintained somewhere.</li>
+<li>No opportunity for errors to occur because these details are not accounted for.</li>
+</ol>
+<p>In contrast, if you ever need a child node that does <em>not</em> inherit the transform of its parent, you have the following options:</p>
+<ol type="1">
+<li>The <strong>declarative</strong> solution: place a ref in between them. Since it doesn't have a transform, they won't pass this information to its children.</li>
+<li>The <strong>imperative</strong> solution: Use the <code>top_level</code> property for the ref or ref node. This will make the node ignore its inherited transform.</li>
+</ol>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> If building a networked game, keep in mind which nodes and gameplay systems are relevant to all players versus those just pertinent to the authoritative server. For example, users do not all need to have a copy of every players' "PlayerController" logic - they only need their own. Keeping them in a separate branch from the "world" can help simplify the management of game connections and the like.</p>
+</blockquote>
+<p>The key to scene organization is to consider the SceneTree in relational terms rather than spatial terms. Are the nodes dependent on their parent's existence? If not, then they can thrive all by themselves somewhere else. If they are dependent, then it stands to reason that they should be children of that parent (and likely part of that parent's scene if they aren't already).</p>
+<p>Does this mean nodes themselves are components? Not at all. Godot's node trees form an aggregation relationship, not one of composition. But while you still have the flexibility to move nodes around, it is still best when such moves are unnecessary by default.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

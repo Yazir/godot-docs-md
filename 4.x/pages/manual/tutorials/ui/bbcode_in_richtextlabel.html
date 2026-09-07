@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BBCode in RichTextLabel — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="bbcode-in-richtextlabel">BBCode in RichTextLabel</h1>
+<h2 id="introduction">Introduction</h2>
+<p><code>class_Label</code> nodes are great for displaying basic text, but they have limitations. If you want to change the color of the text, or its alignment, you can only do that to the entire label. You can't make a part of the text have another color, or have a part of the text centered. To get around these limitations, you would use a <code>class_RichTextLabel</code>.</p>
+<p><code>class_RichTextLabel</code> allows for complex formatting of text using a markup syntax or the built-in API. It uses BBCodes for the markup syntax, a system of tags that designate formatting rules for a part of the text. You may be familiar with them if you ever used forums (also known as bulletin boards, hence the "BB" in "BBCode").</p>
+<p>Unlike Label, RichTextLabel also comes with its own vertical scrollbar. This scrollbar is automatically displayed if the text does not fit within the control's size. The scrollbar can be disabled by unchecking the <strong>Scroll Active</strong> property in the RichTextLabel inspector.</p>
+<p>Note that the BBCode tags can also be used to some extent for other use cases:</p>
+<ul>
+<li>BBCode can be used to ref.</li>
+<li>BBCode can be used in ref.</li>
+<li>BBCode can be used when ref.</li>
+</ul>
+<blockquote>
+<p><strong>See also:</strong> You can see how BBCode in RichTextLabel works in action using the <a href="https://github.com/godotengine/godot-demo-projects/tree/master/gui/rich_text_bbcode">Rich Text Label with BBCode demo project</a>.</p>
+</blockquote>
+<h2 id="using-bbcode">Using BBCode</h2>
+<p>By default, <code>class_RichTextLabel</code> functions like a normal <code>class_Label</code>. It has the ref property, which you can edit to have uniformly formatted text. To be able to use BBCode for rich text formatting, you need to turn on the BBCode mode by setting ref. After that, you can edit the ref property using available tags. Both properties are located at the top of the inspector after selecting a RichTextLabel node.</p>
+<p>For example, <code>BBCode [color=green]test[/color]</code> would render the word "test" with a green color.</p>
+<p>Most BBCodes consist of 3 parts: the opening tag, the content and the closing tag. The opening tag delimits the start of the formatted part, and can also carry some configuration options. Some opening tags, like the <code>color</code> one shown above, also require a value to work. Other opening tags may accept multiple options (separated by spaces within the opening tag). The closing tag delimits the end of the formatted part. In some cases, both the closing tag and the content can be omitted.</p>
+<p>Unlike BBCode in HTML, leading/trailing whitespace is not removed by a RichTextLabel upon display. Duplicate spaces are also displayed as-is in the final output. This means that when displaying a code block in a RichTextLabel, you don't need to use a preformatted text tag.</p>
+<pre class="none"><code>[tag]content[/tag]
+[tag=value]content[/tag]
+[tag option1=value1 option2=value2]content[/tag]
+[tag][/tag]
+[tag]</code></pre>
+<blockquote>
+<p><strong>Note:</strong> RichTextLabel doesn't support entangled BBCode tags. For example, instead of using:</p>
+<pre><code>[b]bold[i]bold italic[/b]italic[/i]</code></pre>
+<p>Use:</p>
+<pre><code>[b]bold[i]bold italic[/i][/b][i]italic[/i]</code></pre>
+</blockquote>
+<h2 id="handling-user-input-safely">Handling user input safely</h2>
+<p>In a scenario where users may freely input text (such as chat in a multiplayer game), you should make sure users cannot use arbitrary BBCode tags that will be parsed by RichTextLabel. This is to avoid inappropriate use of formatting, which can be problematic if <code>[url]</code> tags are handled by your RichTextLabel (as players may be able to create clickable links to phishing sites or similar).</p>
+<p>Using RichTextLabel's <code>[lb]</code> and/or <code>[rb]</code> tags, we can replace the opening and/or closing brackets of any BBCode tag in a message with those escaped tags. This prevents users from using BBCode that will be parsed as tags – instead, the BBCode will be displayed as text.</p>
+<p><em>Image: Example of unescaped user input resulting in BBCode injection (2nd line) and escaped user input (3rd line)</em></p>
+<p>Example of unescaped user input resulting in BBCode injection (2nd line) and escaped user input (3rd line)</p>
+<p>The above image was created using the following script:</p>
+<pre><code>extends RichTextLabel
+
+func _ready():
+    append_chat_line(&quot;Player 1&quot;, &quot;Hello world!&quot;)
+    append_chat_line(&quot;Player 2&quot;, &quot;Hello [color=red]BBCode injection[/color] (no escaping)!&quot;)
+    append_chat_line_escaped(&quot;Player 2&quot;, &quot;Hello [color=red]BBCode injection[/color] (with escaping)!&quot;)
+
+# Returns escaped BBCode that won&#39;t be parsed by RichTextLabel as tags.
+func escape_bbcode(bbcode_text):
+    # We only need to replace opening brackets to prevent tags from being parsed.
+    return bbcode_text.replace(&quot;[&quot;, &quot;[lb]&quot;)
+
+# Appends the user&#39;s message as-is, without escaping. This is dangerous!
+func append_chat_line(username, message):
+    append_text(&quot;%s: [color=green]%s[/color]\n&quot; % [username, message])
+
+# Appends the user&#39;s message with escaping.
+# Remember to escape both the player name and message contents.
+func append_chat_line_escaped(username, message):
+    append_text(&quot;%s: [color=green]%s[/color]\n&quot; % [escape_bbcode(username), escape_bbcode(message)])</code></pre>
+<h2 id="stripping-bbcode-tags">Stripping BBCode tags</h2>
+<p>For certain use cases, it can be desired to remove BBCode tags from the string. This is useful when displaying the RichTextLabel's text in another Control that does not support BBCode (such as a tooltip):</p>
+<pre><code>extends RichTextLabel
+
+func _ready():
+    var regex = RegEx.new()
+    regex.compile(&quot;\\[.*?\\]&quot;)
+    var text_without_tags = regex.sub(text, &quot;&quot;, true)
+    # `text_without_tags` contains the text with all BBCode tags removed.</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Removing BBCode tags entirely isn't advised for user input, as it can modify the displayed text without users understanding why part of their message was removed. ref should be preferred instead.</p>
+</blockquote>
+<h2 id="performance">Performance</h2>
+<p>In most cases, you can use BBCode directly as-is since text formatting is rarely a heavy task. However, with particularly large RichTextLabels (such as console logs spanning thousands of lines), you may encounter stuttering during gameplay when the RichTextLabel's text is updated.</p>
+<p>There are several ways to alleviate this:</p>
+<ul>
+<li>Use the <code>append_text()</code> function instead of appending to the <code>text</code> property. This function will only parse BBCode for the added text, rather than parsing BBCode from the entire <code>text</code> property.</li>
+<li>Use <code>push_[tag]()</code> and <code>pop()</code> functions to add tags to RichTextLabel instead of using BBCode.</li>
+<li>Enable the <strong>Threading &gt; Threaded</strong> property in RichTextLabel. This won't speed up processing, but it will prevent the main thread from blocking, which avoids stuttering during gameplay. Only enable threading if it's actually needed in your project, as threading has some overhead.</li>
+</ul>
+<h2 id="using-pushtag-and-pop-functions-instead-of-bbcode">Using <a href="">push</a>[tag]() and pop() functions instead of BBCode</h2>
+<p>If you don't want to use BBCode for performance reasons, you can use functions provided by RichTextLabel to create formatting tags without writing BBCode in the text.</p>
+<p>Every BBCode tag (including effects) has a <code>push_[tag]()</code> function (where <code>[tag]</code> is the tag's name). There are also a few convenience functions available, such as <code>push_bold_italics()</code> that combines both <code>push_bold()</code> and <code>push_italics()</code> into a single tag. See the ref for a complete list of <code>push_[tag]()</code> functions.</p>
+<p>The <code>pop()</code> function is used to end <em>any</em> tag. Since BBCode is a tag <em>stack</em>, using <code>pop()</code> will close the most recently started tags first.</p>
+<p>The following script will result in the same visual output as using <code>BBCode [color=green]test [i]example[/i][/color]</code>:</p>
+<pre><code>extends RichTextLabel
+
+func _ready():
+    append_text(&quot;BBCode &quot;)  # Trailing space separates words from each other.
+    push_color(Color.GREEN)
+    append_text(&quot;test &quot;)  # Trailing space separates words from each other.
+    push_italics()
+    append_text(&quot;example&quot;)
+    pop()  # Ends the tag opened by `push_italics()`.
+    pop()  # Ends the tag opened by `push_color()`.</code></pre>
+<blockquote>
+<p><strong>Warning:</strong> Do <strong>not</strong> set the <code>text</code> property directly when using formatting functions. Appending to the <code>text</code> property will erase all modifications made to the RichTextLabel using the <code>append_text()</code>, <code>push_[tag]()</code> and <code>pop()</code> functions.</p>
+</blockquote>
+<h2 id="reference">Reference</h2>
+<blockquote>
+<p><strong>See also:</strong> <em>Some</em> of these BBCode tags can be used in tooltips for <code>@export</code> script variables as well as in the XML source of the class reference. For more information, see ref.</p>
+</blockquote>
+<table>
+<colgroup>
+<col style="width: 60%" />
+<col style="width: 40%" />
+</colgroup>
+<tbody>
+<tr class="odd">
+<td>Tag</td>
+<td>Example</td>
+</tr>
+<tr class="even">
+<td><p><strong>b</strong><br />
+Makes <code>{text}</code> use the bold (or bold italics) font of <code>RichTextLabel</code>.</p></td>
+<td><code>[b]{text}[/b]</code></td>
+</tr>
+<tr class="odd">
+<td><p><strong>i</strong><br />
+Makes <code>{text}</code> use the italics (or bold italics) font of <code>RichTextLabel</code>.</p></td>
+<td><code>[i]{text}[/i]</code></td>
+</tr>
+<tr class="even">
+<td><p><strong>u</strong><br />
+Makes <code>{text}</code> underlined.</p></td>
+<td><code>[u]{text}[/u]</code> <code>[u color={color}]{text}[/u]</code></td>
+</tr>
+<tr class="odd">
+<td><p><strong>s</strong><br />
+Makes <code>{text}</code> strikethrough.</p></td>
+<td><code>[s]{text}[/s]</code> <code>[s color={color}]{text}[/s]</code></td>
+</tr>
+<tr class="even">
+<td><p><strong>code</strong><br />
+Makes <code>{text}</code> use the mono font of <code>RichTextLabel</code>.</p></td>
+<td><code>[code]{text}[/code]</code></td>
+</tr>
+<tr class="odd">
+<td><p><strong>char</strong><br />
+Adds Unicode character with hexadecimal UTF-32 <code>{codepoint}</code>.</p></td>
+<td><code>[char={codepoint}]</code></td>
+</tr>
+<tr class="even">
+<td><p><strong>p</strong><br />
+Adds new paragraph with <code>{text}</code>. Supports configuration options, see <code class="interpreted-text" role="ref">doc_bbcode_in_richtextlabel_paragraph_options</code>.</p></td>
+<td><p><code>[p]{text}[/p]</code><br />
+<code>[p {options}]{text}[/p]</code></p></td>
+</tr>
+<tr class="odd">
+<td><p><strong>br</strong><br />
+Adds line break in a text, without adding a new paragraph. If used within a list, this won't create a new list item, but will add a line break within the current item instead.</p></td>
+<td><code>[br]</code></td>
+</tr>
+<tr class="even">
+<td><p><strong>hr</strong><br />
+Adds new a horizontal rule to separate content. Supports configuration options, see <code class="interpreted-text" role="ref">doc_bbcode_in_richtextlabel_hr_options</code>.</p></td>
+<td><p><code>[hr]</code><br />
+<code>[hr {options}]</code></p></td>
+</tr>
+<tr class="odd">
+<td><p><strong>center</strong><br />
+Makes <code>{text}</code> horizontally centered.<br />
+Same as <code>[p align=center]</code>.</p></td>
+<td><code>[center]{text}[/center]</code></td>
+</tr>
+<tr class="even">
+<td><p><strong>left</strong><br />
+Makes <code>{text}</code> horizontally left-aligned.<br />
+Same as <code>[p align=left]</code>.</p></td>
+<td><code>[left]{text}[/left]</code></td>
+</tr>
+<tr class="odd">
+<td><p><strong>right</strong><br />
+Makes <code>{text}</code> horizontally right-aligned.<br />
+Same as <code>[p align=right]</code>.</p></td>
+<td><code>[right]{text}[/right]</code></td>
+</tr>
+<tr class="even">
+<td><p><strong>fill</strong><br />
+Makes <code>{text}</code> fill the full width of <code>RichTextLabel</code>.<br />
+Same as <code>[p align=fill]</code>.</p></td>
+<td><code>[fill]{text}[/fill]</code></td>
+</tr>
+<tr class="odd">
+<td><p><strong>indent</strong><br />
+Indents <code>{text}</code> once. The indentation width is the same as with <code>[ul]</code> or <code>[ol]</code>, but without a bullet point.</p></td>
+<td><code>[indent]{text}[/indent]</code></td>
+</tr>
+<tr class="even">
+<td><p><strong>url</strong><br />
+Creates a hyperlink (underlined and clickable text). Can contain optional <code>{text}</code> or display <code>{link}</code> as is. Supports configuration options, see <code class="interpreted-text" role="ref">doc_bbcode_in_richtextlabel_url_options</code>.<br />
+<strong>Must be handled with the "meta_clicked" signal to have an effect,</strong> see <code class="interpreted-text" role="ref">doc_bbcode_in_richtextlabel_handling_url_tag_clicks</code>.</p></td>
+<td><p><code>[url]{link}[/url]</code><br />
+<code>[url={link}]{text}[/url]</code><br />
+<code>[url {options}]{text}[/url]</code></p></td>
+</tr>
+<tr class="odd">
+<td><p><strong>hint</strong><br />
+Creates a tooltip hint that is displayed when hovering the text with the mouse. While not required, it's recommended to put tooltip text between double or single quotes. Note that it is not possible to escape quotes using <code>\"</code> or <code>\'</code>. To use single quotes for apostrophes in the hint string, you must use double quotes to surround the string.</p></td>
+<td><p><code>[hint="{tooltip text displayed on hover}"]{text}[/hint]</code></p></td>
+</tr>
+<tr class="even">
+<td><p><strong>img</strong><br />
+Inserts an image from the <code>{path}</code> (can be any valid <code class="interpreted-text" role="ref">class_Texture2D</code> resource).<br />
+If <code>{width}</code> is provided, the image will try to fit that width maintaining the aspect ratio.<br />
+If both <code>{width}</code> and <code>{height}</code> are provided, the image will be scaled to that size.<br />
+Add <code>%</code> to the end of <code>{width}</code> or <code>{height}</code> value to specify it as percentages of the control width instead of pixels.<br />
+Add <code>em</code> to the end of <code>{width}</code> or <code>{height}</code> value to specify it as a ratio of the current font size. For example, <code>height=1em</code> will make the image as tall as the surrounding text.<br />
+If <code>{valign}</code> configuration is provided, the image will try to align to the surrounding text, see <code class="interpreted-text" role="ref">doc_bbcode_in_richtextlabel_image_and_table_alignment</code>.<br />
+Supports configuration options, see <code class="interpreted-text" role="ref">doc_bbcode_in_richtextlabel_image_options</code>.</p></td>
+<td><p><code>[img]{path}[/img]</code><br />
+<code>[img={width}]{path}[/img]</code><br />
+<code>[img={width}x{height}]{path}[/img]</code><br />
+<code>[img={valign}]{path}[/img]</code><br />
+<code>[img {options}]{path}[/img]</code></p></td>
+</tr>
+<tr class="odd">
+<td><p><strong>font</strong><br />
+Makes <code>{text}</code> use a font resource from the <code>{path}</code>.<br />
+Supports configuration options, see <code class="interpreted-text" role="ref">doc_bbcode_in_richtextlabel_font_options</code>.</p></td>
+<td><p><code>[font={path}]{text}[/font]</code><br />
+<code>[font {options}]{text}[/font]</code></p></td>
+</tr>
+<tr class="even">
+<td><p><strong>font_size</strong><br />
+Use custom font size for <code>{text}</code>.</p></td>
+<td><code>[font_size={size}]{text}[/font_size]</code></td>
+</tr>
+<tr class="odd">
+<td><p><strong>dropcap</strong><br />
+Use a different font size and color for <code>{text}</code>, while making the tag's contents span multiple lines if it's large enough.<br />
+A <a href="https://www.computerhope.com/jargon/d/dropcap.htm">drop cap</a> is typically one uppercase character, but <code>[dropcap]</code> supports containing multiple characters. <code>margins</code> values are comma-separated and can be positive, zero or negative. Values must <strong>not</strong> be separated by spaces; otherwise, the values won't be parsed correctly. Negative top and bottom margins are particularly useful to allow the rest of the paragraph to display below the dropcap.</p></td>
+<td><code>[dropcap font={font} font_size={size} color={color} outline_size={size} outline_color={color} margins={left},{top},{right},{bottom}]{text}[/dropcap]</code></td>
+</tr>
+<tr class="even">
+<td><p><strong>opentype_features</strong><br />
+Enables custom OpenType font features for <code>{text}</code>. Features must be provided as a comma-separated <code>{list}</code>. Values must <strong>not</strong> be separated by spaces; otherwise, the list won't be parsed correctly.</p></td>
+<td><p><code>[opentype_features={list}]</code><br />
+<code>{text}</code><br />
+<code>[/opentype_features]</code></p></td>
+</tr>
+<tr class="odd">
+<td><p><strong>lang</strong><br />
+Overrides the language for <code>{text}</code> that is set by the <strong>BiDi &gt; Language</strong> property in <code class="interpreted-text" role="ref">class_RichTextLabel</code>. <code>{code}</code> must be an ISO ref. This can be used to enforce the use of a specific script for a language without starting a new paragraph. Some font files may contain script-specific substitutes, in which case they will be used.</p></td>
+<td><code>[lang={code}]{text}[/lang]</code></td>
+</tr>
+<tr class="even">
+<td><p><strong>color</strong><br />
+Changes the color of <code>{text}</code>. Color must be provided by a common name (see <code class="interpreted-text" role="ref">doc_bbcode_in_richtextlabel_named_colors</code>) or using the HEX format (e.g. <code>#ff00ff</code>, see <code class="interpreted-text" role="ref">doc_bbcode_in_richtextlabel_hex_colors</code>).</p></td>
+<td><code>[color={code/name}]{text}[/color]</code></td>
+</tr>
+<tr class="odd">
+<td><p><strong>bgcolor</strong><br />
+Draws the color behind <code>{text}</code>. This can be used to highlight text. Accepts same values as the <code>color</code> tag. By default, there is a slight padding which is controlled by the <code>text_highlight_h_padding</code> and <code>text_highlight_v_padding</code> theme items in the RichTextLabel node. Set padding to <code>0</code> to avoid potential overlapping issues when there are background colors on neighboring lines/columns.</p></td>
+<td><code>[bgcolor={code/name}]{text}[/bgcolor]</code></td>
+</tr>
+<tr class="even">
+<td><p><strong>fgcolor</strong><br />
+Draws the color in front of <code>{text}</code>. This can be used to "redact" text by using an opaque foreground color. Accepts same values as the <code>color</code> tag. By default, there is a slight padding which is controlled by the <code>text_highlight_h_padding</code> and <code>text_highlight_v_padding</code> theme items in the RichTextLabel node. Set padding to <code>0</code> to avoid potential overlapping issues when there are foreground colors on neighboring lines/columns.</p></td>
+<td><code>[fgcolor={code/name}]{text}[/fgcolor]</code></td>
+</tr>
+<tr class="odd">
+<td><p><strong>outline_size</strong><br />
+Use custom font outline size for <code>{text}</code>.</p></td>
+<td><p><code>[outline_size={size}]</code><br />
+<code>{text}</code><br />
+<code>[/outline_size]</code></p></td>
+</tr>
+<tr class="even">
+<td><p><strong>outline_color</strong><br />
+Use custom outline color for <code>{text}</code>. Accepts same values as the <code>color</code> tag.</p></td>
+<td><p><code>[outline_color={code/name}]</code><br />
+<code>{text}</code><br />
+<code>[/outline_color]</code></p></td>
+</tr>
+<tr class="odd">
+<td><p><strong>table</strong><br />
+Creates a table with the <code>{number}</code> of columns. Use the <code>cell</code> tag to define table cells.<br />
+If <code>{valign}</code> configuration is provided, the table will try to align to the surrounding text, see <code class="interpreted-text" role="ref">doc_bbcode_in_richtextlabel_image_and_table_alignment</code>.<br />
+If baseline alignment is used, the table is aligned to the baseline of the row with index <code>{alignment_row}</code> (zero-based).<br />
+<code>{name}</code> is a table name for assistive apps (screen reader).</p></td>
+<td><p><code>[table={number}]{cells}[/table]</code><br />
+<code>[table={number},{valign}]{cells}[/table]</code><br />
+<code>[table={number},{valign},{alignment_row}]{cells}[/table]</code><br />
+<code>[table={number},{valign},{alignment_row} name={name}]{cells}[/table]</code></p></td>
+</tr>
+<tr class="even">
+<td><p><strong>cell</strong><br />
+Adds a cell with <code>{text}</code> to the table.<br />
+If <code>{ratio}</code> is provided, the cell will try to expand to that value proportionally to other cells and their ratio values.<br />
+Supports configuration options, see <code class="interpreted-text" role="ref">doc_bbcode_in_richtextlabel_cell_options</code>.</p></td>
+<td><p><code>[cell]{text}[/cell]</code><br />
+<code>[cell={ratio}]{text}[/cell]</code><br />
+<code>[cell {options}]{text}[/cell]</code></p></td>
+</tr>
+<tr class="odd">
+<td><p><strong>ul</strong><br />
+Adds an unordered list. List <code>{items}</code> must be provided by putting one item per line of text.<br />
+The bullet point can be customized using the <code>{bullet}</code> parameter, see <code class="interpreted-text" role="ref">doc_bbcode_in_richtextlabel_unordered_list_bullet</code>.</p></td>
+<td><p><code>[ul]{items}[/ul]</code><br />
+<code>[ul bullet={bullet}]{items}[/ul]</code></p></td>
+</tr>
+<tr class="even">
+<td><p><strong>ol</strong><br />
+Adds an ordered (numbered) list of the given <code>{type}</code> (see <code class="interpreted-text" role="ref">doc_bbcode_in_richtextlabel_list_types</code>). List <code>{items}</code> must be provided by putting one item per line of text.</p></td>
+<td><code>[ol type={type}]{items}[/ol]</code></td>
+</tr>
+<tr class="odd">
+<td><p><strong>lb</strong>, <strong>rb</strong><br />
+Adds <code>[</code> and <code>]</code> respectively. Allows escaping BBCode markup.<br />
+These are self-closing tags, which means you do not need to close them (and there is no <code>[/lb]</code> or <code>[/rb]</code> closing tag).</p></td>
+<td><p><code>[lb]b[rb]text[lb]/b[rb]</code> will display as <code>[b]text[/b]</code>.</p></td>
+</tr>
+<tr class="even">
+<td><p>Several Unicode control characters can be added using their own self-closing tags.<br />
+This can result in easier maintenance compared to pasting those<br />
+control characters directly in the text.</p></td>
+<td><p><code>[lrm]</code> (left-to-right mark), <code>[rlm]</code> (right-to-left mark), <code>[lre]</code> (left-to-right embedding),<br />
+<code>[rle]</code> (right-to-left embedding), <code>[lro]</code> (left-to-right override), <code>[rlo]</code> (right-to-left override),<br />
+<code>[pdf]</code> (pop directional formatting), <code>[alm]</code> (Arabic letter mark), <code>[lri]</code> (left-to-right isolate),<br />
+<code>[rli]</code> (right-to-left isolate), <code>[fsi]</code> (first strong isolate), <code>[pdi]</code> (pop directional isolate),<br />
+<code>[zwj]</code> (zero-width joiner), <code>[zwnj]</code> (zero-width non-joiner), <code>[wj]</code> (word joiner),<br />
+<code>[shy]</code> (soft hyphen)</p></td>
+</tr>
+</tbody>
+</table>
+
+<blockquote>
+<p><strong>Note:</strong> Tags for bold (<code>[b]</code>) and italics (<code>[i]</code>) formatting work best if the appropriate custom fonts are set up in the RichTextLabelNode's theme overrides. If no custom bold or italic fonts are defined, <a href="https://fonts.google.com/knowledge/glossary/faux_fake_pseudo_synthesized">faux bold and italic fonts</a> will be generated by Godot. These fonts rarely look good in comparison to hand-made bold/italic font variants.</p>
+<p>The monospaced (<code>[code]</code>) tag <strong>only</strong> works if a custom font is set up in the RichTextLabel node's theme overrides. Otherwise, monospaced text will use the regular font.</p>
+<p>There are no BBCode tags to control vertical centering of text yet.</p>
+<p>Options can be skipped for all tags.</p>
+</blockquote>
+<h3 id="paragraph-options">Paragraph options</h3>
+<ul>
+<li><p><strong>align</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td><code>left</code> (or <code>l</code>), <code>center</code> (or <code>c</code>), <code>right</code> (or <code>r</code>), <code>fill</code> (or <code>f</code>)</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>left</code></td>
+</tr>
+</tbody>
+</table>
+<p>Text horizontal alignment.</p></li>
+<li><p><strong>bidi_override</strong>, <strong>st</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td><code>default</code> (of <code>d</code>), <code>uri</code> (or <code>u</code>), <code>file</code> (or <code>f</code>), <code>email</code> (or <code>e</code>), <code>list</code> (or <code>l</code>), <code>none</code> (or <code>n</code>), <code>custom</code> (or <code>c</code>)</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>default</code></td>
+</tr>
+</tbody>
+</table>
+<p>Structured text override.</p></li>
+<li><p><strong>justification_flags</strong>, <strong>jst</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Comma-separated list of the following values (no space after each comma): <code>kashida</code> (or <code>k</code>), <code>word</code> (or <code>w</code>), <code>trim</code> (or <code>tr</code>), <code>after_last_tab</code> (or <code>lt</code>), <code>skip_last</code> (or <code>sl</code>), <code>skip_last_with_chars</code> (or <code>sv</code>), <code>do_not_skip_single</code> (or <code>ns</code>).</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>word,kashida,skip_last,do_not_skip_single</code></td>
+</tr>
+</tbody>
+</table>
+<p>Justification (fill alignment) option. See <code>class_TextServer</code> for more details.</p></li>
+<li><p><strong>direction</strong>, <strong>dir</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td><code>ltr</code> (or <code>l</code>), <code>rtl</code> (or <code>r</code>), <code>auto</code> (or <code>a</code>)</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Inherit</td>
+</tr>
+</tbody>
+</table>
+<p>Base BiDi direction.</p></li>
+<li><p><strong>language</strong>, <strong>lang</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>ISO language codes. See <code>doc_locales</code></td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Inherit</td>
+</tr>
+</tbody>
+</table>
+<p>Locale override. Some font files may contain script-specific substitutes, in which case they will be used.</p></li>
+<li><p><strong>tab_stops</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>List of floating-point numbers, e.g. <code>10.0,30.0</code></td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Width of the space character in the font</td>
+</tr>
+</tbody>
+</table>
+<p>Overrides the horizontal offsets for each tab character. When the end of the list is reached, the tab stops will loop over. For example, if you set <code>tab_stops</code> to <code>10.0,30.0</code>, the first tab will be at <code>10</code> pixels, the second tab will be at <code>10 + 30 = 40</code> pixels, and the third tab will be at <code>10 + 30 + 10 = 50</code> pixels from the origin of the RichTextLabel.</p></li>
+</ul>
+<h3 id="handling-url-tag-clicks">Handling <code>[url]</code> tag clicks</h3>
+<p>By default, <code>[url]</code> tags do nothing when clicked. This is to allow flexible use of <code>[url]</code> tags rather than limiting them to opening URLs in a web browser.</p>
+<p>To handle clicked <code>[url]</code> tags, connect the <code>RichTextLabel</code> node's ref signal to a script function.</p>
+<p>For example, the following method can be connected to <code>meta_clicked</code> to open clicked URLs using the user's default web browser:</p>
+<pre><code># This assumes RichTextLabel&#39;s `meta_clicked` signal was connected to
+# the function below using the signal connection dialog.
+func _richtextlabel_on_meta_clicked(meta):
+    # `meta` is not guaranteed to be a String, so convert it to a String
+    # to avoid script errors at runtime.
+    OS.shell_open(str(meta))</code></pre>
+<p>For more advanced use cases, it's also possible to store JSON in a <code>[url]</code> tag's option and parse it in the function that handles the <code>meta_clicked</code> signal. For example:</p>
+<pre class="none"><code>[url={&quot;example&quot;: &quot;value&quot;}]JSON[/url]</code></pre>
+<h3 id="horizontal-rule-options">Horizontal rule options</h3>
+<ul>
+<li><p><strong>color</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Color name or color in HEX format</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>Color(1, 1, 1, 1)</code></td>
+</tr>
+</tbody>
+</table>
+<p>Color tint of the rule (modulation).</p></li>
+<li><p><strong>height</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Integer number</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>2</code></td>
+</tr>
+</tbody>
+</table>
+<p>Target height of the rule in pixels, add <code>%</code> to the end of value to specify it as percentages of the control width instead of pixels.</p></li>
+<li><p><strong>width</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Integer number</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>90%</code></td>
+</tr>
+</tbody>
+</table>
+<p>Target width of the rule in pixels, add <code>%</code> to the end of value to specify it as percentages of the control width instead of pixels.</p></li>
+<li><p><strong>align</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td><code>left</code> (or <code>l</code>), <code>center</code> (or <code>c</code>), <code>right</code> (or <code>r</code>)</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>center</code></td>
+</tr>
+</tbody>
+</table>
+<p>Horizontal alignment.</p></li>
+</ul>
+<h3 id="url-options">URL options</h3>
+<ul>
+<li><p><strong>underline</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td><code>always</code>, <code>never</code>, <code>hover</code></td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>always</code></td>
+</tr>
+</tbody>
+</table>
+<p>URL underlining mode.</p></li>
+<li><p><strong>tooltip</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>String.</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>URL tooltip.</p></li>
+<li><p><strong>href</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>String.</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>URL target address.</p></li>
+</ul>
+<h3 id="image-options">Image options</h3>
+<ul>
+<li><p><strong>color</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Color name or color in HEX format</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Inherit</td>
+</tr>
+</tbody>
+</table>
+<p>Color tint of the image (modulation).</p></li>
+<li><p><strong>height</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Floating-point number</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Inherit</td>
+</tr>
+</tbody>
+</table>
+<p>Target height of the image in pixels.</p>
+<p>Alternative units to pixels can be specified:</p>
+<ul>
+<li>Add <code>%</code> to the end of the value to specify it as a percentage of the control width instead of pixels. For example, <code>height=50%</code> will make the image half as tall as the control is wide.</li>
+<li>Add <code>em</code> to the end of the value to specify it as a ratio of the surrounding font size instead of pixels. For example, <code>height=1em</code> will make the image as tall as the surrounding text.</li>
+</ul></li>
+<li><p><strong>width</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Floating-point number</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Inherit</td>
+</tr>
+</tbody>
+</table>
+<p>Target width of the image in pixels.</p>
+<p>Alternative units to pixels can be specified:</p>
+<ul>
+<li>Add <code>%</code> to the end of the value to specify it as a percentage of the control width instead of pixels. For example, <code>width=50%</code> will make the image take up half of the control width.</li>
+<li>Add <code>em</code> to the end of the value to specify it as a ratio of the surrounding font size instead of pixels. For example, <code>width=1em</code> will make the image as wide as the surrounding text is tall.</li>
+</ul></li>
+<li><p><strong>region</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>x,y,width,height in pixels</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Inherit</td>
+</tr>
+</tbody>
+</table>
+<p>Region rect of the image. This can be used to display a single image from a spritesheet.</p></li>
+<li><p><strong>pad</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td><code>false</code>, <code>true</code></td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>false</code></td>
+</tr>
+</tbody>
+</table>
+<p>If set to <code>true</code>, and the image is smaller than the size specified by <code>width</code> and <code>height</code>, the image padding is added to match the size instead of upscaling.</p></li>
+<li><p><strong>tooltip</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>String</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Image tooltip.</p></li>
+<li><p><strong>align</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>see <code>doc_bbcode_in_richtextlabel_image_and_table_alignment</code></td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>center,center</code></td>
+</tr>
+</tbody>
+</table>
+<p>Image alignment to the surrounding text.</p></li>
+<li><p><strong>alt</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>String</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Image description for assistive apps (screen reader).</p></li>
+</ul>
+<h3 id="image-and-table-vertical-alignment">Image and table vertical alignment</h3>
+<p>When a vertical alignment value is provided with the <code>[img]</code> or <code>[table]</code> tag the image/table will try to align itself against the surrounding text. Alignment is performed using a vertical point of the image and a vertical point of the text. There are 3 possible points on the image (<code>top</code>, <code>center</code>, and <code>bottom</code>) and 4 possible points on the text and table (<code>top</code>, <code>center</code>, <code>baseline</code>, and <code>bottom</code>), which can be used in any combination.</p>
+<p>To specify both points, use their full or short names as a value of the image/table tag:</p>
+<pre class="none"><code>text [img=top,bottom]...[/img] text
+text [img=center,center]...[/img] text</code></pre>
+<pre class="none"><code>text [table=3,center]...[/table] text  # Center to center.
+text [table=3,top,bottom]...[/table] text # Top of the table to the bottom of text.
+text [table=3,baseline,baseline,1]...[/table] text # Baseline of the second row (rows use zero-based indexing) to the baseline of text.</code></pre>
+<p>You can also specify just one value (<code>top</code>, <code>center</code>, or <code>bottom</code>) to make use of a corresponding preset (<code>top-top</code>, <code>center-center</code>, and <code>bottom-bottom</code> respectively).</p>
+<p>Short names for the values are <code>t</code> (<code>top</code>), <code>c</code> (<code>center</code>), <code>l</code> (<code>baseline</code>), and <code>b</code> (<code>bottom</code>).</p>
+<h3 id="font-options">Font options</h3>
+<ul>
+<li><p><strong>name</strong>, <strong>n</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>A valid Font resource path.</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Inherit</td>
+</tr>
+</tbody>
+</table>
+<p>Font resource path.</p></li>
+<li><p><strong>size</strong>, <strong>s</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Number in pixels.</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Inherit</td>
+</tr>
+</tbody>
+</table>
+<p>Custom font size.</p></li>
+<li><p><strong>glyph_spacing</strong>, <strong>gl</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Number in pixels.</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Inherit</td>
+</tr>
+</tbody>
+</table>
+<p>Extra spacing for each glyph.</p></li>
+<li><p><strong>space_spacing</strong>, <strong>sp</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Number in pixels.</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Inherit</td>
+</tr>
+</tbody>
+</table>
+<p>Extra spacing for the space character.</p></li>
+<li><p><strong>top_spacing</strong>, <strong>top</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Number in pixels.</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Inherit</td>
+</tr>
+</tbody>
+</table>
+<p>Extra spacing at the top of the line.</p></li>
+<li><p><strong>bottom_spacing</strong>, <strong>bt</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Number in pixels.</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Inherit</td>
+</tr>
+</tbody>
+</table>
+<p>Extra spacing at the bottom of the line.</p></li>
+<li><p><strong>embolden</strong>, <strong>emb</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Floating-point number.</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>0.0</code></td>
+</tr>
+</tbody>
+</table>
+<p>Font embolden strength, if it is not equal to zero, emboldens the font outlines. Negative values reduce the outline thickness.</p></li>
+<li><p><strong>face_index</strong>, <strong>fi</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Integer number.</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>0</code></td>
+</tr>
+</tbody>
+</table>
+<p>An active face index in the TrueType / OpenType collection.</p></li>
+<li><p><strong>slant</strong>, <strong>sln</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Floating-point number.</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>0.0</code></td>
+</tr>
+</tbody>
+</table>
+<p>Font slant strength, positive values slant glyphs to the right. Negative values to the left.</p></li>
+<li><p><strong>opentype_variation</strong>, <strong>otv</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Comma-separated list of the OpenType variation tags (no space after each comma).</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Font OpenType variation coordinates. See <a href="https://docs.microsoft.com/en-us/typography/opentype/spec/dvaraxisreg">OpenType variation tags</a>.</p>
+<p>Note: The value should be enclosed in <code>"</code> to allow using <code>=</code> inside it:</p></li>
+</ul>
+<pre class="none"><code>[font otv=&quot;wght=200,wdth=400&quot;] # Sets variable font weight and width.</code></pre>
+<ul>
+<li><p><strong>opentype_features</strong>, <strong>otf</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Comma-separated list of the OpenType feature tags (no space after each comma).</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Font OpenType features. See <a href="https://docs.microsoft.com/en-us/typography/opentype/spec/featuretags">OpenType features tags</a>.</p>
+<p>Note: The value should be enclosed in <code>"</code> to allow using <code>=</code> inside it:</p></li>
+</ul>
+<pre class="none"><code>[font otf=&quot;calt=0,zero=1&quot;] # Disable contextual alternates, enable slashed zero.</code></pre>
+<h3 id="named-colors">Named colors</h3>
+<p>For tags that allow specifying a color by name, you can use names of the constants from the built-in <code>class_Color</code> class. Named colors can be specified in a number of styles using different casings: <code>DARK_RED</code>, <code>DarkRed</code>, and <code>darkred</code> will give the same exact result.</p>
+<p>See this image for a list of color constants:</p>
+<p>View at full size</p>
+<h3 id="hexadecimal-color-codes">Hexadecimal color codes</h3>
+<p>For opaque RGB colors, any valid 6-digit hexadecimal code is supported, e.g. <code>[color=#ffffff]white[/color]</code>. Shorthand RGB color codes such as <code>#6f2</code> (equivalent to <code>#66ff22</code>) are also supported.</p>
+<p>For transparent RGB colors, any RGBA 8-digit hexadecimal code can be used, e.g. <code>[color=#ffffff88]translucent white[/color]</code>. Note that the alpha channel is the <strong>last</strong> component of the color code, not the first one. Short RGBA color codes such as <code>#6f28</code> (equivalent to <code>#66ff2288</code>) are supported as well.</p>
+<h3 id="cell-options">Cell options</h3>
+<ul>
+<li><p><strong>shrink</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td><code>false</code>, <code>true</code></td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>true</code></td>
+</tr>
+</tbody>
+</table>
+<p>If <code>true</code>, cell can shrink to its contents.</p></li>
+<li><p><strong>expand</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Integer number</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>Cell expansion ratio. This defines which cells will try to expand to proportionally to other cells and their expansion ratios.</p></li>
+<li><p><strong>border</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Color name or color in HEX format</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Inherit</td>
+</tr>
+</tbody>
+</table>
+<p>Cell border color.</p></li>
+<li><p><strong>bg</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>Color name or color in HEX format</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Inherit</td>
+</tr>
+</tbody>
+</table>
+<p>Cell background color. For alternating odd/even row backgrounds, you can use <code>bg=odd_color,even_color</code>.</p></li>
+<li><p><strong>padding</strong></p>
+<table>
+<tbody>
+<tr class="odd">
+<td>Values</td>
+<td>4 comma-separated floating-point numbers (no space after each comma)</td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td><code>0,0,0,0</code></td>
+</tr>
+</tbody>
+</table>
+<p>Left, top, right, and bottom cell padding.</p></li>
+</ul>
+<h3 id="unordered-list-bullet">Unordered list bullet</h3>
+<p>By default, the <code>[ul]</code> tag uses the <code>U+2022</code> "Bullet" Unicode glyph as the bullet character. This behavior is similar to web browsers. The bullet character can be customized using <code>[ul bullet={bullet}]</code>. If provided, this <code>{bullet}</code> parameter must be a string with no enclosing quotes (for example, <code>[bullet=*]</code>). You can add trailing spaces after the bullet character to increase the spacing between the bullet and the list item text.</p>
+<p>See <a href="https://en.wikipedia.org/wiki/Bullet_(typography)">Bullet (typography) on Wikipedia</a> for a list of common bullet characters that you can paste directly in the <code>bullet</code> parameter.</p>
+<h3 id="ordered-list-types">Ordered list types</h3>
+<p>Ordered lists can be used to automatically mark items with numbers or letters in ascending order. This tag supports the following type options:</p>
+<ul>
+<li><code>1</code> - Numbers, using language specific numbering system if possible.</li>
+<li><code>a</code>, <code>A</code> - Lower and upper case Latin letters.</li>
+<li><code>i</code>, <code>I</code> - Lower and upper case Roman numerals.</li>
+</ul>
+<h2 id="text-effects">Text effects</h2>
+<p>BBCode can also be used to create different text effects that can optionally be animated. Several customizable effects are provided out of the box, and you can easily create your own. By default, animated effects will pause ref. You can change this behavior by adjusting the RichTextLabel's <strong>Process &gt; Mode</strong> property.</p>
+<p>All examples below mention the default values for options in the listed tag format.</p>
+<blockquote>
+<p><strong>Note:</strong> Text effects that move characters' positions may result in characters being clipped by the RichTextLabel node bounds.</p>
+<p>You can resolve this by disabling <strong>Control &gt; Layout &gt; Clip Contents</strong> in the inspector after selecting the RichTextLabel node, or ensuring there is enough margin added around the text by using line breaks above and below the line using the effect.</p>
+</blockquote>
+<h3 id="pulse">Pulse</h3>
+<p>Pulse creates an animated pulsing effect that multiplies each character's opacity and color. It can be used to bring attention to specific text. Its tag format is <code>[pulse freq=1.0 color=#ffffff40 ease=-2.0]{text}[/pulse]</code>.</p>
+<p><code>freq</code> controls the frequency of the half-pulsing cycle (higher is faster). A full pulsing cycle takes <code>2 * (1.0 / freq)</code> seconds. <code>color</code> is the target color multiplier for blinking. The default mostly fades out text, but not entirely. <code>ease</code> is the easing function exponent to use. Negative values provide in-out easing, which is why the default is <code>-2.0</code>.</p>
+<h3 id="wave">Wave</h3>
+<p>Wave makes the text go up and down. Its tag format is <code>[wave amp=50.0 freq=5.0 connected=1]{text}[/wave]</code>.</p>
+<p><code>amp</code> controls how high and low the effect goes, and <code>freq</code> controls how fast the text goes up and down. A <code>freq</code> value of <code>0</code> will result in no visible waves, and negative <code>freq</code> values won't display any waves either. If <code>connected</code> is <code>1</code> (default), glyphs with ligatures will be moved together. If <code>connected</code> is <code>0</code>, each glyph is moved individually even if they are joined by ligatures. This can work around certain rendering issues with font ligatures.</p>
+<h3 id="tornado">Tornado</h3>
+<p>Tornado makes the text move around in a circle. Its tag format is <code>[tornado radius=10.0 freq=1.0 connected=1]{text}[/tornado]</code>.</p>
+<p><code>radius</code> is the radius of the circle that controls the offset, <code>freq</code> is how fast the text moves in a circle. A <code>freq</code> value of <code>0</code> will pause the animation, while negative <code>freq</code> will play the animation backwards. If <code>connected</code> is <code>1</code> (default), glyphs with ligatures will be moved together. If <code>connected</code> is <code>0</code>, each glyph is moved individually even if they are joined by ligatures. This can work around certain rendering issues with font ligatures.</p>
+<h3 id="shake">Shake</h3>
+<p>Shake makes the text shake. Its tag format is <code>[shake rate=20.0 level=5 connected=1]{text}[/shake]</code>.</p>
+<p><code>rate</code> controls how fast the text shakes, <code>level</code> controls how far the text is offset from the origin. If <code>connected</code> is <code>1</code> (default), glyphs with ligatures will be moved together. If <code>connected</code> is <code>0</code>, each glyph is moved individually even if they are joined by ligatures. This can work around certain rendering issues with font ligatures.</p>
+<h3 id="fade">Fade</h3>
+<p>Fade creates a static fade effect that multiplies each character's opacity. Its tag format is <code>[fade start=4 length=14]{text}[/fade]</code>.</p>
+<p><code>start</code> controls the starting position of the falloff relative to where the fade command is inserted, <code>length</code> controls over how many characters should the fade out take place.</p>
+<h3 id="rainbow">Rainbow</h3>
+<p>Rainbow gives the text a rainbow color that changes over time. Its tag format is <code>[rainbow freq=1.0 sat=0.8 val=0.8 speed=1.0]{text}[/rainbow]</code>.</p>
+<p><code>freq</code> determines how many letters the rainbow extends over before it repeats itself, <code>sat</code> is the saturation of the rainbow, <code>val</code> is the value of the rainbow. <code>speed</code> is the number of full rainbow cycles per second. A positive <code>speed</code> value will play the animation forwards, a value of <code>0</code> will pause the animation, and a negative <code>speed</code> value will play the animation backwards.</p>
+<p>Font outlines are <em>not</em> affected by the rainbow effect (they keep their original color). Existing font colors are overridden by the rainbow effect. However, CanvasItem's <strong>Modulate</strong> and <strong>Self Modulate</strong> properties will affect how the rainbow effect looks, as modulation multiplies its final colors.</p>
+<h2 id="custom-bbcode-tags-and-text-effects">Custom BBCode tags and text effects</h2>
+<p>You can extend the <code>class_RichTextEffect</code> resource type to create your own custom BBCode tags. Create a new script file that extends the <code>class_RichTextEffect</code> resource type and give the script a <code>class_name</code> so that the effect can be selected in the inspector. Add the <code>@tool</code> annotation to your GDScript file if you wish to have these custom effects run within the editor itself. The RichTextLabel does not need to have a script attached, nor does it need to be running in <code>tool</code> mode. The new effect can be registered in the Inspector by adding it to the <strong>Markup &gt; Custom Effects</strong> array, or in code with the ref method:</p>
+<p><em>Image: Selecting a custom RichTextEffect after saving a script that extends RichTextEffect with a ``class_name``</em></p>
+<p>Selecting a custom RichTextEffect after saving a script that extends RichTextEffect with a <code>class_name</code></p>
+<blockquote>
+<p><strong>Warning:</strong> If the custom effect is not registered within the RichTextLabel's <strong>Markup &gt; Custom Effects</strong> property, no effect will be visible and the original tag will be left as-is.</p>
+</blockquote>
+<p>There is only one function that you need to extend: <code>_process_custom_fx(char_fx)</code>. Optionally, you can also provide a custom BBCode identifier by adding a member name <code>bbcode</code>. The code will check the <code>bbcode</code> property automatically or will use the name of the file to determine what the BBCode tag should be.</p>
+<h3 id="_process_custom_fx"><code>_process_custom_fx</code></h3>
+<p>This is where the logic of each effect takes place and is called once per glyph during the draw phase of text rendering. This passes in a <code>class_CharFXTransform</code> object, which holds a few variables to control how the associated glyph is rendered:</p>
+<ul>
+<li><code>outline</code> is <code>true</code> if effect is called for drawing text outline.</li>
+<li><code>range</code> tells you how far into a given custom effect block you are in as an index.</li>
+<li><code>elapsed_time</code> is the total amount of time the text effect has been running.</li>
+<li><code>visible</code> will tell you whether the glyph is visible or not and will also allow you to hide a given portion of text.</li>
+<li><code>offset</code> is an offset position relative to where the given glyph should render under normal circumstances.</li>
+<li><code>color</code> is the color of a given glyph.</li>
+<li><code>glyph_index</code> and <code>font</code> is glyph being drawn and font data resource used to draw it.</li>
+<li>Finally, <code>env</code> is a <code>class_Dictionary</code> of parameters assigned to a given custom effect. You can use ref with an optional default value to retrieve each parameter, if specified by the user. For example <code>[custom_fx spread=0.5 color=#FFFF00]test[/custom_fx]</code> would have a float <code>spread</code> and Color <code>color</code> parameters in its <code>env</code> Dictionary. See below for more usage examples.</li>
+</ul>
+<p>The last thing to note about this function is that it is necessary to return a boolean <code>true</code> value to verify that the effect processed correctly. This way, if there's a problem with rendering a given glyph, it will back out of rendering custom effects entirely until the user fixes whatever error cropped up in their custom effect logic.</p>
+<p>Here are some examples of custom effects:</p>
+<h3 id="ghost">Ghost</h3>
+<pre><code>@tool
+extends RichTextEffect
+class_name RichTextGhost
+
+# Syntax: [ghost freq=5.0 span=10.0][/ghost]
+
+# Define the tag name.
+var bbcode = &quot;ghost&quot;
+
+func _process_custom_fx(char_fx):
+    # Get parameters, or use the provided default value if missing.
+    var speed = char_fx.env.get(&quot;freq&quot;, 5.0)
+    var span = char_fx.env.get(&quot;span&quot;, 10.0)
+
+    var alpha = sin(char_fx.elapsed_time * speed + (char_fx.range.x / span)) * 0.5 + 0.5
+    char_fx.color.a = alpha
+    return true</code></pre>
+<h3 id="matrix">Matrix</h3>
+<pre><code>@tool
+extends RichTextEffect
+class_name RichTextMatrix
+
+# Syntax: [matrix clean=2.0 dirty=1.0 span=50][/matrix]
+
+# Define the tag name.
+var bbcode = &quot;matrix&quot;
+
+# Gets TextServer for retrieving font information.
+func get_text_server():
+    return TextServerManager.get_primary_interface()
+
+func _process_custom_fx(char_fx):
+    # Get parameters, or use the provided default value if missing.
+    var clear_time = char_fx.env.get(&quot;clean&quot;, 2.0)
+    var dirty_time = char_fx.env.get(&quot;dirty&quot;, 1.0)
+    var text_span = char_fx.env.get(&quot;span&quot;, 50)
+
+    var value = get_text_server().font_get_char_from_glyph_index(char_fx.font, 1, char_fx.glyph_index)
+
+    var matrix_time = fmod(char_fx.elapsed_time + (char_fx.range.x / float(text_span)), \
+                           clear_time + dirty_time)
+
+    matrix_time = 0.0 if matrix_time &lt; clear_time else \
+                  (matrix_time - clear_time) / dirty_time
+
+    if matrix_time &gt; 0.0:
+        value = int(1 * matrix_time * (126 - 65))
+        value %= (126 - 65)
+        value += 65
+    char_fx.glyph_index = get_text_server().font_get_glyph_index(char_fx.font, 1, value, 0)
+    return true</code></pre>
+<p>This will add a few new BBCode commands, which can be used like so:</p>
+<pre class="none"><code>[center][ghost]This is a custom [matrix]effect[/matrix][/ghost] made in
+[pulse freq=5.0 height=2.0][pulse color=#00FFAA freq=2.0]GDScript[/pulse][/pulse].[/center]</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

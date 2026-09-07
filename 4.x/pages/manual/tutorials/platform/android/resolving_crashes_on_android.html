@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resolving crashes on Android — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="resolving-crashes-on-android">Resolving crashes on Android</h1>
+<p>When your game crashes on Android, you often see obfuscated stack traces in Play Console or other crash reporting tools like Firebase Crashlytics. To make these stack traces human-readable (symbolicated), you need native debug symbols that correspond to your game's exported build.</p>
+<p>Godot now provides downloadable native debug symbols for each official export template.</p>
+<h2 id="getting-native-debug-symbols-for-official-templates">Getting Native Debug symbols for official templates</h2>
+<p>Native debug symbol files are provided for every stable Godot release and can be downloaded from the <a href="https://github.com/godotengine/godot/releases/">GitHub release page</a>.</p>
+<p>For example, to get the native debug symbols for version <code>4.5.1.stable</code>:</p>
+<ul>
+<li>Go to the <a href="https://github.com/godotengine/godot/releases/">4.5.1.stable release page</a></li>
+<li>Download the release artifact <code>Godot_native_debug_symbols.4.5.1.stable.template_release.android.zip</code></li>
+</ul>
+<h2 id="getting-native-debug-symbols-for-custom-builds">Getting Native Debug symbols for custom builds</h2>
+<p>Your exported template and its native debug symbols must come from the <strong>same build</strong>, so you can use the official symbols only if you are using the <strong>official export templates</strong>. If you are building <strong>custom export templates</strong>, you need to generate matching symbol files yourself.</p>
+<p>To do so, add <code>debug_symbols=yes separate_debug_symbols=yes</code> to your scons build command. This will generate a file named <code>android-template-release-native-symbols.zip</code> containing the native debug symbols for your custom build.</p>
+<p>For example,</p>
+<pre><code>scons platform=android target=template_release debug_symbols=yes separate_debug_symbols=yes generate_android_binaries=yes</code></pre>
+<p>If you are building for multiple architectures, you should include the <code>separate_debug_symbols=yes</code> only in the last build command, similar to how <code>generate_android_binaries=yes</code> is used.</p>
+<pre><code>scons platform=android arch=arm32 target=template_release debug_symbols=yes
+scons platform=android arch=arm64 target=template_release debug_symbols=yes
+scons platform=android arch=x86_32 target=template_release debug_symbols=yes
+scons platform=android arch=x86_64 target=template_release debug_symbols=yes separate_debug_symbols=yes generate_android_binaries=yes</code></pre>
+<h2 id="uploading-symbols-to-google-play-console">Uploading Symbols to Google Play Console</h2>
+<p>Follow these steps to upload the native debug symbols:</p>
+<ol type="1">
+<li>Open <a href="https://play.google.com/console">Play Console</a>.</li>
+<li>Select any app.</li>
+<li>In the left menu, navigate to <code>Test and release &gt; Latest releases and bundles</code>.</li>
+<li>Now choose the relevant bundle and open it.</li>
+<li>Select the <code>Downloads</code> tab, and scroll down to the <code>Assets</code> section.</li>
+<li>Next to <code>Native debug symbols</code>, click the upload arrow icon.</li>
+<li>Select and upload the corresponding native debug symbols file for that build version.</li>
+</ol>
+<p>Alternatively, you can upload the symbols when creating a new release:</p>
+<ol type="1">
+<li>On the Create release page, locate your new release bundle.</li>
+<li>Click the three-dot menu beside it.</li>
+<li>Choose <code>Upload native debug symbols (.zip)</code> from the menu.</li>
+<li>Select and upload the corresponding native debug symbols file for that build version.</li>
+</ol>
+<h2 id="manually-symbolicating-crash-logs">Manually Symbolicating Crash Logs</h2>
+<p>You can also symbolicate the crash logs manually using the <a href="https://developer.android.com/ndk/guides/ndk-stack">ndk-stack</a> tool included in the Android NDK.</p>
+<blockquote>
+<p><strong>Note:</strong> If you already have the Android SDK installed, you can find the <code>ndk-stack</code> tool inside the <code>ndk</code> folder in your SDK location. Otherwise, you can download the NDK directly from the <a href="https://developer.android.com/ndk/downloads">NDK downloads page</a>.</p>
+</blockquote>
+<ol type="1">
+<li>Extract the native debug symbols zip you downloaded earlier (or generated with your custom build).</li>
+<li>Save your crash log to a text file (for example, <code>crash.txt</code>).</li>
+</ol>
+<blockquote>
+<p><strong>Important:</strong> <code>ndk-stack</code> looks for an initial line of asterisks when parsing the crash log. Make sure your <code>crash.txt</code> starts with the following line:</p>
+<pre><code>*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***</code></pre>
+</blockquote>
+<ol start="3" type="1">
+<li>Run ndk-stack with the path to the symbol directory that matches the crash's CPU architecture (for example, <code>arm64-v8a</code>):</li>
+</ol>
+<!-- -->
+
+<pre><code>ndk-stack -sym path/to/native_debug_symbols/arm64-v8a/ -dump crash.txt</code></pre>
+<ol start="4" type="1">
+<li>The output will display a symbolicated trace, showing file names and line numbers in Godot's source code (or your custom build).</li>
+</ol>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UndoRedo — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="undoredo">UndoRedo</h1>
+<p><em>Inherits: <a href="Object.html">Object</a></em></p>
+<p>Provides a high-level interface for implementing undo and redo operations.</p>
+<h2 id="description">Description</h2>
+<p>UndoRedo works by registering methods and property changes inside "actions". You can create an action, then provide ways to do and undo this action using function calls and property changes, then commit the action.</p>
+<p>When an action is committed, all of the <code>do_*</code> methods will run. If the <code>undo()</code> method is used, the <code>undo_*</code> methods will run. If the <code>redo()</code> method is used, once again, all of the <code>do_*</code> methods will run.</p>
+<p>Here's an example on how to add an action:</p>
+<pre class="gdscript"><code>var undo_redo = UndoRedo.new()
+
+func do_something():
+    pass # Put your code here.
+
+func undo_something():
+    pass # Put here the code that reverts what&#39;s done by &quot;do_something()&quot;.
+
+func _on_my_button_pressed():
+    var node = get_node(&quot;MyNode2D&quot;)
+    undo_redo.create_action(&quot;Move the node&quot;)
+    undo_redo.add_do_method(do_something)
+    undo_redo.add_undo_method(undo_something)
+    undo_redo.add_do_property(node, &quot;position&quot;, Vector2(100, 100))
+    undo_redo.add_undo_property(node, &quot;position&quot;, node.position)
+    undo_redo.commit_action()</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> UndoRedo _undoRedo<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    _undoRedo <span class="op">=</span> <span class="kw">new</span> <span class="fu">UndoRedo</span><span class="op">();</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">DoSomething</span><span class="op">()</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Put your code here.</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">UndoSomething</span><span class="op">()</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Put here the code that reverts what&#39;s done by &quot;DoSomething()&quot;.</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnMyButtonPressed</span><span class="op">()</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> node <span class="op">=</span> GetNode<span class="op">&lt;</span>Node2D<span class="op">&gt;(</span><span class="st">&quot;MyNode2D&quot;</span><span class="op">);</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    _undoRedo<span class="op">.</span><span class="fu">CreateAction</span><span class="op">(</span><span class="st">&quot;Move the node&quot;</span><span class="op">);</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    _undoRedo<span class="op">.</span><span class="fu">AddDoMethod</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Callable</span><span class="op">(</span><span class="kw">this</span><span class="op">,</span> MethodName<span class="op">.</span><span class="fu">DoSomething</span><span class="op">));</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    _undoRedo<span class="op">.</span><span class="fu">AddUndoMethod</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Callable</span><span class="op">(</span><span class="kw">this</span><span class="op">,</span> MethodName<span class="op">.</span><span class="fu">UndoSomething</span><span class="op">));</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    _undoRedo<span class="op">.</span><span class="fu">AddDoProperty</span><span class="op">(</span>node<span class="op">,</span> <span class="st">&quot;position&quot;</span><span class="op">,</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">100</span><span class="op">,</span> <span class="dv">100</span><span class="op">));</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    _undoRedo<span class="op">.</span><span class="fu">AddUndoProperty</span><span class="op">(</span>node<span class="op">,</span> <span class="st">&quot;position&quot;</span><span class="op">,</span> node<span class="op">.</span><span class="fu">Position</span><span class="op">);</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    _undoRedo<span class="op">.</span><span class="fu">CommitAction</span><span class="op">();</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Before calling any of the <code>add_(un)do_*</code> methods, you need to first call <code>create_action()</code>. Afterwards you need to call <code>commit_action()</code>.</p>
+<p>If you don't need to register a method, you can leave <code>add_do_method()</code> and <code>add_undo_method()</code> out; the same goes for properties. You can also register more than one method/property.</p>
+<p>If you are making an <a href="EditorPlugin.html">EditorPlugin</a> and want to integrate into the editor's undo history, use <a href="EditorUndoRedoManager.html">EditorUndoRedoManager</a> instead.</p>
+<p>If you are registering multiple properties/method which depend on one another, be aware that by default undo operation are called in the same order they have been added. Therefore instead of grouping do operation with their undo operations it is better to group do on one side and undo on the other as shown below.</p>
+<pre class="gdscript"><code>undo_redo.create_action(&quot;Add object&quot;)
+
+# DO
+undo_redo.add_do_method(_create_object)
+undo_redo.add_do_method(_add_object_to_singleton)
+
+# UNDO
+undo_redo.add_undo_method(_remove_object_from_singleton)
+undo_redo.add_undo_method(_destroy_that_object)
+
+undo_redo.commit_action()</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>_undo_redo<span class="op">.</span><span class="fu">CreateAction</span><span class="op">(</span><span class="st">&quot;Add object&quot;</span><span class="op">);</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">// DO</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>_undo_redo<span class="op">.</span><span class="fu">AddDoMethod</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Callable</span><span class="op">(</span><span class="kw">this</span><span class="op">,</span> MethodName<span class="op">.</span><span class="fu">CreateObject</span><span class="op">));</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>_undo_redo<span class="op">.</span><span class="fu">AddDoMethod</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Callable</span><span class="op">(</span><span class="kw">this</span><span class="op">,</span> MethodName<span class="op">.</span><span class="fu">AddObjectToSingleton</span><span class="op">));</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">// UNDO</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>_undo_redo<span class="op">.</span><span class="fu">AddUndoMethod</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Callable</span><span class="op">(</span><span class="kw">this</span><span class="op">,</span> MethodName<span class="op">.</span><span class="fu">RemoveObjectFromSingleton</span><span class="op">));</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>_undo_redo<span class="op">.</span><span class="fu">AddUndoMethod</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Callable</span><span class="op">(</span><span class="kw">this</span><span class="op">,</span> MethodName<span class="op">.</span><span class="fu">DestroyThatObject</span><span class="op">));</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>_undo_redo<span class="op">.</span><span class="fu">CommitAction</span><span class="op">();</span></span></code></pre></div>
+<h2 id="properties">Properties</h2>
+<h3 id="int-max_steps--0"><code>int max_steps = 0</code></h3>
+<ul>
+<li>Setter: <code>set_max_steps(value: int)</code></li>
+<li>Getter: <code>get_max_steps()</code></li>
+</ul>
+<p>The maximum number of steps that can be stored in the undo/redo history. If the number of stored steps exceeds this limit, older steps are removed from history and can no longer be reached by calling <code>undo()</code>. A value of <code>0</code> or lower means no limit.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-add_do_methodcallable-callable"><code>void add_do_method(callable: Callable)</code></h3>
+<p>Register a <a href="Callable.html">Callable</a> that will be called when the action is committed.</p>
+<h3 id="void-add_do_propertyobject-object-property-stringname-value-variant"><code>void add_do_property(object: Object, property: StringName, value: Variant)</code></h3>
+<p>Register a <code>property</code> that would change its value to <code>value</code> when the action is committed.</p>
+<h3 id="void-add_do_referenceobject-object"><code>void add_do_reference(object: Object)</code></h3>
+<p>Register a reference to an object that will be erased if the "do" history is deleted. This is useful for objects added by the "do" action and removed by the "undo" action.</p>
+<p>When the "do" history is deleted, if the object is a <a href="RefCounted.html">RefCounted</a>, it will be unreferenced. Otherwise, it will be freed. Do not use for resources.</p>
+<pre class="gdscript"><code>var node = Node2D.new()
+undo_redo.create_action(&quot;Add node&quot;)
+undo_redo.add_do_method(add_child.bind(node))
+undo_redo.add_do_reference(node)
+undo_redo.add_undo_method(remove_child.bind(node))
+undo_redo.commit_action()</code></pre>
+<h3 id="void-add_undo_methodcallable-callable"><code>void add_undo_method(callable: Callable)</code></h3>
+<p>Register a <a href="Callable.html">Callable</a> that will be called when the action is undone.</p>
+<h3 id="void-add_undo_propertyobject-object-property-stringname-value-variant"><code>void add_undo_property(object: Object, property: StringName, value: Variant)</code></h3>
+<p>Register a <code>property</code> that would change its value to <code>value</code> when the action is undone.</p>
+<h3 id="void-add_undo_referenceobject-object"><code>void add_undo_reference(object: Object)</code></h3>
+<p>Register a reference to an object that will be erased if the "undo" history is deleted. This is useful for objects added by the "undo" action and removed by the "do" action.</p>
+<p>When the "undo" history is deleted, if the object is a <a href="RefCounted.html">RefCounted</a>, it will be unreferenced. Otherwise, it will be freed. Do not use for resources.</p>
+<pre class="gdscript"><code>var node = $Node2D
+undo_redo.create_action(&quot;Remove node&quot;)
+undo_redo.add_do_method(remove_child.bind(node))
+undo_redo.add_undo_method(add_child.bind(node))
+undo_redo.add_undo_reference(node)
+undo_redo.commit_action()</code></pre>
+<h3 id="void-clear_historyincrease_version-bool--true"><code>void clear_history(increase_version: bool = true)</code></h3>
+<p>Clear the undo/redo history and associated references.</p>
+<p>Passing <code>false</code> to <code>increase_version</code> will prevent the version number from increasing when the history is cleared.</p>
+<h3 id="void-commit_actionexecute-bool--true"><code>void commit_action(execute: bool = true)</code></h3>
+<p>Commit the action. If <code>execute</code> is <code>true</code> (which it is by default), all "do" methods/properties are called/set when this function is called.</p>
+<h3 id="void-create_actionname-string-merge_mode-mergemode--0-backward_undo_ops-bool--false"><code>void create_action(name: String, merge_mode: </code>MergeMode<code> = 0, backward_undo_ops: bool = false)</code></h3>
+<p>Create a new action. After this is called, do all your calls to <code>add_do_method()</code>, <code>add_undo_method()</code>, <code>add_do_property()</code>, and <code>add_undo_property()</code>, then commit the action with <code>commit_action()</code>.</p>
+<p>The way actions are merged is dictated by <code>merge_mode</code>.</p>
+<p>The way undo operation are ordered in actions is dictated by <code>backward_undo_ops</code>. When <code>backward_undo_ops</code> is <code>false</code> undo option are ordered in the same order they were added. Which means the first operation to be added will be the first to be undone.</p>
+<h3 id="void-end_force_keep_in_merge_ends"><code>void end_force_keep_in_merge_ends()</code></h3>
+<p>Stops marking operations as to be processed even if the action gets merged with another in the <code>MERGE_ENDS</code> mode. See <code>start_force_keep_in_merge_ends()</code>.</p>
+<h3 id="string-get_action_nameid-int"><code>String get_action_name(id: int)</code></h3>
+<p>Gets the action name from its index.</p>
+<h3 id="int-get_current_action"><code>int get_current_action()</code></h3>
+<p>Gets the index of the current action.</p>
+<h3 id="string-get_current_action_name-const"><code>String get_current_action_name() const</code></h3>
+<p>Gets the name of the current action, equivalent to <code>get_action_name(get_current_action())</code>.</p>
+<h3 id="int-get_history_count"><code>int get_history_count()</code></h3>
+<p>Returns how many elements are in the history.</p>
+<h3 id="int-get_version-const"><code>int get_version() const</code></h3>
+<p>Gets the version. Every time a new action is committed, the <strong>UndoRedo</strong>'s version number is increased automatically.</p>
+<p>This is useful mostly to check if something changed from a saved version.</p>
+<h3 id="bool-has_redo-const"><code>bool has_redo() const</code></h3>
+<p>Returns <code>true</code> if a "redo" action is available.</p>
+<h3 id="bool-has_undo-const"><code>bool has_undo() const</code></h3>
+<p>Returns <code>true</code> if an "undo" action is available.</p>
+<h3 id="bool-is_committing_action-const"><code>bool is_committing_action() const</code></h3>
+<p>Returns <code>true</code> if the <strong>UndoRedo</strong> is currently committing the action, i.e. running its "do" method or property change (see <code>commit_action()</code>).</p>
+<h3 id="bool-redo"><code>bool redo()</code></h3>
+<p>Redo the last action. Returns <code>false</code> if there was no action to redo.</p>
+<h3 id="void-start_force_keep_in_merge_ends"><code>void start_force_keep_in_merge_ends()</code></h3>
+<p>Marks the next "do" and "undo" operations to be processed even if the action gets merged with another in the <code>MERGE_ENDS</code> mode. Return to normal operation using <code>end_force_keep_in_merge_ends()</code>.</p>
+<h3 id="bool-undo"><code>bool undo()</code></h3>
+<p>Undo the last action. Returns <code>false</code> if there was no action to undo.</p>
+<h2 id="signals">Signals</h2>
+<h3 id="version_changed"><code>version_changed()</code></h3>
+<p>Called when <code>undo()</code> or <code>redo()</code> was called.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-mergemode"><code>enum MergeMode</code></h3>
+<ul>
+<li><p><code>MERGE_DISABLE = 0</code></p>
+<p>Makes "do"/"undo" operations stay in separate actions.</p></li>
+<li><p><code>MERGE_ENDS = 1</code></p>
+<p>Merges this action with the previous one if they have the same name. Keeps only the first action's "undo" operations and the last action's "do" operations. Useful for sequential changes to a single value.</p></li>
+<li><p><code>MERGE_ALL = 2</code></p>
+<p>Merges this action with the previous one if they have the same name.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

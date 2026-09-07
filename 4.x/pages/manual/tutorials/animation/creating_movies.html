@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creating movies — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="creating-movies">Creating movies</h1>
+<p>Godot can record <strong>non-real-time</strong> video and audio from any 2D or 3D project. This kind of recording is also called <em>offline rendering</em>. There are many scenarios where this is useful:</p>
+<ul>
+<li>Recording game trailers for promotional use.</li>
+<li>Recording cutscenes that will be ref in the final game. This allows for using higher quality settings (at the cost of file size), regardless of the player's hardware.</li>
+<li>Recording procedurally generated animations or motion design. User interaction remains possible during video recording, and audio can be included as well (although you won't be able to hear it while the video is recording).</li>
+<li>Comparing the visual output of graphics settings, shaders, or rendering techniques in an animated scene.</li>
+</ul>
+<p>With Godot's animation features such as the AnimationPlayer node, Tweeners, particles and shaders, it can effectively be used to create any kind of 2D and 3D animations (and still images).</p>
+<p>If you are already used to Godot's workflow, you may find yourself more productive by using Godot for video rendering compared to Blender. That said, renderers designed for non-real-time usage such as Cycles and Eevee can result in better visuals (at the cost of longer rendering times).</p>
+<p>Compared to real-time video recording, some advantages of non-real-time recording include:</p>
+<ul>
+<li>Use any graphics settings (including extremely demanding settings) regardless of your hardware's capabilities. The output video will <em>always</em> have perfect frame pacing; it will never exhibit dropped frames or stuttering. Faster hardware will allow you to render a given animation in less time, but the visual output remains identical.</li>
+<li>Render at a higher resolution than the screen resolution, without having to rely on driver-specific tools such as NVIDIA's Dynamic Super Resolution or AMD's Virtual Super Resolution.</li>
+<li>Render at a higher framerate than the video's target framerate, then ref. This also makes effects that converge over several frames (such as temporal antialiasing, SDFGI and volumetric fog) look better.</li>
+</ul>
+<blockquote>
+<p><strong>Warning:</strong> <strong>This feature is not designed for capturing real-time footage during gameplay.</strong></p>
+<p>Players should use something like <a href="https://obsproject.com/">OBS Studio</a> or <a href="https://www.maartenbaert.be/simplescreenrecorder/">SimpleScreenRecorder</a> to record gameplay videos, as they do a much better job at intercepting the compositor than Godot can do using Vulkan or OpenGL natively.</p>
+<p>That said, if your game runs at near-real-time speeds when capturing, you can still use this feature (but it will lack audible sound playback, as sound is saved directly to the video file).</p>
+</blockquote>
+<h2 id="enabling-movie-maker-mode">Enabling Movie Maker mode</h2>
+<p>To enable Movie Maker mode, click the "movie reel" button in the top-right corner of the editor <em>before</em> running the project:</p>
+<p><em>Image: Movie Maker mode is disabled, click the "movie reel" icon to enable</em></p>
+<p>Movie Maker mode is disabled, click the "movie reel" icon to enable</p>
+<p>A menu will be displayed with options to enable Movie Maker mode and to go to the settings. The icon gets a background matching the accent color when Movie Maker mode is enabled:</p>
+<p><em>Image: Movie Maker mode is enabled, click the "movie reel" icon again to disable</em></p>
+<p>Movie Maker mode is enabled, click the "movie reel" icon again to disable</p>
+<p>Movie Maker status is <strong>not</strong> persisted when the editor quits, so you must re-enable Movie Maker mode again after restarting the editor if needed.</p>
+<blockquote>
+<p><strong>Note:</strong> Toggling Movie Maker mode while running the project will not have any effect until the project is restarted.</p>
+</blockquote>
+<p>Before you can record video by running the project, you still need to configure the output file path. This path can be set for all scenes in the Project Settings:</p>
+<p><em>Image: Movie Maker project settings (with Advanced toggle enabled)</em></p>
+<p>Movie Maker project settings (with Advanced toggle enabled)</p>
+<p>Alternatively, you can set the output file path on a per-scene basis by adding a String metadata with the name <code>movie_file</code> to the scene's <strong>root node</strong>. This is only used when the main scene is set to the scene in question, or when running the scene directly by pressing <code>F6</code> (<code>Cmd + R</code> on macOS).</p>
+<p><em>Image: Inspector view after creating a ``movie_file`` metadata of type String</em></p>
+<p>Inspector view after creating a <code>movie_file</code> metadata of type String</p>
+<p>The path specified in the project settings or metadata can be either absolute, or relative to the project root.</p>
+<p>Once you've configured and enabled Movie Maker mode, it will be automatically used when running the project from the editor.</p>
+<h3 id="command-line-usage">Command line usage</h3>
+<p>Movie Maker can also be enabled from the ref:</p>
+<pre><code>godot --path /path/to/your_project --write-movie output.avi</code></pre>
+<p>If the output path is relative, then it is <strong>relative to the project folder</strong>, not the current working directory. In the above example, the file will be written to <code>/path/to/your_project/output.avi</code>. This behavior is similar to the <code>--export-release</code> command line argument.</p>
+<p>Since Movie Maker's output resolution is set by the viewport size, you can adjust the window size on startup to override it if the project uses the <code>disabled</code> or <code>canvas_items</code> ref:</p>
+<pre><code>godot --path /path/to/your_project --write-movie output.avi --resolution 1280x720</code></pre>
+<p>Note that the window size is clamped by your display's resolution. See <code>doc_creating_movies_recording_at_higher_resolution</code> if you need to record a video at a higher resolution than the screen resolution.</p>
+<p>The recording FPS can also be overridden on the command line, without having to edit the Project Settings:</p>
+<pre><code>godot --path /path/to/your_project --write-movie output.avi --fixed-fps 30</code></pre>
+<blockquote>
+<p><strong>Note:</strong> The <code>--write-movie</code> and <code>--fixed-fps</code> command line arguments are both available in exported projects. Movie Maker mode cannot be toggled while the project is running, but you can use the ref method to run a second instance of the exported project that will record a video file.</p>
+</blockquote>
+<h2 id="choosing-an-output-format">Choosing an output format</h2>
+<p>Output formats are provided by the ref class. Godot has 3 built-in ref, and more can be implemented by extensions:</p>
+<h3 id="ogv-recommended">OGV (recommended)</h3>
+<p>OGV container with Theora for video and Vorbis for audio. Features lossy video and audio compression with a good balance of file size and encoding speed, with a better image quality than MJPEG. It has 4 speed levels that can be adjusted by changing <strong>Editor &gt; Movie Writer &gt; Encoding Speed</strong> with the fastest one being around as fast as AVI with better compression. At slower speed levels, it can compress even better while keeping the same image quality. The lossy compression quality can be adjusted by changing <strong>Editor &gt; Movie Writer &gt; Video Quality</strong> for video and <strong>Editor &gt; Movie Writer &gt; Audio Quality</strong> for audio.</p>
+<p>The Keyframe Interval can be adjusted by changing <strong>Editor &gt; Movie Writer &gt; Keyframe Interval</strong>. In some cases, increasing this setting can improve compression efficiency without downsides.</p>
+<p>The resulting file can be viewed in Godot with ref and most video players but not web browsers. OGV does not support transparency.</p>
+<p>To use OGV, specify a path to a <code>.ogv</code> file to be created in the <strong>Editor &gt; Movie Writer &gt; Movie File</strong> project setting.</p>
+<blockquote>
+<p><strong>Note:</strong> OGV can only be recorded in editor builds. On the other hand, ref is possible in both editor and export template builds.</p>
+</blockquote>
+<h3 id="avi">AVI</h3>
+<p>AVI container with MJPEG for video and uncompressed audio. Features lossy video compression, resulting in medium file sizes and fast encoding. The lossy compression quality can be adjusted by changing <strong>Editor &gt; Movie Writer &gt; Video Quality</strong>.</p>
+<p>The resulting file can be viewed in most video players, but it must be converted to another format for viewing on the web or by Godot with the VideoStreamPlayer node. MJPEG does not support transparency. AVI output is currently limited to a file of 4 GB in size at most.</p>
+<p>To use AVI, specify a path to a <code>.avi</code> file to be created in the <strong>Editor &gt; Movie Writer &gt; Movie File</strong> project setting.</p>
+<h3 id="png">PNG</h3>
+<p>PNG image sequence for video and WAV for audio. Features lossless video compression, at the cost of large file sizes and slow encoding. This is designed to be ref.</p>
+<p>Transparency is supported, but the root viewport <strong>must</strong> have its <code>transparent_bg</code> property set to <code>true</code> for transparency to be visible on the output image. This can be achieved by enabling the <strong>Rendering &gt; Transparent Background</strong> advanced project setting. <strong>Display &gt; Window &gt; Size &gt; Transparent</strong> and <strong>Display &gt; Window &gt; Per Pixel Transparency &gt; Enabled</strong> can optionally be enabled to allow transparency to be previewed while recording the video, but they do not have to be enabled for the output image to contain transparency.</p>
+<p>To use PNG, specify a <code>.png</code> file to be created in the <strong>Editor &gt; Movie Writer &gt; Movie File</strong> project setting. The generated <code>.wav</code> file will have the same name as the <code>.png</code> file (minus the extension).</p>
+<h3 id="custom">Custom</h3>
+<p>If you need to encode directly to a different format or pipe a stream through third-party software, you can extend the MovieWriter class to create your own movie writers. This should typically be done using GDExtension for performance reasons.</p>
+<h2 id="configuration">Configuration</h2>
+<p>In the <strong>Editor &gt; Movie Writer</strong> section of the Project Settings, there are several options you can configure. Some of them are only visible after enabling the <strong>Advanced</strong> toggle in the top-right corner of the Project Settings dialog.</p>
+<ul>
+<li><strong>Mix Rate Hz:</strong> The audio mix rate to use in the recorded audio when writing a movie. This can be different from the project's mix rate, but this value must be divisible by the recorded FPS to prevent audio from desynchronizing over time.</li>
+<li><strong>Speaker Mode:</strong> The speaker mode to use in the recorded audio when writing a movie (stereo, 5.1 surround or 7.1 surround).</li>
+<li><strong>Video Quality:</strong> The image quality to use when writing a video to an OGV or AVI file, between <code>0.01</code> and <code>1.0</code> (inclusive). Higher quality values result in better-looking output at the cost of larger file sizes. Recommended quality values are between <code>0.75</code> and <code>0.9</code>. Even at quality <code>1.0</code>, compression remains lossy. This setting does not affect audio quality and is ignored when writing to a PNG image sequence.</li>
+<li><strong>Movie File:</strong> The output path for the movie. This can be absolute or relative to the project root.</li>
+<li><strong>Disable V-Sync:</strong> If enabled, requests V-Sync to be disabled when writing a movie. This can speed up video writing if the hardware is fast enough to render, encode and save the video at a framerate higher than the monitor's refresh rate. This setting has no effect if the operating system or graphics driver forces V-Sync with no way for applications to disable it.</li>
+<li><strong>FPS:</strong> The rendered frames per second in the output movie. Higher values result in smoother animation, at the cost of longer rendering times and larger output file sizes. Most video hosting platforms do not support FPS values higher than 60, but you can use a higher value and use that to generate motion blur.</li>
+<li><strong>Audio Quality:</strong> The audio quality to use when writing a video to an OGV file, between <code>-0.1</code> and <code>1.0</code> (inclusive). Higher quality values result in better audio quality at the cost of very slightly larger file sizes. Recommended quality values are between <code>0.3</code> and <code>0.5</code>. Even at quality <code>1.0</code>, compression remains lossy.</li>
+<li><strong>Encoding Speed:</strong> The speed level to use when writing a video to an OGV file. Faster speed levels have less compression efficiency. The image quality stays barely the same.</li>
+<li><strong>Keyframe Interval:</strong> Also known as GOP (Group Of Pictures), the maximum number of inter-frames to use when writing to an OGV file. Higher values can improve compression efficiency without quality loss but at the cost of slower video seeks.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> When using the <code>disabled</code> or <code>2d</code> ref, the output file's resolution is set by the window size. Make sure to resize the window <em>before</em> the splash screen has ended. For this purpose, it's recommended to adjust the <strong>Display &gt; Window &gt; Size &gt; Window Width Override</strong> and <strong>Window Height Override</strong> advanced project settings.</p>
+<p>See also <code>doc_creating_movies_recording_at_higher_resolution</code>.</p>
+</blockquote>
+<h2 id="quitting-movie-maker-mode">Quitting Movie Maker mode</h2>
+<p>To safely quit a project that is using Movie Maker mode, use the X button at the top of the window, or call <code>get_tree().quit()</code> in a script. You can also use the <code>--quit-after N</code> command line argument where <code>N</code> is the number of frames to render before quitting.</p>
+<p>Pressing <code>F8</code> (<code>Cmd + .</code> on macOS) or pressing <code>Ctrl + C</code> on the terminal running Godot is <strong>not recommended</strong>, as it will result in an improperly formatted AVI file with no duration information. For PNG image sequences, PNG images will not be negatively altered, but the associated WAV file will still lack duration information. OGV files might end up with slightly different duration video and audio tracks but still valid.</p>
+<p>Some video players may still be able to play the AVI or WAV file with working video and audio. However, software that makes use of the AVI or WAV file such as video editors may not be able to open the file. ref can help in those cases.</p>
+<p>If you're using an AnimationPlayer to control a "main action" in the scene (such as camera movement), you can enable the <strong>Movie Quit On Finish</strong> property on the AnimationPlayer node in question. When enabled, this property will make Godot quit on its own when an animation is done playing <em>and</em> the engine is running in Movie Maker mode. Note that <em>this property has no effect on looping animations</em>. Therefore, you need to make sure that the animation is set as non-looping.</p>
+<h2 id="using-high-quality-graphics-settings">Using high-quality graphics settings</h2>
+<p>The <code>movie</code> ref can be used to override specific project settings. This is useful to enable high-quality graphics settings that wouldn't be fast enough to run in real-time speeds on your hardware. Remember that putting every setting to its maximum value can still slow down movie saving speed, especially when recording at higher resolutions. Therefore, it's still recommended to only increase graphics settings if they make a meaningful difference in the output image.</p>
+<p>This feature tag can also be queried in a script to increase quality settings that are set in the Environment resource. For example, to further improve SDFGI detail and reduce light leaking:</p>
+<pre class="gdscript"><code>extends Node3D
+
+func _ready():
+    if OS.has_feature(&quot;movie&quot;):
+        # When recording a movie, improve SDFGI cell density
+        # without decreasing its maximum distance.
+        get_viewport().world_3d.environment.sdfgi_min_cell_size *= 0.25
+        get_viewport().world_3d.environment.sdfgi_cascades = 8</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode3D <span class="op">:</span> Node3D</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>OS<span class="op">.</span><span class="fu">HasFeature</span><span class="op">(</span><span class="st">&quot;movie&quot;</span><span class="op">))</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>            <span class="co">// When recording a movie, improve SDFGI cell density</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>            <span class="co">// without decreasing its maximum distance.</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>            <span class="fu">GetViewport</span><span class="op">().</span><span class="fu">World3D</span><span class="op">.</span><span class="fu">Environment</span><span class="op">.</span><span class="fu">SdfgiMinCellSize</span> <span class="op">*=</span> <span class="fl">0.25f</span><span class="op">;</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>            <span class="fu">GetViewport</span><span class="op">().</span><span class="fu">World3D</span><span class="op">.</span><span class="fu">Environment</span><span class="op">.</span><span class="fu">SdfgiCascades</span> <span class="op">=</span> <span class="dv">8</span><span class="op">;</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="rendering-at-a-higher-resolution-than-the-screen-resolution">Rendering at a higher resolution than the screen resolution</h2>
+<p>The overall rendering quality can be improved significantly by rendering at high resolutions such as 4K or 8K.</p>
+<blockquote>
+<p><strong>Note:</strong> For 3D rendering, Godot provides a <strong>Rendering &gt; Scaling 3D &gt; Scale</strong> advanced project setting, which can be set above <code>1.0</code> to obtain <em>supersample antialiasing</em>. The 3D rendering is then <em>downsampled</em> when it's drawn on the viewport. This provides an expensive but high-quality form of antialiasing, without increasing the final output resolution.</p>
+<p>Consider using this project setting first, as it avoids slowing down movie writing speeds and increasing output file size compared to actually increasing the output resolution.</p>
+</blockquote>
+<p>If you wish to render 2D at a higher resolution, or if you actually need the higher raw pixel output for 3D rendering, you can increase the resolution above what the screen allows.</p>
+<p>By default, Godot uses the <code>disabled</code> ref in projects. If using <code>disabled</code> or <code>canvas_items</code> stretch mode, the window size dictates the output video resolution.</p>
+<p>On the other hand, if the project is configured to use the <code>viewport</code> stretch mode, the viewport resolution dictates the output video resolution. The viewport resolution is set using the <strong>Display &gt; Window &gt; Size &gt; Viewport Width</strong> and <strong>Viewport Height</strong> project settings. This can be used to render a video at a higher resolution than the screen resolution.</p>
+<p>To make the window smaller during recording without affecting the output video resolution, you can set the <strong>Display &gt; Window &gt; Size &gt; Window Width Override</strong> and <strong>Window Height Override</strong> advanced project settings to values greater than <code>0</code>.</p>
+<p>To apply a resolution override only when recording a movie, you can override those settings with the <code>movie</code> ref.</p>
+<h2 id="post-processing-steps">Post-processing steps</h2>
+<p>Some common post-processing steps are listed below.</p>
+<blockquote>
+<p><strong>Note:</strong> When using several post-processing steps, try to perform all of them in a single FFmpeg command. This will save encoding time and improve quality by avoiding multiple lossy encoding steps.</p>
+</blockquote>
+<h3 id="converting-ogvavi-video-to-mp4">Converting OGV/AVI video to MP4</h3>
+<p>While some platforms such as YouTube support uploading the AVI file directly, many others will require a conversion step beforehand. <a href="https://handbrake.fr/">HandBrake</a> (GUI) and <a href="https://ffmpeg.org/">FFmpeg</a> (CLI) are popular open source tools for this purpose. FFmpeg has a steeper learning curve, but it's more powerful.</p>
+<p>The command below converts an OGV/AVI video to an MP4 (H.264) video with a Constant Rate Factor (CRF) of 15. This results in a relatively large file, but is well-suited for platforms that will re-encode your videos to reduce their size (such as most video sharing websites):</p>
+<pre><code>ffmpeg -i input.avi -crf 15 output.mp4</code></pre>
+<p>To get a smaller file at the cost of quality, <em>increase</em> the CRF value in the above command.</p>
+<p>To get a file with a better size/quality ratio (at the cost of slower encoding times), add <code>-preset veryslow</code> before <code>-crf 15</code> in the above command. On the contrary, <code>-preset veryfast</code> can be used to achieve faster encoding at the cost of a worse size/quality ratio.</p>
+<h3 id="converting-png-image-sequence--wav-audio-to-a-video">Converting PNG image sequence + WAV audio to a video</h3>
+<p>If you chose to record a PNG image sequence with a WAV file beside it, you need to convert it to a video before you can use it elsewhere.</p>
+<p>The filename for the PNG image sequence generated by Godot always contains 8 digits, starting at 0 with zero-padded numbers. If you specify an output path <code>folder/example.png</code>, Godot will write <code>folder/example00000000.png</code>, <code>folder/example00000001.png</code>, and so on in that folder. The audio will be saved at <code>folder/example.wav</code>.</p>
+<p>The FPS is specified using the <code>-r</code> argument. It should match the FPS specified during recording. Otherwise, the video will appear to be slowed down or sped up, and audio will be out of sync with the video.</p>
+<pre><code>ffmpeg -r 60 -i input%08d.png -i input.wav -crf 15 output.mp4</code></pre>
+<p>If you recorded a PNG image sequence with transparency enabled, you need to use a video format that supports storing transparency. MP4/H.264 doesn't support storing transparency, so you can use WebM/VP9 as an alternative:</p>
+<pre><code>ffmpeg -r 60 -i input%08d.png -i input.wav -c:v libvpx-vp9 -crf 15 -pix_fmt yuva420p output.webm</code></pre>
+<h3 id="cutting-video">Cutting video</h3>
+<p>You can trim parts of the video you don't want to keep after the video is recorded. For example, to discard everything before 12.1 seconds and keep only 5.2 seconds of video after that point:</p>
+<pre><code>ffmpeg -i input.avi -ss 00:00:12.10 -t 00:00:05.20 -crf 15 output.mp4</code></pre>
+<p>Cutting videos can also be done with the GUI tool <a href="https://losslesscut.app/">LosslessCut</a>.</p>
+<h3 id="resizing-video">Resizing video</h3>
+<p>The following command resizes a video to be 1080 pixels tall (1080p), while preserving its existing aspect ratio:</p>
+<pre><code>ffmpeg -i input.avi -vf &quot;scale=-1:1080&quot; -crf 15 output.mp4</code></pre>
+<h3 id="reducing-framerate">Reducing framerate</h3>
+<p>The following command changes a video's framerate to 30 FPS, dropping some of the original frames if there are more in the input video:</p>
+<pre><code>ffmpeg -i input.avi -r 30 -crf 15 output.mp4</code></pre>
+<h3 id="generating-accumulation-motion-blur-with-ffmpeg">Generating accumulation motion blur with FFmpeg</h3>
+<p>Godot does not have built-in support for motion blur, but it can still be created in recorded videos.</p>
+<p>If you record the video at a multiple of the original framerate, you can blend the frames together then reduce the framerate to produce a video with <em>accumulation motion blur</em>. This motion blur can look very good, but it can take a long time to generate since you have to render many more frames per second (on top of the time spent on post-processing).</p>
+<p>Example with a 240 FPS source video, generating 4× motion blur and decreasing its output framerate to 60 FPS:</p>
+<pre><code>ffmpeg -i input.avi -vf &quot;tmix=frames=4, fps=60&quot; -crf 15 output.mp4</code></pre>
+<p>This also makes effects that converge over several frames (such as temporal antialiasing, SDFGI and volumetric fog) converge faster and therefore look better, since they'll be able to work with more data at a given time. See <code>doc_creating_movies_reducing_framerate</code> if you want to get this benefit without adding motion blur.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

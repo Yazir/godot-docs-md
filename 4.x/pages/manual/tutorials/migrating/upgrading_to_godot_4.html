@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Upgrading from Godot 3 to Godot 4 — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="upgrading-from-godot-3-to-godot-4">Upgrading from Godot 3 to Godot 4</h1>
+<h2 id="should-i-upgrade-to-godot-4">Should I upgrade to Godot 4?</h2>
+<p>Before beginning the upgrade process, it's worth thinking about the advantages and disadvantages that upgrading would bring to your project.</p>
+<h3 id="advantages-of-upgrading">Advantages of upgrading</h3>
+<p>Along with the <a href="https://godotengine.org/article/godot-4-0-sets-sail">new features present in 4.0</a>, upgrading gives the following advantages:</p>
+<ul>
+<li>Many bugs are fixed in 4.0, but cannot be resolved in 3.x for various reasons (such as graphics API differences or backwards compatibility).</li>
+<li>4.x will enjoy a longer ref. Godot 3.x will continue to be supported for some time after 4.0 is released, but it will eventually stop receiving support.</li>
+</ul>
+<p>See <code>doc_docs_changelog</code> for a list of pages documenting new features in Godot 4.0, and <code>doc_list_of_features</code> for a list of all features in Godot.</p>
+<h3 id="disadvantages-of-upgrading">Disadvantages of upgrading</h3>
+<p>If you don't <em>need</em> any features present in Godot 4.x, you may want to stay on Godot 3.x for the following reasons:</p>
+<ul>
+<li>Godot 4's baseline hardware requirements (such as memory usage) are slightly higher, both for the editor and exported projects. This was required for the implementation of some core optimizations.</li>
+<li>Since Godot 4 includes more features than Godot 3, Godot 4's binary size for exported projects is larger. While this can be mitigated by ref, a 4.0 build with a given set of enabled modules will remain larger compared to a 3.x build with the same modules. This can be an issue for ref, as binary size directly influences how fast the engine can initialize (regardless of download speed).</li>
+<li>Godot 4 does not and will not have support for GLES2 rendering. (There is still support for GLES3 rendering using the new Compatibility renderer, which means that devices without Vulkan support can still run Godot 4.)
+<ul>
+<li>If you are targeting <strong>very</strong> old hardware such as Intel Sandy Bridge (2nd generation) integrated graphics, this will prevent the project from running on such hardware after upgrading. <a href="https://github.com/pal1000/mesa-dist-win">Software OpenGL implementations</a> can be used to bypass this limitation, but they're too slow for gaming.</li>
+</ul></li>
+</ul>
+<h3 id="caveats-of-upgrading">Caveats of upgrading</h3>
+<p><strong>Since Godot 4 is a complete rewrite in many aspects, some features have unfortunately been lost in the process.</strong> Some of these features may be restored in future Godot releases:</p>
+<ul>
+<li>Bullet physics was removed in favor of GodotPhysics. This only affects 3D projects that used the default physics engine (which was Bullet) and didn't manually change it to GodotPhysics. There are no plans to re-add Bullet physics in core, but a third-party add-on could be created for it thanks to GDExtension.</li>
+<li>By default, rendering in 2D is no longer performed in HDR, which means "overbright" modulate values have no visible effect. Since Godot 4.2, you can enable the project setting ref to perform 2D rendering in HDR. See also <code>doc_environment_and_post_processing_using_glow_in_2d</code>.</li>
+<li>While rendering still happens in HDR in 3D when using the Forward+ or Mobile renderers, Viewports cannot return HDR data anymore. This is planned to be restored at some point in the future.</li>
+<li>Mono was replaced by .NET 6. This means exporting C# projects to Android, iOS and HTML5 is no longer supported for now. Exporting C# projects to desktop platforms is still supported, and as of 4.2 there's experimental support for exporting to mobile platforms. Support for exporting C# projects to more platforms will be restored in future 4.x releases as upstream support improves.</li>
+</ul>
+<p>You can find a more complete list of functional regressions by searching for <a href="https://github.com/godotengine/godot/issues?q=is%3Aissue+is%3Aopen+label%3Aregression+-label%3Abug">issues labeled "regression" but not "bug" on GitHub</a>.</p>
+<h2 id="preparing-before-the-upgrade-optional">Preparing before the upgrade (optional)</h2>
+<p>If you want to be ready to upgrade to Godot 4 in the future, consider using <code>class_Tweener</code> and the <code>class_Time</code> singleton in your project. These classes are both available in Godot 3.5 and later.</p>
+<p>This way, you won't be relying on the deprecated Tween node and OS time functions, both of which are removed in Godot 4.0.</p>
+<p>It's also a good idea to rename external shaders so that their extension is <code>.gdshader</code> instead of <code>.shader</code>. Godot 3.x supports both extensions, but only <code>.gdshader</code> is supported in Godot 4.0.</p>
+<h2 id="running-the-project-upgrade-tool">Running the project upgrade tool</h2>
+<blockquote>
+<p><strong>Danger:</strong> <strong>Make a full backup of your project</strong> before upgrading! The project upgrade tool will <em>not</em> perform any backups of the project that is being upgraded.</p>
+<p>You can backup a project by using version control, or by copying the project folder to another location.</p>
+</blockquote>
+<h3 id="using-the-project-manager">Using the Project Manager</h3>
+<p>To use the project upgrade tool:</p>
+<ol type="1">
+<li>Open the Godot 4 Project Manager.</li>
+<li>Import the Godot 3.x project using the <strong>Import</strong> button, or use the <strong>Scan</strong> button to find the project within a folder.</li>
+<li>Double-click the imported project (or select the project then choose <strong>Edit</strong>).</li>
+<li>You will see a dialog appearing with two options: <strong>Convert project.godot Only</strong> and <strong>Convert Full Project</strong>. After ensuring your project is backed up (see the above warning), choose <strong>Convert Full Project</strong>. <strong>Convert project.godot Only</strong> is intended to be used for advanced use cases <em>only</em>, in case the conversion tool fails.</li>
+<li>Wait until the project conversion process finishes. This can take up to a few minutes for large projects with lots of scenes.</li>
+<li>When the Project Manager interface becomes available again, double-click the project (or select the project then choose <strong>Edit</strong>) to open it in the editor.</li>
+</ol>
+<p>If you hit conversion issues due to some project files being too large or long, you can use the command line to upgrade the project (see below). This will allow you to override the converter's size limits.</p>
+<h3 id="using-the-command-line">Using the command line</h3>
+<p>To use the project upgrade tool from the ref, it's recommended to validate the project conversion by running the Godot editor binary with the following arguments:</p>
+<pre><code># [&lt;max_file_kb&gt;] [&lt;max_line_size&gt;] are optional arguments.
+# Remove them if you aren&#39;t changing their values.
+path/to/godot.binary --path /path/to/project/folder --validate-conversion-3to4 [&lt;max_file_kb&gt;] [&lt;max_line_size&gt;]</code></pre>
+<p>If the list of planned upgrades looks good to you, run the following command on the Godot editor binary to upgrade project files:</p>
+<pre><code># [&lt;max_file_kb&gt;] [&lt;max_line_size&gt;] are optional arguments.
+# Remove them if you aren&#39;t changing their values.
+path/to/godot.binary --path /path/to/project/folder --convert-3to4 [&lt;max_file_kb&gt;] [&lt;max_line_size&gt;]</code></pre>
+<p><code>[&lt;max_file_kb&gt;]</code> and <code>[&lt;max_line_size&gt;]</code> are <em>optional</em> arguments to specify the maximum size of files to be converted (in kilobytes and lines). The default limits are 4 MB and 100,000 lines respectively. If a file hits either of those limits, it will not be upgraded by the project converter. This is useful to prevent large resources from slowing down the upgrade to a crawl.</p>
+<p>If you still want large files to be converted by the project upgrade tool, increase the size limits when running the project upgrade tool. For example, running the Godot editor binary with those arguments increases both limits by a 10× factor:</p>
+<pre><code>path/to/godot.binary --path /path/to/project/folder --convert-3to4 40000 1000000</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Only Godot 3.0 and later projects can be upgraded using the project conversion tool found in the Godot 4 editor.</p>
+<p>It's recommended to ensure that your project is up-to-date with the latest 3.x stable release before running the project upgrade tool.</p>
+</blockquote>
+<h2 id="fixing-the-project-after-running-the-project-upgrade-tool">Fixing the project after running the project upgrade tool</h2>
+<p>After upgrading the project, you may notice that certain things don't look as they should. Scripts will likely contain various errors as well (possibly hundreds in large projects). This is because the project upgrade tool cannot cater to all situations. Therefore, a large part of the upgrade process remains manual.</p>
+<h3 id="automatically-renamed-nodes-and-resources">Automatically renamed nodes and resources</h3>
+<p>The list below refers to nodes which were simply renamed for consistency or clarity in Godot 4.0. The project upgrade tool renames them automatically in your scripts.</p>
+<p>One noteworthy set of renames is 3D nodes, which all got a <code>3D</code> suffix added for consistency with their 2D counterparts. For example, <code>Area</code> is now <code>Area3D</code>.</p>
+<p>For ease of searching, this table lists all nodes and resources that were renamed and are automatically converted, excluding the ones which only involved adding a <code>3D</code> suffix to the old name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Old name (Godot 3.x)</th>
+<th>New name (Godot 4)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>AnimatedSprite</td>
+<td>AnimatedSprite2D</td>
+</tr>
+<tr class="even">
+<td>ARVRCamera</td>
+<td>XRCamera3D</td>
+</tr>
+<tr class="odd">
+<td>ARVRController</td>
+<td>XRController3D</td>
+</tr>
+<tr class="even">
+<td>ARVRAnchor</td>
+<td>XRAnchor3D</td>
+</tr>
+<tr class="odd">
+<td>ARVRInterface</td>
+<td>XRInterface</td>
+</tr>
+<tr class="even">
+<td>ARVROrigin</td>
+<td>XROrigin3D</td>
+</tr>
+<tr class="odd">
+<td>ARVRPositionalTracker</td>
+<td>XRPositionalTracker</td>
+</tr>
+<tr class="even">
+<td>ARVRServer</td>
+<td>XRServer</td>
+</tr>
+<tr class="odd">
+<td>BoxShape</td>
+<td>BoxShape3D</td>
+</tr>
+<tr class="even">
+<td>CapsuleShape</td>
+<td>CapsuleShape3D</td>
+</tr>
+<tr class="odd">
+<td>CubeMesh</td>
+<td>BoxMesh</td>
+</tr>
+<tr class="even">
+<td>EditorSpatialGizmo</td>
+<td>EditorNode3DGizmo</td>
+</tr>
+<tr class="odd">
+<td>EditorSpatialGizmoPlugin</td>
+<td>EditorNode3DGizmoPlugin</td>
+</tr>
+<tr class="even">
+<td>GIProbe</td>
+<td>VoxelGI</td>
+</tr>
+<tr class="odd">
+<td>GIProbeData</td>
+<td>VoxelGIData</td>
+</tr>
+<tr class="even">
+<td>GradientTexture</td>
+<td>GradientTexture1D</td>
+</tr>
+<tr class="odd">
+<td>KinematicBody</td>
+<td>CharacterBody3D</td>
+</tr>
+<tr class="even">
+<td>KinematicBody2D</td>
+<td>CharacterBody2D</td>
+</tr>
+<tr class="odd">
+<td>Light2D</td>
+<td>PointLight2D</td>
+</tr>
+<tr class="even">
+<td>LineShape2D</td>
+<td>WorldBoundaryShape2D</td>
+</tr>
+<tr class="odd">
+<td>Listener</td>
+<td>AudioListener3D</td>
+</tr>
+<tr class="even">
+<td>NavigationMeshInstance</td>
+<td>NavigationRegion3D</td>
+</tr>
+<tr class="odd">
+<td>NavigationPolygonInstance</td>
+<td>NavigationRegion2D</td>
+</tr>
+<tr class="even">
+<td>Navigation2DServer</td>
+<td>NavigationServer2D</td>
+</tr>
+<tr class="odd">
+<td>PanoramaSky</td>
+<td>Sky</td>
+</tr>
+<tr class="even">
+<td>Particles</td>
+<td>GPUParticles3D</td>
+</tr>
+<tr class="odd">
+<td>Particles2D</td>
+<td>GPUParticles2D</td>
+</tr>
+<tr class="even">
+<td>ParticlesMaterial</td>
+<td>ParticleProcessMaterial</td>
+</tr>
+<tr class="odd">
+<td>Physics2DDirectBodyState</td>
+<td>PhysicsDirectBodyState2D</td>
+</tr>
+<tr class="even">
+<td>Physics2DDirectSpaceState</td>
+<td>PhysicsDirectSpaceState2D</td>
+</tr>
+<tr class="odd">
+<td>Physics2DServer</td>
+<td>PhysicsServer2D</td>
+</tr>
+<tr class="even">
+<td>Physics2DShapeQueryParameters</td>
+<td>PhysicsShapeQueryParameters2D</td>
+</tr>
+<tr class="odd">
+<td>Physics2DTestMotionResult</td>
+<td>PhysicsTestMotionResult2D</td>
+</tr>
+<tr class="even">
+<td>PlaneShape</td>
+<td>WorldBoundaryShape3D</td>
+</tr>
+<tr class="odd">
+<td>Position2D</td>
+<td>Marker2D</td>
+</tr>
+<tr class="even">
+<td>Position3D</td>
+<td>Marker3D</td>
+</tr>
+<tr class="odd">
+<td>ProceduralSky</td>
+<td>Sky</td>
+</tr>
+<tr class="even">
+<td>RayShape</td>
+<td>SeparationRayShape3D</td>
+</tr>
+<tr class="odd">
+<td>RayShape2D</td>
+<td>SeparationRayShape2D</td>
+</tr>
+<tr class="even">
+<td>ShortCut</td>
+<td>Shortcut</td>
+</tr>
+<tr class="odd">
+<td>Spatial</td>
+<td>Node3D</td>
+</tr>
+<tr class="even">
+<td>SpatialGizmo</td>
+<td>Node3DGizmo</td>
+</tr>
+<tr class="odd">
+<td>SpatialMaterial</td>
+<td>StandardMaterial3D</td>
+</tr>
+<tr class="even">
+<td>Sprite</td>
+<td>Sprite2D</td>
+</tr>
+<tr class="odd">
+<td>StreamTexture</td>
+<td>CompressedTexture2D</td>
+</tr>
+<tr class="even">
+<td>TextureProgress</td>
+<td>TextureProgressBar</td>
+</tr>
+<tr class="odd">
+<td>VideoPlayer</td>
+<td>VideoStreamPlayer</td>
+</tr>
+<tr class="even">
+<td>ViewportContainer</td>
+<td>SubViewportContainer</td>
+</tr>
+<tr class="odd">
+<td>Viewport</td>
+<td>SubViewport</td>
+</tr>
+<tr class="even">
+<td>VisibilityEnabler</td>
+<td>VisibleOnScreenEnabler3D</td>
+</tr>
+<tr class="odd">
+<td>VisibilityNotifier</td>
+<td>VisibleOnScreenNotifier3D</td>
+</tr>
+<tr class="even">
+<td>VisibilityNotifier2D</td>
+<td>VisibleOnScreenNotifier2D</td>
+</tr>
+<tr class="odd">
+<td>VisibilityNotifier3D</td>
+<td>VisibleOnScreenNotifier3D</td>
+</tr>
+<tr class="even">
+<td>VisualServer</td>
+<td>RenderingServer</td>
+</tr>
+<tr class="odd">
+<td>VisualShaderNodeScalarConstant</td>
+<td>VisualShaderNodeFloatConstant</td>
+</tr>
+<tr class="even">
+<td>VisualShaderNodeScalarFunc</td>
+<td>VisualShaderNodeFloatFunc</td>
+</tr>
+<tr class="odd">
+<td>VisualShaderNodeScalarOp</td>
+<td>VisualShaderNodeFloatOp</td>
+</tr>
+<tr class="even">
+<td>VisualShaderNodeScalarClamp</td>
+<td>VisualShaderNodeClamp</td>
+</tr>
+<tr class="odd">
+<td>VisualShaderNodeVectorClamp</td>
+<td>VisualShaderNodeClamp</td>
+</tr>
+<tr class="even">
+<td>VisualShaderNodeScalarInterp</td>
+<td>VisualShaderNodeMix</td>
+</tr>
+<tr class="odd">
+<td>VisualShaderNodeVectorInterp</td>
+<td>VisualShaderNodeMix</td>
+</tr>
+<tr class="even">
+<td>VisualShaderNodeVectorScalarMix</td>
+<td>VisualShaderNodeMix</td>
+</tr>
+<tr class="odd">
+<td>VisualShaderNodeScalarSmoothStep</td>
+<td>VisualShaderNodeSmoothStep</td>
+</tr>
+<tr class="even">
+<td>VisualShaderNodeVectorSmoothStep</td>
+<td>VisualShaderNodeSmoothStep</td>
+</tr>
+<tr class="odd">
+<td>VisualShaderNodeVectorScalarSmoothStep</td>
+<td>VisualShaderNodeSmoothStep</td>
+</tr>
+<tr class="even">
+<td>VisualShaderNodeVectorScalarStep</td>
+<td>VisualShaderNodeStep</td>
+</tr>
+<tr class="odd">
+<td>VisualShaderNodeScalarSwitch</td>
+<td>VisualShaderNodeSwitch</td>
+</tr>
+<tr class="even">
+<td>VisualShaderNodeScalarTransformMult</td>
+<td>VisualShaderNodeTransformOp</td>
+</tr>
+<tr class="odd">
+<td>VisualShaderNodeScalarDerivativeFunc</td>
+<td>VisualShaderNodeDerivativeFunc</td>
+</tr>
+<tr class="even">
+<td>VisualShaderNodeVectorDerivativeFunc</td>
+<td>VisualShaderNodeDerivativeFunc</td>
+</tr>
+<tr class="odd">
+<td>VisualShaderNodeBooleanUniform</td>
+<td>VisualShaderNodeBooleanParameter</td>
+</tr>
+<tr class="even">
+<td>VisualShaderNodeColorUniform</td>
+<td>VisualShaderNodeColorParameter</td>
+</tr>
+<tr class="odd">
+<td>VisualShaderNodeScalarUniform</td>
+<td>VisualShaderNodeFloatParameter</td>
+</tr>
+<tr class="even">
+<td>VisualShaderNodeCubeMapUniform</td>
+<td>VisualShaderNodeCubeMapParameter</td>
+</tr>
+<tr class="odd">
+<td>VisualShaderNodeTextureUniform</td>
+<td>VisualShaderNodeTexture2DParameter</td>
+</tr>
+<tr class="even">
+<td>VisualShaderNodeTextureUniformTriplanar</td>
+<td>VisualShaderNodeTextureParameterTriplanar</td>
+</tr>
+<tr class="odd">
+<td>VisualShaderNodeTransformUniform</td>
+<td>VisualShaderNodeTransformParameter</td>
+</tr>
+<tr class="even">
+<td>VisualShaderNodeVec3Uniform</td>
+<td>VisualShaderNodeVec3Parameter</td>
+</tr>
+<tr class="odd">
+<td>VisualShaderNodeUniform</td>
+<td>VisualShaderNodeParameter</td>
+</tr>
+<tr class="even">
+<td>VisualShaderNodeUniformRef</td>
+<td>VisualShaderNodeParameterRef</td>
+</tr>
+</tbody>
+</table>
+<h3 id="manually-renaming-methods-properties-signals-and-constants">Manually renaming methods, properties, signals and constants</h3>
+<p>Due to how the project upgrade tool works, not all <code>API (Application Programming Interface)</code> renames can be performed automatically. The list below contains all renames that must be performed manually using the script editor.</p>
+<p>If you cannot find a node or resource in the list below, refer to the above table to find its new name.</p>
+<blockquote>
+<p><strong>Tip:</strong> You can use the <strong>Replace in Files</strong> dialog to speed up replacement by pressing <code>Ctrl + Shift + R</code> while the script editor is open. However, be careful as the Replace in Files dialog doesn't offer any way to undo a replacement. Use version control to commit your upgrade work regularly. Command line tools such as <a href="https://github.com/chmln/sd">sd</a> can also be used if you need something more flexible than the editor's Replace in Files dialog.</p>
+<p>If using C#, remember to search for outdated API usage with PascalCase notation in the project (and perform the replacement with PascalCase notation).</p>
+</blockquote>
+<p><strong>Methods</strong></p>
+<ul>
+<li>File and Directory classes were replaced by <code>class_FileAccess</code> and <code>class_DirAccess</code>, which have an entirely different API. Several methods are now static, which means you can call them directly on FileAccess or DirAccess without having to create an instance of that class.</li>
+<li>Screen and window-related methods from the <code>class_OS</code> singleton (such as <code>OS.get_screen_size()</code>) were moved to the <code>class_DisplayServer</code> singleton. Method naming was also changed to use the <code>DisplayServer.&lt;object&gt;_&lt;get/set&gt;_property()</code> form instead. For example, <code>OS.get_screen_size()</code> becomes <code>DisplayServer.screen_get_size()</code>.</li>
+<li>Time and date methods from the <code>class_OS</code> singleton were moved to the <code>class_Time</code> singleton. (The Time singleton is also available in Godot 3.5 and later.)</li>
+<li>You may have to replace some <code>instance()</code> calls with <code>instantiate()</code>. The converter <em>should</em> handle this automatically, but this relies on custom code that may not work in 100% of situations.</li>
+<li>AcceptDialog's <code>set_autowrap()</code> is now <code>set_autowrap_mode()</code>.</li>
+<li>AnimationNode's <code>process()</code> is now <code>_process()</code> (note the leading underscore, which denotes a virtual method).</li>
+<li>AnimationPlayer's <code>add_animation()</code> is now <code>add_animation_library()</code> and now uses an <code>class_AnimationLibrary</code>.</li>
+<li>AnimationTree's <code>set_process_mode()</code> is now <code>set_process_callback()</code>.</li>
+<li>Array's <code>empty()</code> is now <code>is_empty()</code>.</li>
+<li>Array's <code>invert()</code> is now <code>reverse()</code>.</li>
+<li>Array's <code>remove()</code> is now <code>remove_at()</code>.</li>
+<li>AStar2D and AStar3D's <code>get_points()</code> is now <code>get_points_id()</code>.</li>
+<li>BaseButton's <code>set_event()</code> is now <code>set_shortcut()</code>.</li>
+<li>Camera2D's <code>get_h_offset()</code> is now <code>get_drag_horizontal_offset()</code>.</li>
+<li>Camera2D's <code>get_v_offset()</code> is now <code>get_drag_vertical_offset()</code>.</li>
+<li>Camera2D's <code>set_h_offset()</code> is now <code>set_drag_horizontal_offset()</code>.</li>
+<li>Camera2D's <code>set_v_offset()</code> is now <code>set_drag_vertical_offset()</code>.</li>
+<li>CanvasItem's <code>raise()</code> is now <code>move_to_front()</code>.</li>
+<li>CanvasItem's <code>update()</code> is now <code>queue_redraw()</code>.</li>
+<li>Control's <code>get_stylebox()</code> is now <code>get_theme_stylebox()</code>.</li>
+<li>Control's <code>set_tooltip()</code> is now <code>set_tooltip_text()</code>.</li>
+<li>EditorNode3DGizmoPlugin's <code>create_gizmo()</code> is now <code>_create_gizmo()</code> (note the leading underscore, which denotes a virtual method).</li>
+<li>ENetMultiplayerPeer's <code>get_peer_port()</code> is now <code>get_peer()</code>.</li>
+<li>FileDialog's <code>get_mode()</code> is now <code>get_file_mode()</code>.</li>
+<li>FileDialog's <code>set_mode()</code> is now <code>set_file_mode()</code>.</li>
+<li>GraphNode's <code>get_offset()</code> is now <code>get_position_offset()</code>.</li>
+<li>GridMap's <code>map_to_world()</code> is now <code>map_to_local()</code>.</li>
+<li>GridMap's <code>world_to_map()</code> is now <code>local_to_map()</code>.</li>
+<li>Image's <code>get_rect()</code> is now <code>get_region()</code>.</li>
+<li>ImmediateGeometry's <code>set_normal()</code> is now <code>surface_set_normal()</code>.</li>
+<li>ImmediateMesh's <code>set_color()</code> is now <code>surface_set_color()</code>.</li>
+<li>ImmediateMesh's <code>set_uv()</code> is now <code>surface_set_uv()</code>.</li>
+<li>ItemList's <code>get_v_scroll()</code> is now <code>get_v_scroll_bar()</code>.</li>
+<li>MultiPlayerAPI's <code>get_network_connected_peers()</code> is now <code>get_peers()</code>.</li>
+<li>MultiPlayerAPI's <code>get_network_peer()</code> is now <code>get_peer()</code>.</li>
+<li>MultiPlayerAPI's <code>get_network_unique_id()</code> is now <code>get_unique_id()</code>.</li>
+<li>MultiPlayerAPI's <code>has_network_peer()</code> is now <code>has_multiplayer_peer()</code>.</li>
+<li>MultiplayerAPI's <code>is_refusing_new_network_connections()</code> is now <code>is_refusing_new_connections()</code>.</li>
+<li>PacketPeerUDP's <code>is_listening()</code> is now <code>is_bound()</code>.</li>
+<li>PacketPeerUDP's <code>listen()</code> is now <code>bind()</code>.</li>
+<li>ParticleProcessMaterial's <code>set_flag()</code> is now <code>set_particle_flag()</code>.</li>
+<li>PhysicsTestMotionResult2D's <code>get_motion()</code> is now <code>get_travel()</code>.</li>
+<li>RenderingServer's <code>get_render_info()</code> is now <code>get_rendering_info()</code>.</li>
+<li>ResourceFormatLoader's <code>get_dependencies()</code> is now <code>_get_dependencies()</code> (note the leading underscore, which denotes a virtual method).</li>
+<li>ResourceFormatLoader's <code>load()</code> is now <code>_load()</code>.</li>
+<li>SceneTree's <code>change_scene()</code> is now <code>change_scene_to_file()</code>.</li>
+<li>Shortcut's <code>is_valid()</code> is now <code>has_valid_event()</code>.</li>
+<li>TileMap's <code>map_to_world()</code> is now <code>map_to_local()</code>.</li>
+<li>TileMap's <code>world_to_map()</code> is now <code>local_to_map()</code>.</li>
+<li>Transform2D's <code>xform()</code> is <code>mat * vec</code> and <code>xform_inv()</code> is <code>vec * mat</code>.</li>
+<li>XRPositionalTracker's <code>get_name()</code> is now <code>get_tracker_name()</code>.</li>
+<li>XRPositionalTracker's <code>get_type()</code> is now <code>get_tracker_type()</code>.</li>
+<li>XRPositionalTracker's <code>_set_name()</code> is now <code>get_tracker_name()</code>.</li>
+</ul>
+<p><strong>Properties</strong></p>
+<blockquote>
+<p><strong>Note:</strong> If a property is listed here, its associated getter and setter methods must also be renamed manually if used in the project. For example, PathFollow2D and PathFollow3D's <code>set_offset()</code> and <code>get_offset()</code> must be renamed to <code>set_progress()</code> and <code>get_progress()</code> respectively.</p>
+</blockquote>
+<ul>
+<li>AudioServer's <code>device</code> is now <code>output_device</code>.</li>
+<li>BaseButton's <code>group</code> is now <code>button_group</code>.</li>
+<li>Camera3D's <code>zfar</code> is now <code>far</code>.</li>
+<li>Camera3D's <code>znear</code> is now <code>near</code></li>
+<li>Control's <code>margin</code> is now <code>offset</code>.</li>
+<li>InputEventMouseButton's <code>doubleclick</code> is now <code>double_click</code>.</li>
+<li>InputEventWithModifiers's <code>alt</code> is now <code>alt_pressed</code>.</li>
+<li>InputEventWithModifiers's <code>command</code> is now <code>command_pressed</code>.</li>
+<li>InputEventWithModifiers's <code>control</code> is now <code>ctrl_pressed</code>.</li>
+<li>InputEventWithModifiers's <code>meta</code> is now <code>meta_pressed</code>.</li>
+<li>InputEventWithModifiers's <code>shift</code> is now <code>shift_pressed</code>.</li>
+<li>Label's <code>percent_visible</code> is now <code>visible_ratio</code>.</li>
+<li>MultiPlayerAPI's <code>refuse_new_network_connections</code> is now <code>refuse_new_connections</code>.</li>
+<li>Node's <code>filename</code> is now <code>scene_file_path</code>.</li>
+<li>PathFollow2D's <code>rotate</code> is now <code>rotates</code>.</li>
+<li>PathFollow2D and PathFollow3D's <code>offset</code> is now <code>progress</code>.</li>
+<li>RectangleShape2D's <code>extents</code> is now <code>size</code></li>
+<li>TextureProgressBar's <code>percent_visible</code> is now <code>show_percentage</code>.</li>
+<li>Theme's <code>off</code> is now <code>unchecked</code>.</li>
+<li>Theme's <code>ofs</code> is now <code>offset</code>.</li>
+<li>Theme's <code>on</code> is now <code>checked</code>.</li>
+<li>Window's <code>window_title</code> is now <code>title</code>.</li>
+<li>WorldMarginShape2D's <code>d</code> is now <code>distance</code>.</li>
+<li>The <code>extents</code> property on CSG nodes and VoxelGI will have to be replaced with <code>size</code>, with the set value halved (as they're no longer half-extents). This also affects its setter/getter methods <code>set_extents()</code> and <code>get_extents()</code>.</li>
+<li>The <code>Engine.editor_hint</code> property was removed in favor of the <code>Engine.is_editor_hint()</code> <em>method</em>. This is because it's read-only, and properties in Godot are not used for read-only values.</li>
+</ul>
+<p><strong>Enums</strong></p>
+<ul>
+<li>CPUParticles2D's <code>FLAG_MAX</code> is now <code>PARTICLE_FLAG_MAX</code>.</li>
+</ul>
+<p><strong>Signals</strong></p>
+<ul>
+<li>FileSystemDock's <code>instantiate</code> is now <code>instance</code>.</li>
+<li>CanvasItem's <code>hide</code> is now <code>hidden</code>. This rename does <strong>not</strong> apply to the <code>hide()</code> method, only the signal.</li>
+<li>Tween's <code>tween_all_completed</code> is now <code>loop_finished</code>.</li>
+<li>EditorSettings' <code>changed</code> is now <code>settings_changed</code>.</li>
+</ul>
+<p><strong>Constants</strong></p>
+<ul>
+<li>Color names are now uppercase and use underscores between words. For example, <code>Color.palegreen</code> is now <code>Color.PALE_GREEN</code>.</li>
+<li>MainLoop's <code>NOTIFICATION_</code> constants were duplicated to <code>Node</code> which means you can remove the <code>MainLoop.</code> prefix when referencing them.</li>
+<li>MainLoop's <code>NOTIFICATION_WM_QUIT_REQUEST</code> is now <code>NOTIFICATION_WM_CLOSE_REQUEST</code>.</li>
+</ul>
+<h3 id="checking-project-settings">Checking project settings</h3>
+<p>Several project settings were renamed, and some of them had their enums changed in incompatible ways (such as shadow filter quality). This means you may need to set some project settings' values again. Make sure the <strong>Advanced</strong> toggle is enabled in the project settings dialog so you can see all project settings.</p>
+<h3 id="checking-environment-settings">Checking Environment settings</h3>
+<p>Graphics quality settings were moved from Environment properties to project settings. This was done to make runtime quality adjustments easier, without having to access the currently active Environment resource then modify its properties.</p>
+<p>As a result, you will have to configure Environment quality settings in the project settings as old Environment quality settings aren't converted automatically to project settings.</p>
+<p>If you have a graphics settings menu that changed environment properties in Godot 3.x, you will have to change its code to call <code>class_RenderingServer</code> methods that affect environment effects' quality. Only the "base" toggle of each environment effect and its visual knobs remain within the Environment resource.</p>
+<h3 id="updating-shaders">Updating shaders</h3>
+<p>There have been some changes to shaders that aren't covered by the upgrade tool. You will need to make some manual changes, especially if your shader uses coordinate space transformations or a custom <code>light()</code> function.</p>
+<p>The <code>.shader</code> file extension is no longer supported, which means you must rename <code>.shader</code> files to <code>.gdshader</code> and update references accordingly in scene/resource files using an external text editor.</p>
+<p>Some notable changes you will need to perform in shaders are:</p>
+<ul>
+<li>Texture filter and repeat modes are now set on individual uniforms, rather than the texture files themselves.</li>
+<li><code>hint_albedo</code> is now <code>source_color</code>.</li>
+<li><code>hint_color</code> is now <code>source_color</code>.</li>
+<li>ref</li>
+<li>Particles shaders no longer use the <code>vertex()</code> processor function. Instead they use <code>start()</code> and <code>process()</code>.</li>
+<li>In the Forward+ and Mobile renderers, normalized device coordinates now have a Z-range of <code>[0.0,1.0]</code> instead of <code>[-1.0,1.0]</code>. When reconstructing NDC from <code>SCREEN_UV</code> and depth, use <code>vec3 ndc = vec3(SCREEN_UV * 2.0 - 1.0, depth);</code> instead of <code>vec3 ndc = vec3(SCREEN_UV, depth) * 2.0 - 1.0;</code>. The Compatibility renderer is unchanged, using the same NDC Z-range as 3.x.</li>
+<li>The lighting model changed. If your shader has a custom <code>light()</code> function, you may need to make changes to get the same visual result.</li>
+<li>In 4.3 and up, the reverse Z depth buffer technique is now implemented, which may break advanced shaders. See <a href="https://godotengine.org/article/introducing-reverse-z/">Introducing Reverse Z (AKA I'm sorry for breaking your shader)</a>.</li>
+</ul>
+<p>See <code>doc_shading_language</code> for more information.</p>
+<p>This list is not exhaustive. If you made all the changes mentioned here and your shader still doesn't work, try asking for help in one of the <a href="https://godotengine.org/community/">community channels</a>.</p>
+<h3 id="updating-scripts-to-take-backwards-incompatible-changes-into-account">Updating scripts to take backwards-incompatible changes into account</h3>
+<p>Some changes performed between Godot 3.x and 4 are not renames, but they still break backwards compatibility due to different default behavior.</p>
+<p>The most notable examples of this are:</p>
+<ul>
+<li>Lifecycle functions such as <code>_ready()</code> and <code>_process()</code> no longer implicitly call parent classes' functions that have the same name. Instead, you must use <code>super()</code> at the top of a lifecycle function in the child class so that the parent class function is called first.</li>
+<li>Both <code>class_String</code> and <code>class_StringName</code> are now exposed to GDScript. This allows for greater optimization, as StringName is specifically designed to be used for "constant" strings that are created once and reused many times. These types are not strictly equivalent to each other, which means <code>is_same("example", &amp;"example")</code> returns <code>false</code>. Although in most cases they are interchangeable (<code>"example" == &amp;"example"</code> returns <code>true</code>), sometimes you may have to replace <code>"example"</code> with <code>&amp;"example"</code>.</li>
+<li>ref was changed, but it's only partially converted by the conversion tool. In most cases, manual changes are required to make setters and getters working again.</li>
+<li>ref was changed. The conversion tool will use the string-based syntax which is still present in Godot 4, but it's recommended to switch to the <code>class_Signal</code>-based syntax described on the linked page. This way, strings are no longer involved, which avoids issues with signal name errors that can only be discovered at runtime.</li>
+<li>Built-in scripts that are ref do not get the <code>tool</code> keyword converted to the <code>@tool</code> annotation.</li>
+<li>The Tween node was removed in favor of Tweeners, which are also available in Godot 3.5 and later. See the <a href="https://github.com/godotengine/godot/pull/41794">original pull request</a> for details.</li>
+<li><code>randomize()</code> is now automatically called on project load, so deterministic randomness with the global RandomNumberGenerator instance requires manually setting a seed in a script's <code>_ready()</code> function.</li>
+<li><code>call_group()</code>, <code>set_group()</code> and <code>notify_group()</code> are now immediate by default. If calling an expensive function, this may result in stuttering when used on a group containing a large number of nodes. To use deferred calls like before, replace <code>call_group(...)</code> with <code>call_group_flags(SceneTree.GROUP_CALL_DEFERRED, ...)</code> (and do the same with <code>set_group()</code> and <code>notify_group()</code> respectively).</li>
+<li>Instead of <code>rotation_degrees</code>, the <code>rotation</code> property is exposed to the editor, which is automatically displayed as degrees in the Inspector dock. This may break animations, as the conversion is not handled automatically by the conversion tool.</li>
+<li><code>class_AABB</code>'s <code>has_no_surface()</code> was inverted and renamed to <code>has_surface()</code>.</li>
+<li><code>class_AABB</code> and <code>class_Rect2</code>'s <code>has_no_area()</code> was inverted and renamed to <code>has_area()</code>.</li>
+<li><code>class_AnimatedTexture</code>'s <code>fps</code> property was replaced by <code>speed_scale</code>, which works the same as AnimationPlayer's <code>playback_speed</code> property.</li>
+<li><code>class_AnimatedSprite2D</code> and <code>class_AnimatedSprite3D</code> now allow negative <code>speed_scale</code> values. This may break animations if you relied on <code>speed_scale</code> being internally clamped to <code>0.0</code>.</li>
+<li><code>class_AnimatedSprite2D</code> and <code>class_AnimatedSprite3D</code>'s <code>playing</code> property was removed. Use <code>play()</code>/<code>stop()</code> method instead OR configure <code>autoplay</code> animation via the SpriteFrames bottom panel (but not both at once).</li>
+<li><code>class_Array</code>'s <code>slice()</code> second parameter (<code>end</code>) is now <em>exclusive</em>, instead of being inclusive. For example, this means that <code>[1, 2, 3].slice(0, 1)</code> now returns <code>[1]</code> instead of <code>[1, 2]</code>.</li>
+<li><code>class_BaseButton</code>'s signals are now <code>button_up</code> and <code>button_down</code>. The <code>pressed</code> property is now <code>button_pressed</code>.</li>
+<li><code>class_Camera2D</code>'s <code>rotating</code> property was replaced by <code>ignore_rotation</code>, which has inverted behavior.</li>
+<li>Camera2D's <code>zoom</code> property was inverted: higher values are now more zoomed in, instead of less.</li>
+<li><code>class_Node</code>'s <code>remove_and_skip()</code> method was removed. If you need to reimplement it in a script, you can use the <a href="https://github.com/godotengine/godot/blob/7936b3cc4c657e4b273b376068f095e1e0e4d82a/scene/main/node.cpp#L1910-L1945">old C++ implementation</a> as a reference.</li>
+<li><code>OS.get_system_time_secs()</code> should be converted to <code>Time.get_time_dict_from_system()["second"]</code>.</li>
+<li><code>class_ResourceSaver</code>'s <code>save()</code> method now has its arguments swapped around (<code>resource: Resource, path: String</code>). This also applies to <code>class_ResourceFormatSaver</code>'s <code>_save()</code> method.</li>
+<li>A <code>class_StreamPeerTCP</code> must have <code>poll()</code> called on it to update its state, instead of relying on <code>get_status()</code> automatically polling: <a href="https://github.com/godotengine/godot/pull/59582">GH-59582</a></li>
+<li><code>class_String</code>'s <code>right()</code> method <a href="https://github.com/godotengine/godot/pull/36180">has changed behavior</a>: it now returns a number of characters from the right of the string, rather than the right side of the string from a given position. If you need the old behavior, you can use <code>substr()</code> instead.</li>
+<li><code>is_connected_to_host()</code> was removed from StreamPeerTCP and PacketPeerUDP as per <a href="https://github.com/godotengine/godot/pull/59582">GH-59582</a>. <code>get_status()</code> can be used in StreamPeerTCP instead. <code>is_socket_connected()</code> can be used in <code>class_PacketPeerUDP</code> instead.</li>
+<li>In <code>_get_property_list()</code>, the <code>or_lesser</code> property hint string is now <code>or_less</code>.</li>
+<li>In <code>_get_property_list()</code>, the <code>noslider</code> property hint string is now <code>no_slider</code>.</li>
+<li>VisualShaderNodeVec4Parameter now takes a <code>class_Vector4</code> as parameter instead of a <code>class_Quaternion</code>.</li>
+</ul>
+<p><strong>Removed or replaced nodes/resources</strong></p>
+<p>This lists all nodes that were replaced by another node requiring different configuration. The setup must be done from scratch again, as the project converter doesn't support updating existing setups:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Removed node</th>
+<th>Closest approximation</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>AnimationTreePlayer</td>
+<td>AnimationTree</td>
+<td>AnimationTreePlayer was deprecated since Godot 3.1.</td>
+</tr>
+<tr class="even">
+<td>BakedLightmap</td>
+<td>LightmapGI</td>
+<td>See <code>doc_using_lightmap_gi</code>.</td>
+</tr>
+<tr class="odd">
+<td>BakedLightmapData</td>
+<td>LightmapGIData</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>BitmapFont</td>
+<td>FontFile</td>
+<td>See <code>doc_gui_using_fonts</code>.</td>
+</tr>
+<tr class="odd">
+<td>DynamicFont</td>
+<td>FontFile</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>DynamicFontData</td>
+<td>FontFile</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>ClippedCamera</td>
+<td>Camera2D or Camera3D</td>
+<td>Camera's pyramid shape was moved to <code>class_Camera3D</code>.</td>
+</tr>
+<tr class="even">
+<td>InterpolatedCamera</td>
+<td>Camera2D or Camera3D</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Navigation2D</td>
+<td>Node2D</td>
+<td>Replaced by ref. |</td>
+</tr>
+<tr class="even">
+<td>Navigation3D</td>
+<td>Node3D</td>
+<td>Replaced by ref. |</td>
+</tr>
+<tr class="odd">
+<td>OpenSimplexNoise</td>
+<td>FastNoiseLite</td>
+<td>Has different parameters and more noise types such as cellular. No support for 4D noise as it's absent from the FastNoiseLite library.</td>
+</tr>
+<tr class="even">
+<td>ToolButton</td>
+<td>Button</td>
+<td>ToolButton was Button with the <strong>Flat</strong> property enabled by default.</td>
+</tr>
+<tr class="odd">
+<td>YSort</td>
+<td>Node2D or Control</td>
+<td>CanvasItem has a new <strong>Y Sort Enabled</strong> property in 4.0.</td>
+</tr>
+<tr class="even">
+<td>ProximityGroup</td>
+<td>Node3D</td>
+<td><code>class_VisibleOnScreenNotifier3D</code> can act as a replacement.</td>
+</tr>
+<tr class="odd">
+<td>Portal</td>
+<td>Node3D</td>
+<td>Portal and room occlusion culling was replaced by raster ref | (OccluderInstance3D node), which requires a different setup process.</td>
+</tr>
+<tr class="even">
+<td>Room</td>
+<td>Node3D</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>RoomManager</td>
+<td>Node3D</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>RoomGroup</td>
+<td>Node3D</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Occluder</td>
+<td>Node3D</td>
+<td>Geometry occlusion culling was replaced by raster ref | (OccluderInstance3D node), which requires a different setup process.</td>
+</tr>
+<tr class="even">
+<td>OccluderShapeSphere</td>
+<td>Resource</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>If loading an old project, the node will be replaced with its <em>Closest approximation</em> automatically (even if not using the project upgrade tool).</p>
+<p><strong>Threading changes</strong></p>
+<p>ref APIs have changed in 4.0. For example, the following code snippet in Godot 3.x must be modified to work in 4.0:</p>
+<pre><code># 3.x
+var start_success = new_thread.start(self, &quot;__threaded_background_loader&quot;,
+    [resource_path, thread_num]
+)
+
+# 4.0
+var start_success = new_thread.start(__threaded_background_loader.bind(resource_path, thread_num))</code></pre>
+<p><code>Thread.is_active()</code> is no longer used and should be converted to <code>Thread.is_alive()</code>.</p>
+<blockquote>
+<p><strong>See also:</strong> See the <a href="https://github.com/godotengine/godot/blob/master/CHANGELOG.md">changelog</a> for a full list of changes between Godot 3.x and 4.</p>
+</blockquote>
+<h3 id="arraymesh-resource-compatibility-breakage">ArrayMesh resource compatibility breakage</h3>
+<p>If you've saved an ArrayMesh resource to a <code>.res</code> or <code>.tres</code> file, the format used in 4.0 is not compatible with the one used in 3.x. You will need to go through the process of importing the source mesh file and saving it as an ArrayMesh resource again.</p>
+<h2 id="list-of-automatically-renamed-methods-properties-signals-and-constants">List of automatically renamed methods, properties, signals and constants</h2>
+<p>The <a href="https://github.com/godotengine/godot/blob/master/editor/project_upgrade/renames_map_3_to_4.cpp">editor/project_upgrade/renames_map_3_to_4.cpp</a> source file lists all automatic renames performed by the project upgrade tool. Lines that are commented out refer to API renames that ref.</p>
+<h2 id="porting-editor-settings">Porting editor settings</h2>
+<p>Godot 3.x and 4.0 use different editor settings files. This means their settings can be changed independently from each other.</p>
+<p>If you wish to port over your Godot 3.x settings to Godot 4, open the ref and copy <code>editor_settings-3.tres</code> to <code>editor_settings-4.tres</code> while the Godot 4 editor is closed.</p>
+<blockquote>
+<p><strong>Note:</strong> Many settings' names and categories have changed since Godot 3.x. Editor settings whose name or category has changed won't carry over to Godot 4.0; you will have to set their values again.</p>
+</blockquote>
+<h2 id="updating-version-control-settings">Updating version control settings</h2>
+<p>Godot 3.x and 4.x have entirely different lists of files and folders that should be ignored by your ref.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>File — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="file">File</h1>
+<p><em>Inherits: <a href="Reference.html">Reference</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Type to handle file reading and writing operations.</p>
+<h2 id="description">Description</h2>
+<p>File type. This is used to permanently store data into the user device's file system and to read from it. This can be used to store game save data or player configuration files, for example.</p>
+<p>Here's a sample on how to write and read from a file:</p>
+<pre class="gdscript"><code>func save(content):
+    var file = File.new()
+    file.open(&quot;user://save_game.dat&quot;, File.WRITE)
+    file.store_string(content)
+    file.close()
+
+func load():
+    var file = File.new()
+    file.open(&quot;user://save_game.dat&quot;, File.READ)
+    var content = file.get_as_text()
+    file.close()
+    return content</code></pre>
+<p>In the example above, the file will be saved in the user data folder as specified in the <a href="../manual/tutorials/io/data_paths.html">Data paths</a> documentation.</p>
+<p><strong>Note:</strong> To access project resources once exported, it is recommended to use <a href="ResourceLoader.html">ResourceLoader</a> instead of the <strong>File</strong> API, as some files are converted to engine-specific formats and their original source files might not be present in the exported PCK package.</p>
+<p><strong>Note:</strong> Files are automatically closed only if the process exits "normally" (such as by clicking the window manager's close button or pressing <strong>Alt + F4</strong>). If you stop the project execution by pressing <strong>F8</strong> while the project is running, the file won't be closed as the game process will be killed. You can work around this by calling <code>flush</code> at regular intervals.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/tutorials/scripting/filesystem.html">File system</a></li>
+<li><a href="https://godotengine.org/asset-library/asset/676">3D Voxel Demo</a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="bool-endian_swap--false"><code>bool endian_swap = false</code></h3>
+<ul>
+<li>Setter: <code>set_endian_swap(value: bool)</code></li>
+<li>Getter: <code>get_endian_swap()</code></li>
+</ul>
+<p>If <code>true</code>, the file is read with big-endian <a href="https://en.wikipedia.org/wiki/Endianness">endianness</a>. If <code>false</code>, the file is read with little-endian endianness. If in doubt, leave this to <code>false</code> as most files are written with little-endian endianness.</p>
+<p><strong>Note:</strong> <code>endian_swap</code> is only about the file format, not the CPU type. The CPU endianness doesn't affect the default endianness for files written.</p>
+<p><strong>Note:</strong> This is always reset to <code>false</code> whenever you open the file. Therefore, you must set <code>endian_swap</code> <em>after</em> opening the file, not before.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-close"><code>void close()</code></h3>
+<p>Closes the currently opened file and prevents subsequent read/write operations. Use <code>flush</code> to persist the data to disk without closing the file.</p>
+<h3 id="bool-eof_reached-const"><code>bool eof_reached() const</code></h3>
+<p>Returns <code>true</code> if the file cursor has already read past the end of the file.</p>
+<p><strong>Note:</strong> <code>eof_reached() == false</code> cannot be used to check whether there is more data available. To loop while there is more data available, use:</p>
+<pre class="gdscript"><code>while file.get_position() &lt; file.get_len():
+    # Read data</code></pre>
+<h3 id="bool-file_existspath-string-const"><code>bool file_exists(path: String) const</code></h3>
+<p>Returns <code>true</code> if the file exists in the given path.</p>
+<p><strong>Note:</strong> Many resources types are imported (e.g. textures or sound files), and their source asset will not be included in the exported game, as only the imported version is used. See <code>ResourceLoader.exists</code> for an alternative approach that takes resource remapping into account.</p>
+<h3 id="void-flush"><code>void flush()</code></h3>
+<p>Writes the file's buffer to disk. Flushing is automatically performed when the file is closed. This means you don't need to call <code>flush</code> manually before closing a file using <code>close</code>. Still, calling <code>flush</code> can be used to ensure the data is safe even if the project crashes instead of being closed gracefully.</p>
+<p><strong>Note:</strong> Only call <code>flush</code> when you actually need it. Otherwise, it will decrease performance due to constant disk writes.</p>
+<h3 id="int-get_16-const"><code>int get_16() const</code></h3>
+<p>Returns the next 16 bits from the file as an integer. See <code>store_16</code> for details on what values can be stored and retrieved this way.</p>
+<h3 id="int-get_32-const"><code>int get_32() const</code></h3>
+<p>Returns the next 32 bits from the file as an integer. See <code>store_32</code> for details on what values can be stored and retrieved this way.</p>
+<h3 id="int-get_64-const"><code>int get_64() const</code></h3>
+<p>Returns the next 64 bits from the file as an integer. See <code>store_64</code> for details on what values can be stored and retrieved this way.</p>
+<h3 id="int-get_8-const"><code>int get_8() const</code></h3>
+<p>Returns the next 8 bits from the file as an integer. See <code>store_8</code> for details on what values can be stored and retrieved this way.</p>
+<h3 id="string-get_as_textskip_crtrue-bool-const"><code>String get_as_text(skip_cr=true: bool) const</code></h3>
+<p>Returns the whole file as a <a href="String.html">String</a>. Text is interpreted as being UTF-8 encoded.</p>
+<p>If <code>skip_cr</code> is <code>true</code>, carriage return characters (<code>\r</code>, CR) will be ignored when parsing the UTF-8, so that only line feed characters (<code>\n</code>, LF) represent a new line (Unix convention).</p>
+<h3 id="poolbytearray-get_bufferlen-int-const"><code>PoolByteArray get_buffer(len: int) const</code></h3>
+<p>Returns next <code>len</code> bytes of the file as a <a href="PoolByteArray.html">PoolByteArray</a>.</p>
+<h3 id="poolstringarray-get_csv_linedelim-string--const"><code>PoolStringArray get_csv_line(delim=": String, ") const</code></h3>
+<p>Returns the next value of the file in CSV (Comma-Separated Values) format. You can pass a different delimiter <code>delim</code> to use other than the default <code>","</code> (comma). This delimiter must be one-character long, and cannot be a double quotation mark.</p>
+<p>Text is interpreted as being UTF-8 encoded. Text values must be enclosed in double quotes if they include the delimiter character. Double quotes within a text value can be escaped by doubling their occurrence.</p>
+<p>For example, the following CSV lines are valid and will be properly parsed as two strings each:</p>
+<pre class="gdscript"><code>Alice,&quot;Hello, Bob!&quot;
+Bob,Alice! What a surprise!
+Alice,&quot;I thought you&#39;d reply with &quot;&quot;Hello, world&quot;&quot;.&quot;</code></pre>
+<p>Note how the second line can omit the enclosing quotes as it does not include the delimiter. However it <em>could</em> very well use quotes, it was only written without for demonstration purposes. The third line must use <code>""</code> for each quotation mark that needs to be interpreted as such instead of the end of a text value.</p>
+<h3 id="float-get_double-const"><code>float get_double() const</code></h3>
+<p>Returns the next 64 bits from the file as a floating-point number.</p>
+<h3 id="globalscopeerror-get_error-const">``@GlobalScope.Error<code> get_error() const</code></h3>
+<p>Returns the last error that happened when trying to perform operations. Compare with the <code>ERR_FILE_*</code> constants from <code>@GlobalScope.Error</code>.</p>
+<h3 id="float-get_float-const"><code>float get_float() const</code></h3>
+<p>Returns the next 32 bits from the file as a floating-point number.</p>
+<h3 id="int-get_len-const"><code>int get_len() const</code></h3>
+<p>Returns the size of the file in bytes.</p>
+<h3 id="string-get_line-const"><code>String get_line() const</code></h3>
+<p>Returns the next line of the file as a <a href="String.html">String</a>.</p>
+<p>Text is interpreted as being UTF-8 encoded.</p>
+<h3 id="string-get_md5path-string-const"><code>String get_md5(path: String) const</code></h3>
+<p>Returns an MD5 String representing the file at the given path or an empty <a href="String.html">String</a> on failure.</p>
+<h3 id="int-get_modified_timefile-string-const"><code>int get_modified_time(file: String) const</code></h3>
+<p>Returns the last time the <code>file</code> was modified in unix timestamp format or returns a <a href="String.html">String</a> "ERROR IN <code>file</code>". This unix timestamp can be converted to datetime by using <code>OS.get_datetime_from_unix_time</code>.</p>
+<h3 id="string-get_pascal_string"><code>String get_pascal_string()</code></h3>
+<p>Returns a <a href="String.html">String</a> saved in Pascal format from the file.</p>
+<p>Text is interpreted as being UTF-8 encoded.</p>
+<h3 id="string-get_path-const"><code>String get_path() const</code></h3>
+<p>Returns the path as a <a href="String.html">String</a> for the current open file.</p>
+<h3 id="string-get_path_absolute-const"><code>String get_path_absolute() const</code></h3>
+<p>Returns the absolute path as a <a href="String.html">String</a> for the current open file.</p>
+<h3 id="int-get_position-const"><code>int get_position() const</code></h3>
+<p>Returns the file cursor's position.</p>
+<h3 id="float-get_real-const"><code>float get_real() const</code></h3>
+<p>Returns the next bits from the file as a floating-point number.</p>
+<h3 id="string-get_sha256path-string-const"><code>String get_sha256(path: String) const</code></h3>
+<p>Returns a SHA-256 <a href="String.html">String</a> representing the file at the given path or an empty <a href="String.html">String</a> on failure.</p>
+<h3 id="variant-get_varallow_objectsfalse-bool-const"><code>Variant get_var(allow_objects=false: bool) const</code></h3>
+<p>Returns the next <a href="Variant.html">Variant</a> value from the file. If <code>allow_objects</code> is <code>true</code>, decoding objects is allowed.</p>
+<p><strong>Warning:</strong> Deserialized objects can contain code which gets executed. Do not use this option if the serialized object comes from untrusted sources to avoid potential security threats such as remote code execution.</p>
+<h3 id="bool-is_open-const"><code>bool is_open() const</code></h3>
+<p>Returns <code>true</code> if the file is currently opened.</p>
+<h3 id="globalscopeerroropenpath-string-flagsmodeflags">``@GlobalScope.Error<code>open(path: String, flags:</code>ModeFlags<code>)</code></h3>
+<p>Opens the file for writing or reading, depending on the flags.</p>
+<h3 id="globalscopeerroropen_compressedpath-string-mode_flagsmodeflags-compression_mode0-compressionmode">``@GlobalScope.Error<code>open_compressed(path: String, mode_flags:</code>ModeFlags<code>, compression_mode=0: </code>CompressionMode<code>)</code></h3>
+<p>Opens a compressed file for reading or writing.</p>
+<p><strong>Note:</strong> <code>open_compressed</code> can only read files that were saved by Godot, not third-party compression formats. See <a href="https://github.com/godotengine/godot/issues/28999">GitHub issue #28999</a> for a workaround.</p>
+<h3 id="globalscopeerroropen_encryptedpath-string-mode_flagsmodeflags-key-poolbytearray">``@GlobalScope.Error<code>open_encrypted(path: String, mode_flags:</code>ModeFlags<code>, key: PoolByteArray)</code></h3>
+<p>Opens an encrypted file in write or read mode. You need to pass a binary key to encrypt/decrypt it.</p>
+<p><strong>Note:</strong> The provided key must be 32 bytes long.</p>
+<h3 id="globalscopeerroropen_encrypted_with_passpath-string-mode_flagsmodeflags-pass-string">``@GlobalScope.Error<code>open_encrypted_with_pass(path: String, mode_flags:</code>ModeFlags<code>, pass: String)</code></h3>
+<p>Opens an encrypted file in write or read mode. You need to pass a password to encrypt/decrypt it.</p>
+<h3 id="void-seekposition-int"><code>void seek(position: int)</code></h3>
+<p>Changes the file reading/writing cursor to the specified position (in bytes from the beginning of the file).</p>
+<h3 id="void-seek_endposition0-int"><code>void seek_end(position=0: int)</code></h3>
+<p>Changes the file reading/writing cursor to the specified position (in bytes from the end of the file).</p>
+<p><strong>Note:</strong> This is an offset, so you should use negative numbers or the cursor will be at the end of the file.</p>
+<h3 id="void-store_16value-int"><code>void store_16(value: int)</code></h3>
+<p>Stores an integer as 16 bits in the file.</p>
+<p><strong>Note:</strong> The <code>value</code> should lie in the interval <code>[0, 2^16 - 1]</code>. Any other value will overflow and wrap around.</p>
+<p>To store a signed integer, use <code>store_64</code> or store a signed integer from the interval <code>[-2^15, 2^15 - 1]</code> (i.e. keeping one bit for the signedness) and compute its sign manually when reading. For example:</p>
+<pre class="gdscript"><code>const MAX_15B = 1 &lt;&lt; 15
+const MAX_16B = 1 &lt;&lt; 16
+
+func unsigned16_to_signed(unsigned):
+    return (unsigned + MAX_15B) % MAX_16B - MAX_15B
+
+func _ready():
+    var f = File.new()
+    f.open(&quot;user://file.dat&quot;, File.WRITE_READ)
+    f.store_16(-42) # This wraps around and stores 65494 (2^16 - 42).
+    f.store_16(121) # In bounds, will store 121.
+    f.seek(0) # Go back to start to read the stored value.
+    var read1 = f.get_16() # 65494
+    var read2 = f.get_16() # 121
+    var converted1 = unsigned16_to_signed(read1) # -42
+    var converted2 = unsigned16_to_signed(read2) # 121</code></pre>
+<h3 id="void-store_32value-int"><code>void store_32(value: int)</code></h3>
+<p>Stores an integer as 32 bits in the file.</p>
+<p><strong>Note:</strong> The <code>value</code> should lie in the interval <code>[0, 2^32 - 1]</code>. Any other value will overflow and wrap around.</p>
+<p>To store a signed integer, use <code>store_64</code>, or convert it manually (see <code>store_16</code> for an example).</p>
+<h3 id="void-store_64value-int"><code>void store_64(value: int)</code></h3>
+<p>Stores an integer as 64 bits in the file.</p>
+<p><strong>Note:</strong> The <code>value</code> must lie in the interval <code>[-2^63, 2^63 - 1]</code> (i.e. be a valid <a href="int.html">int</a> value).</p>
+<h3 id="void-store_8value-int"><code>void store_8(value: int)</code></h3>
+<p>Stores an integer as 8 bits in the file.</p>
+<p><strong>Note:</strong> The <code>value</code> should lie in the interval <code>[0, 255]</code>. Any other value will overflow and wrap around.</p>
+<p>To store a signed integer, use <code>store_64</code>, or convert it manually (see <code>store_16</code> for an example).</p>
+<h3 id="void-store_bufferbuffer-poolbytearray"><code>void store_buffer(buffer: PoolByteArray)</code></h3>
+<p>Stores the given array of bytes in the file.</p>
+<h3 id="void-store_csv_linevalues-poolstringarray-delim-string-"><code>void store_csv_line(values: PoolStringArray, delim=": String, ")</code></h3>
+<p>Store the given <a href="PoolStringArray.html">PoolStringArray</a> in the file as a line formatted in the CSV (Comma-Separated Values) format. You can pass a different delimiter <code>delim</code> to use other than the default <code>","</code> (comma). This delimiter must be one-character long.</p>
+<p>Text will be encoded as UTF-8.</p>
+<h3 id="void-store_doublevalue-float"><code>void store_double(value: float)</code></h3>
+<p>Stores a floating-point number as 64 bits in the file.</p>
+<h3 id="void-store_floatvalue-float"><code>void store_float(value: float)</code></h3>
+<p>Stores a floating-point number as 32 bits in the file.</p>
+<h3 id="void-store_lineline-string"><code>void store_line(line: String)</code></h3>
+<p>Appends <code>line</code> to the file followed by a line return character (<code>\n</code>), encoding the text as UTF-8.</p>
+<h3 id="void-store_pascal_stringstring-string"><code>void store_pascal_string(string: String)</code></h3>
+<p>Stores the given <a href="String.html">String</a> as a line in the file in Pascal format (i.e. also store the length of the string).</p>
+<p>Text will be encoded as UTF-8.</p>
+<h3 id="void-store_realvalue-float"><code>void store_real(value: float)</code></h3>
+<p>Stores a floating-point number in the file.</p>
+<h3 id="void-store_stringstring-string"><code>void store_string(string: String)</code></h3>
+<p>Appends <code>string</code> to the file without a line return, encoding the text as UTF-8.</p>
+<p><strong>Note:</strong> This method is intended to be used to write text files. The string is stored as a UTF-8 encoded buffer without string length or terminating zero, which means that it can't be loaded back easily. If you want to store a retrievable string in a binary file, consider using <code>store_pascal_string</code> instead. For retrieving strings from a text file, you can use <code>get_buffer(length).get_string_from_utf8()</code> (if you know the length) or <code>get_as_text</code>.</p>
+<h3 id="void-store_varvalue-variant-full_objectsfalse-bool"><code>void store_var(value: Variant, full_objects=false: bool)</code></h3>
+<p>Stores any Variant value in the file. If <code>full_objects</code> is <code>true</code>, encoding objects is allowed (and can potentially include code).</p>
+<p><strong>Note:</strong> Not all properties are included. Only properties that are configured with the <code>@GlobalScope.PROPERTY_USAGE_STORAGE</code> flag set will be serialized. You can add a new usage flag to a property by overriding the <code>Object._get_property_list</code> method in your class. You can also check how property usage is configured by calling <code>Object._get_property_list</code>. See <code>@GlobalScope.PropertyUsageFlags</code> for the possible usage flags.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-modeflags"><code>enum ModeFlags</code></h3>
+<ul>
+<li><p><code>READ = 1</code></p>
+<p>Opens the file for read operations. The cursor is positioned at the beginning of the file.</p></li>
+<li><p><code>WRITE = 2</code></p>
+<p>Opens the file for write operations. The file is created if it does not exist, and truncated if it does.</p></li>
+<li><p><code>READ_WRITE = 3</code></p>
+<p>Opens the file for read and write operations. Does not truncate the file. The cursor is positioned at the beginning of the file.</p></li>
+<li><p><code>WRITE_READ = 7</code></p>
+<p>Opens the file for read and write operations. The file is created if it does not exist, and truncated if it does. The cursor is positioned at the beginning of the file.</p></li>
+</ul>
+<h3 id="enum-compressionmode"><code>enum CompressionMode</code></h3>
+<ul>
+<li><p><code>COMPRESSION_FASTLZ = 0</code></p>
+<p>Uses the <a href="http://fastlz.org/">FastLZ</a> compression method.</p></li>
+<li><p><code>COMPRESSION_DEFLATE = 1</code></p>
+<p>Uses the <a href="https://en.wikipedia.org/wiki/DEFLATE">DEFLATE</a> compression method.</p></li>
+<li><p><code>COMPRESSION_ZSTD = 2</code></p>
+<p>Uses the <a href="https://facebook.github.io/zstd/">Zstandard</a> compression method.</p></li>
+<li><p><code>COMPRESSION_GZIP = 3</code></p>
+<p>Uses the <a href="https://www.gzip.org/">gzip</a> compression method.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

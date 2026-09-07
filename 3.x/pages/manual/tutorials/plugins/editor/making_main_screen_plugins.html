@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Making main screen plugins — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="making-main-screen-plugins">Making main screen plugins</h1>
+<h2 id="what-this-tutorial-covers">What this tutorial covers</h2>
+<p>As seen in the <code>doc_making_plugins</code> page, making a basic plugin that extends the editor is fairly easy. Main screen plugins allow you to create new UIs in the central part of the editor, which appear next to the "2D", "3D", "Script", and "AssetLib" buttons. Such editor plugins are referred as "Main screen plugins".</p>
+<p>This tutorial leads you through the creation of a basic main screen plugin. For the sake of simplicity, our main screen plugin will contain a single button that prints text to the console.</p>
+<h2 id="initializing-the-plugin">Initializing the plugin</h2>
+<p>First create a new plugin from the Plugins menu. For this tutorial, we'll put it in a folder called <code>main_screen</code>, but you can use any name you'd like.</p>
+<p>The plugin script will come with <code>_enter_tree()</code> and <code>_exit_tree()</code> methods, but for a main screen plugin we need to add a few extra methods. Add five extra methods such that the script looks like this:</p>
+<pre><code>tool
+extends EditorPlugin
+
+func _enter_tree():
+    pass
+
+func _exit_tree():
+    pass
+
+func has_main_screen():
+    return true
+
+func make_visible(visible):
+    pass
+
+func get_plugin_name():
+    return &quot;Main Screen Plugin&quot;
+
+func get_plugin_icon():
+    return get_editor_interface().get_base_control().get_icon(&quot;Node&quot;, &quot;EditorIcons&quot;)</code></pre>
+<p>The important part in this script is the <code>has_main_screen()</code> function, which is overloaded so it returns <code>true</code>. This function is automatically called by the editor on plugin activation, to tell it that this plugin adds a new center view to the editor. For now, we'll leave this script as-is and we'll come back to it later.</p>
+<h2 id="main-screen-scene">Main screen scene</h2>
+<p>Create a new scene with a root node derived from <code>Control</code> (for this example plugin, we'll make the root node a <code>CenterContainer</code>). Select this root node, and in the viewport, click the <code>Layout</code> menu and select <code>Full Rect</code>. You also need to enable the <code>Expand</code> vertical size flag in the inspector. The panel now uses all the space available in the main viewport.</p>
+<p>Next, let's add a button to our example main screen plugin. Add a <code>Button</code> node, and set the text to "Print Hello" or similar. Add a script to the button like this:</p>
+<pre><code>tool
+extends Button
+
+func _on_PrintHello_pressed():
+    print(&quot;Hello from the main screen plugin!&quot;)</code></pre>
+<p>Then connect the "pressed" signal to itself. If you need help with signals, see the <code>doc_signals</code> article.</p>
+<p>We are done with the main screen panel. Save the scene as <code>main_panel.tscn</code>.</p>
+<h2 id="update-the-plugin-script">Update the plugin script</h2>
+<p>We need to update the <code>main_screen_plugin.gd</code> script so the plugin instances our main panel scene and places it where it needs to be. Here is the full plugin script:</p>
+<pre><code>tool
+extends EditorPlugin
+
+const MainPanel = preload(&quot;res://addons/main_screen/main_panel.tscn&quot;)
+
+var main_panel_instance
+
+func _enter_tree():
+    main_panel_instance = MainPanel.instance()
+    # Add the main panel to the editor&#39;s main viewport.
+    get_editor_interface().get_editor_viewport().add_child(main_panel_instance)
+    # Hide the main panel. Very much required.
+    make_visible(false)
+
+func _exit_tree():
+    if main_panel_instance:
+        main_panel_instance.queue_free()
+
+func has_main_screen():
+    return true
+
+func make_visible(visible):
+    if main_panel_instance:
+        main_panel_instance.visible = visible
+
+func get_plugin_name():
+    return &quot;Main Screen Plugin&quot;
+
+func get_plugin_icon():
+    # Must return some kind of Texture for the icon.
+    return get_editor_interface().get_base_control().get_icon(&quot;Node&quot;, &quot;EditorIcons&quot;)</code></pre>
+<p>A couple of specific lines were added. <code>MainPanel</code> is a constant that holds a reference to the scene, and we instance it into main_panel_instance.</p>
+<p>The <code>_enter_tree()</code> function is called before <code>_ready()</code>. This is where we instance the main panel scene, and add them as children of specific parts of the editor. We use <code>get_editor_interface().get_editor_viewport()</code> to obtain the viewport and add our main panel instance as a child to it. We call the <code>make_visible(false)</code> function to hide the main panel so it doesn't compete for space when first activating the plugin.</p>
+<p>The <code>_exit_tree()</code> function is called when the plugin is deactivated. If the main screen still exists, we call <code>queue_free()</code> to free the instance and remove it from memory.</p>
+<p>The <code>make_visible()</code> function is overridden to hide or show the main panel as needed. This function is automatically called by the editor when the user clicks on the main viewport buttons at the top of the editor.</p>
+<p>The <code>get_plugin_name()</code> and <code>get_plugin_icon()</code> functions control the displayed name and icon for the plugin's main viewport button.</p>
+<p>Another function you can add is the <code>handles()</code> function, which allows you to handle a node type, automatically focusing the main screen when the type is selected. This is similar to how clicking on a 3D node will automatically switch to the 3D viewport.</p>
+<h2 id="try-the-plugin">Try the plugin</h2>
+<p>Activate the plugin in the Project Settings. You'll observe a new button next to 2D, 3D, Script above the main viewport. Clicking it will take you to your new main screen plugin, and the button in the middle will print text.</p>
+<p>If you would like to try a finished version of this plugin, check out the plugin demos here: <a href="https://github.com/godotengine/godot-demo-projects/tree/3.5/plugins">https://github.com/godotengine/godot-demo-projects/tree/3.5/plugins</a></p>
+<p>If you would like to see a more complete example of what main screen plugins are capable of, check out the 2.5D demo projects here: <a href="https://github.com/godotengine/godot-demo-projects/tree/3.5/misc/2.5d">https://github.com/godotengine/godot-demo-projects/tree/3.5/misc/2.5d</a></p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

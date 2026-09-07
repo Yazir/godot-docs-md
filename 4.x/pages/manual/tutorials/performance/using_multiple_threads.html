@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using multiple threads — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-multiple-threads">Using multiple threads</h1>
+<blockquote>
+<p><strong>See also:</strong> For a list of multithreading primitives in C++, see <code>doc_core_concurrency_types</code>.</p>
+</blockquote>
+<h2 id="threads">Threads</h2>
+<p>Threads allow simultaneous execution of code. It allows off-loading work from the main thread.</p>
+<p>Godot supports threads and provides many handy functions to use them.</p>
+<blockquote>
+<p><strong>Note:</strong> If using other languages (C#, C++), it may be easier to use the threading classes they support.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Before using a built-in class in a thread, read <code>doc_thread_safe_apis</code> first to check whether it can be safely used in a thread.</p>
+</blockquote>
+<h2 id="creating-a-thread">Creating a Thread</h2>
+<p>To create a thread, use the following code:</p>
+<pre class="gdscript"><code>var thread: Thread
+
+# The thread will start here.
+func _ready():
+    thread = Thread.new()
+    # You can bind multiple arguments to a function Callable.
+    thread.start(_thread_function.bind(&quot;Wafflecopter&quot;))
+
+
+# Run here and exit.
+# The argument is the bound data passed from start().
+func _thread_function(userdata):
+    # Print the userdata (&quot;Wafflecopter&quot;)
+    print(&quot;I&#39;m a thread! Userdata is: &quot;, userdata)
+
+
+# Thread must be disposed (or &quot;joined&quot;), for portability.
+func _exit_tree():
+    thread.wait_to_finish()</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma once</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/node.hpp&gt;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/thread.hpp&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> godot <span class="op">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">class</span> MultithreadingDemo <span class="op">:</span> <span class="kw">public</span> Node <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        GDCLASS<span class="op">(</span>MultithreadingDemo<span class="op">,</span> Node<span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span><span class="op">:</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        Ref<span class="op">&lt;</span>Thread<span class="op">&gt;</span> worker<span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">protected</span><span class="op">:</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        <span class="at">static</span> <span class="dt">void</span> _bind_methods<span class="op">();</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">void</span> _notification<span class="op">(</span><span class="dt">int</span> p_what<span class="op">);</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span><span class="op">:</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        MultithreadingDemo<span class="op">();</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">~</span>MultithreadingDemo<span class="op">();</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        <span class="dt">void</span> demo_threaded_function<span class="op">();</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="co">// namespace godot</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;multithreading_demo.h&quot;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/engine.hpp&gt;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/os.hpp&gt;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/time.hpp&gt;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/core/class_db.hpp&gt;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/variant/utility_functions.hpp&gt;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> godot<span class="op">;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> MultithreadingDemo<span class="op">::</span>_bind_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;threaded_function&quot;</span><span class="op">),</span> <span class="op">&amp;</span>MultithreadingDemo<span class="op">::</span>demo_threaded_function<span class="op">);</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> MultithreadingDemo<span class="op">::</span>_notification<span class="op">(</span><span class="dt">int</span> p_what<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Prevents this from running in the editor, only during game mode. In Godot 4.3+ use Runtime classes.</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>Engine<span class="op">::</span>get_singleton<span class="op">()-&gt;</span>is_editor_hint<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">switch</span> <span class="op">(</span>p_what<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> NOTIFICATION_READY<span class="op">:</span> <span class="op">{</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>            worker<span class="op">.</span>instantiate<span class="op">();</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>            worker<span class="op">-&gt;</span>start<span class="op">(</span>callable_mp<span class="op">(</span><span class="kw">this</span><span class="op">,</span> <span class="op">&amp;</span>MultithreadingDemo<span class="op">::</span>demo_threaded_function<span class="op">),</span> Thread<span class="op">::</span>PRIORITY_NORMAL<span class="op">);</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> NOTIFICATION_EXIT_TREE<span class="op">:</span> <span class="op">{</span> <span class="co">// Thread must be disposed (or &quot;joined&quot;), for portability.</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Wait until it exits.</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>worker<span class="op">.</span>is_valid<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>                worker<span class="op">-&gt;</span>wait_to_finish<span class="op">();</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>            worker<span class="op">.</span>unref<span class="op">();</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>MultithreadingDemo<span class="op">::</span>MultithreadingDemo<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Initialize any variables here.</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>MultithreadingDemo<span class="op">::~</span>MultithreadingDemo<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add your cleanup here.</span></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> MultithreadingDemo<span class="op">::</span>demo_threaded_function<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>    UtilityFunctions<span class="op">::</span>print<span class="op">(</span><span class="st">&quot;demo_threaded_function started!&quot;</span><span class="op">);</span></span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>    <span class="dt">uint64_t</span> start <span class="op">=</span> Time<span class="op">::</span>get_singleton<span class="op">()-&gt;</span>get_ticks_msec<span class="op">();</span></span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="op">(</span>Time<span class="op">::</span>get_singleton<span class="op">()-&gt;</span>get_ticks_msec<span class="op">()</span> <span class="op">-</span> start <span class="op">&lt;</span> <span class="dv">5000</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>        OS<span class="op">::</span>get_singleton<span class="op">()-&gt;</span>delay_msec<span class="op">(</span><span class="dv">10</span><span class="op">);</span></span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>        i<span class="op">++;</span></span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>    UtilityFunctions<span class="op">::</span>print<span class="op">(</span><span class="st">&quot;demo_threaded_function counted to: &quot;</span><span class="op">,</span> i<span class="op">,</span> <span class="st">&quot;.&quot;</span><span class="op">);</span></span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Your function will, then, run in a separate thread until it returns. Even if the function has returned already, the thread must collect it, so call ref, which will wait until the thread is done (if not done yet), then properly dispose of it.</p>
+<blockquote>
+<p><strong>Warning:</strong> Creating threads is a slow operation, especially on Windows. To avoid unnecessary performance overhead, make sure to create threads before heavy processing is needed instead of creating threads just-in-time.</p>
+<p>For example, if you need multiple threads during gameplay, you can create threads while the level is loading and only actually start processing with them later on.</p>
+<p>Additionally, locking and unlocking of mutexes can also be an expensive operation. Locking should be done carefully; avoid locking too often (or for too long).</p>
+</blockquote>
+<h2 id="mutexes">Mutexes</h2>
+<p>Accessing objects or data from multiple threads is not always supported (if you do it, it will cause unexpected behaviors or crashes). Read the <code>doc_thread_safe_apis</code> documentation to understand which engine APIs support multiple thread access.</p>
+<p>When processing your own data or calling your own functions, as a rule, try to avoid accessing the same data directly from different threads. You may run into synchronization problems, as the data is not always updated between CPU cores when modified. Always use a ref when accessing a piece of data from different threads.</p>
+<p>When calling ref, a thread ensures that all other threads will be blocked (put on suspended state) if they try to <em>lock</em> the same mutex. When the mutex is unlocked by calling ref, the other threads will be allowed to proceed with the lock (but only one at a time).</p>
+<p>Here is an example of using a Mutex:</p>
+<pre class="gdscript"><code>var counter := 0
+var mutex: Mutex
+var thread: Thread
+
+
+# The thread will start here.
+func _ready():
+    mutex = Mutex.new()
+    thread = Thread.new()
+    thread.start(_thread_function)
+
+    # Increase value, protect it with Mutex.
+    mutex.lock()
+    counter += 1
+    mutex.unlock()
+
+
+# Increment the value from the thread, too.
+func _thread_function():
+    mutex.lock()
+    counter += 1
+    mutex.unlock()
+
+
+# Thread must be disposed (or &quot;joined&quot;), for portability.
+func _exit_tree():
+    thread.wait_to_finish()
+    print(&quot;Counter is: &quot;, counter) # Should be 2.</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma once</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/mutex.hpp&gt;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/node.hpp&gt;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/thread.hpp&gt;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> godot <span class="op">{</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">class</span> MutexDemo <span class="op">:</span> <span class="kw">public</span> Node <span class="op">{</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        GDCLASS<span class="op">(</span>MutexDemo<span class="op">,</span> Node<span class="op">);</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span><span class="op">:</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        <span class="dt">int</span> counter <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>        Ref<span class="op">&lt;</span>Mutex<span class="op">&gt;</span> mutex<span class="op">;</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        Ref<span class="op">&lt;</span>Thread<span class="op">&gt;</span> thread<span class="op">;</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">protected</span><span class="op">:</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        <span class="at">static</span> <span class="dt">void</span> _bind_methods<span class="op">();</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        <span class="dt">void</span> _notification<span class="op">(</span><span class="dt">int</span> p_what<span class="op">);</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span><span class="op">:</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>        MutexDemo<span class="op">();</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">~</span>MutexDemo<span class="op">();</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        <span class="dt">void</span> thread_function<span class="op">();</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="co">// namespace godot</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;mutex_demo.h&quot;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/engine.hpp&gt;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/time.hpp&gt;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/core/class_db.hpp&gt;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/variant/utility_functions.hpp&gt;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> godot<span class="op">;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> MutexDemo<span class="op">::</span>_bind_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;thread_function&quot;</span><span class="op">),</span> <span class="op">&amp;</span>MutexDemo<span class="op">::</span>thread_function<span class="op">);</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> MutexDemo<span class="op">::</span>_notification<span class="op">(</span><span class="dt">int</span> p_what<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Prevents this from running in the editor, only during game mode.</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>Engine<span class="op">::</span>get_singleton<span class="op">()-&gt;</span>is_editor_hint<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">switch</span> <span class="op">(</span>p_what<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> NOTIFICATION_READY<span class="op">:</span> <span class="op">{</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>            UtilityFunctions<span class="op">::</span>print<span class="op">(</span><span class="st">&quot;Mutex Demo Counter is starting at: &quot;</span><span class="op">,</span> counter<span class="op">);</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>            mutex<span class="op">.</span>instantiate<span class="op">();</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>            thread<span class="op">.</span>instantiate<span class="op">();</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>            thread<span class="op">-&gt;</span>start<span class="op">(</span>callable_mp<span class="op">(</span><span class="kw">this</span><span class="op">,</span> <span class="op">&amp;</span>MutexDemo<span class="op">::</span>thread_function<span class="op">),</span> Thread<span class="op">::</span>PRIORITY_NORMAL<span class="op">);</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Increase value, protect it with Mutex.</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>            mutex<span class="op">-&gt;</span>lock<span class="op">();</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>            counter <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>            UtilityFunctions<span class="op">::</span>print<span class="op">(</span><span class="st">&quot;Mutex Demo Counter is &quot;</span><span class="op">,</span> counter<span class="op">,</span> <span class="st">&quot; after adding with Mutex protection.&quot;</span><span class="op">);</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>            mutex<span class="op">-&gt;</span>unlock<span class="op">();</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> NOTIFICATION_EXIT_TREE<span class="op">:</span> <span class="op">{</span> <span class="co">// Thread must be disposed (or &quot;joined&quot;), for portability.</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Wait until it exits.</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>thread<span class="op">.</span>is_valid<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>                thread<span class="op">-&gt;</span>wait_to_finish<span class="op">();</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>            thread<span class="op">.</span>unref<span class="op">();</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>            UtilityFunctions<span class="op">::</span>print<span class="op">(</span><span class="st">&quot;Mutex Demo Counter is &quot;</span><span class="op">,</span> counter<span class="op">,</span> <span class="st">&quot; at EXIT_TREE.&quot;</span><span class="op">);</span> <span class="co">// Should be 2.</span></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>MutexDemo<span class="op">::</span>MutexDemo<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Initialize any variables here.</span></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a>MutexDemo<span class="op">::~</span>MutexDemo<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add your cleanup here.</span></span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a><span class="co">// Increment the value from the thread, too.</span></span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> MutexDemo<span class="op">::</span>thread_function<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>    mutex<span class="op">-&gt;</span>lock<span class="op">();</span></span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a>    counter <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a>    mutex<span class="op">-&gt;</span>unlock<span class="op">();</span></span>
+<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="semaphores">Semaphores</h2>
+<p>Sometimes you want your thread to work <em>"on demand"</em>. In other words, tell it when to work and let it suspend when it isn't doing anything. For this, ref are used. The function ref is used in the thread to suspend it until some data arrives.</p>
+<p>The main thread, instead, uses ref to signal that data is ready to be processed:</p>
+<pre class="gdscript"><code>var counter := 0
+var mutex: Mutex
+var semaphore: Semaphore
+var thread: Thread
+var exit_thread := false
+
+
+# The thread will start here.
+func _ready():
+    mutex = Mutex.new()
+    semaphore = Semaphore.new()
+    exit_thread = false
+
+    thread = Thread.new()
+    thread.start(_thread_function)
+
+
+func _thread_function():
+    while true:
+        semaphore.wait() # Wait until posted.
+
+        mutex.lock()
+        var should_exit = exit_thread # Protect with Mutex.
+        mutex.unlock()
+
+        if should_exit:
+            break
+
+        mutex.lock()
+        counter += 1 # Increment counter, protect with Mutex.
+        mutex.unlock()
+
+
+func increment_counter():
+    semaphore.post() # Make the thread process.
+
+
+func get_counter():
+    mutex.lock()
+    # Copy counter, protect with Mutex.
+    var counter_value = counter
+    mutex.unlock()
+    return counter_value
+
+
+# Thread must be disposed (or &quot;joined&quot;), for portability.
+func _exit_tree():
+    # Set exit condition to true.
+    mutex.lock()
+    exit_thread = true # Protect with Mutex.
+    mutex.unlock()
+
+    # Unblock by posting.
+    semaphore.post()
+
+    # Wait until it exits.
+    thread.wait_to_finish()
+
+    # Print the counter.
+    print(&quot;Counter is: &quot;, counter)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma once</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/mutex.hpp&gt;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/node.hpp&gt;</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/semaphore.hpp&gt;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/thread.hpp&gt;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> godot <span class="op">{</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">class</span> SemaphoreDemo <span class="op">:</span> <span class="kw">public</span> Node <span class="op">{</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        GDCLASS<span class="op">(</span>SemaphoreDemo<span class="op">,</span> Node<span class="op">);</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span><span class="op">:</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">int</span> counter <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        Ref<span class="op">&lt;</span>Mutex<span class="op">&gt;</span> mutex<span class="op">;</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        Ref<span class="op">&lt;</span>Semaphore<span class="op">&gt;</span> semaphore<span class="op">;</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        Ref<span class="op">&lt;</span>Thread<span class="op">&gt;</span> thread<span class="op">;</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">bool</span> exit_thread <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">protected</span><span class="op">:</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">static</span> <span class="dt">void</span> _bind_methods<span class="op">();</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        <span class="dt">void</span> _notification<span class="op">(</span><span class="dt">int</span> p_what<span class="op">);</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span><span class="op">:</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>        SemaphoreDemo<span class="op">();</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>        <span class="op">~</span>SemaphoreDemo<span class="op">();</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>        <span class="dt">void</span> thread_function<span class="op">();</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>        <span class="dt">void</span> increment_counter<span class="op">();</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>        <span class="dt">int</span> get_counter<span class="op">();</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="co">// namespace godot</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;semaphore_demo.h&quot;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/engine.hpp&gt;</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/time.hpp&gt;</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/core/class_db.hpp&gt;</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/variant/utility_functions.hpp&gt;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> godot<span class="op">;</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> SemaphoreDemo<span class="op">::</span>_bind_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;thread_function&quot;</span><span class="op">),</span> <span class="op">&amp;</span>SemaphoreDemo<span class="op">::</span>thread_function<span class="op">);</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> SemaphoreDemo<span class="op">::</span>_notification<span class="op">(</span><span class="dt">int</span> p_what<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Prevents this from running in the editor, only during game mode.</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>Engine<span class="op">::</span>get_singleton<span class="op">()-&gt;</span>is_editor_hint<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">switch</span> <span class="op">(</span>p_what<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> NOTIFICATION_READY<span class="op">:</span> <span class="op">{</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>            UtilityFunctions<span class="op">::</span>print<span class="op">(</span><span class="st">&quot;Semaphore Demo Counter is starting at: &quot;</span><span class="op">,</span> counter<span class="op">);</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>            mutex<span class="op">.</span>instantiate<span class="op">();</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>            semaphore<span class="op">.</span>instantiate<span class="op">();</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>            exit_thread <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>            thread<span class="op">.</span>instantiate<span class="op">();</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>            thread<span class="op">-&gt;</span>start<span class="op">(</span>callable_mp<span class="op">(</span><span class="kw">this</span><span class="op">,</span> <span class="op">&amp;</span>SemaphoreDemo<span class="op">::</span>thread_function<span class="op">),</span> Thread<span class="op">::</span>PRIORITY_NORMAL<span class="op">);</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>            increment_counter<span class="op">();</span> <span class="co">// Call increment counter to test.</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> NOTIFICATION_EXIT_TREE<span class="op">:</span> <span class="op">{</span> <span class="co">// Thread must be disposed (or &quot;joined&quot;), for portability.</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Set exit condition to true.</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>            mutex<span class="op">-&gt;</span>lock<span class="op">();</span></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>            exit_thread <span class="op">=</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// Protect with Mutex.</span></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>            mutex<span class="op">-&gt;</span>unlock<span class="op">();</span></span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Unblock by posting.</span></span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>            semaphore<span class="op">-&gt;</span>post<span class="op">();</span></span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Wait until it exits.</span></span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>thread<span class="op">.</span>is_valid<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>                thread<span class="op">-&gt;</span>wait_to_finish<span class="op">();</span></span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a>            thread<span class="op">.</span>unref<span class="op">();</span></span>
+<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Print the counter.</span></span>
+<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>            UtilityFunctions<span class="op">::</span>print<span class="op">(</span><span class="st">&quot;Semaphore Demo Counter is &quot;</span><span class="op">,</span> get_counter<span class="op">(),</span>  <span class="st">&quot; at EXIT_TREE.&quot;</span><span class="op">);</span></span>
+<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a>SemaphoreDemo<span class="op">::</span>SemaphoreDemo<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-54"><a href="#cb9-54" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Initialize any variables here.</span></span>
+<span id="cb9-55"><a href="#cb9-55" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-56"><a href="#cb9-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-57"><a href="#cb9-57" aria-hidden="true" tabindex="-1"></a>SemaphoreDemo<span class="op">::~</span>SemaphoreDemo<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-58"><a href="#cb9-58" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add your cleanup here.</span></span>
+<span id="cb9-59"><a href="#cb9-59" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-60"><a href="#cb9-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-61"><a href="#cb9-61" aria-hidden="true" tabindex="-1"></a><span class="co">// Increment the value from the thread, too.</span></span>
+<span id="cb9-62"><a href="#cb9-62" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> SemaphoreDemo<span class="op">::</span>thread_function<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-63"><a href="#cb9-63" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="op">(</span><span class="kw">true</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-64"><a href="#cb9-64" aria-hidden="true" tabindex="-1"></a>        semaphore<span class="op">-&gt;</span>wait<span class="op">();</span> <span class="co">// Wait until posted.</span></span>
+<span id="cb9-65"><a href="#cb9-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-66"><a href="#cb9-66" aria-hidden="true" tabindex="-1"></a>        mutex<span class="op">-&gt;</span>lock<span class="op">();</span></span>
+<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a>        <span class="dt">bool</span> should_exit <span class="op">=</span> exit_thread<span class="op">;</span> <span class="co">// Protect with Mutex.</span></span>
+<span id="cb9-68"><a href="#cb9-68" aria-hidden="true" tabindex="-1"></a>        mutex<span class="op">-&gt;</span>unlock<span class="op">();</span></span>
+<span id="cb9-69"><a href="#cb9-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-70"><a href="#cb9-70" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>should_exit<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-71"><a href="#cb9-71" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb9-72"><a href="#cb9-72" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb9-73"><a href="#cb9-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-74"><a href="#cb9-74" aria-hidden="true" tabindex="-1"></a>        mutex<span class="op">-&gt;</span>lock<span class="op">();</span></span>
+<span id="cb9-75"><a href="#cb9-75" aria-hidden="true" tabindex="-1"></a>        counter <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span> <span class="co">// Increment counter, protect with Mutex.</span></span>
+<span id="cb9-76"><a href="#cb9-76" aria-hidden="true" tabindex="-1"></a>        mutex<span class="op">-&gt;</span>unlock<span class="op">();</span></span>
+<span id="cb9-77"><a href="#cb9-77" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-78"><a href="#cb9-78" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-79"><a href="#cb9-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-80"><a href="#cb9-80" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> SemaphoreDemo<span class="op">::</span>increment_counter<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-81"><a href="#cb9-81" aria-hidden="true" tabindex="-1"></a>    semaphore<span class="op">-&gt;</span>post<span class="op">();</span> <span class="co">// Make the thread process.</span></span>
+<span id="cb9-82"><a href="#cb9-82" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-83"><a href="#cb9-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-84"><a href="#cb9-84" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> SemaphoreDemo<span class="op">::</span>get_counter<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-85"><a href="#cb9-85" aria-hidden="true" tabindex="-1"></a>    mutex<span class="op">-&gt;</span>lock<span class="op">();</span></span>
+<span id="cb9-86"><a href="#cb9-86" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Copy counter, protect with Mutex.</span></span>
+<span id="cb9-87"><a href="#cb9-87" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> counter_value <span class="op">=</span> counter<span class="op">;</span></span>
+<span id="cb9-88"><a href="#cb9-88" aria-hidden="true" tabindex="-1"></a>    mutex<span class="op">-&gt;</span>unlock<span class="op">();</span></span>
+<span id="cb9-89"><a href="#cb9-89" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> counter_value<span class="op">;</span></span>
+<span id="cb9-90"><a href="#cb9-90" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

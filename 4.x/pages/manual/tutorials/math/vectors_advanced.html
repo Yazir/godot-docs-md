@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advanced vector math — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="advanced-vector-math">Advanced vector math</h1>
+<h2 id="planes">Planes</h2>
+<p>The dot product has another interesting property with unit vectors. Imagine that perpendicular to that vector (and through the origin) passes a plane. Planes divide the entire space into positive (over the plane) and negative (under the plane), and (contrary to popular belief) you can also use their math in 2D:</p>
+<p>Unit vectors that are perpendicular to a surface (so, they describe the orientation of the surface) are called <strong>unit normal vectors</strong>. Though, usually they are just abbreviated as <em>normals</em>. Normals appear in planes, 3D geometry (to determine where each face or vertex is siding), etc. A <strong>normal</strong> <em>is</em> a <strong>unit vector</strong>, but it's called <em>normal</em> because of its usage. (Just like we call (0,0) the Origin!).</p>
+<p>The plane passes by the origin and the surface of it is perpendicular to the unit vector (or <em>normal</em>). The side the vector points to is the positive half-space, while the other side is the negative half-space. In 3D this is exactly the same, except that the plane is an infinite surface (imagine an infinite, flat sheet of paper that you can orient and is pinned to the origin) instead of a line.</p>
+<h3 id="distance-to-plane">Distance to plane</h3>
+<p>Now that it's clear what a plane is, let's go back to the dot product. The dot product between a <strong>unit vector</strong> and any <strong>point in space</strong> (yes, this time we do dot product between vector and position), returns the <strong>distance from the point to the plane</strong>:</p>
+<pre class="gdscript"><code>var distance = normal.dot(point)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> distance <span class="op">=</span> normal<span class="op">.</span><span class="fu">Dot</span><span class="op">(</span>point<span class="op">);</span></span></code></pre></div>
+<p>But not just the absolute distance, if the point is in the negative half space the distance will be negative, too:</p>
+<p>This allows us to tell which side of the plane a point is.</p>
+<h3 id="away-from-the-origin">Away from the origin</h3>
+<p>I know what you are thinking! So far this is nice, but <em>real</em> planes are everywhere in space, not only passing through the origin. You want real <em>plane</em> action and you want it <em>now</em>.</p>
+<p>Remember that planes not only split space in two, but they also have <em>polarity</em>. This means that it is possible to have perfectly overlapping planes, but their negative and positive half-spaces are swapped.</p>
+<p>With this in mind, let's describe a full plane as a <strong>normal</strong> <em>N</em> and a <strong>distance from the origin</strong> scalar <em>D</em>. Thus, our plane is represented by N and D. For example:</p>
+<p>For 3D math, Godot provides a ref built-in type that handles this.</p>
+<p>Basically, N and D can represent any plane in space, be it for 2D or 3D (depending on the amount of dimensions of N) and the math is the same for both. It's the same as before, but D is the distance from the origin to the plane, travelling in N direction. As an example, imagine you want to reach a point in the plane, you will just do:</p>
+<pre class="gdscript"><code>var point_in_plane = N*D</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> pointInPlane <span class="op">=</span> N <span class="op">*</span> D<span class="op">;</span></span></code></pre></div>
+<p>This will stretch (resize) the normal vector and make it touch the plane. This math might seem confusing, but it's actually much simpler than it seems. If we want to tell, again, the distance from the point to the plane, we do the same but adjusting for distance:</p>
+<pre class="gdscript"><code>var distance = N.dot(point) - D</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> distance <span class="op">=</span> N<span class="op">.</span><span class="fu">Dot</span><span class="op">(</span>point<span class="op">)</span> <span class="op">-</span> D<span class="op">;</span></span></code></pre></div>
+<p>The same thing, using a built-in function:</p>
+<pre class="gdscript"><code>var distance = plane.distance_to(point)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> distance <span class="op">=</span> plane<span class="op">.</span><span class="fu">DistanceTo</span><span class="op">(</span>point<span class="op">);</span></span></code></pre></div>
+<p>This will, again, return either a positive or negative distance.</p>
+<p>Flipping the polarity of the plane can be done by negating both N and D. This will result in a plane in the same position, but with inverted negative and positive half spaces:</p>
+<pre class="gdscript"><code>N = -N
+D = -D</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>N <span class="op">=</span> <span class="op">-</span>N<span class="op">;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>D <span class="op">=</span> <span class="op">-</span>D<span class="op">;</span></span></code></pre></div>
+<p>Godot also implements this operator in ref. So, using the format below will work as expected:</p>
+<pre class="gdscript"><code>var inverted_plane = -plane</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> invertedPlane <span class="op">=</span> <span class="op">-</span>plane<span class="op">;</span></span></code></pre></div>
+<p>So, remember, the plane's main practical use is that we can calculate the distance to it. So, when is it useful to calculate the distance from a point to a plane? Let's see some examples.</p>
+<h3 id="constructing-a-plane-in-2d">Constructing a plane in 2D</h3>
+<p>Planes clearly don't come out of nowhere, so they must be built. Constructing them in 2D is easy, this can be done from either a normal (unit vector) and a point, or from two points in space.</p>
+<p>In the case of a normal and a point, most of the work is done, as the normal is already computed, so calculate D from the dot product of the normal and the point.</p>
+<pre class="gdscript"><code>var N = normal
+var D = normal.dot(point)</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> N <span class="op">=</span> normal<span class="op">;</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> D <span class="op">=</span> normal<span class="op">.</span><span class="fu">Dot</span><span class="op">(</span>point<span class="op">);</span></span></code></pre></div>
+<p>For two points in space, there are actually two planes that pass through them, sharing the same space but with normal pointing to the opposite directions. To compute the normal from the two points, the direction vector must be obtained first, and then it needs to be rotated 90 degrees to either side:</p>
+<pre class="gdscript"><code># Calculate vector from `a` to `b`.
+var dvec = point_a.direction_to(point_b)
+# Rotate 90 degrees.
+var normal = Vector2(dvec.y, -dvec.x)
+# Alternatively (depending the desired side of the normal):
+# var normal = Vector2(-dvec.y, dvec.x)</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Calculate vector from `a` to `b`.</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> dvec <span class="op">=</span> pointA<span class="op">.</span><span class="fu">DirectionTo</span><span class="op">(</span>pointB<span class="op">);</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Rotate 90 degrees.</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> normal <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span>dvec<span class="op">.</span><span class="fu">Y</span><span class="op">,</span> <span class="op">-</span>dvec<span class="op">.</span><span class="fu">X</span><span class="op">);</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">// Alternatively (depending the desired side of the normal):</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co">// var normal = new Vector2(-dvec.Y, dvec.X);</span></span></code></pre></div>
+<p>The rest is the same as the previous example. Either point_a or point_b will work, as they are in the same plane:</p>
+<pre class="gdscript"><code>var N = normal
+var D = normal.dot(point_a)
+# this works the same
+# var D = normal.dot(point_b)</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> N <span class="op">=</span> normal<span class="op">;</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> D <span class="op">=</span> normal<span class="op">.</span><span class="fu">Dot</span><span class="op">(</span>pointA<span class="op">);</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co">// this works the same</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co">// var D = normal.Dot(pointB);</span></span></code></pre></div>
+<p>Doing the same in 3D is a little more complex and is explained further down.</p>
+<h3 id="some-examples-of-planes">Some examples of planes</h3>
+<p>Here is an example of what planes are useful for. Imagine you have a <a href="https://www.mathsisfun.com/definitions/convex.html">convex</a> polygon. For example, a rectangle, a trapezoid, a triangle, or just any polygon where no faces bend inwards.</p>
+<p>For every segment of the polygon, we compute the plane that passes by that segment. Once we have the list of planes, we can do neat things, for example checking if a point is inside the polygon.</p>
+<p>We go through all planes, if we can find a plane where the distance to the point is positive, then the point is outside the polygon. If we can't, then the point is inside.</p>
+<p>Code should be something like this:</p>
+<pre class="gdscript"><code>var inside = true
+for p in planes:
+    # check if distance to plane is positive
+    if (p.distance_to(point) &gt; 0):
+        inside = false
+        break # with one that fails, it&#39;s enough</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> inside <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="kw">foreach</span> <span class="op">(</span><span class="dt">var</span> p <span class="kw">in</span> planes<span class="op">)</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// check if distance to plane is positive</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>p<span class="op">.</span><span class="fu">DistanceTo</span><span class="op">(</span>point<span class="op">)</span> <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>        inside <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>        <span class="kw">break</span><span class="op">;</span> <span class="co">// with one that fails, it&#39;s enough</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Pretty cool, huh? But this gets much better! With a little more effort, similar logic will let us know when two convex polygons are overlapping too. This is called the Separating Axis Theorem (or SAT) and most physics engines use this to detect collision.</p>
+<p>With a point, just checking if a plane returns a positive distance is enough to tell if the point is outside. With another polygon, we must find a plane where <em>all</em> <em>the</em> <em>other</em> <em>polygon</em> <em>points</em> return a positive distance to it. This check is performed with the planes of A against the points of B, and then with the planes of B against the points of A:</p>
+<p>Code should be something like this:</p>
+<pre class="gdscript"><code>var overlapping = true
+
+for p in planes_of_A:
+    var all_out = true
+    for v in points_of_B:
+        if (p.distance_to(v) &lt; 0):
+            all_out = false
+            break
+
+    if (all_out):
+        # a separating plane was found
+        # do not continue testing
+        overlapping = false
+        break
+
+if (overlapping):
+    # only do this check if no separating plane
+    # was found in planes of A
+    for p in planes_of_B:
+        var all_out = true
+        for v in points_of_A:
+            if (p.distance_to(v) &lt; 0):
+                all_out = false
+                break
+
+        if (all_out):
+            overlapping = false
+            break
+
+if (overlapping):
+    print(&quot;Polygons Collided!&quot;)</code></pre>
+<div class="sourceCode" id="cb22"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> overlapping <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="kw">foreach</span> <span class="op">(</span>Plane plane <span class="kw">in</span> planesOfA<span class="op">)</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> allOut <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">foreach</span> <span class="op">(</span>Vector3 point <span class="kw">in</span> pointsOfB<span class="op">)</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>plane<span class="op">.</span><span class="fu">DistanceTo</span><span class="op">(</span>point<span class="op">)</span> <span class="op">&lt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>            allOut <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>            <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>allOut<span class="op">)</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// a separating plane was found</span></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// do not continue testing</span></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>        overlapping <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>        <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>overlapping<span class="op">)</span></span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>    <span class="co">// only do this check if no separating plane</span></span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">// was found in planes of A</span></span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>    <span class="kw">foreach</span> <span class="op">(</span>Plane plane <span class="kw">in</span> planesOfB<span class="op">)</span></span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> allOut <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a>        <span class="kw">foreach</span> <span class="op">(</span>Vector3 point <span class="kw">in</span> pointsOfA<span class="op">)</span></span>
+<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>plane<span class="op">.</span><span class="fu">DistanceTo</span><span class="op">(</span>point<span class="op">)</span> <span class="op">&lt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a>                allOut <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>                <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>allOut<span class="op">)</span></span>
+<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb22-42"><a href="#cb22-42" aria-hidden="true" tabindex="-1"></a>            overlapping <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb22-43"><a href="#cb22-43" aria-hidden="true" tabindex="-1"></a>            <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb22-44"><a href="#cb22-44" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb22-45"><a href="#cb22-45" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb22-46"><a href="#cb22-46" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb22-47"><a href="#cb22-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-48"><a href="#cb22-48" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>overlapping<span class="op">)</span></span>
+<span id="cb22-49"><a href="#cb22-49" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb22-50"><a href="#cb22-50" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;Polygons Collided!&quot;</span><span class="op">);</span></span>
+<span id="cb22-51"><a href="#cb22-51" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>As you can see, planes are quite useful, and this is the tip of the iceberg. You might be wondering what happens with non-convex polygons. This is usually just handled by splitting the concave polygon into smaller convex polygons, or using a technique such as BSP (which is not used much nowadays).</p>
+<h2 id="collision-detection-in-3d">Collision detection in 3D</h2>
+<p>This is another bonus bit, a reward for being patient and keeping up with this long tutorial. Here is another piece of wisdom. This might not be something with a direct use case (Godot already does collision detection pretty well) but it's used by almost all physics engines and collision detection libraries :)</p>
+<p>Remember that converting a convex shape in 2D to an array of 2D planes was useful for collision detection? You could detect if a point was inside any convex shape, or if two 2D convex shapes were overlapping.</p>
+<p>Well, this works in 3D too, if two 3D polyhedral shapes are colliding, you won't be able to find a separating plane. If a separating plane is found, then the shapes are definitely not colliding.</p>
+<p>To refresh a bit a separating plane means that all vertices of polygon A are in one side of the plane, and all vertices of polygon B are in the other side. This plane is always one of the face-planes of either polygon A or polygon B.</p>
+<p>In 3D though, there is a problem to this approach, because it is possible that, in some cases a separating plane can't be found. This is an example of such situation:</p>
+<p>To avoid it, some extra planes need to be tested as separators, these planes are the cross product between the edges of polygon A and the edges of polygon B</p>
+<p>So the final algorithm is something like:</p>
+<pre class="gdscript"><code>var overlapping = true
+
+for p in planes_of_A:
+    var all_out = true
+    for v in points_of_B:
+        if (p.distance_to(v) &lt; 0):
+            all_out = false
+            break
+
+    if (all_out):
+        # a separating plane was found
+        # do not continue testing
+        overlapping = false
+        break
+
+if (overlapping):
+    # only do this check if no separating plane
+    # was found in planes of A
+    for p in planes_of_B:
+        var all_out = true
+        for v in points_of_A:
+            if (p.distance_to(v) &lt; 0):
+                all_out = false
+                break
+
+        if (all_out):
+            overlapping = false
+            break
+
+if (overlapping):
+    for ea in edges_of_A:
+        for eb in edges_of_B:
+            var n = ea.cross(eb)
+            if (n.length() == 0):
+                continue
+
+            var max_A = -1e20 # tiny number
+            var min_A = 1e20 # huge number
+
+            # we are using the dot product directly
+            # so we can map a maximum and minimum range
+            # for each polygon, then check if they
+            # overlap.
+
+            for v in points_of_A:
+                var d = n.dot(v)
+                max_A = max(max_A, d)
+                min_A = min(min_A, d)
+
+            var max_B = -1e20 # tiny number
+            var min_B = 1e20 # huge number
+
+            for v in points_of_B:
+                var d = n.dot(v)
+                max_B = max(max_B, d)
+                min_B = min(min_B, d)
+
+            if (min_A &gt; max_B or min_B &gt; max_A):
+                # not overlapping!
+                overlapping = false
+                break
+
+        if (not overlapping):
+            break
+
+if (overlapping):
+   print(&quot;Polygons collided!&quot;)</code></pre>
+<div class="sourceCode" id="cb24"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> overlapping <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="kw">foreach</span> <span class="op">(</span>Plane plane <span class="kw">in</span> planesOfA<span class="op">)</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> allOut <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">foreach</span> <span class="op">(</span>Vector3 point <span class="kw">in</span> pointsOfB<span class="op">)</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>plane<span class="op">.</span><span class="fu">DistanceTo</span><span class="op">(</span>point<span class="op">)</span> <span class="op">&lt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>            allOut <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>            <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>allOut<span class="op">)</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// a separating plane was found</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// do not continue testing</span></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>        overlapping <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>        <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>overlapping<span class="op">)</span></span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a>    <span class="co">// only do this check if no separating plane</span></span>
+<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">// was found in planes of A</span></span>
+<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a>    <span class="kw">foreach</span> <span class="op">(</span>Plane plane <span class="kw">in</span> planesOfB<span class="op">)</span></span>
+<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> allOut <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a>        <span class="kw">foreach</span> <span class="op">(</span>Vector3 point <span class="kw">in</span> pointsOfA<span class="op">)</span></span>
+<span id="cb24-32"><a href="#cb24-32" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb24-33"><a href="#cb24-33" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>plane<span class="op">.</span><span class="fu">DistanceTo</span><span class="op">(</span>point<span class="op">)</span> <span class="op">&lt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb24-34"><a href="#cb24-34" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb24-35"><a href="#cb24-35" aria-hidden="true" tabindex="-1"></a>                allOut <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb24-36"><a href="#cb24-36" aria-hidden="true" tabindex="-1"></a>                <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb24-37"><a href="#cb24-37" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb24-38"><a href="#cb24-38" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb24-39"><a href="#cb24-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-40"><a href="#cb24-40" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>allOut<span class="op">)</span></span>
+<span id="cb24-41"><a href="#cb24-41" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb24-42"><a href="#cb24-42" aria-hidden="true" tabindex="-1"></a>            overlapping <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb24-43"><a href="#cb24-43" aria-hidden="true" tabindex="-1"></a>            <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb24-44"><a href="#cb24-44" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb24-45"><a href="#cb24-45" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb24-46"><a href="#cb24-46" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb24-47"><a href="#cb24-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-48"><a href="#cb24-48" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>overlapping<span class="op">)</span></span>
+<span id="cb24-49"><a href="#cb24-49" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb24-50"><a href="#cb24-50" aria-hidden="true" tabindex="-1"></a>    <span class="kw">foreach</span> <span class="op">(</span>Vector3 edgeA <span class="kw">in</span> edgesOfA<span class="op">)</span></span>
+<span id="cb24-51"><a href="#cb24-51" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb24-52"><a href="#cb24-52" aria-hidden="true" tabindex="-1"></a>        <span class="kw">foreach</span> <span class="op">(</span>Vector3 edgeB <span class="kw">in</span> edgesOfB<span class="op">)</span></span>
+<span id="cb24-53"><a href="#cb24-53" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb24-54"><a href="#cb24-54" aria-hidden="true" tabindex="-1"></a>            <span class="dt">var</span> normal <span class="op">=</span> edgeA<span class="op">.</span><span class="fu">Cross</span><span class="op">(</span>edgeB<span class="op">);</span></span>
+<span id="cb24-55"><a href="#cb24-55" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>normal<span class="op">.</span><span class="fu">Length</span><span class="op">()</span> <span class="op">==</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb24-56"><a href="#cb24-56" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb24-57"><a href="#cb24-57" aria-hidden="true" tabindex="-1"></a>                <span class="kw">continue</span><span class="op">;</span></span>
+<span id="cb24-58"><a href="#cb24-58" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb24-59"><a href="#cb24-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-60"><a href="#cb24-60" aria-hidden="true" tabindex="-1"></a>            <span class="dt">var</span> maxA <span class="op">=</span> <span class="dt">float</span><span class="op">.</span><span class="fu">MinValue</span><span class="op">;</span> <span class="co">// tiny number</span></span>
+<span id="cb24-61"><a href="#cb24-61" aria-hidden="true" tabindex="-1"></a>            <span class="dt">var</span> minA <span class="op">=</span> <span class="dt">float</span><span class="op">.</span><span class="fu">MaxValue</span><span class="op">;</span> <span class="co">// huge number</span></span>
+<span id="cb24-62"><a href="#cb24-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-63"><a href="#cb24-63" aria-hidden="true" tabindex="-1"></a>            <span class="co">// we are using the dot product directly</span></span>
+<span id="cb24-64"><a href="#cb24-64" aria-hidden="true" tabindex="-1"></a>            <span class="co">// so we can map a maximum and minimum range</span></span>
+<span id="cb24-65"><a href="#cb24-65" aria-hidden="true" tabindex="-1"></a>            <span class="co">// for each polygon, then check if they</span></span>
+<span id="cb24-66"><a href="#cb24-66" aria-hidden="true" tabindex="-1"></a>            <span class="co">// overlap.</span></span>
+<span id="cb24-67"><a href="#cb24-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-68"><a href="#cb24-68" aria-hidden="true" tabindex="-1"></a>            <span class="kw">foreach</span> <span class="op">(</span>Vector3 point <span class="kw">in</span> pointsOfA<span class="op">)</span></span>
+<span id="cb24-69"><a href="#cb24-69" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb24-70"><a href="#cb24-70" aria-hidden="true" tabindex="-1"></a>                <span class="dt">var</span> distance <span class="op">=</span> normal<span class="op">.</span><span class="fu">Dot</span><span class="op">(</span>point<span class="op">);</span></span>
+<span id="cb24-71"><a href="#cb24-71" aria-hidden="true" tabindex="-1"></a>                maxA <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Max</span><span class="op">(</span>maxA<span class="op">,</span> distance<span class="op">);</span></span>
+<span id="cb24-72"><a href="#cb24-72" aria-hidden="true" tabindex="-1"></a>                minA <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Min</span><span class="op">(</span>minA<span class="op">,</span> distance<span class="op">);</span></span>
+<span id="cb24-73"><a href="#cb24-73" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb24-74"><a href="#cb24-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-75"><a href="#cb24-75" aria-hidden="true" tabindex="-1"></a>            <span class="dt">var</span> maxB <span class="op">=</span> <span class="dt">float</span><span class="op">.</span><span class="fu">MinValue</span><span class="op">;</span> <span class="co">// tiny number</span></span>
+<span id="cb24-76"><a href="#cb24-76" aria-hidden="true" tabindex="-1"></a>            <span class="dt">var</span> minB <span class="op">=</span> <span class="dt">float</span><span class="op">.</span><span class="fu">MaxValue</span><span class="op">;</span> <span class="co">// huge number</span></span>
+<span id="cb24-77"><a href="#cb24-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-78"><a href="#cb24-78" aria-hidden="true" tabindex="-1"></a>            <span class="kw">foreach</span> <span class="op">(</span>Vector3 point <span class="kw">in</span> pointsOfB<span class="op">)</span></span>
+<span id="cb24-79"><a href="#cb24-79" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb24-80"><a href="#cb24-80" aria-hidden="true" tabindex="-1"></a>                <span class="dt">var</span> distance <span class="op">=</span> normal<span class="op">.</span><span class="fu">Dot</span><span class="op">(</span>point<span class="op">);</span></span>
+<span id="cb24-81"><a href="#cb24-81" aria-hidden="true" tabindex="-1"></a>                maxB <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Max</span><span class="op">(</span>maxB<span class="op">,</span> distance<span class="op">);</span></span>
+<span id="cb24-82"><a href="#cb24-82" aria-hidden="true" tabindex="-1"></a>                minB <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Min</span><span class="op">(</span>minB<span class="op">,</span> distance<span class="op">);</span></span>
+<span id="cb24-83"><a href="#cb24-83" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb24-84"><a href="#cb24-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-85"><a href="#cb24-85" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>minA <span class="op">&gt;</span> maxB <span class="op">||</span> minB <span class="op">&gt;</span> maxA<span class="op">)</span></span>
+<span id="cb24-86"><a href="#cb24-86" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb24-87"><a href="#cb24-87" aria-hidden="true" tabindex="-1"></a>                <span class="co">// not overlapping!</span></span>
+<span id="cb24-88"><a href="#cb24-88" aria-hidden="true" tabindex="-1"></a>                overlapping <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb24-89"><a href="#cb24-89" aria-hidden="true" tabindex="-1"></a>                <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb24-90"><a href="#cb24-90" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb24-91"><a href="#cb24-91" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb24-92"><a href="#cb24-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-93"><a href="#cb24-93" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(!</span>overlapping<span class="op">)</span></span>
+<span id="cb24-94"><a href="#cb24-94" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb24-95"><a href="#cb24-95" aria-hidden="true" tabindex="-1"></a>            <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb24-96"><a href="#cb24-96" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb24-97"><a href="#cb24-97" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-98"><a href="#cb24-98" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb24-99"><a href="#cb24-99" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb24-100"><a href="#cb24-100" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-101"><a href="#cb24-101" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>overlapping<span class="op">)</span></span>
+<span id="cb24-102"><a href="#cb24-102" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb24-103"><a href="#cb24-103" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;Polygons Collided!&quot;</span><span class="op">);</span></span>
+<span id="cb24-104"><a href="#cb24-104" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="more-information">More information</h2>
+<p>For more information on using vector math in Godot, see the following article:</p>
+<ul>
+<li><code>doc_matrices_and_transforms</code></li>
+</ul>
+<p>If you would like additional explanation, you should check out 3Blue1Brown's excellent video series <a href="https://www.youtube.com/watch?v=fNk_zzaMoSs&amp;list=PLZHQObOWTQDPD3MizzM2xVFitgF8hE_ab">Essence of Linear Algebra</a>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exporting packs, patches, and mods — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="exporting-packs-patches-and-mods">Exporting packs, patches, and mods</h1>
+<h2 id="use-cases">Use cases</h2>
+<p>Oftentimes one would like to add functionality to one's game after it has been deployed.</p>
+<p>Examples of this include...</p>
+<ul>
+<li>Downloadable Content: the ability to add features and content to one's game.</li>
+<li>Patches: the ability to fix a bug that is present in a shipped product.</li>
+<li>Mods: grant other people the ability to create content for one's game.</li>
+</ul>
+<p>These tools help developers to extend their development beyond the initial release.</p>
+<h2 id="overview-of-pck-files">Overview of PCK files</h2>
+<p>Godot enables this via a feature called <strong>resource packs</strong> (PCK files, with extension <code>.pck</code>).</p>
+<p><strong>Advantages:</strong></p>
+<ul>
+<li>incremental updates/patches</li>
+<li>offer DLCs</li>
+<li>offer mod support</li>
+<li>no source code disclosure needed for mods</li>
+<li>more modular project structure</li>
+<li>users don't have to replace the entire game</li>
+</ul>
+<p>The first part of using them involves exporting and delivering the project to players. Then, when one wants to add functionality or content later on, they just deliver the updates via PCK files to the users.</p>
+<p>PCK files usually contain, but are not limited to:</p>
+<ul>
+<li>scripts</li>
+<li>scenes</li>
+<li>shaders</li>
+<li>models</li>
+<li>textures</li>
+<li>sound effects</li>
+<li>music</li>
+<li>any other asset suitable for import into the game</li>
+</ul>
+<p>The PCK files can even be an entirely different Godot project, which the original game loads in at runtime.</p>
+<h2 id="generating-pck-files">Generating PCK files</h2>
+<p>In order to pack all resources of a project into a PCK file open the project and go to Project/Export and click on “Export PCK/Zip”. Also make sure to have an export template selected while doing so.</p>
+<p>Another method would be to ref. If the output file ends with a PCK or ZIP file extension, then the export process will build that type of file for the chosen platform.</p>
+<blockquote>
+<p><strong>Note:</strong> If one wishes to support mods for their game, they will need their users to create similarly exported files. Assuming the original game expects a certain structure for the PCK's resources and/or a certain interface for its scripts, then either...</p>
+<ol type="1">
+<li>The developer must publicize documentation of these expected structures/ interfaces, expect modders to install Godot Engine, and then also expect those modders to conform to the documentation's defined API when building mod content for the game (so that it will work). Users would then use Godot's built in exporting tools to create a PCK file, as detailed above.</li>
+<li>The developer uses Godot to build a GUI tool for adding their exact API content to a project. This Godot tool must either run on a tools-enabled build of the engine or have access to one (distributed alongside or perhaps in the original game's files). The tool can then use the Godot executable to export a PCK file from the command line with ref. The game itself shouldn't use a tool-build of the engine (for security), so it's best to keep the modding tool and game separate.</li>
+</ol>
+</blockquote>
+<h2 id="opening-pck-files-at-runtime">Opening PCK files at runtime</h2>
+<p>To import a PCK file, one uses the ProjectSettings singleton. The following example expects a “mod.pck” file in the directory of the games executable. The PCK file contains a “mod_scene.tscn” test scene in its root.</p>
+<pre class="gdscript"><code>func _your_function():
+    # This could fail if, for example, mod.pck cannot be found.
+    var success = ProjectSettings.load_resource_pack(&quot;res://mod.pck&quot;)
+
+    if success:
+        # Now one can use the assets as if they had them in the project from the start.
+        var imported_scene = load(&quot;res://mod_scene.tscn&quot;)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">YourFunction</span><span class="op">()</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// This could fail if, for example, mod.pck cannot be found.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> success <span class="op">=</span> ProjectSettings<span class="op">.</span><span class="fu">LoadResourcePack</span><span class="op">(</span><span class="st">&quot;res://mod.pck&quot;</span><span class="op">);</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>success<span class="op">)</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Now one can use the assets as if they had them in the project from the start.</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> importedScene <span class="op">=</span> <span class="op">(</span>PackedScene<span class="op">)</span>ResourceLoader<span class="op">.</span><span class="fu">Load</span><span class="op">(</span><span class="st">&quot;res://mod_scene.tscn&quot;</span><span class="op">);</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Warning:</strong> By default, if you import a file with the same file path/name as one you already have in your project, the imported one will replace it. This is something to watch out for when creating DLC or mods (solved easily with a tool isolating mods to a specific mods subfolder). However, it is also a way of creating patches for one's own game. A PCK file of this kind can fix the content of a previously loaded PCK.</p>
+<p>To opt out of this behavior, pass <code>false</code> as the second argument to ref.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> For a C# project, you need to build the DLL and place it in the project directory first. Then, before loading the resource pack, you need to load its DLL as follows: <code>Assembly.LoadFile("mod.dll")</code></p>
+</blockquote>
+<h2 id="summary">Summary</h2>
+<p>This tutorial should illustrate how easy adding mods, patches or DLC to a game is. The most important thing is to identify how one plans to distribute future content for their game and develop a workflow that is customized for that purpose. Godot should make that process smooth regardless of which route a developer pursues.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

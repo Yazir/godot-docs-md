@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Godot Android library — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="godot-android-library">Godot Android library</h1>
+<p>The Godot Engine for Android platforms is designed to be used as an <a href="https://developer.android.com/studio/projects/android-library">Android library</a>. This architecture enables several key features on Android platforms:</p>
+<ul>
+<li>Ability to integrate the Gradle build system within the Godot Editor, which provides the ability to leverage more components from the Android ecosystem such as libraries and tools</li>
+<li>Ability to make the engine portable and embeddable:
+<ul>
+<li>Key in enabling the port of the Godot Editor to Android and mobile XR devices</li>
+<li>Key in allowing the integration and reuse of Godot's capabilities within existing codebase</li>
+</ul></li>
+</ul>
+<p>Below we describe some of the use-cases and scenarios this architecture enables.</p>
+<h2 id="using-the-godot-android-library">Using the Godot Android library</h2>
+<p>The Godot Android library is packaged as an AAR archive file and hosted on <a href="https://central.sonatype.com/artifact/org.godotengine/godot">MavenCentral</a> along with <a href="https://javadoc.io/doc/org.godotengine/godot/latest/index.html">its documentation</a>.</p>
+<p>It provides access to Godot APIs and capabilities on Android platforms for the following non-exhaustive use-cases.</p>
+<h2 id="godot-android-plugins">Godot Android plugins</h2>
+<p>Android plugins are powerful tools to extend the capabilities of the Godot Engine by tapping into the functionality provided by Android platforms and ecosystem.</p>
+<p>An Android plugin is an Android library with a dependency on the Godot Android library which the plugin uses to integrate into the engine's lifecycle and to access Godot APIs, granting it powerful capabilities such as GDExtension support which allows to update / mod the engine behavior as needed.</p>
+<p>For more information, see ref.</p>
+<h2 id="embedding-godot-in-existing-android-projects">Embedding Godot in existing Android projects</h2>
+<p>The Godot Engine can be embedded within existing Android applications or libraries, allowing developers to leverage mature and battle-tested code and libraries better suited to a specific task.</p>
+<p>The hosting component is responsible for driving the engine lifecycle via Godot's Android APIs. These APIs can also be used to provide bidirectional communication between the host and the embedded Godot instance allowing for greater control over the desired experience.</p>
+<p>We showcase how this is done using a sample Android app that embeds the Godot Engine as an Android view, and uses it to render 3D glTF models.</p>
+<p>The <a href="https://github.com/m4gr3d/Godot-Android-Samples/tree/master/apps/gltf_viewer">GLTF Viewer</a> sample app uses an <a href="https://developer.android.com/develop/ui/views/layout/recyclerview">Android RecyclerView component</a> to create a list of glTF items, populated from <a href="https://kenney.nl/assets/food-kit">Kenney's Food Kit pack</a>. When an item on the list is selected, the app's logic interacts with the embedded Godot Engine to render the selected glTF item as a 3D model.</p>
+<p>The sample app source code can be found <a href="https://github.com/m4gr3d/Godot-Android-Samples/tree/master/apps/gltf_viewer">on GitHub</a>. Follow the instructions on <a href="https://github.com/m4gr3d/Godot-Android-Samples/blob/master/apps/gltf_viewer/README.md">its README</a> to build and install it.</p>
+<p>Below we break-down the steps used to create the GLTF Viewer app.</p>
+<blockquote>
+<p><strong>Warning:</strong> Currently only a single instance of the Godot Engine is supported per process. You can configure the process the Android Activity runs under using the <a href="https://developer.android.com/guide/topics/manifest/activity-element#proc">android:process attribute</a>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Automatic resizing / orientation configuration events are not supported and may cause a crash. You can disable those events:</p>
+<ul>
+<li>By locking to a specific orientation using the <a href="https://developer.android.com/guide/topics/manifest/activity-element#screen">android:screenOrientation attribute</a>.</li>
+<li>By declaring that the Activity will handle these configuration events using the <a href="https://developer.android.com/guide/topics/manifest/activity-element#config">android:configChanges attribute</a>.</li>
+</ul>
+</blockquote>
+<h3 id="1-create-the-android-app">1. Create the Android app</h3>
+<blockquote>
+<p><strong>Note:</strong> The Android sample app was created using <a href="https://developer.android.com/studio">Android Studio</a> and using <a href="https://developer.android.com/build">Gradle</a> as the build system.</p>
+<p>The Android ecosystem provides multiple tools, IDEs, build systems for creating Android apps so feel free to use what you're familiar with, and update the steps below accordingly (contributions to this documentation are welcomed as well!).</p>
+</blockquote>
+<ul>
+<li><p>Set up an Android application project. It may be a brand new empty project, or an existing project</p></li>
+<li><p>Add the <a href="https://central.sonatype.com/artifact/org.godotengine/godot">maven dependency for the Godot Android library</a></p>
+<ul>
+<li>If using <code>gradle</code>, add the following to the <code>dependency</code> section of the app's gradle build file. Make sure to update <code>&lt;version&gt;</code> to the latest version of the Godot Android library:</li>
+</ul>
+<div class="sourceCode" id="cb1"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>implementation<span class="op">(</span><span class="st">&quot;org.godotengine:godot:&lt;version&gt;&quot;</span><span class="op">)</span></span></code></pre></div></li>
+<li><p>If using <code>gradle</code>, include the following <code>aaptOptions</code> configuration under the <code>android &gt; defaultConfig</code> section of the app's gradle build file. Doing so allows <code>gradle</code> to include Godot's hidden directories when building the app binary.</p>
+<ul>
+<li>If your build system does not support including hidden directories, you can configure the Godot project to not use hidden directories by deselecting ref in the Project Settings.</li>
+</ul></li>
+</ul>
+<div class="sourceCode" id="cb2"><pre class="sourceCode groovy"><code class="sourceCode groovy"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>android <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  defaultConfig <span class="op">{</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>      <span class="co">// The default ignore pattern for the &#39;assets&#39; directory includes hidden files and</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>      <span class="co">// directories which are used by Godot projects, so we override it with the following.</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>      aaptOptions <span class="op">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>          ignoreAssetsPattern <span class="st">&quot;!.svn:!.git:!.gitignore:!.ds_store:!*.scc:&lt;dir&gt;_*:!CVS:!thumbs.db:!picasa.ini:!*~&quot;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>      <span class="op">}</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span></code></pre></div>
+<ul>
+<li><p>Create / update the application's Activity that will be hosting the Godot Engine instance. For the sample app, this is <a href="https://github.com/m4gr3d/Godot-Android-Samples/blob/master/apps/gltf_viewer/src/main/java/fhuyakou/godot/app/android/gltfviewer/MainActivity.kt">MainActivity</a></p>
+<ul>
+<li>The host Activity should implement the <a href="https://github.com/godotengine/godot/blob/master/platform/android/java/lib/src/org/godotengine/godot/GodotHost.java">GodotHost interface</a></li>
+<li>The sample app uses <a href="https://developer.android.com/guide/fragments">Fragments</a> to organize its UI, so it uses <a href="https://github.com/godotengine/godot/blob/master/platform/android/java/lib/src/org/godotengine/godot/GodotFragment.java">GodotFragment</a>, a fragment component provided by the Godot Android library to automatically host and manage the Godot Engine instance.</li>
+</ul>
+<div class="sourceCode" id="cb3"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="kw">var</span> <span class="va">godotFragment</span><span class="op">:</span> GodotFragment<span class="op">?</span> <span class="op">=</span> <span class="kw">null</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">override</span> <span class="kw">fun</span> <span class="fu">onCreate</span><span class="op">(</span><span class="va">savedInstanceState</span><span class="op">:</span> <span class="dt">Bundle</span><span class="op">?)</span> <span class="op">{</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">super</span><span class="op">.</span>onCreate<span class="op">(</span>savedInstanceState<span class="op">)</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    setContentView<span class="op">(</span>R<span class="op">.</span>layout<span class="op">.</span>activity_main<span class="op">)</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">currentGodotFragment</span> <span class="op">=</span> supportFragmentManager<span class="op">.</span>findFragmentById<span class="op">(</span>R<span class="op">.</span>id<span class="op">.</span>godot_fragment_container<span class="op">)</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>currentGodotFragment <span class="kw">is</span> GodotFragment<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        godotFragment <span class="op">=</span> currentGodotFragment</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        godotFragment <span class="op">=</span> GodotFragment<span class="op">()</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        supportFragmentManager<span class="op">.</span>beginTransaction<span class="op">()</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span>replace<span class="op">(</span>R<span class="op">.</span>id<span class="op">.</span>godot_fragment_container<span class="op">,</span> godotFragment<span class="op">!!)</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span>commitNowAllowingStateLoss<span class="op">()</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span></code></pre></div></li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> The Godot Android library also provide <a href="https://github.com/godotengine/godot/blob/master/platform/android/java/lib/src/org/godotengine/godot/GodotActivity.kt">GodotActivity</a>, an Activity component that can be extended to automatically host and manage the Godot Engine instance.</p>
+<p>Alternatively, applications can directly create a <a href="https://github.com/godotengine/godot/blob/master/platform/android/java/lib/src/org/godotengine/godot/Godot.kt">Godot</a> instance, host and manage it themselves.</p>
+</blockquote>
+<ul>
+<li>Using <a href="https://github.com/m4gr3d/Godot-Android-Samples/blob/0e3440f357f8be5b4c63a4fe75766793199a99d0/apps/gltf_viewer/src/main/java/fhuyakou/godot/app/android/gltfviewer/MainActivity.kt#L55">GodotHost#getHostPlugins(...)</a>, the sample app creates a <a href="https://github.com/m4gr3d/Godot-Android-Samples/blob/master/apps/gltf_viewer/src/main/java/fhuyakou/godot/app/android/gltfviewer/AppPlugin.kt">runtime GodotPlugin instance</a> that's used to send ref to the <code>gdscript</code> logic
+<ul>
+<li>The runtime <code>GodotPlugin</code> can also be used by <code>gdscript</code> logic to access JVM methods. For more information, see ref.</li>
+</ul></li>
+<li>Add any additional logic that will be used by your application
+<ul>
+<li>For the sample app, this includes adding the <a href="https://github.com/m4gr3d/Godot-Android-Samples/blob/master/apps/gltf_viewer/src/main/java/fhuyakou/godot/app/android/gltfviewer/ItemsSelectionFragment.kt">ItemsSelectionFragment fragment</a> (and related classes), a fragment used to build and show the list of glTF items</li>
+</ul></li>
+<li>Open the <code>AndroidManifest.xml</code> file, and configure the orientation if needed using the <a href="https://developer.android.com/guide/topics/manifest/activity-element#screen">android:screenOrientation attribute</a>
+<ul>
+<li>If needed, disable automatic resizing / orientation configuration changes using the <a href="https://developer.android.com/guide/topics/manifest/activity-element#config">android:configChanges attribute</a></li>
+</ul></li>
+</ul>
+<div class="sourceCode" id="cb4"><pre class="sourceCode xml"><code class="sourceCode xml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">activity</span><span class="ot"> android:name=</span><span class="st">&quot;.MainActivity&quot;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ot">    android:screenOrientation=</span><span class="st">&quot;fullUser&quot;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ot">    android:configChanges=</span><span class="st">&quot;orientation|screenSize|smallestScreenSize|screenLayout&quot;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ot">    android:exported=</span><span class="st">&quot;true&quot;</span>&gt;</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    ...</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">activity</span>&gt;</span></code></pre></div>
+<h3 id="2-create-the-godot-project">2. Create the Godot project</h3>
+<blockquote>
+<p><strong>Note:</strong> On Android, Godot's project files are exported to the <code>assets</code> directory of the generated <code>apk</code> binary.</p>
+<p>We leverage that architecture to bind our Android app and Godot project together by creating the Godot project in the Android app's <code>assets</code> directory.</p>
+<p>Note that it's also possible to create the Godot project in a separate directory and export it as a <a href="https://docs.godotengine.org/en/stable/tutorials/export/exporting_projects.html#pck-versus-zip-pack-file-formats">PCK or ZIP file</a> to the Android app's <code>assets</code> directory. Using this approach requires passing the --main-pack argument to the hosted Godot Engine instance using <a href="https://github.com/godotengine/godot/blob/6916349697a4339216469e9bf5899b983d78db07/platform/android/java/lib/src/org/godotengine/godot/GodotHost.java#L45">GodotHost#getCommandLine()</a>.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> <span class="fu">getCommandLine</span><span class="op">(){</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> results <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    results<span class="op">.</span><span class="fu">addAll</span><span class="op">(</span><span class="kw">super</span><span class="op">.</span><span class="fu">getCommandLine</span><span class="op">());</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    results<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="st">&quot;--main-pack&quot;</span><span class="op">);</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    results<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="st">&quot;res://foo.pck&quot;</span><span class="op">);</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> results<span class="op">;</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The instructions below and the sample app follow the first approach of creating the Godot project in the Android app's <code>assets</code> directory.</p>
+</blockquote>
+<ul>
+<li><p>As mentioned in the <strong>note</strong> above, open the Godot Editor and create a Godot project directly (no subfolder) in the <code>assets</code> directory of the Android application project</p>
+<ul>
+<li>See the sample app's <a href="https://github.com/m4gr3d/Godot-Android-Samples/tree/master/apps/gltf_viewer/src/main/assets">Godot project</a> for reference</li>
+</ul></li>
+<li><p>Configure the Godot project as desired</p>
+<ul>
+<li>Make sure the <a href="https://docs.godotengine.org/en/stable/classes/class_projectsettings.html#class-projectsettings-property-display-window-handheld-orientation">orientation</a> set for the Godot project matches the one set in the Android app's manifest</li>
+<li>For Android, make sure <a href="https://docs.godotengine.org/en/stable/classes/class_projectsettings.html#class-projectsettings-property-rendering-textures-vram-compression-import-etc2-astc">textures/vram_compression/import_etc2_astc</a> is set to true</li>
+</ul></li>
+<li><p>Update the Godot project script logic as needed</p>
+<ul>
+<li>For the sample app, the <a href="https://github.com/m4gr3d/Godot-Android-Samples/blob/master/apps/gltf_viewer/src/main/assets/main.gd">script logic</a> queries for the runtime <code>GodotPlugin</code> instance and uses it to register for signals fired by the app logic</li>
+<li>The app logic fires a signal every time an item is selected in the list. The signal contains the filepath of the glTF model, which is used by the <code>gdscript</code> logic to render the model.</li>
+</ul>
+<pre class="gdscript"><code>extends Node3D
+
+# Reference to the gltf model that&#39;s currently being shown.
+var current_gltf_node: Node3D = null
+
+func _ready():
+  # Default asset to load when the app starts
+  _load_gltf(&quot;res://gltfs/food_kit/turkey.glb&quot;)
+
+  var appPlugin = Engine.get_singleton(&quot;AppPlugin&quot;)
+  if appPlugin:
+    print(&quot;App plugin is available&quot;)
+
+    # Signal fired from the app logic to update the gltf model being shown
+    appPlugin.connect(&quot;show_gltf&quot;, _load_gltf)
+  else:
+    print(&quot;App plugin is not available&quot;)
+
+# Load the gltf model specified by the given path
+func _load_gltf(gltf_path: String):
+  if current_gltf_node != null:
+    remove_child(current_gltf_node)
+
+  current_gltf_node = load(gltf_path).instantiate()
+
+  add_child(current_gltf_node)</code></pre></li>
+</ul>
+<h3 id="3-build-and-run-the-app">3. Build and run the app</h3>
+<p>Once you complete configuration of your Godot project, build and run the Android app. If set up correctly, the host Activity will initialize the embedded Godot Engine on startup. The Godot Engine will check the <code>assets</code> directory for project files to load (unless configured to look for a <code>main pack</code>), and will proceed to run the project.</p>
+<p>While the app is running on device, you can check <a href="https://developer.android.com/studio/debug/logcat">Android logcat</a> to investigate any errors or crashes.</p>
+<p>For reference, check the <a href="https://github.com/m4gr3d/Godot-Android-Samples/blob/master/apps/gltf_viewer/README.md">build and install instructions</a> for the GLTF Viewer sample app.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

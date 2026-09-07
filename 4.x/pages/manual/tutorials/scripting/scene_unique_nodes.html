@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scene Unique Nodes — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="scene-unique-nodes">Scene Unique Nodes</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Using <code>get_node()</code> to reference nodes from a script can sometimes be fragile. If you move a button in a UI scene from one panel to another, the button's node path changes, and if a script uses <code>get_node()</code> with a hard-coded node path, the script will not be able to find the button anymore.</p>
+<p>In situations like this, the node can be turned into a scene unique node to avoid having to update the script every time the node's path is changed.</p>
+<h2 id="creation-and-usage">Creation and usage</h2>
+<p>There are two ways to create a scene unique node.</p>
+<p>In the Scene tree dock, right-click on a node and select <strong>Access as Unique Name</strong> in the context menu.</p>
+<p>After selecting the option, the node will now have a percent symbol (<strong>%</strong>) next to its name in the scene tree:</p>
+<p>You can also do this while renaming the node by adding "%" to the beginning of the name. Once you confirm, the percent symbol will appear next to its name.</p>
+<p>You can now use the node in your script. For example, you can reference it with a <code>get_node()</code> method call by typing the % symbol, followed by the node's name:</p>
+<pre class="gdscript"><code>get_node(&quot;%RedButton&quot;).text = &quot;Hello&quot;
+%RedButton.text = &quot;Hello&quot; # Shorter syntax</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;%RedButton&quot;</span><span class="op">).</span><span class="fu">Text</span> <span class="op">=</span> <span class="st">&quot;Hello&quot;</span><span class="op">;</span></span></code></pre></div>
+<h2 id="same-scene-limitation">Same-scene limitation</h2>
+<p>A scene unique node can only be retrieved by a node inside the same scene. To demonstrate this limitation, consider this example <strong>Player</strong> scene that instances a <strong>Sword</strong> scene:</p>
+<p>Here are the results of <code>get_node()</code> calls inside the <strong>Player</strong> script:</p>
+<ul>
+<li><code>get_node("%Eyes")</code> returns the <strong>Eyes</strong> node.</li>
+<li><code>get_node("%Hilt")</code> returns <code>null</code>.</li>
+</ul>
+<p>These are the results of <code>get_node()</code> calls inside the <strong>Sword</strong> script:</p>
+<ul>
+<li><code>get_node("%Eyes")</code> returns <code>null</code>.</li>
+<li><code>get_node("%Hilt")</code> returns the <strong>Hilt</strong> node.</li>
+</ul>
+<p>If a script has access to a node in another scene, it can call <code>get_node()</code> on that node to get scene unique nodes from that node's scene. This also works in a node path, which avoids multiple <code>get_node()</code> calls. Here are two ways to get the <strong>Hilt</strong> node from the <strong>Player</strong> script using scene unique nodes:</p>
+<ul>
+<li><code>get_node("Hand/Sword").get_node("%Hilt")</code> returns the <strong>Hilt</strong> node.</li>
+<li><code>get_node("Hand/Sword/%Hilt")</code> also returns the <strong>Hilt</strong> node.</li>
+</ul>
+<p>Scene unique names don't only work at the end of a node path. They can be used in the middle to navigate from one node to another. For example, the <strong>Sword</strong> node is marked as a scene unique node in the <strong>Player</strong> scene, so this is possible:</p>
+<ul>
+<li><code>get_node("%Sword/%Hilt")</code> returns the <strong>Hilt</strong> node.</li>
+</ul>
+<h2 id="alternatives">Alternatives</h2>
+<p>Scene unique nodes are a useful tool to navigate a scene. However, there are some situations where other techniques may be better.</p>
+<p>A ref allows locating a node (or a group of many nodes) from any other node, no matter what scene the two nodes are located in.</p>
+<p>A ref is an always loaded node that can be accessed directly by any node regardless of the scene. These are useful when some data or functionality is shared globally.</p>
+<p>ref finds a node by name without knowing its full path. This seems similar to a scene unique node, but this method is able to find nodes in nested scenes, and doesn't require marking the node in the scene editor in any way. However, this method is slow. Scene unique nodes are cached by Godot and are fast to retrieve, but each time the method is called, <code>find_child()</code> needs to check every descendant (every child, grandchild, and so on).</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editing Rooms and Portals — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="editing-rooms-and-portals">Editing Rooms and Portals</h1>
+<h2 id="example-scenetree">Example SceneTree</h2>
+<p>Putting all the ideas together, here is an example scene tree:</p>
+<ul>
+<li>We have used a ref to denote an outside area.</li>
+<li>The refs inside the refs are either <code>STATIC</code> or <code>DYNAMIC</code>.</li>
+<li>We have created a ref (I decided to call it 'Freeform', but you could use any name) under which to place <code>STATIC</code> and <code>DYNAMIC</code> objects that will be autoplaced in rooms (Freeform is inside the <code>roomlist</code>, but <em>not</em> inside a room.)</li>
+<li>The player and the monsters are on branches <em>OUTSIDE</em> the <code>roomlist</code>.</li>
+<li>The player and monster meshes have portal mode <code>ROAMING</code> so they can be in any room.</li>
+<li>The camera is outside the <code>roomlist</code>.</li>
+</ul>
+<h2 id="creating-room-systems-in-blender-or-other-modeling-tools">Creating room systems in Blender (or other modeling tools)</h2>
+<p>Although you can create your room system entirely within the editor, you can also build rooms and portals within your modeling tool. There is one small snag - modeling tools such as Blender have no knowledge of Room, RoomGroup and Portal nodes. In order to work around this we use a series of naming conventions. The first time Godot encounters these specially named nodes, it will convert them into Rooms, RoomGroups and Portals.</p>
+<h3 id="postfix-convention">Postfix convention</h3>
+<ul>
+<li><code>-room</code> becomes a ref.</li>
+<li><code>-roomgroup</code> becomes a ref.</li>
+<li><code>-portal</code> becomes a ref.</li>
+<li><code>-bound</code> becomes a manual bound.</li>
+</ul>
+<p>Rooms and RoomGroups should be created as Empties within Blender. Any mesh children of the <code>-room</code> Empty will thus be placed in the Room during conversion in Godot.</p>
+<p>For example:</p>
+<ul>
+<li><code>kitchen-room</code> - create a Room called "kitchen".</li>
+<li><code>outside-roomgroup</code> - create a RoomGroup called "outside".</li>
+<li><code>kitchen-portal</code> - create a Portal leading to the "kitchen" Room.</li>
+</ul>
+<h3 id="portals">Portals</h3>
+<p>Portals are different from Rooms. In Portals, we need to specify the geometry of the Portal in our modelling tool, in addition to just the name. To do this your "portal-to-be" should be created as a Mesh.</p>
+<p>Portal meshes have some restrictions to work properly. They must be convex, and the polygon points should be in the same plane. The accuracy to the plane does not have to be exact, as Godot will automatically average the direction of the portal plane. Once converted to a ref node, the snapping to the portal plane is enforced, and the vertices are specified (and editable) as 2D coordinates in the inspector, rather than 3D points.</p>
+<p>The portal's naming is quite important. You can either name the portal <code>-portal</code> which will attempt to autolink the Portal in Godot, or you can use the name of the Room you wish to link the Portal to as a prefix.</p>
+<h3 id="wildcard">Wildcard</h3>
+<p>In most cases, this can be done using a name such as <code>kitchen-portal</code>. However, there is one problem. Blender and Godot do not deal well when you have multiple objects with the same name. What happens when we want more than one Portal to lead to the kitchen?</p>
+<p>The workaround is the use of a <em>wildcard</em> character, <code>*</code>. When Godot reads the wildcard, it will ignore anything placed after it in the name.</p>
+<p>This means we can use the following portal names:</p>
+<ul>
+<li><code>kitchen*1-portal</code> - creates a Portal leading to the "kitchen".</li>
+<li><code>kitchen*2-portal</code> - also creates a Portal leading to the "kitchen".</li>
+<li><code>kitchen*anything_you_want_here-portal</code> - also works.</li>
+</ul>
+<p>Wildcards work on all of the nodes which use these naming conventions.</p>
+<h3 id="manual-bounds">Manual bounds</h3>
+<p>Manual bounds are a way of explicitly setting the convex hull for a room, and are used if they are present as children of a room in the scene tree. Aside from the postfix, the naming is unimportant. They should be meshes (i.e. MeshInstance in Godot). Bear in mind they will be converted to convex hulls during the conversion process, so they don't have to be perfect.</p>
+<blockquote>
+<p><strong>Tip:</strong> Once used during conversion, they will be converted to the <code>IGNORE</code> <strong>Portal Mode</strong> and won't be shown. You can alternatively use <strong>Generate Points</strong> within the editor to convert these to a set of points stored in the room, and delete the original <code>-bound</code> MeshInstance.</p>
+</blockquote>
+<h2 id="portal-point-editing">Portal point editing</h2>
+<p>Portals are defined by a combination of the transform of the portal node, and by a set of points which form the corners.</p>
+<p>The default portal has 4 corners as shown in the inspector:</p>
+<p>You can edit these points in the gizmo or inspector to make a better match to the opening in your game level. It's generally better to keep the number of points as low as possible for the efficiency of the system. For example, it's better to risk rendering a little too much than to spend the time culling objects at 20 different edges.</p>
+<h2 id="room-point-editing">Room point editing</h2>
+<p>You also have the option to manually edit the points used to define the convex hull of a room. These points are not present by default. You would typically create them by pressing the <strong>Generate Points</strong> button in the editor toolbar when a room is selected. This will transfer the auto bound from the geometry (or manual <code>-bound</code> mesh) into the inspector. Once there are points in the inspector, they will be used and override any other method. So if you wish to revert your manual editing, delete all the room's points.</p>
+<p>Manually editing points can be useful in some situations, especially where the auto-bound doesn't <em>quite</em> get the right result you want. It is usually a good idea to use a lot of <strong>Simplification</strong> in the inspector for the Room before generating the points. Be aware though that by default, the <strong>Simplification</strong> value will be inherited from the RoomManager.</p>
+<h2 id="roommanager">RoomManager</h2>
+<h3 id="show-debug">Show Debug</h3>
+<p>This can be used to control the amount of logging, especially the room conversion logs. Debug will always be set to <code>false</code> on exported projects.</p>
+<h3 id="debug-sprawl">Debug Sprawl</h3>
+<p>This mode will only display meshes that are sprawling through portals from the current camera room. Large statics that cross portals are usually the ones you want to sprawl. Typical examples might be terrain mesh areas, or large floor or ceiling meshes. You usually don't want things like door frames to sprawl to the adjacent room - that is what fine tuning the <strong>Portal Margin</strong> is for.</p>
+<h3 id="merge-meshes">Merge Meshes</h3>
+<p>To keep drawcalls to a minimum, the system offers the option to automatically merge similar <code>STATIC</code> meshes within a room (also known as <em>static batching</em>). This can increase performance in many cases. The culling accuracy is reduced, but as a room is a fairly logical unit for culling, this trade off usually works in your favor.</p>
+<h3 id="plane-simplification">Plane Simplification</h3>
+<p>In some cases, the convex hulls automatically generated for rooms may contain a very large number of planes, particularly if you use curved surfaces. This is not ideal because it slows down the system. This option can optionally simplify hulls. The degree of simplification can be selected by the user, between <code>0</code> (no simplification) and <code>1</code> (maximum simplification). You can also override this value in individual rooms.</p>
+<h2 id="portals-1">Portals</h2>
+<h3 id="portal-active">Portal Active</h3>
+<p>Portals can be turned on and off at runtime. This is especially useful if you have doors that can open and close.</p>
+<h3 id="two-way">Two Way</h3>
+<p>Portals can either be two-way or one-way. The default two-way portals are quicker to set up in most circumstances, but one-way portals can be useful in some cases. For example, you can use one-way portals to create windows that can be seen out of, but not seen into. This can help performance when viewing buildings from outdoors.</p>
+<h2 id="particle-systems">Particle Systems</h2>
+<p>Be aware that when placing <code>STATIC</code> particle systems, the AABB on conversion may have zero size. This means the particle system may be unexpectedly culled early. To prevent this, either set the particle system <code>portal mode</code> to <code>DYNAMIC</code>, or alternatively, add an <strong>Extra Cull Margin</strong> to the particle system in the Geometry Inspector.</p>
+<h2 id="multimeshes">Multimeshes</h2>
+<p>Note that multimeshes will be culled as a group, rather than individually. You should therefore attempt to keep them localised to the same area wherever possible.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

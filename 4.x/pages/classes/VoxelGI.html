@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoxelGI — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="voxelgi">VoxelGI</h1>
+<p><em>Inherits: <a href="VisualInstance3D.html">VisualInstance3D</a> &lt; <a href="Node3D.html">Node3D</a> &lt; <a href="Node.html">Node</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Real-time global illumination (GI) probe.</p>
+<h2 id="description">Description</h2>
+<p><strong>VoxelGI</strong> s are used to provide high-quality real-time indirect light and reflections to scenes. They precompute the effect of objects that emit light and the effect of static geometry to simulate the behavior of complex light in real-time. <strong>VoxelGI</strong> s need to be baked before having a visible effect. However, once baked, dynamic objects will receive light from them. Furthermore, lights can be fully dynamic or baked.</p>
+<p><strong>Note:</strong> <strong>VoxelGI</strong> is only supported in the Forward+ rendering method, not Mobile or Compatibility.</p>
+<p><strong>Procedural generation:</strong> <strong>VoxelGI</strong> can be baked in an exported project, which makes it suitable for procedurally generated or user-built levels as long as all the geometry is generated in advance. For games where geometry is generated at any time during gameplay, SDFGI is more suitable (see <code>Environment.sdfgi_enabled</code>).</p>
+<p><strong>Performance:</strong> <strong>VoxelGI</strong> is relatively demanding on the GPU and is not suited to low-end hardware such as integrated graphics (consider <a href="LightmapGI.html">LightmapGI</a> instead). To improve performance, adjust <code>ProjectSettings.rendering/global_illumination/voxel_gi/quality</code> and enable <code>ProjectSettings.rendering/global_illumination/gi/use_half_resolution</code> in the Project Settings. To provide a fallback for low-end hardware, consider adding an option to disable <strong>VoxelGI</strong> in your project's options menus. A <strong>VoxelGI</strong> node can be disabled by hiding it.</p>
+<p><strong>Note:</strong> Meshes should have sufficiently thick walls to avoid light leaks (avoid one-sided walls). For interior levels, enclose your level geometry in a sufficiently large box and bridge the loops to close the mesh. To further prevent light leaks, you can also strategically place temporary <a href="MeshInstance3D.html">MeshInstance3D</a> nodes with their <code>GeometryInstance3D.gi_mode</code> set to <code>GeometryInstance3D.GI_MODE_STATIC</code>. These temporary nodes can then be hidden after baking the <strong>VoxelGI</strong> node.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/tutorials/3d/global_illumination/using_voxel_gi.html">Using Voxel global illumination</a></li>
+<li><a href="https://godotengine.org/asset-library/asset/2710">Third Person Shooter (TPS) Demo</a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="cameraattributes-camera_attributes"><code>CameraAttributes camera_attributes</code></h3>
+<ul>
+<li>Setter: <code>set_camera_attributes(value: CameraAttributes)</code></li>
+<li>Getter: <code>get_camera_attributes()</code></li>
+</ul>
+<p>The <a href="CameraAttributes.html">CameraAttributes</a> resource that specifies exposure levels to bake at. Auto-exposure and non exposure properties will be ignored. Exposure settings should be used to reduce the dynamic range present when baking. If exposure is too high, the <strong>VoxelGI</strong> will have banding artifacts or may have over-exposure artifacts.</p>
+<h3 id="voxelgidata-data"><code>VoxelGIData data</code></h3>
+<ul>
+<li>Setter: <code>set_probe_data(value: VoxelGIData)</code></li>
+<li>Getter: <code>get_probe_data()</code></li>
+</ul>
+<p>The <a href="VoxelGIData.html">VoxelGIData</a> resource that holds the data for this <strong>VoxelGI</strong>.</p>
+<h3 id="vector3-size--vector320-20-20"><code>Vector3 size = Vector3(20, 20, 20)</code></h3>
+<ul>
+<li>Setter: <code>set_size(value: Vector3)</code></li>
+<li>Getter: <code>get_size()</code></li>
+</ul>
+<p>The size of the area covered by the <strong>VoxelGI</strong>. This must be <code>1.0</code> or greater on each axis.</p>
+<p><strong>Note:</strong> If you make the size larger without increasing the number of subdivisions with <code>subdiv</code>, the size of each cell will increase and result in less detailed lighting.</p>
+<h3 id="subdiv-subdiv--1">``Subdiv<code> subdiv = 1</code></h3>
+<ul>
+<li>Setter: <code>set_subdiv(value: </code>Subdiv<code>)</code></li>
+<li>Getter: <code>get_subdiv()</code></li>
+</ul>
+<p>Number of times to subdivide the grid that the <strong>VoxelGI</strong> operates on. A higher number results in finer detail and thus higher visual quality, while lower numbers result in better performance.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-bakefrom_node-node--null-create_visual_debug-bool--false"><code>void bake(from_node: Node = null, create_visual_debug: bool = false)</code></h3>
+<p>Bakes the effect from all <a href="GeometryInstance3D.html">GeometryInstance3D</a> s marked with <code>GeometryInstance3D.GI_MODE_STATIC</code> and <a href="Light3D.html">Light3D</a> s marked with either <code>Light3D.BAKE_STATIC</code> or <code>Light3D.BAKE_DYNAMIC</code>. If <code>create_visual_debug</code> is <code>true</code>, after baking the light, this will generate a <a href="MultiMesh.html">MultiMesh</a> that has a cube representing each solid cell with each cube colored to the cell's albedo color. This can be used to visualize the <strong>VoxelGI</strong>'s data and debug any issues that may be occurring.</p>
+<p><strong>Note:</strong> <code>bake()</code> works from the editor and in exported projects. This makes it suitable for procedurally generated or user-built levels. Baking a <strong>VoxelGI</strong> node generally takes from 5 to 20 seconds in most scenes. Reducing <code>subdiv</code> can speed up baking.</p>
+<p><strong>Note:</strong> <a href="GeometryInstance3D.html">GeometryInstance3D</a> s and <a href="Light3D.html">Light3D</a> s must be fully ready before <code>bake()</code> is called. If you are procedurally creating those and some meshes or lights are missing from your baked <strong>VoxelGI</strong>, use <code>call_deferred("bake")</code> instead of calling <code>bake()</code> directly.</p>
+<h3 id="void-debug_bake"><code>void debug_bake()</code></h3>
+<p>Calls <code>bake()</code> with <code>create_visual_debug</code> enabled.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-subdiv"><code>enum Subdiv</code></h3>
+<ul>
+<li><p><code>SUBDIV_64 = 0</code></p>
+<p>Use 64 subdivisions. This is the lowest quality setting, but the fastest. Use it if you can, but especially use it on lower-end hardware.</p></li>
+<li><p><code>SUBDIV_128 = 1</code></p>
+<p>Use 128 subdivisions. This is the default quality setting.</p></li>
+<li><p><code>SUBDIV_256 = 2</code></p>
+<p>Use 256 subdivisions.</p></li>
+<li><p><code>SUBDIV_512 = 3</code></p>
+<p>Use 512 subdivisions. This is the highest quality setting, but the slowest. On lower-end hardware, this could cause the GPU to stall.</p></li>
+<li><p><code>SUBDIV_MAX = 4</code></p>
+<p>Represents the size of the <code>Subdiv</code> enum.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

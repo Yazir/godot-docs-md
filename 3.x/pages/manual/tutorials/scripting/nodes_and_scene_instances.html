@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nodes and scene instances — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="nodes-and-scene-instances">Nodes and scene instances</h1>
+<p>This guide explains how to get nodes, create nodes, add them as a child, and instantiate scenes from code.</p>
+<h2 id="getting-nodes">Getting nodes</h2>
+<p>You can get a reference to a node by calling the ref method. For this to work, the child node must be present in the scene tree. Getting it in the parent node's <code>_ready()</code> function guarantees that.</p>
+<p>If, for example, you have a scene tree like this, and you want to get a reference to the Sprite and Camera2D nodes to access them in your script.</p>
+<p>To do so, you can use the following code.</p>
+<pre class="gdscript"><code>var sprite
+var camera2d
+
+func _ready():
+    sprite = get_node(&quot;Sprite&quot;)
+    camera2d = get_node(&quot;Camera2D&quot;)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Sprite _sprite<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Camera2D _camera2d<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">base</span><span class="op">.</span><span class="fu">_Ready</span><span class="op">();</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    _sprite <span class="op">=</span> GetNode<span class="op">&lt;</span>Sprite<span class="op">&gt;(</span><span class="st">&quot;Sprite&quot;</span><span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    _camera2d <span class="op">=</span> GetNode<span class="op">&lt;</span>Camera2D<span class="op">&gt;(</span><span class="st">&quot;Camera2D&quot;</span><span class="op">);</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Note that you get nodes using their name, not their type. Above, "Sprite" and "Camera2D" are the nodes' names in the scene.</p>
+<p>If you rename the Sprite node as Skin in the Scene dock, you have to change the line that gets the node to <code>get_node("Skin")</code> in the script.</p>
+<h2 id="node-paths">Node paths</h2>
+<p>When getting a reference to a node, you're not limited to getting a direct child. The <code>get_node()</code> function supports paths, a bit like when working with a file browser. Add a slash to separate nodes.</p>
+<p>Take the following example scene, with the script attached to the UserInterface node.</p>
+<p>To get the Tween node, you would use the following code.</p>
+<pre class="gdscript"><code>var tween
+
+func _ready():
+    tween = get_node(&quot;ShieldBar/Tween&quot;)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Tween _tween<span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">base</span><span class="op">.</span><span class="fu">_Ready</span><span class="op">();</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    _tween <span class="op">=</span> GetNode<span class="op">&lt;</span>Tween<span class="op">&gt;(</span><span class="st">&quot;ShieldBar/Tween&quot;</span><span class="op">);</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> As with file paths, you can use ".." to get a parent node. The best practice is to avoid doing that though not to break encapsulation. You can also start the path with a forward slash to make it absolute, in which case your topmost node would be "/root", the application's predefined root viewport.</p>
+</blockquote>
+<h3 id="syntactic-sugar">Syntactic sugar</h3>
+<p>You can use two shorthands to shorten your code in GDScript. Firstly, putting the <code>onready</code> keyword before a member variable makes it initialize right before the <code>_ready()</code> callback.</p>
+<pre class="gdscript"><code>onready var sprite = get_node(&quot;Sprite&quot;)</code></pre>
+<p>There is also a short notation for <code>get_node()</code>: the dollar sign, "$". You place it before the name or path of the node you want to get.</p>
+<pre class="gdscript"><code>onready var sprite = $Sprite
+onready var tween = $ShieldBar/Tween</code></pre>
+<h2 id="creating-nodes">Creating nodes</h2>
+<p>To create a node from code, call its <code>new()</code> method like for any other class-based datatype.</p>
+<p>You can store the newly created node's reference in a variable and call <code>add_child()</code> to add it as a child of the node to which you attached the script.</p>
+<pre class="gdscript"><code>var sprite
+
+func _ready():
+    var sprite = Sprite.new() # Create a new Sprite.
+    add_child(sprite) # Add it as a child of this node.</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Sprite _sprite<span class="op">;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">base</span><span class="op">.</span><span class="fu">_Ready</span><span class="op">();</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    _sprite <span class="op">=</span> <span class="kw">new</span> <span class="fu">Sprite</span><span class="op">();</span> <span class="co">// Create a new Sprite.</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">AddChild</span><span class="op">(</span>_sprite<span class="op">);</span> <span class="co">// Add it as a child of this node.</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>To delete a node and free it from memory, you can call its <code>queue_free()</code> method. Doing so queues the node for deletion at the end of the current frame after it has finished processing. At that point, the engine removes the node from the scene and frees the object in memory.</p>
+<pre class="gdscript"><code>sprite.queue_free()</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>_sprite<span class="op">.</span><span class="fu">QueueFree</span><span class="op">();</span></span></code></pre></div>
+<p>Before calling <code>sprite.queue_free()</code>, the remote scene tree looks like this.</p>
+<p>After the engine freed the node, the remote scene tree doesn't display the sprite anymore.</p>
+<p>You can alternatively call <code>free()</code> to immediately destroy the node. You should do this with care as any reference to it will instantly become <code>null</code>. We recommend using <code>queue_free()</code> unless you know what you're doing.</p>
+<p>When you free a node, it also frees all its children. Thanks to this, to delete an entire branch of the scene tree, you only have to free the topmost parent node.</p>
+<h2 id="instancing-scenes">Instancing scenes</h2>
+<p>Scenes are templates from which you can create as many reproductions as you'd like. This operation is called instancing, and doing it from code happens in two steps:</p>
+<ol type="1">
+<li>Loading the scene from the hard drive.</li>
+<li>Creating an instance of the loaded ref resource.</li>
+</ol>
+<pre class="gdscript"><code>var scene = load(&quot;res://MyScene.tscn&quot;)</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> scene <span class="op">=</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>PackedScene<span class="op">&gt;(</span><span class="st">&quot;res://MyScene.tscn&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>Preloading the scene can improve the user's experience as the load operation happens when the compiler reads the script and not at runtime. This feature is only available with GDScript.</p>
+<pre class="gdscript"><code>var scene = preload(&quot;res://MyScene.tscn&quot;)</code></pre>
+<p>At that point, <code>scene</code> is a packed scene resource, not a node. To create the actual node, you need to call ref. It returns a tree of nodes that you can as a child of your current node.</p>
+<pre class="gdscript"><code>var instance = scene.instance()
+add_child(instance)</code></pre>
+<div class="sourceCode" id="cb15"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> instance <span class="op">=</span> scene<span class="op">.</span><span class="fu">Instance</span><span class="op">();</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">AddChild</span><span class="op">(</span>instance<span class="op">);</span></span></code></pre></div>
+<p>The advantage of this two-step process is you can keep a packed scene loaded and create new instances on the fly. For example, to quickly instance several enemies or bullets.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

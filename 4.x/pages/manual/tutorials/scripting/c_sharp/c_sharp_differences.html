@@ -1,0 +1,1484 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C# API differences to GDScript — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="c-api-differences-to-gdscript">C# API differences to GDScript</h1>
+<p>This is an (incomplete) list of API differences between C# and GDScript.</p>
+<h2 id="general-differences">General differences</h2>
+<p>As explained in <code>doc_c_sharp_general_differences</code>, <code>PascalCase</code> is used to access Godot APIs in C# instead of the <code>snake_case</code> used by GDScript and C++. Where possible, fields and getters/setters have been converted to properties. In general, the C# Godot API strives to be as idiomatic as is reasonably possible. See the <code>doc_c_sharp_styleguide</code>, which we encourage you to also use for your own C# code.</p>
+<p>In GDScript, the setters/getters of a property can be called directly, although this is not encouraged. In C#, only the property is defined. For example, to translate the GDScript code <code>x.set_name("Friend")</code> to C#, write <code>x.Name = "Friend";</code>.</p>
+<p>A C# IDE will provide intellisense, which is extremely useful when figuring out renamed C# APIs. The built-in Godot script editor has no support for C# intellisense, and it also doesn't provide many other C# development tools that are considered essential. See <code>doc_c_sharp_setup_external_editor</code>.</p>
+<h2 id="global-scope">Global scope</h2>
+<p>Global functions and some constants had to be moved to classes, since C# does not allow declaring them in namespaces. Most global constants were moved to their own enums.</p>
+<h3 id="constants">Constants</h3>
+<p>In C#, only primitive types can be constant. For example, the <code>TAU</code> constant is replaced by the <code>Mathf.Tau</code> constant, but the <code>Vector2.RIGHT</code> constant is replaced by the <code>Vector2.Right</code> read-only property. This behaves similarly to a constant, but can't be used in some contexts like <code>switch</code> statements.</p>
+<p>Global enum constants were moved to their own enums. For example, <code>ERR_*</code> constants were moved to the <code>Error</code> enum.</p>
+<p>Special cases:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>TYPE_*</code></td>
+<td><code>Variant.Type</code> enum</td>
+</tr>
+<tr class="even">
+<td><code>OP_*</code></td>
+<td><code>Variant.Operator</code> enum</td>
+</tr>
+</tbody>
+</table>
+<h3 id="math-functions">Math functions</h3>
+<p>Math global functions, like <code>abs</code>, <code>acos</code>, <code>asin</code>, <code>atan</code> and <code>atan2</code>, are located under <code>Mathf</code> as <code>Abs</code>, <code>Acos</code>, <code>Asin</code>, <code>Atan</code> and <code>Atan2</code>. The <code>PI</code> constant can be found as <code>Mathf.Pi</code>.</p>
+<p>C# also provides static <a href="https://learn.microsoft.com/en-us/dotnet/api/system.math">System.Math</a> and <a href="https://learn.microsoft.com/en-us/dotnet/api/system.mathf">System.MathF</a> classes that may contain other useful mathematical operations.</p>
+<h3 id="random-functions">Random functions</h3>
+<p>Random global functions, like <code>rand_range</code> and <code>rand_seed</code>, are located under <code>GD</code>. Example: <code>GD.RandRange</code> and <code>GD.RandSeed</code>.</p>
+<p>Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.random">System.Random</a> or, if you need cryptographically strong randomness, <a href="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.randomnumbergenerator">System.Security.Cryptography.RandomNumberGenerator</a>.</p>
+<h3 id="other-functions">Other functions</h3>
+<p>Many other global functions like <code>print</code> and <code>var_to_str</code> are located under <code>GD</code>. Example: <code>GD.Print</code> and <code>GD.VarToStr</code>.</p>
+<p>Exceptions:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>weakref(obj)</code></td>
+<td><code>GodotObject.WeakRef(obj)</code></td>
+</tr>
+<tr class="even">
+<td><code>instance_from_id(id)</code></td>
+<td><code>GodotObject.InstanceFromId(id)</code></td>
+</tr>
+<tr class="odd">
+<td><code>is_instance_id_valid(id)</code></td>
+<td><code>GodotObject.IsInstanceIdValid(id)</code></td>
+</tr>
+<tr class="even">
+<td><code>is_instance_valid(obj)</code></td>
+<td><code>GodotObject.IsInstanceValid(obj)</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="tips">Tips</h3>
+<p>Sometimes it can be useful to use the <code>using static</code> directive. This directive allows to access the members and nested types of a class without specifying the class name.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">static</span> Godot<span class="op">.</span><span class="fu">GD</span><span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Test</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">static</span> <span class="fu">Test</span><span class="op">()</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">Print</span><span class="op">(</span><span class="st">&quot;Hello&quot;</span><span class="op">);</span> <span class="co">// Instead of GD.Print(&quot;Hello&quot;);</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="full-list-of-equivalences">Full list of equivalences</h3>
+<p>List of Godot's global scope functions and their equivalent in C#:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>abs</td>
+<td>Mathf.Abs</td>
+</tr>
+<tr class="even">
+<td>absf</td>
+<td>Mathf.Abs</td>
+</tr>
+<tr class="odd">
+<td>absi</td>
+<td>Mathf.Abs</td>
+</tr>
+<tr class="even">
+<td>acos</td>
+<td>Mathf.Acos</td>
+</tr>
+<tr class="odd">
+<td>acosh</td>
+<td>Mathf.Acosh</td>
+</tr>
+<tr class="even">
+<td>angle_difference</td>
+<td>Mathf.AngleDifference</td>
+</tr>
+<tr class="odd">
+<td>asin</td>
+<td>Mathf.Asin</td>
+</tr>
+<tr class="even">
+<td>asinh</td>
+<td>Mathf.Asinh</td>
+</tr>
+<tr class="odd">
+<td>atan</td>
+<td>Mathf.Atan</td>
+</tr>
+<tr class="even">
+<td>atan2</td>
+<td>Mathf.Atan2</td>
+</tr>
+<tr class="odd">
+<td>atanh</td>
+<td>Mathf.Atanh</td>
+</tr>
+<tr class="even">
+<td>bezier_derivative</td>
+<td>Mathf.BezierDerivative</td>
+</tr>
+<tr class="odd">
+<td>bezier_interpolate</td>
+<td>Mathf.BezierInterpolate</td>
+</tr>
+<tr class="even">
+<td>bytes_to_var</td>
+<td>GD.BytesToVar</td>
+</tr>
+<tr class="odd">
+<td>bytes_to_var_with_objects</td>
+<td>GD.BytesToVarWithObjects</td>
+</tr>
+<tr class="even">
+<td>ceil</td>
+<td>Mathf.Ceil</td>
+</tr>
+<tr class="odd">
+<td>ceilf</td>
+<td>Mathf.Ceil</td>
+</tr>
+<tr class="even">
+<td>ceili</td>
+<td>Mathf.CeilToInt</td>
+</tr>
+<tr class="odd">
+<td>clamp</td>
+<td>Mathf.Clamp</td>
+</tr>
+<tr class="even">
+<td>clampf</td>
+<td>Mathf.Clamp</td>
+</tr>
+<tr class="odd">
+<td>clampi</td>
+<td>Mathf.Clamp</td>
+</tr>
+<tr class="even">
+<td>cos</td>
+<td>Mathf.Cos</td>
+</tr>
+<tr class="odd">
+<td>cosh</td>
+<td>Mathf.Cosh</td>
+</tr>
+<tr class="even">
+<td>cubic_interpolate</td>
+<td>Mathf.CubicInterpolate</td>
+</tr>
+<tr class="odd">
+<td>cubic_interpolate_angle</td>
+<td>Mathf.CubicInterpolateAngle</td>
+</tr>
+<tr class="even">
+<td>cubic_interpolate_angle_in_time</td>
+<td>Mathf.CubicInterpolateInTime</td>
+</tr>
+<tr class="odd">
+<td>cubic_interpolate_in_time</td>
+<td>Mathf.CubicInterpolateAngleInTime</td>
+</tr>
+<tr class="even">
+<td>db_to_linear</td>
+<td>Mathf.DbToLinear</td>
+</tr>
+<tr class="odd">
+<td>deg_to_rad</td>
+<td>Mathf.DegToRad</td>
+</tr>
+<tr class="even">
+<td>ease</td>
+<td>Mathf.Ease</td>
+</tr>
+<tr class="odd">
+<td>error_string</td>
+<td>Error.ToString</td>
+</tr>
+<tr class="even">
+<td>exp</td>
+<td>Mathf.Exp</td>
+</tr>
+<tr class="odd">
+<td>floor</td>
+<td>Mathf.Floor</td>
+</tr>
+<tr class="even">
+<td>floorf</td>
+<td>Mathf.Floor</td>
+</tr>
+<tr class="odd">
+<td>floori</td>
+<td>Mathf.FloorToInt</td>
+</tr>
+<tr class="even">
+<td>fmod</td>
+<td>operator %</td>
+</tr>
+<tr class="odd">
+<td>fposmod</td>
+<td>Mathf.PosMod</td>
+</tr>
+<tr class="even">
+<td>hash</td>
+<td>GD.Hash</td>
+</tr>
+<tr class="odd">
+<td>instance_from_id</td>
+<td>GodotObject.InstanceFromId</td>
+</tr>
+<tr class="even">
+<td>inverse_lerp</td>
+<td>Mathf.InverseLerp</td>
+</tr>
+<tr class="odd">
+<td>is_equal_approx</td>
+<td>Mathf.IsEqualApprox</td>
+</tr>
+<tr class="even">
+<td>is_finite</td>
+<td>Mathf.IsFinite or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.single.isfinite">float.IsFinite</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.double.isfinite">double.IsFinite</a></td>
+</tr>
+<tr class="odd">
+<td>is_inf</td>
+<td>Mathf.IsInf or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.single.isinfinity">float.IsInfinity</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.double.isinfinity">double.IsInfinity</a></td>
+</tr>
+<tr class="even">
+<td>is_instance_id_valid</td>
+<td>GodotObject.IsInstanceIdValid</td>
+</tr>
+<tr class="odd">
+<td>is_instance_valid</td>
+<td>GodotObject.IsInstanceValid</td>
+</tr>
+<tr class="even">
+<td>is_nan</td>
+<td>Mathf.IsNaN or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.single.isnan">float.IsNaN</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.double.isnan">double.IsNaN</a></td>
+</tr>
+<tr class="odd">
+<td>is_same</td>
+<td>operator == or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.object.referenceequals">object.ReferenceEquals</a></td>
+</tr>
+<tr class="even">
+<td>is_zero_approx</td>
+<td>Mathf.IsZeroApprox</td>
+</tr>
+<tr class="odd">
+<td>lerp</td>
+<td>Mathf.Lerp</td>
+</tr>
+<tr class="even">
+<td>lerp_angle</td>
+<td>Mathf.LerpAngle</td>
+</tr>
+<tr class="odd">
+<td>lerpf</td>
+<td>Mathf.Lerp</td>
+</tr>
+<tr class="even">
+<td>linear_to_db</td>
+<td>Mathf.LinearToDb</td>
+</tr>
+<tr class="odd">
+<td>log</td>
+<td>Mathf.Log</td>
+</tr>
+<tr class="even">
+<td>max</td>
+<td>Mathf.Max</td>
+</tr>
+<tr class="odd">
+<td>maxf</td>
+<td>Mathf.Max</td>
+</tr>
+<tr class="even">
+<td>maxi</td>
+<td>Mathf.Max</td>
+</tr>
+<tr class="odd">
+<td>min</td>
+<td>Mathf.Min</td>
+</tr>
+<tr class="even">
+<td>minf</td>
+<td>Mathf.Min</td>
+</tr>
+<tr class="odd">
+<td>mini</td>
+<td>Mathf.Min</td>
+</tr>
+<tr class="even">
+<td>move_toward</td>
+<td>Mathf.MoveToward</td>
+</tr>
+<tr class="odd">
+<td>nearest_po2</td>
+<td>Mathf.NearestPo2</td>
+</tr>
+<tr class="even">
+<td>pingpong</td>
+<td>Mathf.PingPong</td>
+</tr>
+<tr class="odd">
+<td>posmod</td>
+<td>Mathf.PosMod</td>
+</tr>
+<tr class="even">
+<td>pow</td>
+<td>Mathf.Pow</td>
+</tr>
+<tr class="odd">
+<td>print</td>
+<td>GD.Print</td>
+</tr>
+<tr class="even">
+<td>print_rich</td>
+<td>GD.PrintRich</td>
+</tr>
+<tr class="odd">
+<td>print_verbose</td>
+<td>Use OS.IsStdoutVerbose and GD.Print</td>
+</tr>
+<tr class="even">
+<td>printerr</td>
+<td>GD.PrintErr</td>
+</tr>
+<tr class="odd">
+<td>printraw</td>
+<td>GD.PrintRaw</td>
+</tr>
+<tr class="even">
+<td>prints</td>
+<td>GD.PrintS</td>
+</tr>
+<tr class="odd">
+<td>printt</td>
+<td>GD.PrintT</td>
+</tr>
+<tr class="even">
+<td>push_error</td>
+<td>GD.PushError</td>
+</tr>
+<tr class="odd">
+<td>push_warning</td>
+<td>GD.PushWarning</td>
+</tr>
+<tr class="even">
+<td>rad_to_deg</td>
+<td>Mathf.RadToDeg</td>
+</tr>
+<tr class="odd">
+<td>rand_from_seed</td>
+<td>GD.RandFromSeed</td>
+</tr>
+<tr class="even">
+<td>randf</td>
+<td>GD.Randf</td>
+</tr>
+<tr class="odd">
+<td>randf_range</td>
+<td>GD.RandRange</td>
+</tr>
+<tr class="even">
+<td>randfn</td>
+<td>GD.Randfn</td>
+</tr>
+<tr class="odd">
+<td>randi</td>
+<td>GD.Randi</td>
+</tr>
+<tr class="even">
+<td>randi_range</td>
+<td>GD.RandRange</td>
+</tr>
+<tr class="odd">
+<td>randomize</td>
+<td>GD.Randomize</td>
+</tr>
+<tr class="even">
+<td>remap</td>
+<td>Mathf.Remap</td>
+</tr>
+<tr class="odd">
+<td>rid_allocate_id</td>
+<td>N/A</td>
+</tr>
+<tr class="even">
+<td>rid_from_int64</td>
+<td>N/A</td>
+</tr>
+<tr class="odd">
+<td>rotate_toward</td>
+<td>Mathf.RotateToward</td>
+</tr>
+<tr class="even">
+<td>round</td>
+<td>Mathf.Round</td>
+</tr>
+<tr class="odd">
+<td>roundf</td>
+<td>Mathf.Round</td>
+</tr>
+<tr class="even">
+<td>roundi</td>
+<td>Mathf.RoundToInt</td>
+</tr>
+<tr class="odd">
+<td>seed</td>
+<td>GD.Seed</td>
+</tr>
+<tr class="even">
+<td>sign</td>
+<td>Mathf.Sign</td>
+</tr>
+<tr class="odd">
+<td>signf</td>
+<td>Mathf.Sign</td>
+</tr>
+<tr class="even">
+<td>signi</td>
+<td>Mathf.Sign</td>
+</tr>
+<tr class="odd">
+<td>sin</td>
+<td>Mathf.Sin</td>
+</tr>
+<tr class="even">
+<td>sinh</td>
+<td>Mathf.Sinh</td>
+</tr>
+<tr class="odd">
+<td>smoothstep</td>
+<td>Mathf.SmoothStep</td>
+</tr>
+<tr class="even">
+<td>snapped</td>
+<td>Mathf.Snapped</td>
+</tr>
+<tr class="odd">
+<td>snappedf</td>
+<td>Mathf.Snapped</td>
+</tr>
+<tr class="even">
+<td>snappedi</td>
+<td>Mathf.Snapped</td>
+</tr>
+<tr class="odd">
+<td>sqrt</td>
+<td>Mathf.Sqrt</td>
+</tr>
+<tr class="even">
+<td>step_decimals</td>
+<td>Mathf.StepDecimals</td>
+</tr>
+<tr class="odd">
+<td>str</td>
+<td>Use <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/tokens/interpolated">$ string interpolation</a></td>
+</tr>
+<tr class="even">
+<td>str_to_var</td>
+<td>GD.StrToVar</td>
+</tr>
+<tr class="odd">
+<td>tan</td>
+<td>Mathf.Tan</td>
+</tr>
+<tr class="even">
+<td>tanh</td>
+<td>Mathf.Tanh</td>
+</tr>
+<tr class="odd">
+<td>type_convert</td>
+<td>Variant.As&lt;T&gt; or GD.Convert</td>
+</tr>
+<tr class="even">
+<td>type_string</td>
+<td>Variant.Type.ToString</td>
+</tr>
+<tr class="odd">
+<td>typeof</td>
+<td>Variant.VariantType</td>
+</tr>
+<tr class="even">
+<td>var_to_bytes</td>
+<td>GD.VarToBytes</td>
+</tr>
+<tr class="odd">
+<td>var_to_bytes_with_objects</td>
+<td>GD.VarToBytesWithObjects</td>
+</tr>
+<tr class="even">
+<td>var_to_str</td>
+<td>GD.VarToStr</td>
+</tr>
+<tr class="odd">
+<td>weakref</td>
+<td>GodotObject.WeakRef</td>
+</tr>
+<tr class="even">
+<td>wrap</td>
+<td>Mathf.Wrap</td>
+</tr>
+<tr class="odd">
+<td>wrapf</td>
+<td>Mathf.Wrap</td>
+</tr>
+<tr class="even">
+<td>wrapi</td>
+<td>Mathf.Wrap</td>
+</tr>
+</tbody>
+</table>
+<p>List of GDScript utility functions and their equivalent in C#:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>assert</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.debug.assert">System.Diagnostics.Debug.Assert</a></td>
+</tr>
+<tr class="even">
+<td>char</td>
+<td>Use explicit conversion: <code>(char)65</code></td>
+</tr>
+<tr class="odd">
+<td>convert</td>
+<td>GD.Convert</td>
+</tr>
+<tr class="even">
+<td>dict_to_inst</td>
+<td>N/A</td>
+</tr>
+<tr class="odd">
+<td>get_stack</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.environment.stacktrace">System.Environment.StackTrace</a></td>
+</tr>
+<tr class="even">
+<td>inst_to_dict</td>
+<td>N/A</td>
+</tr>
+<tr class="odd">
+<td>len</td>
+<td>N/A</td>
+</tr>
+<tr class="even">
+<td>load</td>
+<td>GD.Load</td>
+</tr>
+<tr class="odd">
+<td>preload</td>
+<td>N/A</td>
+</tr>
+<tr class="even">
+<td>print_debug</td>
+<td>N/A</td>
+</tr>
+<tr class="odd">
+<td>print_stack</td>
+<td>GD.Print(<a href="https://learn.microsoft.com/en-us/dotnet/api/system.environment.stacktrace">System.Environment.StackTrace</a>)</td>
+</tr>
+<tr class="even">
+<td>range</td>
+<td>GD.Range or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.linq.enumerable.range">System.Linq.Enumerable.Range</a></td>
+</tr>
+<tr class="odd">
+<td>type_exists</td>
+<td>ClassDB.ClassExists(type)</td>
+</tr>
+</tbody>
+</table>
+<p><code>preload</code>, as it works in GDScript, is not available in C#. Use <code>GD.Load</code> or <code>ResourceLoader.Load</code> instead.</p>
+<h2 id="export-annotation"><code>@export</code> annotation</h2>
+<p>Use the <code>[Export]</code> attribute instead of the GDScript <code>@export</code> annotation. This attribute can also be provided with optional ref and <code>hintString</code> parameters. Default values can be set by assigning a value.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode <span class="op">:</span> Node</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> NodePath _nodePath<span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">string</span> _name <span class="op">=</span> <span class="st">&quot;default&quot;</span><span class="op">;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span><span class="fu">Export</span><span class="op">(</span>PropertyHint<span class="op">.</span><span class="fu">Range</span><span class="op">,</span> <span class="st">&quot;0,100000,1000,or_greater&quot;</span><span class="op">)]</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">int</span> _income<span class="op">;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span><span class="fu">Export</span><span class="op">(</span>PropertyHint<span class="op">.</span><span class="fu">File</span><span class="op">,</span> <span class="st">&quot;*.png,*.jpg&quot;</span><span class="op">)]</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">string</span> _icon<span class="op">;</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>See also: <code>doc_c_sharp_exports</code>.</p>
+<h2 id="signal-keyword"><code>signal</code> keyword</h2>
+<p>Use the <code>[Signal]</code> attribute to declare a signal instead of the GDScript <code>signal</code> keyword. This attribute should be used on a delegate, whose name signature will be used to define the signal. The delegate must have the <code>EventHandler</code> suffix, an event will be generated in the class with the same name but without the suffix, use that event's name with <code>EmitSignal</code>.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">MySignalEventHandler</span><span class="op">(</span><span class="dt">string</span> willSendAString<span class="op">);</span></span></code></pre></div>
+<p>See also: <code>doc_c_sharp_signals</code>.</p>
+<h2 id="onready-annotation">@onready annotation</h2>
+<p>GDScript has the ability to defer the initialization of a member variable until the ready function is called with @onready (cf. <code>doc_gdscript_onready_annotation</code>). For example:</p>
+<pre class="gdscript"><code>@onready var my_label = get_node(&quot;MyLabel&quot;)</code></pre>
+<p>However C# does not have this ability. To achieve the same effect you need to do this.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Label _myLabel<span class="op">;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    _myLabel <span class="op">=</span> GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;MyLabel&quot;</span><span class="op">);</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="singletons">Singletons</h2>
+<p>Singletons are available as static classes rather than using the singleton pattern. This is to make code less verbose than it would be with an <code>Instance</code> property.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;ui_down&quot;</span><span class="op">)</span></span></code></pre></div>
+<p>However, in some very rare cases this is not enough. For example, you may want to access a member from the base class <code>GodotObject</code>, like <code>Connect</code>. For such use cases we provide a static property named <code>Singleton</code> that returns the singleton instance. The type of this instance is <code>GodotObject</code>.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>Input<span class="op">.</span><span class="fu">Singleton</span><span class="op">.</span><span class="fu">JoyConnectionChanged</span> <span class="op">+=</span> Input_JoyConnectionChanged<span class="op">;</span></span></code></pre></div>
+<p>If you are developing main screen plugins, it is essential to note that <code>EditorInterface</code> is not a static class in C#, unlike in GDScript. Therefore, you must use the singleton pattern to obtain an instance of the <code>EditorInterface</code>:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>EditorInterface</code></td>
+<td><blockquote>
+<p><code>EditorInterface.Singleton</code></p>
+</blockquote></td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="string">String</h2>
+<p>Use <code>System.String</code> (<code>string</code>). Most of Godot's String methods have an equivalent in <code>System.String</code> or are provided by the <code>StringExtensions</code> class as extension methods.</p>
+<p>Note that C# strings use UTF-16 encoding, while Godot Strings use UTF-32 encoding.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="dt">string</span> text <span class="op">=</span> <span class="st">&quot;Get up!&quot;</span><span class="op">;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="dt">string</span><span class="op">[]</span> bigrams <span class="op">=</span> text<span class="op">.</span><span class="fu">Bigrams</span><span class="op">();</span> <span class="co">// [&quot;Ge&quot;, &quot;et&quot;, &quot;t &quot;, &quot; u&quot;, &quot;up&quot;, &quot;p!&quot;]</span></span></code></pre></div>
+<p>Strings are immutable in .NET, so all methods that manipulate a string don't modify the original string and return a newly created string with the modifications applied. To avoid creating multiple string allocations consider using a <a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.stringbuilder">StringBuilder</a>.</p>
+<p>List of Godot's String methods and their equivalent in C#:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>begins_with</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.startswith">string.StartsWith</a></td>
+</tr>
+<tr class="even">
+<td>bigrams</td>
+<td>StringExtensions.Bigrams</td>
+</tr>
+<tr class="odd">
+<td>bin_to_int</td>
+<td>StringExtensions.BinToInt</td>
+</tr>
+<tr class="even">
+<td>c_escape</td>
+<td>StringExtensions.CEscape</td>
+</tr>
+<tr class="odd">
+<td>c_unescape</td>
+<td>StringExtensions.CUnescape</td>
+</tr>
+<tr class="even">
+<td>capitalize</td>
+<td>StringExtensions.Capitalize</td>
+</tr>
+<tr class="odd">
+<td>casecmp_to</td>
+<td>StringExtensions.CasecmpTo or StringExtensions.CompareTo (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.equals">string.Equals</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.compare">string.Compare</a>)</td>
+</tr>
+<tr class="even">
+<td>chr</td>
+<td>N/A</td>
+</tr>
+<tr class="odd">
+<td>contains</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.contains">string.Contains</a></td>
+</tr>
+<tr class="even">
+<td>count</td>
+<td>StringExtensions.Count (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expressions">RegEx</a>)</td>
+</tr>
+<tr class="odd">
+<td>countn</td>
+<td>StringExtensions.CountN (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expressions">RegEx</a>)</td>
+</tr>
+<tr class="even">
+<td>dedent</td>
+<td>StringExtensions.Dedent</td>
+</tr>
+<tr class="odd">
+<td>ends_with</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.endswith">string.EndsWith</a></td>
+</tr>
+<tr class="even">
+<td>erase</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.remove">string.Remove</a> (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.stringbuilder">StringBuilder</a> to manipulate strings)</td>
+</tr>
+<tr class="odd">
+<td>find</td>
+<td>StringExtensions.Find (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.indexof">string.IndexOf</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.indexofany">string.IndexOfAny</a>)</td>
+</tr>
+<tr class="even">
+<td>findn</td>
+<td>StringExtensions.FindN (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.indexof">string.IndexOf</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.indexofany">string.IndexOfAny</a>)</td>
+</tr>
+<tr class="odd">
+<td>format</td>
+<td>Use <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/tokens/interpolated">$ string interpolation</a></td>
+</tr>
+<tr class="even">
+<td>get_base_dir</td>
+<td>StringExtensions.GetBaseDir</td>
+</tr>
+<tr class="odd">
+<td>get_basename</td>
+<td>StringExtensions.GetBaseName</td>
+</tr>
+<tr class="even">
+<td>get_extension</td>
+<td>StringExtensions.GetExtension</td>
+</tr>
+<tr class="odd">
+<td>get_file</td>
+<td>StringExtensions.GetFile</td>
+</tr>
+<tr class="even">
+<td>get_slice</td>
+<td>N/A</td>
+</tr>
+<tr class="odd">
+<td>get_slice_count</td>
+<td>N/A</td>
+</tr>
+<tr class="even">
+<td>get_slicec</td>
+<td>N/A</td>
+</tr>
+<tr class="odd">
+<td>hash</td>
+<td>StringExtensions.Hash (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.object.gethashcode">object.GetHashCode</a> unless you need to guarantee the same behavior as in GDScript)</td>
+</tr>
+<tr class="even">
+<td>hex_decode</td>
+<td>StringExtensions.HexDecode (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.convert.fromhexstring">System.Convert.FromHexString</a>)</td>
+</tr>
+<tr class="odd">
+<td>hex_to_int</td>
+<td>StringExtensions.HexToInt (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.int32.parse">int.Parse</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.int64.parse">long.Parse</a> with <a href="https://learn.microsoft.com/en-us/dotnet/api/system.globalization.numberstyles#system-globalization-numberstyles-hexnumber">System.Globalization.NumberStyles.HexNumber</a>)</td>
+</tr>
+<tr class="even">
+<td>humanize_size</td>
+<td>N/A</td>
+</tr>
+<tr class="odd">
+<td>indent</td>
+<td>StringExtensions.Indent</td>
+</tr>
+<tr class="even">
+<td>insert</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.insert">string.Insert</a> (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.stringbuilder">StringBuilder</a> to manipulate strings)</td>
+</tr>
+<tr class="odd">
+<td>is_absolute_path</td>
+<td>StringExtensions.IsAbsolutePath</td>
+</tr>
+<tr class="even">
+<td>is_empty</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.isnullorempty">string.IsNullOrEmpty</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.isnullorwhitespace">string.IsNullOrWhiteSpace</a></td>
+</tr>
+<tr class="odd">
+<td>is_relative_path</td>
+<td>StringExtensions.IsRelativePath</td>
+</tr>
+<tr class="even">
+<td>is_subsequence_of</td>
+<td>StringExtensions.IsSubsequenceOf</td>
+</tr>
+<tr class="odd">
+<td>is_subsequence_ofn</td>
+<td>StringExtensions.IsSubsequenceOfN</td>
+</tr>
+<tr class="even">
+<td>is_valid_filename</td>
+<td>StringExtensions.IsValidFileName</td>
+</tr>
+<tr class="odd">
+<td>is_valid_float</td>
+<td>StringExtensions.IsValidFloat (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.single.tryparse">float.TryParse</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.double.tryparse">double.TryParse</a>)</td>
+</tr>
+<tr class="even">
+<td>is_valid_hex_number</td>
+<td>StringExtensions.IsValidHexNumber</td>
+</tr>
+<tr class="odd">
+<td>is_valid_html_color</td>
+<td>StringExtensions.IsValidHtmlColor</td>
+</tr>
+<tr class="even">
+<td>is_valid_identifier</td>
+<td>StringExtensions.IsValidIdentifier</td>
+</tr>
+<tr class="odd">
+<td>is_valid_int</td>
+<td>StringExtensions.IsValidInt (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.int32.tryparse">int.TryParse</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.int64.tryparse">long.TryParse</a>)</td>
+</tr>
+<tr class="even">
+<td>is_valid_ip_address</td>
+<td>StringExtensions.IsValidIPAddress</td>
+</tr>
+<tr class="odd">
+<td>join</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.join">string.Join</a></td>
+</tr>
+<tr class="even">
+<td>json_escape</td>
+<td>StringExtensions.JSONEscape</td>
+</tr>
+<tr class="odd">
+<td>left</td>
+<td>StringExtensions.Left (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.substring">string.Substring</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions.asspan">string.AsSpan</a>)</td>
+</tr>
+<tr class="even">
+<td>length</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.length">string.Length</a></td>
+</tr>
+<tr class="odd">
+<td>lpad</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.padleft">string.PadLeft</a></td>
+</tr>
+<tr class="even">
+<td>lstrip</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.trimstart">string.TrimStart</a></td>
+</tr>
+<tr class="odd">
+<td>match</td>
+<td>StringExtensions.Match (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expressions">RegEx</a>)</td>
+</tr>
+<tr class="even">
+<td>matchn</td>
+<td>StringExtensions.MatchN (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expressions">RegEx</a>)</td>
+</tr>
+<tr class="odd">
+<td>md5_buffer</td>
+<td>StringExtensions.Md5Buffer (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.md5.hashdata">System.Security.Cryptography.MD5.HashData</a>)</td>
+</tr>
+<tr class="even">
+<td>md5_text</td>
+<td>StringExtensions.Md5Text (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.md5.hashdata">System.Security.Cryptography.MD5.HashData</a> with StringExtensions.HexEncode)</td>
+</tr>
+<tr class="odd">
+<td>naturalnocasecmp_to</td>
+<td>N/A (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.equals">string.Equals</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.compare">string.Compare</a>)</td>
+</tr>
+<tr class="even">
+<td>nocasecmp_to</td>
+<td>StringExtensions.NocasecmpTo or StringExtensions.CompareTo (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.equals">string.Equals</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.compare">string.Compare</a>)</td>
+</tr>
+<tr class="odd">
+<td>num</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.single.tostring">float.ToString</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.double.tostring">double.ToString</a></td>
+</tr>
+<tr class="even">
+<td>num_int64</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.int32.tostring">int.ToString</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.int64.tostring">long.ToString</a></td>
+</tr>
+<tr class="odd">
+<td>num_scientific</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.single.tostring">float.ToString</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.double.tostring">double.ToString</a></td>
+</tr>
+<tr class="even">
+<td>num_uint64</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.uint32.tostring">uint.ToString</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.uint64.tostring">ulong.ToString</a></td>
+</tr>
+<tr class="odd">
+<td>pad_decimals</td>
+<td>StringExtensions.PadDecimals</td>
+</tr>
+<tr class="even">
+<td>pad_zeros</td>
+<td>StringExtensions.PadZeros</td>
+</tr>
+<tr class="odd">
+<td>path_join</td>
+<td>StringExtensions.PathJoin</td>
+</tr>
+<tr class="even">
+<td>repeat</td>
+<td>Use <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.-ctor">string constructor</a> or a <a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.stringbuilder">StringBuilder</a></td>
+</tr>
+<tr class="odd">
+<td>replace</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.replace">string.Replace</a> or <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expressions">RegEx</a></td>
+</tr>
+<tr class="even">
+<td>replacen</td>
+<td>StringExtensions.ReplaceN (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.replace">string.Replace</a> or <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expressions">RegEx</a>)</td>
+</tr>
+<tr class="odd">
+<td>reverse</td>
+<td>N/A</td>
+</tr>
+<tr class="even">
+<td>rfind</td>
+<td>StringExtensions.RFind (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.lastindexof">string.LastIndexOf</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.lastindexofany">string.LastIndexOfAny</a>)</td>
+</tr>
+<tr class="odd">
+<td>rfindn</td>
+<td>StringExtensions.RFindN (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.lastindexof">string.LastIndexOf</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.lastindexofany">string.LastIndexOfAny</a>)</td>
+</tr>
+<tr class="even">
+<td>right</td>
+<td>StringExtensions.Right (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.substring">string.Substring</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions.asspan">string.AsSpan</a>)</td>
+</tr>
+<tr class="odd">
+<td>rpad</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.padright">string.PadRight</a></td>
+</tr>
+<tr class="even">
+<td>rsplit</td>
+<td>N/A</td>
+</tr>
+<tr class="odd">
+<td>rstrip</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.trimend">string.TrimEnd</a></td>
+</tr>
+<tr class="even">
+<td>sha1_buffer</td>
+<td>StringExtensions.Sha1Buffer (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.sha1.hashdata">System.Security.Cryptography.SHA1.HashData</a>)</td>
+</tr>
+<tr class="odd">
+<td>sha1_text</td>
+<td>StringExtensions.Sha1Text (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.sha1.hashdata">System.Security.Cryptography.SHA1.HashData</a> with StringExtensions.HexEncode)</td>
+</tr>
+<tr class="even">
+<td>sha256_buffer</td>
+<td>StringExtensions.Sha256Buffer (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.sha256.hashdata">System.Security.Cryptography.SHA256.HashData</a>)</td>
+</tr>
+<tr class="odd">
+<td>sha256_text</td>
+<td>StringExtensions.Sha256Text (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.sha256.hashdata">System.Security.Cryptography.SHA256.HashData</a> with StringExtensions.HexEncode)</td>
+</tr>
+<tr class="even">
+<td>similarity</td>
+<td>StringExtensions.Similarity</td>
+</tr>
+<tr class="odd">
+<td>simplify_path</td>
+<td>StringExtensions.SimplifyPath</td>
+</tr>
+<tr class="even">
+<td>split</td>
+<td>StringExtensions.Split (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.split">string.Split</a>)</td>
+</tr>
+<tr class="odd">
+<td>split_floats</td>
+<td>StringExtensions.SplitFloat</td>
+</tr>
+<tr class="even">
+<td>strip_edges</td>
+<td>StringExtensions.StripEdges (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.trim">string.Trim</a>, <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.trimstart">string.TrimStart</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.trimend">string.TrimEnd</a>)</td>
+</tr>
+<tr class="odd">
+<td>strip_escapes</td>
+<td>StringExtensions.StripEscapes</td>
+</tr>
+<tr class="even">
+<td>substr</td>
+<td>StringExtensions.Substr (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.substring">string.Substring</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions.asspan">string.AsSpan</a>)</td>
+</tr>
+<tr class="odd">
+<td>to_ascii_buffer</td>
+<td>StringExtensions.ToAsciiBuffer (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.asciiencoding.getbytes">System.Text.Encoding.ASCII.GetBytes</a>)</td>
+</tr>
+<tr class="even">
+<td>to_camel_case</td>
+<td>StringExtensions.ToCamelCase</td>
+</tr>
+<tr class="odd">
+<td>to_float</td>
+<td>StringExtensions.ToFloat (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.single.tryparse">float.TryParse</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.double.tryparse">double.TryParse</a>)</td>
+</tr>
+<tr class="even">
+<td>to_int</td>
+<td>StringExtensions.ToInt (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.int32.tryparse">int.TryParse</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.int64.tryparse">long.TryParse</a>)</td>
+</tr>
+<tr class="odd">
+<td>to_lower</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.tolower">string.ToLower</a></td>
+</tr>
+<tr class="even">
+<td>to_pascal_case</td>
+<td>StringExtensions.ToPascalCase</td>
+</tr>
+<tr class="odd">
+<td>to_snake_case</td>
+<td>StringExtensions.ToSnakeCase</td>
+</tr>
+<tr class="even">
+<td>to_upper</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.toupper">string.ToUpper</a></td>
+</tr>
+<tr class="odd">
+<td>to_utf16_buffer</td>
+<td>StringExtensions.ToUtf16Buffer (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.unicodeencoding.getbytes">System.Text.Encoding.UTF16.GetBytes</a>)</td>
+</tr>
+<tr class="even">
+<td>to_utf32_buffer</td>
+<td>StringExtensions.ToUtf32Buffer (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.utf32encoding.getbytes">System.Text.Encoding.UTF32.GetBytes</a>)</td>
+</tr>
+<tr class="odd">
+<td>to_utf8_buffer</td>
+<td>StringExtensions.ToUtf8Buffer (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.utf8encoding.getbytes">System.Text.Encoding.UTF8.GetBytes</a>)</td>
+</tr>
+<tr class="even">
+<td>to_wchar_buffer</td>
+<td>StringExtensions.ToUtf16Buffer in Windows and StringExtensions.ToUtf32Buffer in other platforms</td>
+</tr>
+<tr class="odd">
+<td>trim_prefix</td>
+<td>StringExtensions.TrimPrefix</td>
+</tr>
+<tr class="even">
+<td>trim_suffix</td>
+<td>StringExtensions.TrimSuffix</td>
+</tr>
+<tr class="odd">
+<td>unicode_at</td>
+<td><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.chars">string[int]</a> indexer</td>
+</tr>
+<tr class="even">
+<td>uri_decode</td>
+<td>StringExtensions.URIDecode (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.uri.unescapedatastring">System.Uri.UnescapeDataString</a>)</td>
+</tr>
+<tr class="odd">
+<td>uri_encode</td>
+<td>StringExtensions.URIEncode (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.uri.escapedatastring">System.Uri.EscapeDataString</a>)</td>
+</tr>
+<tr class="even">
+<td>validate_node_name</td>
+<td>StringExtensions.ValidateNodeName</td>
+</tr>
+<tr class="odd">
+<td>xml_escape</td>
+<td>StringExtensions.XMLEscape</td>
+</tr>
+<tr class="even">
+<td>xml_unescape</td>
+<td>StringExtensions.XMLUnescape</td>
+</tr>
+</tbody>
+</table>
+<p>List of Godot's PackedByteArray methods that create a String and their C# equivalent:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>get_string_from_ascii</td>
+<td>StringExtensions.GetStringFromAscii (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.asciiencoding.getstring">System.Text.Encoding.ASCII.GetString</a>)</td>
+</tr>
+<tr class="even">
+<td>get_string_from_utf16</td>
+<td>StringExtensions.GetStringFromUtf16 (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.unicodeencoding.getstring">System.Text.Encoding.UTF16.GetString</a>)</td>
+</tr>
+<tr class="odd">
+<td>get_string_from_utf32</td>
+<td>StringExtensions.GetStringFromUtf32 (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.utf32encoding.getstring">System.Text.Encoding.UTF32.GetString</a>)</td>
+</tr>
+<tr class="even">
+<td>get_string_from_utf8</td>
+<td>StringExtensions.GetStringFromUtf8 (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.utf8encoding.getstring">System.Text.Encoding.UTF8.GetString</a>)</td>
+</tr>
+<tr class="odd">
+<td>hex_encode</td>
+<td>StringExtensions.HexEncode (Consider using <a href="https://learn.microsoft.com/en-us/dotnet/api/system.convert.tohexstring">System.Convert.ToHexString</a>)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> .NET provides path utility methods under the <a href="https://learn.microsoft.com/en-us/dotnet/api/system.io.path">System.IO.Path</a> class. They can only be used with native OS paths, not Godot paths (paths that start with <code>res://</code> or <code>user://</code>). See <code>doc_data_paths</code>.</p>
+</blockquote>
+<h2 id="nodepath">NodePath</h2>
+<p>The following method was converted to a property with a different name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>is_empty()</code></td>
+<td><code>IsEmpty</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="signal">Signal</h2>
+<p>The following methods were converted to properties with their respective names changed:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>get_name()</code></td>
+<td><code>Name</code></td>
+</tr>
+<tr class="even">
+<td><code>get_object()</code></td>
+<td><code>Owner</code></td>
+</tr>
+</tbody>
+</table>
+<p>The <code>Signal</code> type implements the awaitable pattern which means it can be used with the <code>await</code> keyword. See <code>doc_c_sharp_differences_await</code>.</p>
+<p>Instead of using the <code>Signal</code> type, the recommended way to use Godot signals in C# is to use the generated C# events. See <code>doc_c_sharp_signals</code>.</p>
+<h2 id="callable">Callable</h2>
+<p>The following methods were converted to properties with their respective names changed:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>get_object()</code></td>
+<td><code>Target</code></td>
+</tr>
+<tr class="even">
+<td><code>get_method()</code></td>
+<td><code>Method</code></td>
+</tr>
+</tbody>
+</table>
+<p>Currently C# supports <code>Callable</code> if one of the following holds:</p>
+<ul>
+<li><code>Callable</code> was created using the C# <code>Callable</code> type.</li>
+<li><code>Callable</code> is a basic version of the engine's <code>Callable</code>. Custom <code>Callable</code>s are unsupported. A <code>Callable</code> is custom when any of the following holds:
+<ul>
+<li><code>Callable</code> has bound information (<code>Callable</code>s created with <code>bind</code>/<code>unbind</code> are unsupported).</li>
+<li><code>Callable</code> was created from other languages through the GDExtension API.</li>
+</ul></li>
+</ul>
+<p>Some methods such as <code>bind</code> and <code>unbind</code> are not implemented, use lambdas instead:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="dt">string</span> name <span class="op">=</span> <span class="st">&quot;John Doe&quot;</span><span class="op">;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>Callable callable <span class="op">=</span> Callable<span class="op">.</span><span class="fu">From</span><span class="op">(()</span> <span class="op">=&gt;</span> <span class="fu">SayHello</span><span class="op">(</span>name<span class="op">));</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">SayHello</span><span class="op">(</span><span class="dt">string</span> name<span class="op">)</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>$<span class="st">&quot;Hello {name}&quot;</span><span class="op">);</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The lambda captures the <code>name</code> variable so it can be bound to the <code>SayHello</code> method.</p>
+<h2 id="rid">RID</h2>
+<p>This type is named <code>Rid</code> in C# to follow the .NET naming convention.</p>
+<p>The following methods were converted to properties with their respective names changed:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>get_id()</code></td>
+<td><code>Id</code></td>
+</tr>
+<tr class="even">
+<td><code>is_valid()</code></td>
+<td><code>IsValid</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="basis">Basis</h2>
+<p>Structs cannot have parameterless constructors in C#. Therefore, <code>new Basis()</code> initializes all primitive members to their default value. Use <code>Basis.Identity</code> for the equivalent of <code>Basis()</code> in GDScript and C++.</p>
+<p>The following method was converted to a property with a different name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>get_scale()</code></td>
+<td><code>Scale</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="transform2d">Transform2D</h2>
+<p>Structs cannot have parameterless constructors in C#. Therefore, <code>new Transform2D()</code> initializes all primitive members to their default value. Please use <code>Transform2D.Identity</code> for the equivalent of <code>Transform2D()</code> in GDScript and C++.</p>
+<p>The following methods were converted to properties with their respective names changed:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>get_rotation()</code></td>
+<td><code>Rotation</code></td>
+</tr>
+<tr class="even">
+<td><code>get_scale()</code></td>
+<td><code>Scale</code></td>
+</tr>
+<tr class="odd">
+<td><code>get_skew()</code></td>
+<td><code>Skew</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="transform3d">Transform3D</h2>
+<p>Structs cannot have parameterless constructors in C#. Therefore, <code>new Transform3D()</code> initializes all primitive members to their default value. Please use <code>Transform3D.Identity</code> for the equivalent of <code>Transform3D()</code> in GDScript and C++.</p>
+<p>The following methods were converted to properties with their respective names changed:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>get_rotation()</code></td>
+<td><code>Rotation</code></td>
+</tr>
+<tr class="even">
+<td><code>get_scale()</code></td>
+<td><code>Scale</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="rect2">Rect2</h2>
+<p>The following field was converted to a property with a <em>slightly</em> different name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>end</code></td>
+<td><code>End</code></td>
+</tr>
+</tbody>
+</table>
+<p>The following method was converted to a property with a different name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>get_area()</code></td>
+<td><code>Area</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="rect2i">Rect2i</h2>
+<p>This type is named <code>Rect2I</code> in C# to follow the .NET naming convention.</p>
+<p>The following field was converted to a property with a <em>slightly</em> different name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>end</code></td>
+<td><code>End</code></td>
+</tr>
+</tbody>
+</table>
+<p>The following method was converted to a property with a different name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>get_area()</code></td>
+<td><code>Area</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="aabb">AABB</h2>
+<p>This type is named <code>Aabb</code> in C# to follow the .NET naming convention.</p>
+<p>The following method was converted to a property with a different name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>get_volume()</code></td>
+<td><code>Volume</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="quaternion">Quaternion</h2>
+<p>Structs cannot have parameterless constructors in C#. Therefore, <code>new Quaternion()</code> initializes all primitive members to their default value. Please use <code>Quaternion.Identity</code> for the equivalent of <code>Quaternion()</code> in GDScript and C++.</p>
+<h2 id="projection">Projection</h2>
+<p>Structs cannot have parameterless constructors in C#. Therefore, <code>new Projection()</code> initializes all primitive members to their default value. Please use <code>Projection.Identity</code> for the equivalent of <code>Projection()</code> in GDScript and C++.</p>
+<h2 id="color">Color</h2>
+<p>Structs cannot have parameterless constructors in C#. Therefore, <code>new Color()</code> initializes all primitive members to their default value (which represents the transparent black color). Please use <code>Colors.Black</code> for the equivalent of <code>Color()</code> in GDScript and C++.</p>
+<p>The global <code>Color8</code> method to construct a Color from bytes is available as a static method in the Color type.</p>
+<p>The Color constants are available in the <code>Colors</code> static class as readonly properties.</p>
+<p>The following method was converted to a property with a different name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>get_luminance()</code></td>
+<td><code>Luminance</code></td>
+</tr>
+</tbody>
+</table>
+<p>The following method was converted to a method with a different name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>html(String)</code></td>
+<td><code>FromHtml(ReadOnlySpan&lt;char&gt;)</code></td>
+</tr>
+</tbody>
+</table>
+<p>The following methods are available as constructors:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>hex(int)</code></td>
+<td><code>Color(uint)</code></td>
+</tr>
+<tr class="even">
+<td><code>hex64(int)</code></td>
+<td><code>Color(ulong)</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="array">Array</h2>
+<p>The equivalent of packed arrays are <code>System.Array</code>.</p>
+<p>See also ref.</p>
+<p>Use <code>Godot.Collections.Array</code> for an untyped <code>Variant</code> array. <code>Godot.Collections.Array&lt;T&gt;</code> is a type-safe wrapper around <code>Godot.Collections.Array</code>.</p>
+<p>See also ref.</p>
+<h2 id="dictionary">Dictionary</h2>
+<p>Use <code>Godot.Collections.Dictionary</code> for an untyped <code>Variant</code> dictionary. <code>Godot.Collections.Dictionary&lt;TKey, TValue&gt;</code> is a type-safe wrapper around <code>Godot.Collections.Dictionary</code>.</p>
+<p>See also ref.</p>
+<h2 id="variant">Variant</h2>
+<p><code>Godot.Variant</code> is used to represent Godot's native ref type. Any ref can be converted from/to it.</p>
+<p>See also: <code>doc_c_sharp_variant</code>.</p>
+<h2 id="communicating-with-other-scripting-languages">Communicating with other scripting languages</h2>
+<p>This is explained extensively in <code>doc_cross_language_scripting</code>.</p>
+<h2 id="await-keyword"><code>await</code> keyword</h2>
+<p>Something similar to GDScript's <code>await</code> keyword can be achieved with C#'s <a href="https://docs.microsoft.com/en-US/dotnet/csharp/language-reference/keywords/await">await keyword</a>.</p>
+<p>The <code>await</code> keyword in C# can be used with any awaitable expression. It's commonly used with operands of the types <a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task">Task</a>, <a href="TResult">Task</a>, <a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.valuetask">ValueTask</a>, or <a href="TResult">ValueTask</a>.</p>
+<p>An expression <code>t</code> is awaitable if one of the following holds:</p>
+<ul>
+<li><code>t</code> is of compile-time type <code>dynamic</code>.</li>
+<li><code>t</code> has an accessible instance or extension method called <code>GetAwaiter</code> with no parameters and no type parameters, and a return type <code>A</code> for which all of the following hold:
+<ul>
+<li><code>A</code> implements the interface <code>System.Runtime.CompilerServices.INotifyCompletion</code>.</li>
+<li><code>A</code> has an accessible, readable instance property <code>IsCompleted</code> of type <code>bool</code>.</li>
+<li><code>A</code> has an accessible instance method <code>GetResult</code> with no parameters and no type parameters.</li>
+</ul></li>
+</ul>
+<p>An equivalent of awaiting a signal in GDScript can be achieved with the <code>await</code> keyword and <code>GodotObject.ToSignal</code>.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> async Task <span class="fu">SomeFunction</span><span class="op">()</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    await <span class="fu">ToSignal</span><span class="op">(</span>timer<span class="op">,</span> Timer<span class="op">.</span><span class="fu">SignalName</span><span class="op">.</span><span class="fu">Timeout</span><span class="op">);</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;After timeout&quot;</span><span class="op">);</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

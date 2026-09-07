@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Controlling thousands of fish with Particles — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="controlling-thousands-of-fish-with-particles">Controlling thousands of fish with Particles</h1>
+<p>The problem with ref is that it is expensive to update their transform array. It is great for placing many static objects around the scene. But it is still difficult to move the objects around the scene.</p>
+<p>To make each instance move in an interesting way, we will use a ref node. Particles take advantage of GPU acceleration by computing and setting the per-instance information in a ref.</p>
+<blockquote>
+<p><strong>Note:</strong> Particles are not available in GLES2, instead use ref, which do the same thing as Particles, but do not benefit from GPU acceleration.</p>
+</blockquote>
+<p>First create a Particles node. Then, under "Draw Passes" set the Particle's "Draw Pass 1" to your ref. Then under "Process Material" create a new ref.</p>
+<p>Set the <code>shader_type</code> to <code>particles</code>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>shader_type particles</span></code></pre></div>
+<p>Then add the following two functions:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> <span class="fu">rand_from_seed</span><span class="op">(</span><span class="dt">in</span> <span class="dt">uint</span> seed<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> k<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> s <span class="op">=</span> <span class="dt">int</span><span class="op">(</span>seed<span class="op">);</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">if</span> <span class="op">(</span>s <span class="op">==</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> <span class="dv">305420679</span><span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  k <span class="op">=</span> s <span class="op">/</span> <span class="dv">127773</span><span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  s <span class="op">=</span> <span class="dv">16807</span> <span class="op">*</span> <span class="op">(</span>s <span class="op">-</span> k <span class="op">*</span> <span class="dv">127773</span><span class="op">)</span> <span class="op">-</span> <span class="dv">2836</span> <span class="op">*</span> k<span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">if</span> <span class="op">(</span>s <span class="op">&lt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    s <span class="op">+=</span> <span class="dv">2147483647</span><span class="op">;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  seed <span class="op">=</span> <span class="dt">uint</span><span class="op">(</span>s<span class="op">);</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">return</span> <span class="dt">float</span><span class="op">(</span>seed <span class="op">%</span> <span class="dt">uint</span><span class="op">(</span><span class="dv">65536</span><span class="op">))</span> <span class="op">/</span> <span class="fl">65535.0</span><span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="dt">uint</span> <span class="fu">hash</span><span class="op">(</span><span class="dt">uint</span> x<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  x <span class="op">=</span> <span class="op">((</span>x <span class="op">&gt;&gt;</span> <span class="dt">uint</span><span class="op">(</span><span class="dv">16</span><span class="op">))</span> <span class="op">^</span> x<span class="op">)</span> <span class="op">*</span> <span class="dt">uint</span><span class="op">(</span><span class="dv">73244475</span><span class="op">);</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  x <span class="op">=</span> <span class="op">((</span>x <span class="op">&gt;&gt;</span> <span class="dt">uint</span><span class="op">(</span><span class="dv">16</span><span class="op">))</span> <span class="op">^</span> x<span class="op">)</span> <span class="op">*</span> <span class="dt">uint</span><span class="op">(</span><span class="dv">73244475</span><span class="op">);</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  x <span class="op">=</span> <span class="op">(</span>x <span class="op">&gt;&gt;</span> <span class="dt">uint</span><span class="op">(</span><span class="dv">16</span><span class="op">))</span> <span class="op">^</span> x<span class="op">;</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  <span class="kw">return</span> x<span class="op">;</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>These functions come from the default ref. They are used to generate a random number from each particle's <code>RANDOM_SEED</code>.</p>
+<p>A unique thing about particle shaders is that some built-in variables are saved across frames. <code>TRANSFORM</code>, <code>COLOR</code>, and <code>CUSTOM</code> can all be accessed in the Spatial shader of the mesh, and also in the particle shader the next time it is run.</p>
+<p>Next, setup your <code>vertex</code> function. Particles shaders only contain a vertex function and no others.</p>
+<p>First we will distinguish between code that needs to be run only when the particle system starts and code that should always run. We want to give each fish a random position and a random animation offset when the system is first run. To do so, we wrap that code in an <code>if</code> statement that checks the built-in variable <code>RESTART</code> which becomes <code>true</code> for one frame when the particle system is restarted.</p>
+<p>From a high level, this looks like:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">vertex</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">if</span> <span class="op">(</span>RESTART<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">//Initialization code goes here</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">//per-frame code goes here</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Next, we need to generate 4 random numbers: 3 to create a random position and one for the random offset of the swim cycle.</p>
+<p>First, generate 4 seeds inside the <code>RESTART</code> block using the <code>hash</code> function provided above:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">uint</span> alt_seed1 <span class="op">=</span> <span class="fu">hash</span><span class="op">(</span>NUMBER <span class="op">+</span> <span class="dt">uint</span><span class="op">(</span><span class="dv">1</span><span class="op">)</span> <span class="op">+</span> RANDOM_SEED<span class="op">);</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">uint</span> alt_seed2 <span class="op">=</span> <span class="fu">hash</span><span class="op">(</span>NUMBER <span class="op">+</span> <span class="dt">uint</span><span class="op">(</span><span class="dv">27</span><span class="op">)</span> <span class="op">+</span> RANDOM_SEED<span class="op">);</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="dt">uint</span> alt_seed3 <span class="op">=</span> <span class="fu">hash</span><span class="op">(</span>NUMBER <span class="op">+</span> <span class="dt">uint</span><span class="op">(</span><span class="dv">43</span><span class="op">)</span> <span class="op">+</span> RANDOM_SEED<span class="op">);</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="dt">uint</span> alt_seed4 <span class="op">=</span> <span class="fu">hash</span><span class="op">(</span>NUMBER <span class="op">+</span> <span class="dt">uint</span><span class="op">(</span><span class="dv">111</span><span class="op">)</span> <span class="op">+</span> RANDOM_SEED<span class="op">);</span></span></code></pre></div>
+<p>Then, use those seeds to generate random numbers using <code>rand_from_seed</code>:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>CUSTOM<span class="op">.</span><span class="fu">x</span> <span class="op">=</span> <span class="fu">rand_from_seed</span><span class="op">(</span>alt_seed1<span class="op">);</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="dt">vec3</span> position <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fu">rand_from_seed</span><span class="op">(</span>alt_seed2<span class="op">)</span> <span class="op">*</span> <span class="fl">2.0</span> <span class="op">-</span> <span class="fl">1.0</span><span class="op">,</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>                     <span class="fu">rand_from_seed</span><span class="op">(</span>alt_seed3<span class="op">)</span> <span class="op">*</span> <span class="fl">2.0</span> <span class="op">-</span> <span class="fl">1.0</span><span class="op">,</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>                     <span class="fu">rand_from_seed</span><span class="op">(</span>alt_seed4<span class="op">)</span> <span class="op">*</span> <span class="fl">2.0</span> <span class="op">-</span> <span class="fl">1.0</span><span class="op">);</span></span></code></pre></div>
+<p>Finally, assign <code>position</code> to <code>TRANSFORM[3].xyz</code>, which is the part of the transform that holds the position information.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>TRANSFORM<span class="op">[</span><span class="dv">3</span><span class="op">].</span><span class="fu">xyz</span> <span class="op">=</span> position <span class="op">*</span> <span class="fl">20.0</span><span class="op">;</span></span></code></pre></div>
+<p>Remember, all this code so far goes inside the <code>RESTART</code> block.</p>
+<p>The vertex shader for your mesh can stay the exact same as it was in the previous tutorial.</p>
+<p>Now you can move each fish individually each frame, either by adding to the <code>TRANSFORM</code> directly or by writing to <code>VELOCITY</code>.</p>
+<p>Let's transform the fish by setting their <code>VELOCITY</code>.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>VELOCITY<span class="op">.</span><span class="fu">z</span> <span class="op">=</span> <span class="fl">10.0</span><span class="op">;</span></span></code></pre></div>
+<p>This is the most basic way to set <code>VELOCITY</code> every particle (or fish) will have the same velocity.</p>
+<p>Just by setting <code>VELOCITY</code> you can make the fish swim however you want. For example, try the code below.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>VELOCITY<span class="op">.</span><span class="fu">z</span> <span class="op">=</span> <span class="bu">cos</span><span class="op">(</span>TIME <span class="op">+</span> CUSTOM<span class="op">.</span><span class="fu">x</span> <span class="op">*</span> <span class="fl">6.28</span><span class="op">)</span> <span class="op">*</span> <span class="fl">4.0</span> <span class="op">+</span> <span class="fl">6.0</span><span class="op">;</span></span></code></pre></div>
+<p>This will give each fish a unique speed between <code>2</code> and <code>10</code>.</p>
+<p>If you used <code>CUSTOM.y</code> in the last tutorial, you can also set the speed of the swim animation based on the <code>VELOCITY</code>. Just use <code>CUSTOM.y</code>.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>CUSTOM<span class="op">.</span><span class="fu">y</span> <span class="op">=</span> VELOCITY<span class="op">.</span><span class="fu">z</span> <span class="op">*</span> <span class="fl">0.1</span><span class="op">;</span></span></code></pre></div>
+<p>This code gives you the following behavior:</p>
+<p>Using a ParticlesMaterial you can make the fish behavior as simple or complex as you like. In this tutorial we only set Velocity, but in your own Shaders you can also set <code>COLOR</code>, rotation, scale (through <code>TRANSFORM</code>). Please refer to the ref for more information on particle shaders.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

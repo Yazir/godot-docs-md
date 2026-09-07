@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Controller features — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="controller-features">Controller features</h1>
+<p>Godot supports controller-specific features that can further enhance the gameplay experience. This page describes these features, how existing games have used them, and how you can get started with them in Godot.</p>
+<blockquote>
+<p><strong>Warning:</strong> These controller features are currently only supported on Windows, macOS, iOS, and Linux.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Unless you specifically advertise your game as requiring specific controllers, remember that there is no guarantee that players will have a controller with any given features.</p>
+<p>As a result, we suggest using these features to enhance the gameplay experience for players whose controllers support them, without detracting from those who don't have controllers.</p>
+</blockquote>
+<h2 id="led-color">LED color</h2>
+<p>Games can use the LED lights on certain controllers to subtly complement the on-screen gameplay by providing some matching visuals in the player's hands. Here are some notable examples:</p>
+<ul>
+<li>In <em>Hades</em>, the color of the light matches the god you're receiving a boon from.</li>
+<li>In <em>Resident Evil 2</em>, the color of the light indicates your health (green for full, yellow for medium, red for low).</li>
+<li>In <em>Star Wars Jedi: Fallen Order</em>, the color of the light matches your lightsaber's color.</li>
+</ul>
+<p>Use the method ref to set the color of a given controller's LEDs.</p>
+<p>To determine if a given controller supports setting LED lights, use the ref method. The PlayStation DualShock and DualSense controllers are known to support LED lights.</p>
+<p>The following <code>_process()</code> method sets the LED color according to the currently pressed button, and turns it off if no button is being pressed:</p>
+<pre><code>func _process(_delta):
+    var color := Color.BLACK
+
+    if Input.is_joy_button_pressed(0, JOY_BUTTON_A):
+        color = Color.BLUE
+    elif Input.is_joy_button_pressed(0, JOY_BUTTON_X):
+        color = Color.MAGENTA
+    elif Input.is_joy_button_pressed(0, JOY_BUTTON_B):
+        color = Color.RED
+    elif Input.is_joy_button_pressed(0, JOY_BUTTON_Y):
+        color = Color.GREEN
+
+    Input.set_joy_light(0, color)</code></pre>
+<p>The following example smoothly fades the LED through hues in a loop:</p>
+<pre><code>var hue = 0.0
+
+func _process(delta):
+    var col = Color.from_hsv(hue, 1.0, 1.0)
+    Input.set_joy_light(0, col)
+    hue += delta * 0.1</code></pre>
+<p>The following example makes the LED blink red three times when the south button (Cross/X on PlayStation controllers) is pressed:</p>
+<pre><code>var blink_tween: Tween = null
+
+func _process(_delta):
+    var ready_to_blink = not blink_tween or not blink_tween.is_running()
+    if Input.is_joy_button_pressed(0, JOY_BUTTON_A) and ready_to_blink:
+        do_blink()
+
+func do_blink():
+    if blink_tween:
+        blink_tween.kill()
+
+    blink_tween = create_tween()
+    blink_tween.tween_callback(func(): Input.set_joy_light(0, Color.RED))
+    blink_tween.tween_interval(0.2)
+    blink_tween.tween_callback(func(): Input.set_joy_light(0, Color.BLACK))
+    blink_tween.tween_interval(0.2)
+    blink_tween.set_loops(3)</code></pre>
+<h2 id="motion-sensors-gyroscope-and-accelerometer">Motion sensors (gyroscope and accelerometer)</h2>
+<p>With motion controls, games can track the controller's physical rotation and movement. This can be used to let the player turn the in-game camera by moving their controller, or shaking their controller to perform a special action.</p>
+<p>There are several controller brands that have implemented gyroscope and accelerometer sensors into their modern controllers, the biggest two being PlayStation and Nintendo. Note that the Xbox controllers don't have motion sensors inside of them.</p>
+<p>To check if a connected controller has motion sensors, use ref.</p>
+<p>Motion sensors are disabled by default to avoid draining the controller battery when games don't use those features. To enable them, call ref.</p>
+<p>Note that the axes of the values that controller's motion sensors report are always relative to the controller's natural orientation. Here's an image of the axes mapping for more clarity:</p>
+<p>The controller's gyroscope values show rotation around their respective axes:</p>
+<ul>
+<li>the X value of the gyroscope data shows the rotation around the X axis (pitch).</li>
+<li>the Y value of the gyroscope data shows the rotation around the Y axis (yaw).</li>
+<li>the Z value of the gyroscope data shows the rotation around the Z axis (roll).</li>
+</ul>
+<p>The controller's accelerometer will provide values in the following ways, respectively:</p>
+<ul>
+<li>Movement left and right are reported as <strong>+X</strong> and <strong>-X</strong>.</li>
+<li>Movement down and up are reported as <strong>+Y</strong> and <strong>-Y</strong>.</li>
+<li>Movement away from and towards the user are reported as <strong>+Z</strong> and <strong>-Z</strong>.</li>
+</ul>
+<h3 id="gyroscope">Gyroscope</h3>
+<p>A <strong>gyroscope</strong> is a type of sensor that detects the controller's rotation. Here are some notable examples of gyroscope use in games:</p>
+<ul>
+<li>In <em>Helldivers 2</em>, <em>Horizon Forbidden West</em>, <em>Star Wars: Dark Forces Remaster</em>, and <em>Fortnite</em>, tilting the controller causes the camera to rotate accordingly ("gyro aiming"). <a href="https://www.youtube.com/watch?v=Vlfg9yku2hY">This video by *Daven On The Moon*</a> demonstrates and discusses gyro aiming in more detail.</li>
+<li>In <em>Death Stranding</em>, BB can be soothed by rotating the controller softly.</li>
+</ul>
+<p>The following example rotates an object using a controller's gyroscope sensor. You can also access this example by taking a look at the ref documentation.</p>
+<pre><code>const GYRO_SENSITIVITY = 10.0
+
+func _ready():
+    # In this example we only use the first connected joypad (id 0).
+    if 0 not in Input.get_connected_joypads():
+        return
+
+    if not Input.has_joy_motion_sensors(0):
+        return
+
+    # We must enable the motion sensors before using them.
+    Input.set_joy_motion_sensors_enabled(0, true)
+
+    # (Tell the users here that they need to put their joypads on a flat surface and wait for confirmation.)
+
+    # Start the calibration process.
+    calibrate_motion()
+
+func _process(delta):
+    # Only move the object if the joypad motion sensors are calibrated.
+    if Input.is_joy_motion_sensors_calibrated(0):
+        move_object(delta)
+
+func calibrate_motion():
+    Input.start_joy_motion_sensors_calibration(0)
+
+    # Wait for some time.
+    await get_tree().create_timer(1.0).timeout
+
+    Input.stop_joy_motion_sensors_calibration(0)
+    # The joypad is now calibrated.
+
+func move_object(delta):
+    var node: Node3D = ... # Put your object here.
+
+    var gyro := Input.get_joy_gyroscope(0)
+    node.rotation.x -= -gyro.y * GYRO_SENSITIVITY * delta  # Use rotation around the Y axis (yaw) here.
+    node.rotation.y += -gyro.x * GYRO_SENSITIVITY * delta  # Use rotation around the X axis (pitch) here.</code></pre>
+<p>Note that before using the gyroscope's data, we must first calibrate it by calling ref and ref. That's because modern gyroscopes often need calibration. This is like how a weighing scale can need calibration to tell it what "zero" is. Like a weighing scale, only a correctly calibrated gyroscope will give an accurate reading. During calibration, the user sets the controller down on a flat surface. The controller then determines what values its gyroscope reports when it is actually not moving at all (its "bias"), and uses this information to make its rotation data more accurate.</p>
+<p>See <a href="http://gyrowiki.jibbsmart.com/blog:good-gyro-controls-part-1:the-gyro-is-a-mouse">the article on GyroWiki</a> for information on how to use gyroscope input as a mouse.</p>
+<p>After the controller's gyroscope has been enabled and correctly calibrated, you can read its reported values by using ref.</p>
+<h3 id="accelerometer">Accelerometer</h3>
+<blockquote>
+<p><strong>Warning:</strong> Do not use accelerometer data to find the controller's position in 3D space; the accelerometers in general are not precise enough for this.</p>
+</blockquote>
+<p>An <strong>accelerometer</strong> is a type of sensor that detects a controller's acceleration in m/s². For example, it can detect if the player quickly raises their controller, moves it to the side, or shakes it.</p>
+<p>The acceleration that an accelerometer detects includes gravity by default. To get <em>only</em> the acceleration imparted by the user, subtract gravity from the detected acceleration:</p>
+<pre><code>Input.get_joy_accelerometer(device) - Input.get_joy_gravity(device)</code></pre>
+<p>Due to how accelerometers work physically, after movement in one direction stops they almost immediately report movement in the opposite direction. After detecting movement in one direction, you may want to ignore further readings for a small period of time to avoid detecting this opposite movement.</p>
+<p>The following example prints the controller movement when it's being quickly moved by using its accelerometer. If the sensitivity doesn't feel right for you, you can tweak the <code>THRESHOLD</code> constant or you can replace it by using a different value in the code below.</p>
+<pre><code>var detect_accelerometer = true
+
+# Change to make the game detect movement at different thresholds.
+# With a lower value, smaller movements will be detected, and with a
+# larger value, only big movements will be detected.
+const THRESHOLD = 10.0
+
+func _ready():
+    # In this example, we only use the first connected joypad (ID 0).
+    if 0 not in Input.get_connected_joypads():
+        return
+
+    if not Input.has_joy_motion_sensors(0):
+        return
+
+    # We must enable the motion sensors before using them.
+    Input.set_joy_motion_sensors_enabled(0, true)
+
+func _process(delta):
+    if Input.has_joy_motion_sensors(0):
+        accelerometer_example()
+
+func accelerometer_example():
+    if not detect_accelerometer:
+        return
+
+    var acceleration = Input.get_joy_accelerometer(0) - Input.get_joy_gravity(0)
+    if acceleration.length() &gt; THRESHOLD:
+        if acceleration.x &gt; THRESHOLD:
+            print(&quot;Moved left&quot;)
+        elif acceleration.x &lt; -THRESHOLD:
+            print(&quot;Moved right&quot;)
+        if acceleration.y &lt; -THRESHOLD:
+            print(&quot;Moved up&quot;)
+        elif acceleration.y &gt; THRESHOLD:
+            print(&quot;Moved down&quot;)
+        if acceleration.z &lt; -THRESHOLD:
+            print(&quot;Moved closer to the player&quot;)
+        elif acceleration.z &gt; THRESHOLD:
+            print(&quot;Moved away from the player&quot;)
+
+        # After detecting movement in one direction, the accelerometer sensor
+        # will briefly report movement in the opposite direction, even though the controller only moved once.
+        # So we need to ignore these reported values for a short amount of time.
+        detect_accelerometer = false
+        await get_tree().create_timer(0.5, false).timeout
+        detect_accelerometer = true</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

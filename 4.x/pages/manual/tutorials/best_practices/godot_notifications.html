@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Godot notifications — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="godot-notifications">Godot notifications</h1>
+<p>Every Object in Godot implements a ref method. Its purpose is to allow the Object to respond to a variety of engine-level callbacks that may relate to it. For example, if the engine tells a ref to "draw", it will call <code>_notification(NOTIFICATION_DRAW)</code>.</p>
+<p>Some of these notifications, like draw, are useful to override in scripts. So much so that Godot exposes many of them with dedicated functions:</p>
+<ul>
+<li><code>_ready()</code>: <code>NOTIFICATION_READY</code></li>
+<li><code>_enter_tree()</code>: <code>NOTIFICATION_ENTER_TREE</code></li>
+<li><code>_exit_tree()</code>: <code>NOTIFICATION_EXIT_TREE</code></li>
+<li><code>_process(delta)</code>: <code>NOTIFICATION_PROCESS</code></li>
+<li><code>_physics_process(delta)</code>: <code>NOTIFICATION_PHYSICS_PROCESS</code></li>
+<li><code>_draw()</code>: <code>NOTIFICATION_DRAW</code></li>
+</ul>
+<p>What users might <em>not</em> realize is that notifications exist for types other than Node alone, for example:</p>
+<ul>
+<li>ref: a callback that triggers during object initialization. Not accessible to scripts.</li>
+<li>ref: a callback that triggers before the engine deletes an Object, i.e. a "destructor".</li>
+</ul>
+<p>And many of the callbacks that <em>do</em> exist in Nodes don't have any dedicated methods, but are still quite useful.</p>
+<ul>
+<li>ref: a callback that triggers anytime you add a child node to another node.</li>
+<li>ref: a callback that triggers anytime you remove a child node from another node.</li>
+</ul>
+<p>The universal <code>_notification()</code> method provides access to all these custom notifications.</p>
+<blockquote>
+<p><strong>Note:</strong> Methods in the documentation labeled as "virtual" are also intended to be overridden by scripts.</p>
+<p>A classic example is the ref method in Object. While it has no <code>NOTIFICATION_*</code> equivalent, the engine still calls the method. Most languages (except C#) rely on it as a constructor.</p>
+</blockquote>
+<p>So, when should you use each of these notifications or virtual functions?</p>
+<h2 id="_process-vs-_physics_process-vs-_input">_process vs. _physics_process vs. *_input</h2>
+<p>Use <code>_process()</code> when you need a framerate-dependent delta time between frames. If code that updates object data needs to update as often as possible, this is the right place. Recurring logic checks and data caching often execute here, but it comes down to how often the evaluations need to update. If they don't need to execute every frame, then implementing a Timer-timeout loop is another option.</p>
+<pre class="gdscript"><code># Allows for recurring operations that don&#39;t trigger script logic
+# every frame (or even every fixed frame).
+func _ready():
+    var timer = Timer.new()
+    timer.autostart = true
+    timer.wait_time = 0.5
+    add_child(timer)
+    timer.timeout.connect(func():
+        print(&quot;This block runs every 0.5 seconds&quot;)
+    )</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode <span class="op">:</span> Node</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Allows for recurring operations that don&#39;t trigger script logic</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// every frame (or even every fixed frame).</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> timer <span class="op">=</span> <span class="kw">new</span> <span class="fu">Timer</span><span class="op">();</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        timer<span class="op">.</span><span class="fu">Autostart</span> <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        timer<span class="op">.</span><span class="fu">WaitTime</span> <span class="op">=</span> <span class="fl">0.5</span><span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="fu">AddChild</span><span class="op">(</span>timer<span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        timer<span class="op">.</span><span class="fu">Timeout</span> <span class="op">+=</span> <span class="op">()</span> <span class="op">=&gt;</span> GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;This block runs every 0.5 seconds&quot;</span><span class="op">);</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> godot<span class="op">;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MyNode <span class="op">:</span> <span class="kw">public</span> Node <span class="op">{</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    GDCLASS<span class="op">(</span>MyNode<span class="op">,</span> Node<span class="op">)</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Allows for recurring operations that don&#39;t trigger script logic</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// every frame (or even every fixed frame).</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> _ready<span class="op">()</span> <span class="kw">override</span> <span class="op">{</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        Timer <span class="op">*</span>timer <span class="op">=</span> memnew<span class="op">(</span>Timer<span class="op">);</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>        timer<span class="op">-&gt;</span>set_autostart<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        timer<span class="op">-&gt;</span>set_wait_time<span class="op">(</span><span class="fl">0.5</span><span class="op">);</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        add_child<span class="op">(</span>timer<span class="op">);</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>        timer<span class="op">-&gt;</span><span class="fu">connect</span><span class="op">(</span><span class="st">&quot;timeout&quot;</span><span class="op">,</span> callable_mp<span class="op">(</span><span class="kw">this</span><span class="op">,</span> <span class="op">&amp;</span>MyNode<span class="op">::</span>run<span class="op">));</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> run<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>        UtilityFunctions<span class="op">::</span>print<span class="op">(</span><span class="st">&quot;This block runs every 0.5 seconds.&quot;</span><span class="op">);</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>Use <code>_physics_process()</code> when you need a framerate-independent delta time between frames. If code needs consistent updates over time, regardless of how fast or slow time advances, this is the right place. Recurring kinematic and object transform operations should execute here.</p>
+<p>While it is possible, to achieve the best performance, you should avoid making input checks during these callbacks. <code>_process()</code> and <code>_physics_process()</code> will trigger at every opportunity (they do not "rest" by default). In contrast, <code>*_input()</code> callbacks will trigger only on frames in which the engine has actually detected the input.</p>
+<p>You can check for input actions within the input callbacks just the same. If you want to use delta time, you can fetch it from the related delta time methods as needed.</p>
+<pre class="gdscript"><code># Called every frame, even when the engine detects no input.
+func _process(delta):
+    if Input.is_action_just_pressed(&quot;ui_select&quot;):
+        print(delta)
+
+# Called during every input event.
+func _unhandled_input(event):
+    match event.get_class():
+        &quot;InputEventKey&quot;:
+            if Input.is_action_just_pressed(&quot;ui_accept&quot;):
+                print(get_process_delta_time())</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode <span class="op">:</span> Node</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Called every frame, even when the engine detects no input.</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionJustPressed</span><span class="op">(</span><span class="st">&quot;ui_select&quot;</span><span class="op">))</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>delta<span class="op">);</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Called during every input event. Equally true for _input().</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">_UnhandledInput</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        <span class="kw">switch</span> <span class="op">(</span>@event<span class="op">)</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>            <span class="kw">case</span> InputEventKey<span class="op">:</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>                <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionJustPressed</span><span class="op">(</span><span class="st">&quot;ui_accept&quot;</span><span class="op">))</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>                <span class="op">{</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>                    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="fu">GetProcessDeltaTime</span><span class="op">());</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>                <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> godot<span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MyNode <span class="op">:</span> <span class="kw">public</span> Node <span class="op">{</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    GDCLASS<span class="op">(</span>MyNode<span class="op">,</span> Node<span class="op">)</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Called every frame, even when the engine detects no input.</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> _process<span class="op">(</span><span class="dt">double</span> p_delta<span class="op">)</span> <span class="kw">override</span> <span class="op">{</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>Input<span class="op">::</span>get_singleton<span class="op">-&gt;</span>is_action_just_pressed<span class="op">(</span><span class="st">&quot;ui_select&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>            UtilityFunctions<span class="op">::</span>print<span class="op">(</span>p_delta<span class="op">);</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Called during every input event. Equally true for _input().</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> _unhandled_input<span class="op">(</span><span class="at">const</span> Ref<span class="op">&lt;</span>InputEvent<span class="op">&gt;</span> <span class="op">&amp;</span>p_event<span class="op">)</span> <span class="kw">override</span> <span class="op">{</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        Ref<span class="op">&lt;</span>InputEventKey<span class="op">&gt;</span> key_event <span class="op">=</span> event<span class="op">;</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>key_event<span class="op">.</span>is_valid<span class="op">()</span> <span class="op">&amp;&amp;</span> Input<span class="op">::</span>get_singleton<span class="op">-&gt;</span>is_action_just_pressed<span class="op">(</span><span class="st">&quot;ui_accept&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>            UtilityFunctions<span class="op">::</span>print<span class="op">(</span>get_process_delta_time<span class="op">());</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<h2 id="_init-vs-initialization-vs-export">_init vs. initialization vs. export</h2>
+<p>If the script initializes its own node subtree, without a scene, that code should execute in <code>_init()</code>. Other property or SceneTree-independent initializations should also run here.</p>
+<blockquote>
+<p><strong>Note:</strong> The C# equivalent to GDScript's <code>_init()</code> method is the constructor.</p>
+</blockquote>
+<p><code>_init()</code> triggers before <code>_enter_tree()</code> or <code>_ready()</code>, but after a script creates and initializes its properties. When instantiating a scene, property values will set up according to the following sequence:</p>
+<ol type="1">
+<li><strong>Initial value assignment:</strong> the property is assigned its initialization value, or its default value if one is not specified. If a setter exists, it is not used.</li>
+<li><code>_init()</code> <strong>assignment:</strong> the property's value is replaced by any assignments made in <code>_init()</code>, triggering the setter.</li>
+<li><strong>Exported value assignment:</strong> an exported property's value is again replaced by any value set in the Inspector, triggering the setter.</li>
+</ol>
+<pre class="gdscript"><code># test is initialized to &quot;one&quot;, without triggering the setter.
+@export var test: String = &quot;one&quot;:
+    set(value):
+        test = value + &quot;!&quot;
+
+func _init():
+    # Triggers the setter, changing test&#39;s value from &quot;one&quot; to &quot;two!&quot;.
+    test = &quot;two&quot;
+
+# If you set test to &quot;three&quot; from the Inspector, it would trigger
+# the setter, changing test&#39;s value from &quot;two!&quot; to &quot;three!&quot;.</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode <span class="op">:</span> Node</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">string</span> _test <span class="op">=</span> <span class="st">&quot;one&quot;</span><span class="op">;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">string</span> Test</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">get</span> <span class="op">{</span> <span class="kw">return</span> _test<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="kw">set</span> <span class="op">{</span> _test <span class="op">=</span> $<span class="st">&quot;{value}!&quot;</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="fu">MyNode</span><span class="op">()</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Triggers the setter, changing _test&#39;s value from &quot;one&quot; to &quot;two!&quot;.</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        Test <span class="op">=</span> <span class="st">&quot;two&quot;</span><span class="op">;</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// If you set Test to &quot;three&quot; in the Inspector, it would trigger</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">// the setter, changing _test&#39;s value from &quot;two!&quot; to &quot;three!&quot;.</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> godot<span class="op">;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MyNode <span class="op">:</span> <span class="kw">public</span> Node <span class="op">{</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    GDCLASS<span class="op">(</span>MyNode<span class="op">,</span> Node<span class="op">)</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    String test <span class="op">=</span> <span class="st">&quot;one&quot;</span><span class="op">;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span><span class="op">:</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> _bind_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>        ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;get_test&quot;</span><span class="op">),</span> <span class="op">&amp;</span>MyNode<span class="op">::</span>get_test<span class="op">);</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>        ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;set_test&quot;</span><span class="op">,</span> <span class="st">&quot;test&quot;</span><span class="op">),</span> <span class="op">&amp;</span>MyNode<span class="op">::</span>set_test<span class="op">);</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>        ADD_PROPERTY<span class="op">(</span>PropertyInfo<span class="op">(</span>Variant<span class="op">::</span>STRING<span class="op">,</span> <span class="st">&quot;test&quot;</span><span class="op">),</span> <span class="st">&quot;set_test&quot;</span><span class="op">,</span> <span class="st">&quot;get_test&quot;</span><span class="op">);</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    String get_test<span class="op">()</span> <span class="op">{</span> <span class="cf">return</span> test<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> set_test<span class="op">(</span>String p_test<span class="op">)</span> <span class="op">{</span> test <span class="op">=</span> p_test <span class="op">+</span> <span class="st">&quot;!&quot;</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    MyNode<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Triggers the setter, changing _test&#39;s value from &quot;one&quot; to &quot;two!&quot;.</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>        set_test<span class="op">(</span><span class="st">&quot;two&quot;</span><span class="op">);</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">// If you set test to &quot;three&quot; in the Inspector, it would trigger</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    <span class="co">// the setter, changing test&#39;s value from &quot;two!&quot; to &quot;three!&quot;.</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>As a result, instantiating a script versus a scene may affect both the initialization <em>and</em> the number of times the engine calls the setter.</p>
+<h2 id="_ready-vs-_enter_tree-vs-notification_parented">_ready vs. _enter_tree vs. NOTIFICATION_PARENTED</h2>
+<p>When instantiating a scene connected to the first executed scene, Godot will instantiate nodes down the tree (making <code>_init()</code> calls) and build the tree going downwards from the root. This causes <code>_enter_tree()</code> calls to cascade down the tree. Once the tree is complete, leaf nodes call <code>_ready</code>. A node will call this method once all child nodes have finished calling theirs. This then causes a reverse cascade going up back to the tree's root.</p>
+<p>When instantiating a script or a standalone scene, nodes are not added to the SceneTree upon creation, so no <code>_enter_tree()</code> callbacks trigger. Instead, only the <code>_init()</code> call occurs. When the scene is added to the SceneTree, the <code>_enter_tree()</code> and <code>_ready()</code> calls occur.</p>
+<p>If you need to trigger behavior that occurs as nodes parent to another, regardless of whether it occurs as part of the main/active scene or not, you can use the ref notification. For example, here is a snippet that connects a node's method to a custom signal on the parent node without failing. Useful on data-centric nodes potentially created at runtime.</p>
+<pre class="gdscript"><code>extends Node
+
+var parent_cache
+
+func connection_check():
+    return parent_cache.has_user_signal(&quot;interacted_with&quot;)
+
+func _notification(what):
+    match what:
+        NOTIFICATION_PARENTED:
+            parent_cache = get_parent()
+            if connection_check():
+                parent_cache.interacted_with.connect(_on_parent_interacted_with)
+        NOTIFICATION_UNPARENTED:
+            if connection_check():
+                parent_cache.interacted_with.disconnect(_on_parent_interacted_with)
+
+func _on_parent_interacted_with():
+    print(&quot;I&#39;m reacting to my parent&#39;s interaction!&quot;)</code></pre>
+<div class="sourceCode" id="cb11"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode <span class="op">:</span> Node</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Node _parentCache<span class="op">;</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">bool</span> <span class="fu">ConnectionCheck</span><span class="op">()</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> _parentCache<span class="op">.</span><span class="fu">HasUserSignal</span><span class="op">(</span><span class="st">&quot;InteractedWith&quot;</span><span class="op">);</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Notification</span><span class="op">(</span><span class="dt">int</span> what<span class="op">)</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>        <span class="kw">switch</span> <span class="op">((</span><span class="dt">long</span><span class="op">)</span>what<span class="op">)</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>            <span class="kw">case</span> NotificationParented<span class="op">:</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>                _parentCache <span class="op">=</span> <span class="fu">GetParent</span><span class="op">();</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>                <span class="kw">if</span> <span class="op">(</span><span class="fu">ConnectionCheck</span><span class="op">())</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>                <span class="op">{</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>                    _parentCache<span class="op">.</span><span class="fu">Connect</span><span class="op">(</span><span class="st">&quot;InteractedWith&quot;</span><span class="op">,</span> Callable<span class="op">.</span><span class="fu">From</span><span class="op">(</span>OnParentInteractedWith<span class="op">));</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>                <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>            <span class="kw">case</span> NotificationUnparented<span class="op">:</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>                <span class="kw">if</span> <span class="op">(</span><span class="fu">ConnectionCheck</span><span class="op">())</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>                <span class="op">{</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>                    _parentCache<span class="op">.</span><span class="fu">Disconnect</span><span class="op">(</span><span class="st">&quot;InteractedWith&quot;</span><span class="op">,</span> Callable<span class="op">.</span><span class="fu">From</span><span class="op">(</span>OnParentInteractedWith<span class="op">));</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>                <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnParentInteractedWith</span><span class="op">()</span></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;I&#39;m reacting to my parent&#39;s interaction!&quot;</span><span class="op">);</span></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> godot<span class="op">;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MyNode <span class="op">:</span> <span class="kw">public</span> Node <span class="op">{</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    GDCLASS<span class="op">(</span>MyNode<span class="op">,</span> Node<span class="op">)</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    Node <span class="op">*</span>parent_cache <span class="op">=</span> <span class="kw">nullptr</span><span class="op">;</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> on_parent_interacted_with<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        UtilityFunctions<span class="op">::</span>print<span class="op">(</span><span class="st">&quot;I&#39;m reacting to my parent&#39;s interaction!&quot;</span><span class="op">);</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> connection_check<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> parent_cache<span class="op">-&gt;</span>has_user_signal<span class="op">(</span><span class="st">&quot;interacted_with&quot;</span><span class="op">);</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _notification<span class="op">(</span><span class="dt">int</span> p_what<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">switch</span> <span class="op">(</span>p_what<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>            <span class="cf">case</span> NOTIFICATION_PARENTED<span class="op">:</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>                parent_cache <span class="op">=</span> get_parent<span class="op">();</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="op">(</span>connection_check<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>                    parent_cache<span class="op">-&gt;</span><span class="fu">connect</span><span class="op">(</span><span class="st">&quot;interacted_with&quot;</span><span class="op">,</span> callable_mp<span class="op">(</span><span class="kw">this</span><span class="op">,</span> <span class="op">&amp;</span>MyNode<span class="op">::</span>on_parent_interacted_with<span class="op">));</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>            <span class="cf">case</span> NOTIFICATION_UNPARENTED<span class="op">:</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="op">(</span>connection_check<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>                    parent_cache<span class="op">-&gt;</span><span class="fu">disconnect</span><span class="op">(</span><span class="st">&quot;interacted_with&quot;</span><span class="op">,</span> callable_mp<span class="op">(</span><span class="kw">this</span><span class="op">,</span> <span class="op">&amp;</span>MyNode<span class="op">::</span>on_parent_interacted_with<span class="op">));</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

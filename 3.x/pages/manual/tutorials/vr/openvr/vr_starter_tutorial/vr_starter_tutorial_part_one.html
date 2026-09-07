@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VR starter tutorial part 1 — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="vr-starter-tutorial-part-1">VR starter tutorial part 1</h1>
+<h2 id="introduction">Introduction</h2>
+<p>This tutorial will show you how to make a beginner VR game project in Godot.</p>
+<p>Keep in mind, <strong>one of the most important things when making VR content is getting the scale of your assets correct</strong>! It can take lots of practice and iterations to get this right, but there are a few things you can do to make it easier:</p>
+<ul>
+<li>In VR, 1 unit is typically considered 1 meter. If you design your assets around that standard, you can save yourself a lot of headache.</li>
+<li>In your 3D modeling program, see if there is a way to measure and use real world distances. In Blender, you can use the MeasureIt add-on; in Maya, you can use the Measure Tool.</li>
+<li>You can make rough models using a tool like <a href="https://vr.google.com/blocks/">Google Blocks</a>, and then refine in another 3D modelling program.</li>
+<li>Test often, as the assets can look dramatically different in VR than on a flat screen!</li>
+</ul>
+<p>Throughout the course of this tutorial, we will cover:</p>
+<ul>
+<li>How to tell Godot to run in VR.</li>
+<li>How to make a teleportation locomotion system that uses the VR controllers.</li>
+<li>How to make a artificial movement locomotion system that uses the VR controllers.</li>
+<li>How to create a ref-based system that allows for picking up, dropping, and throwing RigidBody nodes using the VR controllers.</li>
+<li>How to create simple destroyable target.</li>
+<li>How to create some special ref-based objects that can destroy the targets.</li>
+</ul>
+<blockquote>
+<p><strong>Tip:</strong> While this tutorial can be completed by beginners, it is highly advised to complete <code>doc_your_first_2d_game</code>, if you are new to Godot and/or game development.</p>
+<p><strong>Some experience with making 3D games is required</strong> before going through this tutorial series. This tutorial assumes you have experience with the Godot editor, GDScript, and basic 3D game development. A OpenVR-ready headset and two OpenVR-ready controllers are required.</p>
+<p>This tutorial was written and tested using a Windows Mixed Reality headset and controllers. This project has also been tested on the HTC Vive. Code adjustments may be required for other VR Headsets, such as the Oculus Rift.</p>
+</blockquote>
+<p>The Godot project for this tutorial is found on the <a href="https://github.com/GodotVR/godot_openvr_fps">OpenVR GitHub repository</a>. The starter assets for this tutorial can be found in the releases section on the GitHub repository. The starter assets contain some 3D models, sounds, scripts, and scenes that are configured for this tutorial.</p>
+<blockquote>
+<p><strong>Note:</strong> <strong>Credits for the assets provided</strong>:</p>
+<ul>
+<li><p>The sky panorama was created by <a href="https://cgi.tutsplus.com/articles/freebie-8-awesome-ocean-hdris--cg-5684">CGTuts</a>.</p></li>
+<li><p>The font used is Titillium-Regular</p></li>
+<li><ul>
+<li>The font is licensed under the SIL Open Font License, Version 1.1</li>
+</ul></li>
+<li><p>The audio used are from several different sources, all downloaded from the Sonniss #GameAudioGDC Bundle (<a href="https://sonniss.com/gdc-bundle-license/">License PDF</a>)</p></li>
+<li><ul>
+<li>The folders where the audio files are stored have the same name as folders in the Sonniss audio bundle.</li>
+</ul></li>
+<li><p>The OpenVR addon was created by <a href="https://github.com/BastiaanOlij">Bastiaan Olij</a> and is released under the MIT license. It can be found both on the <a href="https://godotengine.org/asset-library/asset/150">Godot Asset Library</a> and on <a href="https://github.com/GodotVR/godot-openvr-asset">GitHub</a>. <em>3rd party code and libraries used in the OpenVR addon may be under a different license.</em></p></li>
+<li><p>The initial project, 3D models, and scripts were created by <a href="https://github.com/TwistedTwigleg">TwistedTwigleg</a> and is released under the MIT license.</p></li>
+</ul>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> You can find the finished project on the <a href="https://github.com/GodotVR/godot_openvr_fps">OpenVR GitHub repository</a>.</p>
+</blockquote>
+<h2 id="getting-everything-ready">Getting everything ready</h2>
+<p>If you have not already, go to the <a href="https://github.com/GodotVR/godot_openvr_fps/releases/">OpenVR GitHub repository</a> and download the "Starter Assets" file from the releases. Once you have the starter assets downloaded, open up the project in Godot.</p>
+<blockquote>
+<p><strong>Note:</strong> The starter assets are not required to use the scripts provided in this tutorial. The starter assets include several premade scenes and scripts that will be used throughout the tutorial.</p>
+</blockquote>
+<p>When the project is first loaded, the Game.tscn scene will be opened. This will be the main scene used for the tutorial. It includes several nodes and scenes already placed throughout the scene, some background music, and several GUI-related ref nodes.</p>
+<p>The GUI-related ref nodes already have scripts attached to them. These scripts will set the texture of a ref node to the albedo texture of the material of the ref node. This is used to display text within the VR project. Feel free to take a look at the script, <code>GUI.gd</code>, if you want. We will not be going over how to to use ref nodes for displaying UI on ref nodes in this tutorial .</p>
+<p>If you are interested in how to use ref nodes for displaying UI on ref nodes, see the <code>doc_viewport_as_texture</code> tutorial. It covers how to use a ref as a render texture, along with how to apply that texture onto a ref node.</p>
+<p>Before we jump into the tutorial, let's take a moment to talk about how the nodes used for VR work.</p>
+<p>The ref node is the center point of the VR tracking system. The position of the ref is the position the VR system considers the 'center' point on the floor. The ref has a world scale property that effects the size of the user within the VR scene. For this tutorial, it is set to 1.4, as the world was originally just a tad to big. As mentioned earlier, keeping the scale relatively consistent is important in VR.</p>
+<p>The ref is the player's headset and view into the scene. The ref is offset on the Y axis by the VR user's height, which will be important later when we add teleportation locomotoin. If the VR system supports room tracking, then the ref will move as the player moves. This means that the ref is not guaranteed to be in the same position as the ref node.</p>
+<p>The ref node represents a VR controller. The ref will follow the position and rotation of the VR controller relative to the ref node. All of the input for the VR controllers happens through the ref node. An ref node with an <code>ID</code> of <code>1</code> represents the left VR controller, while an ref controller with an <code>ID</code> of <code>2</code> represents the right VR controller.</p>
+<p>To summarize:</p>
+<ul>
+<li>The ref node is the center of the VR tracking system and is positioned on the floor.</li>
+<li>The ref is the player's VR headset and view into the scene.</li>
+<li>The ref node is offset on the Y axis by the user's height.</li>
+<li>If the VR system supports room tracking, then the ref node may be offset on the X and Z axes as the player moves.</li>
+<li>The ref nodes represent the VR controllers and handle all of the input from the VR controllers.</li>
+</ul>
+<h2 id="starting-vr">Starting VR</h2>
+<p>Now that we have gone over the VR nodes, let's start working on the project. While in <code>Game.tscn</code>, select the <code>Game</code> node and make a new script called <code>Game.gd</code>. In the <code>Game.gd</code> file, add the following code:</p>
+<pre class="gdscript"><code>extends Spatial
+
+func _ready():
+    var VR = ARVRServer.find_interface(&quot;OpenVR&quot;)
+    if VR and VR.initialize():
+        get_viewport().arvr = true
+
+        OS.vsync_enabled = false
+        Engine.target_fps = 90
+        # Also, the physics FPS in the project settings is also 90 FPS. This makes the physics
+        # run at the same frame rate as the display, which makes things look smoother in VR!</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Game <span class="op">:</span> Spatial</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> vr <span class="op">=</span> ARVRServer<span class="op">.</span><span class="fu">FindInterface</span><span class="op">(</span><span class="st">&quot;OpenVR&quot;</span><span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>vr <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span> vr<span class="op">.</span><span class="fu">Initialize</span><span class="op">())</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>            <span class="fu">GetViewport</span><span class="op">().</span><span class="fu">Arvr</span> <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>            OS<span class="op">.</span><span class="fu">VsyncEnabled</span> <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            Engine<span class="op">.</span><span class="fu">TargetFps</span> <span class="op">=</span> <span class="dv">90</span><span class="op">;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Also, the physics FPS in the project settings is also 90 FPS. This makes the physics</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>            <span class="co">// run at the same frame rate as the display, which makes things look smoother in VR!</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Let's go over what this code does.</p>
+<p>In the <code>_ready</code> function, we first get the OpenVR VR interface using the <code>find_interface</code> function in the ref and assign it to a variable called VR. If the ref finds an interface with the name OpenVR, it will return it, otherwise it will return <code>null</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> The OpenVR VR interface is not included with Godot by default. You will need to download the OpenVR asset from the <a href="https://godotengine.org/asset-library/asset/150">Asset Library</a> or <a href="https://github.com/GodotVR/godot-openvr-asset">GitHub</a>.</p>
+</blockquote>
+<p>The code then combines two conditionals, one to check if the VR variable is NOT null (<code>if VR</code>) and another calls the initialize function, which returns a boolean based on whether the OpenVR interface was able to initialize or not. If both of these conditionals return true, then we can turn the main Godot ref into an ARVR viewport.</p>
+<p>If the VR interface initialized successfully, we then get the root ref and set the arvr property to <code>true</code>. This will tell Godot to use the initialized ARVR interface to drive the ref display.</p>
+<p>Finally, we disable VSync so the Frames Per Second (FPS) is not capped by the computer monitor. After this we tell Godot to render at <code>90</code> frames per second, which is the standard for most VR headsets. Without disabling VSync, the normal computer monitor may limit the frame rate of the VR headset to the frame rate of the computer monitor.</p>
+<blockquote>
+<p><strong>Note:</strong> In the project settings, under the <code>Physics-&gt;Common</code> tab, the physics FPS has been set to <code>90</code>. This makes the physics engine run at the same frame rate as the VR display, which makes physics reactions look smoother when in VR.</p>
+</blockquote>
+<p>That is all we need to do for Godot to launch OpenVR within the project! Go ahead and give it a try if you want. Assuming everything works, you will be able to look around the world. If you have a VR headset with room tracking, then you will be able to move around the scene within the limits of the room tracking.</p>
+<h2 id="creating-the-controllers">Creating the controllers</h2>
+<p>Right now all that the VR user can do is stand around, which isn't really what we are going for unless we are working on a VR film. Lets write the code for the VR controllers. We are going to write all the code for the VR controllers in one go, so the code is rather long. That said, once we are finished you will be able to teleport around the scene, artificially move using the touchpad/joystick on the VR controller, and be able to pick up, drop, and throw ref-based nodes.</p>
+<p>First we need to open the scene used for the VR controllers. <code>Left_Controller.tscn</code> or <code>Right_Controller.tscn</code>. Let's briefly go over how the scene is setup.</p>
+<h3 id="how-the-vr-controller-scene-is-setup">How the VR controller scene is setup</h3>
+<p>In both scenes the root node is a ARVRController node. The only difference is that the <code>Left_Controller</code> scene has the <code>Controller Id</code> property set to <code>1</code> while the <code>Right_Controller</code> has the <code>Controller Id</code> property set to <code>2</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> The ref attempts to use these two IDs for the left and right VR controllers. For VR systems that support more than 2 controllers/tracked-objects, these IDs may need adjusting.</p>
+</blockquote>
+<p>Next is the <code>Hand</code> ref node. This node is used to display the hand mesh that will be used when the VR controller is not holding onto a ref node. The hand in the <code>Left_Controller</code> scene is a left hand, while the hand on the <code>Right_Controller</code> scene is a right hand.</p>
+<p>The node named <code>Raycast</code> is a ref node that is used for aiming where to teleport to when the VR controller is teleporting. The length of the ref is set to <code>-16</code> on the Y axis and is rotated so that it points out of the pointer finger of the hand. The <code>Raycast</code> node has a single child node, <code>Mesh</code>, that is a ref. This is used for visually showing where the teleportation ref is aiming.</p>
+<p>The node named <code>Area</code> is a ref node will be used for grabbing ref-based nodes when the VR controller grab mode is set to <code>AREA</code>. The <code>Area</code> node has a single child node, <code>CollisionShape</code>, that defines a sphere ref. When the VR controller is not holding any objects and the grab button is pressed, the first ref-based node within the <code>Area</code> node will be picked up.</p>
+<p>Next is a ref node called <code>Grab_Pos</code>. This is used to define the position that grabbed ref nodes will follow then they are held by the VR controller.</p>
+<p>A large ref node called <code>Sleep_Area</code> is used to disable sleeping for any RigidBody nodes within its ref, simple called <code>CollisionShape</code>. This is needed because if a ref node falls asleep, then the VR controller will be unable to grab it. By using <code>Sleep_Area</code>, we can write code that makes any ref node within it not able to sleep, therefore allowing the VR controller to grab it.</p>
+<p>An ref node called <code>AudioStreamPlayer3D</code> has a sound loaded that we will use when an object has been picked up, dropped or thrown by the VR controller. While this is not necessary for the functionality of the VR controller, it makes grabbing and dropping objects feel more natural.</p>
+<p>Finally, the last nodes are the <code>Grab_Cast</code> node and it's only child node, <code>Mesh</code>. The <code>Grab_Cast</code> node will be used for grabbing ref-based nodes when the VR controller grab mode is set to <code>RAYCAST</code>. This will allow the VR controller to grab objects that are just slightly out of reach using a Raycast. The <code>Mesh</code> node is used for visually showing where the teleportation ref is aiming.</p>
+<p>That is a quick overview of how the VR controller scenes are setup, and how we will be using the nodes to provide the functionality for them. Now that we have looked at the VR controller scene, let's write the code that will drive them.</p>
+<h3 id="the-code-for-the-vr-controllers">The code for the VR controllers</h3>
+<p>Select the root node of the scene, either <code>Right_Controller</code> or <code>Left_Controller</code>, and make a new script called <code>VR_Controller.gd</code>. Both scenes will be using the same script, so it doesn't matter which you use first. With <code>VR_Controller.gd</code> opened, add the following code:</p>
+<blockquote>
+<p><strong>Tip:</strong> You can copy and paste the code from this page directly into the script editor.</p>
+<p>If you do this, all the code copied will be using spaces instead of tabs.</p>
+<p>To convert the spaces to tabs in the script editor, click the <code>Edit</code> menu and select <code>Convert Indent To Tabs</code>. This will convert all the spaces into tabs. You can select <code>Convert Indent To Spaces</code> to convert tabs back into spaces.</p>
+</blockquote>
+<pre class="gdscript"><code>extends ARVRController
+
+var controller_velocity = Vector3(0,0,0)
+var prior_controller_position = Vector3(0,0,0)
+var prior_controller_velocities = []
+
+var held_object = null
+var held_object_data = {&quot;mode&quot;:RigidBody.MODE_RIGID, &quot;layer&quot;:1, &quot;mask&quot;:1}
+
+var grab_area
+var grab_raycast
+
+var grab_mode = &quot;AREA&quot;
+var grab_pos_node
+
+var hand_mesh
+var hand_pickup_drop_sound
+
+var teleport_pos = Vector3.ZERO
+var teleport_mesh
+var teleport_button_down
+var teleport_raycast
+
+# A constant to define the dead zone for both the trackpad and the joystick.
+# See https://web.archive.org/web/20191208161810/http://www.third-helix.com/2013/04/12/doing-thumbstick-dead-zones-right.html
+# for more information on what dead zones are, and how we are using them in this project.
+const CONTROLLER_DEADZONE = 0.65
+
+const MOVEMENT_SPEED = 1.5
+
+const CONTROLLER_RUMBLE_FADE_SPEED = 2.0
+
+var directional_movement = false
+
+
+func _ready():
+    # Ignore the warnings the from the connect function calls.
+    # (We will not need the returned values for this tutorial)
+    # warning-ignore-all:return_value_discarded
+
+    teleport_raycast = get_node(&quot;RayCast&quot;)
+
+    teleport_mesh = get_tree().root.get_node(&quot;Game/Teleport_Mesh&quot;)
+
+    teleport_button_down = false
+    teleport_mesh.visible = false
+    teleport_raycast.visible = false
+
+    grab_area = get_node(&quot;Area&quot;)
+    grab_raycast = get_node(&quot;Grab_Cast&quot;)
+    grab_pos_node = get_node(&quot;Grab_Pos&quot;)
+
+    grab_mode = &quot;AREA&quot;
+    grab_raycast.visible = false
+
+    get_node(&quot;Sleep_Area&quot;).connect(&quot;body_entered&quot;, self, &quot;sleep_area_entered&quot;)
+    get_node(&quot;Sleep_Area&quot;).connect(&quot;body_exited&quot;, self, &quot;sleep_area_exited&quot;)
+
+    hand_mesh = get_node(&quot;Hand&quot;)
+    hand_pickup_drop_sound = get_node(&quot;AudioStreamPlayer3D&quot;)
+
+    connect(&quot;button_pressed&quot;, self, &quot;button_pressed&quot;)
+    connect(&quot;button_release&quot;, self, &quot;button_released&quot;)
+
+
+func _physics_process(delta):
+    if rumble &gt; 0:
+        rumble -= delta * CONTROLLER_RUMBLE_FADE_SPEED
+        if rumble &lt; 0:
+            rumble = 0
+
+    if teleport_button_down == true:
+        teleport_raycast.force_raycast_update()
+        if teleport_raycast.is_colliding():
+            if teleport_raycast.get_collider() is StaticBody:
+                if teleport_raycast.get_collision_normal().y &gt;= 0.85:
+                    teleport_pos = teleport_raycast.get_collision_point()
+                    teleport_mesh.global_transform.origin = teleport_pos
+
+
+    if get_is_active() == true:
+        _physics_process_update_controller_velocity(delta)
+
+    if held_object != null:
+        var held_scale = held_object.scale
+        held_object.global_transform = grab_pos_node.global_transform
+        held_object.scale = held_scale
+
+    _physics_process_directional_movement(delta);
+
+
+func _physics_process_update_controller_velocity(delta):
+    controller_velocity = Vector3(0,0,0)
+
+    if prior_controller_velocities.size() &gt; 0:
+        for vel in prior_controller_velocities:
+            controller_velocity += vel
+
+        controller_velocity = controller_velocity / prior_controller_velocities.size()
+
+    var relative_controller_position = (global_transform.origin - prior_controller_position)
+
+    controller_velocity += relative_controller_position
+
+    prior_controller_velocities.append(relative_controller_position)
+
+    prior_controller_position = global_transform.origin
+
+    controller_velocity /= delta;
+
+    if prior_controller_velocities.size() &gt; 30:
+        prior_controller_velocities.remove(0)
+
+
+func _physics_process_directional_movement(delta):
+    var trackpad_vector = Vector2(-get_joystick_axis(1), get_joystick_axis(0))
+    var joystick_vector = Vector2(-get_joystick_axis(5), get_joystick_axis(4))
+
+    if trackpad_vector.length() &lt; CONTROLLER_DEADZONE:
+        trackpad_vector = Vector2(0,0)
+    else:
+        trackpad_vector = trackpad_vector.normalized() * ((trackpad_vector.length() - CONTROLLER_DEADZONE) / (1 - CONTROLLER_DEADZONE))
+
+    if joystick_vector.length() &lt; CONTROLLER_DEADZONE:
+        joystick_vector = Vector2(0,0)
+    else:
+        joystick_vector = joystick_vector.normalized() * ((joystick_vector.length() - CONTROLLER_DEADZONE) / (1 - CONTROLLER_DEADZONE))
+
+    var forward_direction = get_parent().get_node(&quot;Player_Camera&quot;).global_transform.basis.z.normalized()
+    var right_direction = get_parent().get_node(&quot;Player_Camera&quot;).global_transform.basis.x.normalized()
+
+    # Because the trackpad and the joystick will both move the player, we can add them together and normalize
+    # the result, giving the combined movement direction
+    var movement_vector = (trackpad_vector + joystick_vector).normalized()
+
+    var movement_forward = forward_direction * movement_vector.x * delta * MOVEMENT_SPEED
+    var movement_right = right_direction * movement_vector.y * delta * MOVEMENT_SPEED
+
+    movement_forward.y = 0
+    movement_right.y = 0
+
+    if movement_right.length() &gt; 0 or movement_forward.length() &gt; 0:
+        get_parent().global_translate(movement_right + movement_forward)
+        directional_movement = true
+    else:
+        directional_movement = false
+
+
+func button_pressed(button_index):
+    if button_index == 15:
+        _on_button_pressed_trigger()
+
+    if button_index == 2:
+        _on_button_pressed_grab()
+
+    if button_index == 1:
+        _on_button_pressed_menu()
+
+
+func _on_button_pressed_trigger():
+    if held_object == null:
+        if teleport_mesh.visible == false:
+            teleport_button_down = true
+            teleport_mesh.visible = true
+            teleport_raycast.visible = true
+    else:
+        if held_object is VR_Interactable_Rigidbody:
+            held_object.interact()
+
+
+func _on_button_pressed_grab():
+    if teleport_button_down == true:
+        return
+
+    if held_object == null:
+        _pickup_rigidbody()
+    else:
+        _throw_rigidbody()
+
+    hand_pickup_drop_sound.play()
+
+
+func _pickup_rigidbody():
+    var rigid_body = null
+
+    if grab_mode == &quot;AREA&quot;:
+        var bodies = grab_area.get_overlapping_bodies()
+        if len(bodies) &gt; 0:
+            for body in bodies:
+                if body is RigidBody:
+                    if !(&quot;NO_PICKUP&quot; in body):
+                        rigid_body = body
+                        break
+
+    elif grab_mode == &quot;RAYCAST&quot;:
+        grab_raycast.force_raycast_update()
+        if grab_raycast.is_colliding():
+            var body = grab_raycast.get_collider()
+            if body is RigidBody:
+                if !(&quot;NO_PICKUP&quot; in body):
+                    rigid_body = body
+
+
+    if rigid_body != null:
+
+        held_object = rigid_body
+
+        held_object_data[&quot;mode&quot;] = held_object.mode
+        held_object_data[&quot;layer&quot;] = held_object.collision_layer
+        held_object_data[&quot;mask&quot;] = held_object.collision_mask
+
+        held_object.mode = RigidBody.MODE_STATIC
+        held_object.collision_layer = 0
+        held_object.collision_mask = 0
+
+        hand_mesh.visible = false
+        grab_raycast.visible = false
+
+        if held_object is VR_Interactable_Rigidbody:
+            held_object.controller = self
+            held_object.picked_up()
+
+
+func _throw_rigidbody():
+    if held_object == null:
+        return
+
+    held_object.mode = held_object_data[&quot;mode&quot;]
+    held_object.collision_layer = held_object_data[&quot;layer&quot;]
+    held_object.collision_mask = held_object_data[&quot;mask&quot;]
+
+    held_object.apply_impulse(Vector3(0, 0, 0), controller_velocity)
+
+    if held_object is VR_Interactable_Rigidbody:
+        held_object.dropped()
+        held_object.controller = null
+
+    held_object = null
+    hand_mesh.visible = true
+
+    if grab_mode == &quot;RAYCAST&quot;:
+        grab_raycast.visible = true
+
+
+func _on_button_pressed_menu():
+    if grab_mode == &quot;AREA&quot;:
+        grab_mode = &quot;RAYCAST&quot;
+        if held_object == null:
+            grab_raycast.visible = true
+
+    elif grab_mode == &quot;RAYCAST&quot;:
+        grab_mode = &quot;AREA&quot;
+        grab_raycast.visible = false
+
+
+func button_released(button_index):
+    if button_index == 15:
+        _on_button_released_trigger()
+
+
+func _on_button_released_trigger():
+    if teleport_button_down == true:
+
+        if teleport_pos != null and teleport_mesh.visible == true:
+            var camera_offset = get_parent().get_node(&quot;Player_Camera&quot;).global_transform.origin - get_parent().global_transform.origin
+            camera_offset.y = 0
+
+            get_parent().global_transform.origin = teleport_pos - camera_offset
+
+        teleport_button_down = false
+        teleport_mesh.visible = false
+        teleport_raycast.visible = false
+        teleport_pos = null
+
+
+func sleep_area_entered(body):
+    if &quot;can_sleep&quot; in body:
+        body.can_sleep = false
+        body.sleeping = false
+
+
+func sleep_area_exited(body):
+    if &quot;can_sleep&quot; in body:
+        # Allow the CollisionBody to sleep by setting the &quot;can_sleep&quot; variable to true
+        body.can_sleep = true</code></pre>
+<p>This is quite a bit of code to go through. Let's go through what the code does step-by-step.</p>
+<h3 id="explaining-the-vr-controller-code">Explaining the VR controller code</h3>
+<p>First, let's go through all the class variables in the script:</p>
+<ul>
+<li><code>controller_velocity</code>: A variable to hold a rough approximation of the VR controller's velocity.</li>
+<li><code>prior_controller_position</code>: A variable to hold the VR controller's last position in 3D space.</li>
+<li><code>prior_controller_velocities</code>: An Array to hold the last 30 calculated VR controller velocities. This is used to smooth the velocity calculations over time.</li>
+<li><code>held_object</code>: A variable to hold a reference to the object the VR controller is holding. If the VR controller is not holding any objects, this variable will be <code>null</code>.</li>
+<li><code>held_object_data</code>: A dictionary to hold data for the ref node being held by the VR controller. This is used to reset the ref's data when it is no longer held.</li>
+<li><code>grab_area</code>: A variable to hold the ref node used to grab objects with the VR controller.</li>
+<li><code>grab_raycast</code>: A variable to hold the ref node used to grab objects with the VR controller.</li>
+<li><code>grab_mode</code>: A variable to define the grab mode the VR controller is using. There are only two modes for grabbing objects in this tutorial, <code>AREA</code> and <code>RAYCAST</code>.</li>
+<li><code>grab_pos_node</code>: A variable to hold the node that will be used to update the position and rotation of held objects.</li>
+<li><code>hand_mesh</code>: A variable to hold the ref node that contains the hand mesh for the VR controller. This mesh will be shown when the VR controller is not holding anything.</li>
+<li><code>hand_pickup_drop_sound</code>: A variable to hold the ref node that contains the pickup/drop sound.</li>
+<li><code>teleport_pos</code>: A variable to hold the position the player will be teleported to when the VR controller teleports the player.</li>
+<li><code>teleport_mesh</code>: A variable to hold the ref node used to show where the player is teleporting to.</li>
+<li><code>teleport_button_down</code>: A variable used to track whether the controller's teleport button is held down. This will be used to detect if this VR controller is trying to teleport the player.</li>
+<li><code>teleport_raycast</code>: A variable to hold the ref node used to calculate the teleport position. This node also has a ref that acts as a 'laser sight' for aiming.</li>
+<li><code>CONTROLLER_DEADZONE</code>: A constant to define the deadzone for both the trackpad and the joystick on the VR controller. See the note below for more information.</li>
+<li><code>MOVEMENT_SPEED</code>: A constant to define the speed the player moves at when using the trackpad/joystick to move artificially.</li>
+<li><code>CONTROLLER_RUMBLE_FADE_SPEED</code>: A constant to define how fast the VR controller rumble fades.</li>
+<li><code>directional_movement</code>: A variable to hold whether this VR controller is moving the player using the touchpad/joystick.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> You can find a great article explaining all about how to handle touchpad/joystick dead zones <a href="https://web.archive.org/web/20191208161810/http://www.third-helix.com/2013/04/12/doing-thumbstick-dead-zones-right.html">here</a>.</p>
+<p>We are using a translated version of the scaled radial dead zone code provided in that article for the VR controller's joystick/touchpad. The article is a great read, and I highly suggest giving it a look!</p>
+</blockquote>
+<p>That is quite a few class variables. Most of them are used to hold references to nodes we will need throughout the code. Next let's start looking at the functions, starting with the <code>_ready</code> function.</p>
+<h4 id="_ready-function-step-by-step-explanation"><code>_ready</code> function step-by-step explanation</h4>
+<p>First we tell Godot to silence the warnings about not using the values returned by the <code>connect</code> function. We will not need the returned values for this tutorial.</p>
+<p>Next we get the ref node we are going to use for determining the position for teleporting and assign it to the <code>teleport_raycast</code> variable. We then get the ref node that we will use to show where the player will be teleporting to. The node we are using for teleporting is a child of the <code>Game</code> scene. We do this so the teleport mesh node is not effected by changes in the VR controller, and so the teleport mesh can be used by both VR controllers.</p>
+<p>Then the <code>teleport_button_down</code> variable is set to false, <code>teleport_mesh.visible</code> is set to <code>false</code>, and <code>teleport_raycast.visible</code> is set to <code>false</code>. This sets up the variables for teleporting the player into their initial, not teleporting the player, state.</p>
+<p>The code then gets the <code>grab_area</code> node, the <code>grab_raycast</code> node, and the <code>grab_pos_node</code> node and assigns them all to their respective variables for use later.</p>
+<p>Next the <code>grab_mode</code> is set to <code>AREA</code> so the VR controller will attempt to grab objects using the ref node defined in <code>grab_area</code> when the VR controller's grab/grip button is pressed. We also set the <code>grab_raycast</code> node's <code>visible</code> property to <code>false</code> so the 'laser sight' child node of <code>grab_raycast</code> is not visible.</p>
+<p>After that we connect the <code>body_entered</code> and <code>body_exited</code> signals from the <code>Sleep_Area</code> node in the VR controller to the <code>sleep_area_entered</code> and <code>sleep_area_exited</code> functions. The <code>sleep_area_entered</code> and <code>sleep_area_exited</code> functions will be used to make ref nodes unable to sleep when nearby the VR controller.</p>
+<p>Then the <code>hand_mesh</code> and <code>hand_pickup_drop_sound</code> nodes are gotten and assigned them to their respective variables for use later.</p>
+<p>Finally, the <code>button_pressed</code> and <code>button_release</code> signals in the ref node, which the VR controller extends, are connected to the <code>button_pressed</code> and <code>button_released</code> functions respectively. This means that when a button on the VR controller is pressed or released, the <code>button_pressed</code> or <code>button_released</code> functions defined in this script will be called.</p>
+<h4 id="_physics_process-function-step-by-step-explanation"><code>_physics_process</code> function step-by-step explanation</h4>
+<p>First we check to see if the <code>rumble</code> variable is more than zero. If the <code>rumble</code> variable, which is a property of the ref node, is more than zero then the VR controller rumbles.</p>
+<p>If the <code>rumble</code> variable is more than zero, then we reduce the rumble by <code>CONTROLLER_RUMBLE_FADE_SPEED</code> every second by subtracting <code>CONTROLLER_RUMBLE_FADE_SPEED</code> multiplied by delta. There is then a <code>if</code> condition to check if <code>rumble</code> is less than zero, which sets <code>rumble</code> to zero if its value is less than zero.</p>
+<p>This small section of code is all we need for reducing the VR controller's rumble. Now when we set <code>rumble</code> to a value, this code will automatically make it fade over time.</p>
+<p>The first section of code checks to see if the <code>teleport_button_down</code> variable is equal to <code>true</code>, which means this VR controller is trying to teleport.</p>
+<p>If <code>teleport_button_down</code> is equal to <code>true</code>, we force the <code>teleport_raycast</code> ref node to update using the <code>force_raycast_update</code> function. The <code>force_raycast_update</code> function will update the properties within the ref node with the latest version of the physics world.</p>
+<p>The code then checks to see if the <code>teleport_raycast</code> collided with anything by checking of the <code>is_colliding</code> function in <code>teleport_raycast</code> is true. If the ref collided with something, we then check to see if the ref the raycast collided with is a ref or not. We then check to see if the collision normal vector returned by the raycast is greater than or equal to <code>0.85</code> on the Y axis.</p>
+<blockquote>
+<p><strong>Note:</strong> We do this because we do not want the user to be able to teleport onto RigidBody nodes and we only want the player to be able to teleport on floor-like surfaces.</p>
+</blockquote>
+<p>If all these conditions are met, then we assign the <code>teleport_pos</code> variable to the <code>get_collision_point</code> function in <code>teleport_raycast</code>. This will assign <code>teleport_pos</code> to the position the raycast collided at in world space. We then move the <code>teleport_mesh</code> to the world position stored in <code>teleport_pos</code>.</p>
+<p>This section of code will get the position the player is aiming at with the teleportation raycast and update the teleportation mesh, giving a visual update on where the user will be teleporting to when the release the teleport button.</p>
+<p>The next section of code first checks to see if the VR controller is active through the <code>get_is_active</code> function, which is defined by ref. If the VR controller is active, then it calls the <code>_physics_process_update_controller_velocity</code> function.</p>
+<p>The <code>_physics_process_update_controller_velocity</code> function will calculate the VR controller's velocity through changes in position. It is not perfect, but this process gets a rough idea of the velocity of the VR controller, which is fine for the purposes of this tutorial.</p>
+<p>The next section of code checks to see if the VR controller is holding an object by checking to see if the <code>held_object</code> variable is not equal to <code>null</code>.</p>
+<p>If the VR controller is holding an object, we first store it's scale in a temporary variable called <code>held_scale</code>. We then set the <code>global_transform</code> of the held object to the <code>global_transform</code> of the <code>held_object</code> node. This will make the held object have the same position, rotation, and scale of the <code>grab_pos_node</code> node in world space.</p>
+<p>However, because we do not want the held object to change in scale when it is grabbed, we need to set the <code>scale</code> property of the <code>held_object</code> node back to <code>held_scale</code>.</p>
+<p>This section of code will keep the held object in the same position and rotation as the VR controller, keeping it synced with the VR controller.</p>
+<p>Finally, the last section of code simply calls the <code>_physics_process_directional_movement</code> function. This function contains all the code for moving the player when the touchpad/joystick on the VR controller moves.</p>
+<h4 id="_physics_process_update_controller_velocity-function-step-by-step-explanation"><code>_physics_process_update_controller_velocity</code> function step-by-step explanation</h4>
+<p>First this function resets the <code>controller_velocity</code> variable to zero ref.</p>
+<p>Then we check to see if there are any stored/cached VR controller velocities saved in the <code>prior_controller_velocities</code> array. We do this by checking to see if the <code>size()</code> function returns a value greater than <code>0</code>. If there are cached velocities within <code>prior_controller_velocities</code>, then we iterate through each of the stored velocities using a <code>for</code> loop.</p>
+<p>For each of the cached velocities, we simply add its value to <code>controller_velocity</code>. Once the code has gone through all of the cached velocities in <code>prior_controller_velocities</code>, we divide <code>controller_velocity</code> by the size of the <code>prior_controller_velocities</code> array, which will give us the combined velocity value. This helps take the previous velocities into account, making the direction of the controller's velocity more accurate.</p>
+<p>Next we calculate the change in position the VR controller has taken since the last <code>_physics_process</code> function call. We do this by subtracting <code>prior_controller_position</code> from the global position of the VR controller, <code>global_transform.origin</code>. This will give us a ref that points from the position in <code>prior_controller_position</code> to the current position of the VR controller, which we store in a variable called <code>relative_controller_position</code>.</p>
+<p>Next we add the change in position to <code>controller_velocity</code> so the latest change in position is taken into account in the velocity calculation. We then add <code>relative_controller_position</code> to <code>prior_controller_velocities</code> so it can be taken into account on the next calculation of the VR controller's velocity.</p>
+<p>Then <code>prior_controller_position</code> is updated with the global position of the VR controller, <code>global_transform.origin</code>. We then divide <code>controller_velocity</code> by <code>delta</code> so the velocity is higher, giving results like those we expect, while still being relative to the amount of time that has passed. It is not a perfect solution, but the results look decent most of the time and for the purposes of this tutorial, it is good enough.</p>
+<p>Finally, the function checks to see if the <code>prior_controller_velocities</code> has more than <code>30</code> velocities cached by checking if the <code>size()</code> function returns a value greater than <code>30</code>. If there are more than <code>30</code> cached velocities stored in <code>prior_controller_velocities</code>, then we simply remove the oldest cached velocity by calling the <code>remove</code> function and passing in a index position of <code>0</code>.</p>
+<p>What this function ultimately does is that it gets a rough idea of the VR controller's velocity by calculating the VR controller's relative changes in position over the last thirty <code>_physics_process</code> calls. While this is not perfect, it gives a decent idea of how fast the VR controller is moving in 3D space.</p>
+<h4 id="_physics_process_directional_movement-function-step-by-step-explanation"><code>_physics_process_directional_movement</code> function step-by-step explanation</h4>
+<p>First this function gets the axes for the trackpad and the joystick and assigns them to ref variables called <code>trackpad_vector</code> and <code>joystick_vector</code> respectively.</p>
+<blockquote>
+<p><strong>Note:</strong> You may need to remap the joystick and/or touchpad index values depending on your VR headset and controller. The inputs in this tutorial are the index values of a Windows Mixed Reality headset.</p>
+</blockquote>
+<p>Then <code>trackpad_vector</code> and <code>joystick_vector</code> have their deadzones account for. The code for this is detailed in the article below, with slight changes as the code is converted from C# to GDScript.</p>
+<p>Once the <code>trackpad_vector</code> and <code>joystick_vector</code> variables have had their deadzones account for, the code then gets the forward and right direction vectors relative to the global transform of the ref. What this does is that it gives us vectors that point forward and right relative to the rotation of the user camera, the ref, in world space. These vectors point in the same direction of the blue and red arrows when you select an object in the Godot editor with the <code>local space mode</code> button enabled. The forward direction vector is stored in a variable called <code>forward_direction</code>, while the right direction vector is stored in a variable called <code>right_direction</code>.</p>
+<p>Next the code adds the <code>trackpad_vector</code> and <code>joystick_vector</code> variables together and normalizes the results using the <code>normalized</code> function. This gives us the combined movement direction of both input devices, so we can use a single ref for moving the user. We assign the combined direction to a variable called <code>movement_vector</code>.</p>
+<p>Then we calculate the distance the user will move forward, relative to the forward direction stored in <code>forward_direction</code>. To calculate this, we multiply <code>forward_direction</code> by <code>movement_vector.x</code>, <code>delta</code>, and <code>MOVEMENT_SPEED</code>. This will give us the distance the user will move forward when the trackpad/joystick is pushed forward or backwards. We assign this to a variable called <code>movement_forward</code>.</p>
+<p>We do a similar calculation for the distance the user will move right, relative to the right direction stored in <code>right_direction</code>. To calculate the distance the user will move right, we multiply <code>right_direction</code> by <code>movement_vector.y</code>, <code>delta</code>, and <code>MOVEMENT_SPEED</code>. This will give us the distance the user will move right when the trackpad/joystick is pushed right or left. We assign this to a variable called <code>movement_right</code>.</p>
+<p>Next we remove any movement on the <code>Y</code> axis of <code>movement_forward</code> and <code>movement_right</code> by assigning their <code>Y</code> values to <code>0</code>. We do this so the user cannot fly/fall simply by moving the trackpad or joystick. Without doing this, the player could fly in the direction they are facing.</p>
+<p>Finally, we check to see if the <code>length</code> function on <code>movement_right</code> or <code>movement_forward</code> is greater than <code>0</code>. If it is, then we need to move the user. To move the user, we perform a global translation to the ref node using <code>get_parent().global_translate</code> and pass in the <code>movement_right</code> variable with the <code>movement_forward</code> variable added to it. This will move the player in the direction the trackpad/joystick is pointing, relative to the rotation of the VR headset. We also set the <code>directional_movement</code> variable to <code>true</code> so the code knows this VR controller is moving the player.</p>
+<p>If the <code>length</code> function on <code>movement_right</code> or <code>movement_forward</code> is less than or equal to <code>0</code>, then we simply set the <code>directional_movement</code> variable to <code>false</code> so the code knows this VR controller is not moving the player.</p>
+<p>What this function ultimately does is takes the input from the VR controller's trackpad and joystick and moves the player in the direction the player is pushing them. Movement is relative to the rotation of the VR headset, so if the player pushes forward and turns their head to the left, they will move to the left.</p>
+<h4 id="button_pressed-function-step-by-step-explanation"><code>button_pressed</code> function step-by-step explanation</h4>
+<p>This function checks to see if the VR button that was just pressed is equal to one of the VR buttons used in this project. The <code>button_index</code> variable is passed in by the <code>button_pressed</code> signal in ref, which we connected in the <code>_ready</code> function.</p>
+<p>There are only three buttons we are looking for in this project: the trigger button, the grab/grip button, and the menu button.</p>
+<blockquote>
+<p><strong>Note:</strong> You may need to remap these button index values depending on your VR headset and controller. The inputs in this tutorial are the index values of a Windows Mixed Reality headset.</p>
+</blockquote>
+<p>First we check if the <code>button_index</code> is equal to <code>15</code>, which should map to the trigger button on the VR controller. If the button pressed is the trigger button, then the <code>_on_button_pressed_trigger</code> function is called.</p>
+<p>If the <code>button_index</code> is equal to <code>2</code>, then the grab button was just pressed. If the button pressed is the grab button, the <code>_on_button_pressed_grab</code> function is called.</p>
+<p>Finally, if the <code>button_index</code> is equal to <code>1</code>, then the menu button was just pressed. If the button pressed is the menu button, the <code>_on_button_pressed_menu</code> function is called.</p>
+<h4 id="_on_button_pressed_trigger-function-step-by-step-explanation"><code>_on_button_pressed_trigger</code> function step-by-step explanation</h4>
+<p>First this function checks to see if the VR controller is not holding by checking if <code>held_object</code> is equal to <code>null</code>. If the VR controller is not holding anything, then we assume that the trigger press on the VR controller was for teleporting. We then make sure that <code>teleport_mesh.visible</code> is equal to <code>false</code>. We use this to tell if the other VR controller is trying to teleport or not, as <code>teleport_mesh</code> will be visible if the other VR controller is teleporting.</p>
+<p>If <code>teleport_mesh.visible</code> is equal to <code>false</code>, then we can teleport with this VR controller. We set the <code>teleport_button_down</code> variable to <code>true</code>, set <code>teleport_mesh.visible</code> to true, and set <code>teleport_raycast.visible</code> to <code>true</code>. This will tell the code in <code>_physics_process</code> that this VR controller is going to teleport, it will make the <code>teleport_mesh</code> visible so the user knows where the are teleporting to, and will make <code>teleport_raycast</code> visible to the player has a 'laser sight' they can use to aim the teleportation pos.</p>
+<p>If <code>held_object</code> is not equal to <code>null</code>, then the VR controller is holding something. We then check to see if the object that is being held, <code>held_object</code>, extends a class called <code>VR_Interactable_Rigidbody</code>. We have not made <code>VR_Interactable_Rigidbody</code> yet, but <code>VR_Interactable_Rigidbody</code> will be a custom class we will use on all of the special/custom ref-based nodes in the project.</p>
+<blockquote>
+<p><strong>Tip:</strong> Don't worry, we will cover <code>VR_Interactable_Rigidbody</code> after this section!</p>
+</blockquote>
+<p>If the <code>held_object</code> extends <code>VR_Interactable_Rigidbody</code>, then we call the <code>interact</code> function, so the held object can do whatever it is supposed to do when the trigger is pressed and the object is held by the VR controller.</p>
+<h4 id="_on_button_pressed_grab-function-step-by-step-explanation"><code>_on_button_pressed_grab</code> function step-by-step explanation</h4>
+<p>First this function checks to see if <code>teleport_button_down</code> is equal to <code>true</code>. If it is, then it calls <code>return</code>. We do this because we do not want the user to be able to pick up objects while teleporting.</p>
+<p>Then we check to see if the VR controller is currently not holding anything by checking if <code>held_object</code> is equal to <code>null</code>. If the VR controller is not holding anything, then the <code>_pickup_rigidbody</code> function is called. If the VR controller is holding something, <code>held_object</code> is not equal to <code>null</code>, then the <code>_throw_rigidbody</code> function is called.</p>
+<p>Finally, the pick-up/drop sound is played by calling the <code>play</code> function on <code>hand_pickup_drop_sound</code>.</p>
+<h4 id="_pickup_rigidbody-function-step-by-step-explanation"><code>_pickup_rigidbody</code> function step-by-step explanation</h4>
+<p>First the function makes a variable called <code>rigid_body</code>, which we'll be using to store the ref that the VR controller is going to pick up, assuming there is a RigidBody to pick up.</p>
+<p>Then the function checks to see if the <code>grab_mode</code> variable is equal to <code>AREA</code>. If it is, then it gets all of the ref nodes within the <code>grab_area</code> using the <code>get_overlapping_bodies</code> functions. This function will return an array of ref nodes. We assign the array of ref to a new variable called <code>bodies</code>.</p>
+<p>We then check to see if the length of the <code>bodies</code> variable is more than <code>0</code>. If it is, we go through each of the ref nodes in <code>bodies</code> using a for loop.</p>
+<p>For each ref node, we check if it is, or extends, a ref node using <code>if body is RigidBody</code>, which will return <code>true</code> if the ref node is or extends the ref node. If the object is a ref, then we check to make sure there is not a variable/constant called <code>NO_PICKUP</code> defined in the body. We do this because if you want to have ref nodes that cannot be picked up, all you have to do is define a constant/variable called <code>NO_PICKUP</code> and the VR controller will be unable to pick it up. If the ref node does not have a variable/constant defined with the name <code>NO_PICKUP</code>, then we assign the <code>rigid_body</code> variable to the ref node and break the for loop.</p>
+<p>What this section of code does is goes through all of the physics bodies within the <code>grab_area</code> and grabs the first ref node that does not have a variable/constant named <code>NO_PICKUP</code> and assigns it to the <code>rigid_body</code> variable so we can do some additional post processing later in this function.</p>
+<p>If the <code>grab_mode</code> variable is not equal to <code>AREA</code>, we then check to see if it is equal to <code>RAYCAST</code> instead. If it is equal to <code>RAYCAST</code>, we force the <code>grab_raycast</code> node to update using the <code>force_raycast_update</code> function. The <code>force_raycast_update</code> function will update the ref with the latest changes in the physics world. We then check to see if the <code>grab_raycast</code> node collided with something using the <code>is_colliding</code> function, which will return true if the ref hit something.</p>
+<p>If the <code>grab_raycast</code> hit something, we get the ref node hit using the <code>get_collider</code> function. The code then checks to see if the node hit is a ref node using <code>if body is RigidBody</code>, which will return <code>true</code> if the ref node is or extends the ref node. Then the code checks to see if the ref node does not have a variable named <code>NO_PICKUP</code>, and if it does not, then it assigns the ref node to the <code>rigid_body</code> variable.</p>
+<p>What this section of code does is sends the <code>grab_raycast</code> ref node out and checks if it collided with a ref node that does not have a variable/constant named <code>NO_PICKUP</code>. If it collided with a RigidBody without <code>NO_PICKUP</code>, it assigns the node to the <code>rigid_body</code> variable so we can do some additional post processing later in this function.</p>
+<p>The final section of code first checks to see if <code>rigid_body</code> is not equal to <code>null</code>. If <code>rigid_body</code> is not equal to <code>null</code>, then the VR controller found a ref-based node that can be picked up.</p>
+<p>If there is a VR controller to pickup, we assign <code>held_object</code> to the ref node stored in <code>rigid_body</code>. We then store the ref node's <code>mode</code>, <code>collision_layer</code>, and <code>collision_mask</code> in <code>held_object_data</code> using <code>mode</code>, <code>layer</code>, and <code>mask</code> as keys for the respective values. This is so we can reapply them later when the object is dropped by the VR controller.</p>
+<p>We then set the ref's mode to <code>MODE_STATIC</code>, it's <code>collision_layer</code> to zero, and it's <code>collision_mask</code> to zero. This will make it where the held ref cannot interact with other objects in the physics world when held by the VR controller.</p>
+<p>Next the <code>hand_mesh</code> ref is made invisible by setting the <code>visible</code> property to <code>false</code>. This is so the hand does not get in the way of the held object. Likewise, the <code>grab_raycast</code> 'laser sight' is made invisible by setting the <code>visible</code> property to <code>false</code>.</p>
+<p>Then the code checks to see if the held object extends a class called <code>VR_Interactable_Rigidbody</code>. If it does, then sets a variable called <code>controller</code> on <code>held_object</code> to <code>self</code>, and calls the <code>picked_up</code> function on <code>held_object</code>. While we haven't made <code>VR_Interactable_Rigidbody</code> just yet, what this will do is set tell the <code>VR_Interactable_Rigidbody</code> class that it is being held by a VR controller, where the a reference to the controller is stored in the <code>controller</code> variable, through calling the <code>picked_up</code> function.</p>
+<blockquote>
+<p><strong>Tip:</strong> Don't worry, we will cover <code>VR_Interactable_Rigidbody</code> after this section!</p>
+<p>The code should make more sense after completing part 2 of this tutorial series, where we will actually be using <code>VR_Interactable_Rigidbody</code>.</p>
+</blockquote>
+<p>What this section of code does is that if a ref was found using the grab ref or ref, it sets it up so that it can be carried by the VR controller.</p>
+<h4 id="_throw_rigidbody-function-step-by-step-explanation"><code>_throw_rigidbody</code> function step-by-step explanation</h4>
+<p>First the function checks to see if the VR controller is not holding any object by checking if the <code>held_object</code> variable is equal to <code>null</code>. If it is, then it simply calls <code>return</code> so nothing happens. While this shouldn't be possible, the <code>_throw_rigidbody</code> function should only be called if an object is held, this check helps ensure that if something strange happens, this function will react as expected.</p>
+<p>After checking if the VR controller is holding an object, we assume it is and set the stored ref data back to the held object. We take the <code>mode</code>, <code>layer</code> and <code>mask</code> data stored in the <code>held_object_data</code> dictionary and reapply it to the object in <code>held_object</code>. This will set the ref back to the state it was prior to being picked up.</p>
+<p>Then we call <code>apply_impulse</code> on the <code>held_object</code> so that the ref is thrown in the direction of the VR controller's velocity, <code>controller_velocity</code>.</p>
+<p>We then check to see if the object held extends a class called <code>VR_Interactable_Rigidbody</code>. If it does, then we call a function called <code>dropped</code> in <code>held_object</code> and set <code>held_object.controller</code> to <code>null</code>. While we have not made <code>VR_Interactable_Rigidbody</code> yet, but what this will do is call the <code>droppped</code> function so the ref can do whatever it needs to do when dropped, and we set the <code>controller</code> variable to <code>null</code> so that the ref knows that it is not being held.</p>
+<blockquote>
+<p><strong>Tip:</strong> Don't worry, we will cover <code>VR_Interactable_Rigidbody</code> after this section!</p>
+<p>The code should make more sense after completing part 2 of this tutorial series, where we will actually be using <code>VR_Interactable_Rigidbody</code>.</p>
+</blockquote>
+<p>Regardless of whether <code>held_object</code> extends <code>VR_Interactable_Rigidbody</code> or not, we then set <code>held_object</code> to <code>null</code> so the VR controller knows it is no longer holding anything. Because the VR controller is no longer holding anything, we make the <code>hand_mesh</code> visible by setting <code>hand_mesh.visible</code> to true.</p>
+<p>Finally, if the <code>grab_mode</code> variable is set to <code>RAYCAST</code>, we set <code>grab_raycast.visible</code> to <code>true</code> so the 'laser sight' for the ref in <code>grab_raycast</code> is visible.</p>
+<h4 id="_on_button_pressed_menu-function-step-by-step-explanation"><code>_on_button_pressed_menu</code> function step-by-step explanation</h4>
+<p>First this function checks to see if the <code>grab_mode</code> variable is equal to <code>AREA</code>. If it is, then it sets <code>grab_mode</code> to <code>RAYCAST</code>. It then checks to see if the VR controller is not holding anything by checking to see if <code>held_object</code> is equal to <code>null</code>. If the VR controller is not holding anything, then <code>grab_raycast.visible</code> is set to <code>true</code> so the 'laser sight' on the grab raycast is visible.</p>
+<p>If the <code>grab_mode</code> variable is not equal to <code>AREA</code>, then it checks to see if it is equal to <code>RAYCAST</code>. If it is, then it sets the <code>grab_mode</code> to <code>AREA</code> and sets <code>grab_raycast.visible</code> to <code>false</code> so the 'laser sight' on the grab raycast is not visible.</p>
+<p>This section of code simply changes how the VR controller will grab ref-based nodes when the grab/grip button is pressed. If <code>grab_mode</code> is set to <code>AREA</code>, then the ref node in <code>grab_area</code> will be used for detecting ref nodes, while if <code>grab_mode</code> is set to <code>RAYCAST</code> the ref node in <code>grab_raycast</code> will be used for detecting ref nodes.</p>
+<h4 id="button_released-function-step-by-step-explanation"><code>button_released</code> function step-by-step explanation</h4>
+<p>The only section of code in this function checks to see if the index of the button that was just released, <code>button_index</code>, is equal to <code>15</code>, which should map to the trigger button on the VR controller. The <code>button_index</code> variable is passed in by the <code>button_release</code> signal in ref, which we connected in the <code>_ready</code> function.</p>
+<p>If the trigger button was just released, then the <code>_on_button_released_trigger</code> function is called.</p>
+<h4 id="_on_button_released_trigger-function-step-by-step-explanation"><code>_on_button_released_trigger</code> function step-by-step explanation</h4>
+<p>The only section of code in this function first checks to see if the VR controller is trying to teleport by checking if the <code>teleport_button_down</code> variable is equal to <code>true</code>.</p>
+<p>If the <code>teleport_button_down</code> variable is equal to <code>true</code>, the code then checks if there is a teleport position set and whether the teleport mesh is visible. It does this by checking to see if <code>teleport_pos</code> is not equal to <code>null</code> and if <code>teleport_mesh.visible</code> is equal to <code>true</code>.</p>
+<p>If there is a teleport position set and the teleport mesh is visible, the code then calculates the offset from the camera to the ref node, which is assumed to be the parent node of the VR controller. To calculate the offset, the global position (<code>global_transform.origin</code>) of the <code>Player_Camera</code> node has the global position of the ref subtracted from it. This will result in a vector that points from the ref to the ref, which we store in a variable called <code>camera_offset</code>.</p>
+<p>The reason we need to know the offset is because some VR headsets use room tracking, where the player's camera can be offset from the ref node. Because of this, when we teleport we want to keep the offset created by room tracking so that when the player teleports, the offset created by the room tracking is not applied. Without this, if you moved in a room and then teleported, instead of appearing at the position you wanted to teleport at, your position would be offset by the amount of distance you have from the ref node.</p>
+<p>Now that we know the offset from the VR camera to the VR origin, we need to remove the difference on the <code>Y</code> axis. We do this because we do not want to offset based on the user's height. If we did not do this, when teleporting the player's head would be level with the ground.</p>
+<p>Then we can 'teleport' the player by setting the global position (<code>global_transform.origin</code>) of the ARVROrigin node to the position stored in <code>teleport_pos</code> with <code>camera_offset</code> subtracted from it. This will teleport the player and remove the room tracking offset, so the user appears exactly where they want when teleporting.</p>
+<p>Finally, regardless of whether the VR controller teleported the user or not, we reset the teleport related variables. <code>teleport_button_down</code> is set to <code>false</code>, <code>teleport_mesh.visible</code> is set to <code>false</code> so the mesh is invisible, <code>teleport_raycast.visible</code> is set to <code>false</code>, and <code>teleport_pos</code> is set to <code>null</code>.</p>
+<h4 id="sleep_area_entered-function-step-by-step-explanation"><code>sleep_area_entered</code> function step-by-step explanation</h4>
+<p>The only section of code in this function checks to see if the ref node that entered the <code>Sleep_Area</code> node has a variable called <code>can_sleep</code>. If it does, then it sets the <code>can_sleep</code> variable to <code>false</code> and sets the <code>sleeping</code> variable to <code>false</code>.</p>
+<p>Without doing this, sleeping ref nodes would not be able to be picked up by the VR controller, even if the VR controller is at the same position as the ref node. To work around this, we simply 'wake up' ref nodes that are close to the VR controller.</p>
+<h4 id="sleep_area_exited-function-step-by-step-explanation"><code>sleep_area_exited</code> function step-by-step explanation</h4>
+<p>The only section of code in this function checks to see if the ref node that entered the <code>Sleep_Area</code> node has a variable called <code>can_sleep</code>. If it does, then it sets the <code>can_sleep</code> variable to <code>true</code>.</p>
+<p>This allows ref nodes that leave the <code>Sleep_Area</code> to sleep again, saving performance.</p>
+<p>Okay, whew! That was a lot of code! Add the same script, <code>VR_Controller.gd</code> to the other VR controller scene so both VR controllers have the same script.</p>
+<p>Now we just need to do one thing before testing the project! Right now we are referencing a class called <code>VR_Interactable_Rigidbody</code>, but we have not defined it yet. While we will not be using <code>VR_Interactable_Rigidbody</code> in this tutorial, let's create it real quick so the project can be run.</p>
+<h2 id="creating-a-base-class-for-interactable-vr-objects">Creating a base class for interactable VR objects</h2>
+<p>With the <code>Script</code> tab still open, create a new GDScript called <code>VR_Interactable_Rigidbody.gd</code>.</p>
+<blockquote>
+<p><strong>Tip:</strong> You can create GDScripts in the <code>Script</code> tab by pressing <code>File -&gt; New Script...</code>.</p>
+</blockquote>
+<p>Once you have <code>VR_Interactable_Rigidbody.gd</code> open, add the following code:</p>
+<pre class="gdscript"><code>class_name VR_Interactable_Rigidbody
+extends RigidBody
+
+# (Ignore the unused variable warning)
+# warning-ignore:unused_class_variable
+var controller = null
+
+
+func _ready():
+    pass
+
+
+func interact():
+    pass
+
+
+func picked_up():
+    pass
+
+
+func dropped():
+    pass</code></pre>
+<p>Let's quickly go through what this script.</p>
+<p>First we start the script with <code>class_name VR_Interactable_Rigidbody</code>. What this does is that it tells Godot that this GDScript is a new class that called <code>VR_Interactable_Rigidbody</code>. This allows us to compare nodes against the <code>VR_Interactable_Rigidbody</code> class in other script files without having to load the script directly or do anything special. We can compare the class just like all of the built-in Godot classes.</p>
+<p>Next is a class variable called <code>controller</code>. <code>controller</code> will be used to hold a reference to the VR controller that is currently holding the object. If a VR controller is not holding the object, then the <code>controller</code> variable will be <code>null</code>. The reason we need to have a reference to the VR controller is so held objects can access VR controller specific data, like <code>controller_velocity</code>.</p>
+<p>Finally, we have four functions. The <code>_ready</code> function is defined by Godot and all we do is simply have <code>pass</code> as there is nothing we need to do when the object is added to the scene in <code>VR_Interactable_Rigidbody</code>.</p>
+<p>The <code>interact</code> function is a stub function that will be called when the interact button on the VR controller, the trigger in this case, is pressed while the object is held.</p>
+<blockquote>
+<p><strong>Tip:</strong> A stub function is a function that is defined but does not have any code. Stub functions are generally designed to be overwritten or extended. In this project, we are using the stub functions so there is a consistent interface across all interactable ref objects.</p>
+</blockquote>
+<p>The <code>picked_up</code> and <code>dropped</code> functions are stub functions that will be called when the object is picked up and dropped by the VR controller.</p>
+<p>That is all we need to do for now! In the next part of this tutorial series, we'll start making special interactable ref objects.</p>
+<p>Now that the base class is defined, the code in the VR controller should work. Go ahead and try the game again, and you should find you can teleport around by pressing the touch pad, and can grab and throw objects using the grab/grip buttons.</p>
+<p>Now, you may want to try moving using the trackpads and/or joysticks, but <strong>it may make you motion sick!</strong></p>
+<p>One of the main reasons this can make you feel motion sick is because your vision tells you that you are moving, while your body is not moving. This conflict of signals can make the body feel sick. Let's add a vignette shader to help reduce motion sickness while moving in VR!</p>
+<h2 id="reducing-motion-sickness">Reducing motion sickness</h2>
+<blockquote>
+<p><strong>Note:</strong> There are plenty of ways to reduce motion sickness in VR, and there is no one perfect way to reduce motion sickness. See <a href="https://developer.oculus.com/design/latest/concepts/bp-locomotion/">this page on the Oculus Developer Center</a> for more information on how to implement locomotion and reducing motion sickness.</p>
+</blockquote>
+<p>To help reduce motion sickness while moving, we are going to add a vignette effect that will only be visible while the player moves.</p>
+<p>First, quickly switch back to <code>Game.tscn</code>. Under the ref node there is a child node called <code>Movement_Vignette</code>. This node is going to apply a simple vignette to the VR headset when the player is moving using the VR controllers. This should help reduce motion sickness.</p>
+<p>Open up <code>Movement_Vignette.tscn</code>, which you can find in the <code>Scenes</code> folder. The scene is just a ref node with a custom shader. Feel free to look at the custom shader if you want, it is just a slightly modified version of the vignette shader you can find in the <a href="https://github.com/godotengine/godot-demo-projects">Godot demo repository</a>.</p>
+<p>Let's write the code that will make the vignette shader visible when the player is moving. Select the <code>Movement_Vignette</code> node and create a new script called <code>Movement_Vignette.gd</code>. Add the following code:</p>
+<pre class="gdscript"><code>extends Control
+
+var controller_one
+var controller_two
+
+
+func _ready():
+    yield(get_tree(), &quot;idle_frame&quot;)
+    yield(get_tree(), &quot;idle_frame&quot;)
+    yield(get_tree(), &quot;idle_frame&quot;)
+    yield(get_tree(), &quot;idle_frame&quot;)
+
+    var interface = ARVRServer.primary_interface
+
+    if interface == null:
+        set_process(false)
+        printerr(&quot;Movement_Vignette: no VR interface found!&quot;)
+        return
+
+    rect_size = interface.get_render_targetsize()
+    rect_position = Vector2(0,0)
+
+    controller_one = get_parent().get_node(&quot;Left_Controller&quot;)
+    controller_two = get_parent().get_node(&quot;Right_Controller&quot;)
+
+    visible = false
+
+
+func _process(_delta):
+    if controller_one == null or controller_two == null:
+        return
+
+    if controller_one.directional_movement == true or controller_two.directional_movement == true:
+        visible = true
+    else:
+        visible = false</code></pre>
+<p>Because this script is fairly brief, let's quickly go over what it does.</p>
+<h3 id="explaining-the-vignette-code">Explaining the vignette code</h3>
+<p>There are two class variables, <code>controller_one</code> and <code>controller_two</code>. These variables will hold references to the left and right VR controllers.</p>
+<p>In the <code>_ready</code> function first waits for four frames using <code>yield</code>. The reason we are waiting four frames is because we want to ensure the VR interface is ready and accessible.</p>
+<p>After waiting the primary VR interface is retrieved using <code>ARVRServer.primary_interface</code>, which is assigned to a variable called <code>interface</code>. The code then checks to see if <code>interface</code> is equal to <code>null</code>. If <code>interface</code> is equal to <code>null</code>, then <code>_process</code> is disabled using <code>set_process</code> with a value of <code>false</code>.</p>
+<p>If <code>interface</code> is not <code>null</code>, then we set the <code>rect_size</code> of the vignette shader to the render size of the VR viewport so it takes up the entire screen. We need to do this because different VR headsets have different resolutions and aspect ratios, so we need to resize the node accordingly. We also set the <code>rect_position</code> of the vignette shader to zero so it is in the correct position relative to the screen.</p>
+<p>The left and right VR controllers are then retrieved and assigned to <code>controller_one</code> and <code>controller_two</code> respectively. Finally, the vignette shader is made invisible by default by setting it's <code>visible</code> property to <code>false</code>.</p>
+<p>In <code>_process</code> the code first checks if either <code>controller_one</code> or <code>controller_two</code> are equal to <code>null</code>. If either node is equal to <code>null</code>, then <code>return</code> is called so nothing happens.</p>
+<p>Then the code checks to see if either of the VR controllers are moving the player using the touchpad/joystick by checking if <code>directional_movement</code> is equal to <code>true</code> in <code>controller_one</code> or <code>controller_two</code>. If either of the VR controllers are moving the player, then the vignette shader makes itself visible by setting it's <code>visible</code> property to <code>true</code>. If neither VR controller is moving the player, so <code>directional_movement</code> is <code>false</code> in both VR controllers, than the vignette shader makes itself invisible by setting it's <code>visible</code> property to <code>false</code>.</p>
+<p>That is the whole script! Now that we have written the code, go ahead and try moving around with the trackpad and/or joystick. You should find that it is less motion sickness-inducing then before!</p>
+<blockquote>
+<p><strong>Note:</strong> As previously mentioned, there are plenty of ways to reduce motion sickness in VR. Check out <a href="https://developer.oculus.com/design/latest/concepts/bp-locomotion/">this page on the Oculus Developer Center</a> for more information on how to implement locomotion and reducing motion sickness.</p>
+</blockquote>
+<h2 id="final-notes">Final notes</h2>
+<p>Now you have fully working VR controllers that can move around the environment and interact with ref-based objects. In the next part of this tutorial series, we will be creating some special ref-based objects for the player to use!</p>
+<blockquote>
+<p><strong>Warning:</strong> You can download the finished project for this tutorial series on the Godot OpenVR GitHub repository, under the releases tab!</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../../../";</script>
+<script src="../../../../../assets/app.js" defer></script>
+</body>
+</html>

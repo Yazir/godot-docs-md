@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using CharacterBody2D/3D — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-characterbody2d3d">Using CharacterBody2D/3D</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Godot offers several collision objects to provide both collision detection and response. Trying to decide which one to use for your project can be confusing. You can avoid problems and simplify development if you understand how each of them works and what their pros and cons are. In this tutorial, we'll look at the ref node and show some examples of how to use it.</p>
+<blockquote>
+<p><strong>Note:</strong> While this document uses <code>CharacterBody2D</code> in its examples, the same concepts apply in 3D as well.</p>
+</blockquote>
+<h2 id="what-is-a-character-body">What is a character body?</h2>
+<p><code>CharacterBody2D</code> is for implementing bodies that are controlled via code. Character bodies detect collisions with other bodies when moving, but are not affected by engine physics properties, like gravity or friction. While this means that you have to write some code to create their behavior, it also means you have more precise control over how they move and react.</p>
+<p>Despite its name <code>CharacterBody2D</code>, it can also be used for other physics objects that require precise manual movement logic and detailed collision information, such as moving platforms or complex projectiles.</p>
+<blockquote>
+<p><strong>Note:</strong> This document assumes you're familiar with Godot's various physics bodies. Please read <code>doc_physics_introduction</code> first, for an overview of the physics options.</p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> A CharacterBody2D can be affected by gravity and other forces, but you must calculate the movement in code. The physics engine will not move a CharacterBody2D.</p>
+</blockquote>
+<h2 id="movement-and-collision">Movement and collision</h2>
+<p>When moving a <code>CharacterBody2D</code>, you should not set its <code>position</code> property directly. Instead, you use the <code>move_and_collide()</code> or <code>move_and_slide()</code> methods. These methods move the body along a given vector and detect collisions.</p>
+<blockquote>
+<p><strong>Warning:</strong> You should handle physics body movement in the <code>_physics_process()</code> callback.</p>
+</blockquote>
+<p>The two movement methods serve different purposes, and later in this tutorial, you'll see examples of how they work.</p>
+<h3 id="move_and_collide">move_and_collide</h3>
+<p>This method takes one required parameter: a ref indicating the body's relative movement. Typically, this is your velocity vector multiplied by the frame timestep (<code>delta</code>). If the engine detects a collision anywhere along this vector, the body will immediately stop moving. If this happens, the method will return a ref object.</p>
+<p><code>KinematicCollision2D</code> is an object containing data about the collision and the colliding object. Using this data, you can calculate your collision response.</p>
+<p><code>move_and_collide</code> is most useful when you just want to move the body and detect collision, but don't need any automatic collision response. For example, if you need a bullet that ricochets off a wall, you can directly change the angle of the velocity when you detect a collision. See below for an example.</p>
+<h3 id="move_and_slide">move_and_slide</h3>
+<p>The <code>move_and_slide()</code> method is intended to simplify the collision response in the common case where you want one body to slide along the other. It is especially useful in platformers or top-down games, for example.</p>
+<p>When calling <code>move_and_slide()</code>, the function uses a number of node properties to calculate its slide behavior. These properties can be found in the Inspector, or set in code.</p>
+<ul>
+<li><p><code>velocity</code> - <em>default value:</em> <code>Vector2( 0, 0 )</code></p>
+<blockquote>
+<p>This property represents the body's velocity vector in pixels per second. <code>move_and_slide()</code> will modify this value automatically when colliding.</p>
+</blockquote></li>
+<li><p><code>motion_mode</code> - <em>default value:</em> <code>MOTION_MODE_GROUNDED</code></p>
+<blockquote>
+<p>This property is typically used to distinguish between side-scrolling and top-down movement. When using the default value, you can use the <code>is_on_floor()</code>, <code>is_on_wall()</code>, and <code>is_on_ceiling()</code> methods to detect what type of surface the body is in contact with, and the body will interact with slopes. When using <code>MOTION_MODE_FLOATING</code>, all collisions will be considered "walls".</p>
+</blockquote></li>
+<li><p><code>up_direction</code> - <em>default value:</em> <code>Vector2( 0, -1 )</code></p>
+<blockquote>
+<p>This property allows you to define what surfaces the engine should consider being the floor. Its value lets you use the <code>is_on_floor()</code>, <code>is_on_wall()</code>, and <code>is_on_ceiling()</code> methods to detect what type of surface the body is in contact with. The default value means that the top side of horizontal surfaces will be considered "ground".</p>
+</blockquote></li>
+<li><p><code>floor_stop_on_slope</code> - <em>default value:</em> <code>true</code></p>
+<blockquote>
+<p>This property prevents a body from sliding down slopes when standing still.</p>
+</blockquote></li>
+<li><p><code>wall_min_slide_angle</code> - <em>default value:</em> <code>0.261799</code> (in radians, equivalent to <code>15</code> degrees)</p>
+<blockquote>
+<p>This property is the minimum angle where the body is allowed to slide when it hits a slope.</p>
+</blockquote></li>
+<li><p><code>floor_max_angle</code> - <em>default value:</em> <code>0.785398</code> (in radians, equivalent to <code>45</code> degrees)</p>
+<blockquote>
+<p>This property is the maximum angle before a surface is no longer considered a "floor."</p>
+</blockquote></li>
+</ul>
+<p>There are many other properties that can be used to modify the body's behavior under specific circumstances. See the ref docs for full details.</p>
+<h2 id="detecting-collisions">Detecting collisions</h2>
+<p>When using <code>move_and_collide()</code> the function returns a <code>KinematicCollision2D</code> directly, and you can use this in your code.</p>
+<p>When using <code>move_and_slide()</code> it's possible to have multiple collisions occur, as the slide response is calculated. To process these collisions, use <code>get_slide_collision_count()</code> and <code>get_slide_collision()</code>:</p>
+<pre class="gdscript"><code># Using move_and_collide.
+var collision = move_and_collide(velocity * delta)
+if collision:
+    print(&quot;I collided with &quot;, collision.get_collider().name)
+
+# Using move_and_slide.
+move_and_slide()
+for i in get_slide_collision_count():
+    var collision = get_slide_collision(i)
+    print(&quot;I collided with &quot;, collision.get_collider().name)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Using MoveAndCollide.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> collision <span class="op">=</span> <span class="fu">MoveAndCollide</span><span class="op">(</span>Velocity <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta<span class="op">);</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>collision <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;I collided with &quot;</span><span class="op">,</span> <span class="op">((</span>Node<span class="op">)</span>collision<span class="op">.</span><span class="fu">GetCollider</span><span class="op">()).</span><span class="fu">Name</span><span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">// Using MoveAndSlide.</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="fu">MoveAndSlide</span><span class="op">();</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> <span class="fu">GetSlideCollisionCount</span><span class="op">();</span> i<span class="op">++)</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> collision <span class="op">=</span> <span class="fu">GetSlideCollision</span><span class="op">(</span>i<span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;I collided with &quot;</span><span class="op">,</span> <span class="op">((</span>Node<span class="op">)</span>collision<span class="op">.</span><span class="fu">GetCollider</span><span class="op">()).</span><span class="fu">Name</span><span class="op">);</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> get_slide_collision_count() only counts times the body has collided and changed direction.</p>
+</blockquote>
+<p>See ref for details on what collision data is returned.</p>
+<h2 id="which-movement-method-to-use">Which movement method to use?</h2>
+<p>A common question from new Godot users is: "How do you decide which movement function to use?" Often, the response is to use <code>move_and_slide()</code> because it seems simpler, but this is not necessarily the case. One way to think of it is that <code>move_and_slide()</code> is a special case, and <code>move_and_collide()</code> is more general. For example, the following two code snippets result in the same collision response:</p>
+<pre class="gdscript"><code># using move_and_collide
+var collision = move_and_collide(velocity * delta)
+if collision:
+    velocity = velocity.slide(collision.get_normal())
+
+# using move_and_slide
+move_and_slide()</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// using MoveAndCollide</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> collision <span class="op">=</span> <span class="fu">MoveAndCollide</span><span class="op">(</span>Velocity <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta<span class="op">);</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>collision <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    Velocity <span class="op">=</span> Velocity<span class="op">.</span><span class="fu">Slide</span><span class="op">(</span>collision<span class="op">.</span><span class="fu">GetNormal</span><span class="op">());</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">// using MoveAndSlide</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="fu">MoveAndSlide</span><span class="op">();</span></span></code></pre></div>
+<p>Anything you do with <code>move_and_slide()</code> can also be done with <code>move_and_collide()</code>, but it might take a little more code. However, as we'll see in the examples below, there are cases where <code>move_and_slide()</code> doesn't provide the response you want.</p>
+<p>In the example above, <code>move_and_slide()</code> automatically alters the <code>velocity</code> variable. This is because when the character collides with the environment, the function recalculates the speed internally to reflect the slowdown.</p>
+<p>For example, if your character fell on the floor, you don't want it to accumulate vertical speed due to the effect of gravity. Instead, you want its vertical speed to reset to zero.</p>
+<p><code>move_and_slide()</code> may also recalculate the kinematic body's velocity several times in a loop as, to produce a smooth motion, it moves the character and collides up to five times by default. At the end of the process, the character's new velocity is available for use on the next frame.</p>
+<h2 id="examples">Examples</h2>
+<p>To see these examples in action, download the sample project: <a href="https://github.com/godotengine/godot-docs-project-starters/releases/download/latest-4.x/character_body_2d_starter.zip">character_body_2d_starter.zip</a></p>
+<h3 id="movement-and-walls">Movement and walls</h3>
+<p>If you've downloaded the sample project, this example is in "basic_movement.tscn".</p>
+<p>For this example, add a <code>CharacterBody2D</code> with two children: a <code>Sprite2D</code> and a <code>CollisionShape2D</code>. Use the Godot "icon.svg" as the Sprite2D's texture (drag it from the Filesystem dock to the <em>Texture</em> property of the <code>Sprite2D</code>). In the <code>CollisionShape2D</code>'s <em>Shape</em> property, select "New RectangleShape2D" and size the rectangle to fit over the sprite image.</p>
+<blockquote>
+<p><strong>Note:</strong> See <code>doc_2d_movement</code> for examples of implementing 2D movement schemes.</p>
+</blockquote>
+<p>Attach a script to the CharacterBody2D and add the following code:</p>
+<pre class="gdscript"><code>extends CharacterBody2D
+
+var speed = 300
+
+func get_input():
+    var input_dir = Input.get_vector(&quot;ui_left&quot;, &quot;ui_right&quot;, &quot;ui_up&quot;, &quot;ui_down&quot;)
+    velocity = input_dir * speed
+
+func _physics_process(delta):
+    get_input()
+    move_and_collide(velocity * delta)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyCharacterBody2D <span class="op">:</span> CharacterBody2D</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">int</span> _speed <span class="op">=</span> <span class="dv">300</span><span class="op">;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">GetInput</span><span class="op">()</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        Vector2 inputDir <span class="op">=</span> Input<span class="op">.</span><span class="fu">GetVector</span><span class="op">(</span><span class="st">&quot;ui_left&quot;</span><span class="op">,</span> <span class="st">&quot;ui_right&quot;</span><span class="op">,</span> <span class="st">&quot;ui_up&quot;</span><span class="op">,</span> <span class="st">&quot;ui_down&quot;</span><span class="op">);</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        Velocity <span class="op">=</span> inputDir <span class="op">*</span> _speed<span class="op">;</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_PhysicsProcess</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">GetInput</span><span class="op">();</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">MoveAndCollide</span><span class="op">(</span>Velocity <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta<span class="op">);</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Run this scene and you'll see that <code>move_and_collide()</code> works as expected, moving the body along the velocity vector. Now let's see what happens when you add some obstacles. Add a ref with a rectangular collision shape. For visibility, you can use a Sprite2D, a Polygon2D, or turn on "Visible Collision Shapes" from the "Debug" menu.</p>
+<p>Run the scene again and try moving into the obstacle. You'll see that the <code>CharacterBody2D</code> can't penetrate the obstacle. However, try moving into the obstacle at an angle and you'll find that the obstacle acts like glue - it feels like the body gets stuck.</p>
+<p>This happens because there is no <em>collision response</em>. <code>move_and_collide()</code> stops the body's movement when a collision occurs. We need to code whatever response we want from the collision.</p>
+<p>Try changing the function to <code>move_and_slide()</code> and running again.</p>
+<p><code>move_and_slide()</code> provides a default collision response of sliding the body along the collision object. This is useful for a great many game types, and may be all you need to get the behavior you want.</p>
+<h3 id="bouncingreflecting">Bouncing/reflecting</h3>
+<p>What if you don't want a sliding collision response? For this example ("bounce_and_collide.tscn" in the sample project), we have a character shooting bullets and we want the bullets to bounce off the walls.</p>
+<p>This example uses three scenes. The main scene contains the Player and Walls. The Bullet and Wall are separate scenes so that they can be instanced.</p>
+<p>The Player is controlled by the <code>w</code> and <code>s</code> keys for forward and back. Aiming uses the mouse pointer. Here is the code for the Player, using <code>move_and_slide()</code>:</p>
+<pre class="gdscript"><code>extends CharacterBody2D
+
+var Bullet = preload(&quot;res://bullet.tscn&quot;)
+var speed = 200
+
+func get_input():
+    # Add these actions in Project Settings -&gt; Input Map.
+    var input_dir = Input.get_axis(&quot;backward&quot;, &quot;forward&quot;)
+    velocity = transform.x * input_dir * speed
+    if Input.is_action_just_pressed(&quot;shoot&quot;):
+        shoot()
+
+func shoot():
+    # &quot;Muzzle&quot; is a Marker2D placed at the barrel of the gun.
+    var b = Bullet.instantiate()
+    b.start($Muzzle.global_position, rotation)
+    get_tree().root.add_child(b)
+
+func _physics_process(delta):
+    get_input()
+    var dir = get_global_mouse_position() - global_position
+    # Don&#39;t move if too close to the mouse pointer.
+    if dir.length() &gt; 5:
+        rotation = dir.angle()
+        move_and_slide()</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyCharacterBody2D <span class="op">:</span> CharacterBody2D</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> PackedScene _bullet <span class="op">=</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>PackedScene<span class="op">&gt;(</span><span class="st">&quot;res://Bullet.tscn&quot;</span><span class="op">);</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">int</span> _speed <span class="op">=</span> <span class="dv">200</span><span class="op">;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">GetInput</span><span class="op">()</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Add these actions in Project Settings -&gt; Input Map.</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">float</span> inputDir <span class="op">=</span> Input<span class="op">.</span><span class="fu">GetAxis</span><span class="op">(</span><span class="st">&quot;backward&quot;</span><span class="op">,</span> <span class="st">&quot;forward&quot;</span><span class="op">);</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        Velocity <span class="op">=</span> Transform<span class="op">.</span><span class="fu">X</span> <span class="op">*</span> inputDir <span class="op">*</span> _speed<span class="op">;</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;shoot&quot;</span><span class="op">))</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>            <span class="fu">Shoot</span><span class="op">();</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">Shoot</span><span class="op">()</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        <span class="co">// &quot;Muzzle&quot; is a Marker2D placed at the barrel of the gun.</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> b <span class="op">=</span> <span class="op">(</span>Bullet<span class="op">)</span>_bullet<span class="op">.</span><span class="fu">Instantiate</span><span class="op">();</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>        b<span class="op">.</span><span class="fu">Start</span><span class="op">(</span>GetNode<span class="op">&lt;</span>Node2D<span class="op">&gt;(</span><span class="st">&quot;Muzzle&quot;</span><span class="op">).</span><span class="fu">GlobalPosition</span><span class="op">,</span> Rotation<span class="op">);</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">GetTree</span><span class="op">().</span><span class="fu">Root</span><span class="op">.</span><span class="fu">AddChild</span><span class="op">(</span>b<span class="op">);</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_PhysicsProcess</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>        <span class="fu">GetInput</span><span class="op">();</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> dir <span class="op">=</span> <span class="fu">GetGlobalMousePosition</span><span class="op">()</span> <span class="op">-</span> GlobalPosition<span class="op">;</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Don&#39;t move if too close to the mouse pointer.</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>dir<span class="op">.</span><span class="fu">Length</span><span class="op">()</span> <span class="op">&gt;</span> <span class="dv">5</span><span class="op">)</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>            Rotation <span class="op">=</span> dir<span class="op">.</span><span class="fu">Angle</span><span class="op">();</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>            <span class="fu">MoveAndSlide</span><span class="op">();</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>And the code for the Bullet:</p>
+<pre class="gdscript"><code>extends CharacterBody2D
+
+var speed = 750
+
+func start(_position, _direction):
+    rotation = _direction
+    position = _position
+    velocity = Vector2(speed, 0).rotated(rotation)
+
+func _physics_process(delta):
+    var collision = move_and_collide(velocity * delta)
+    if collision:
+        velocity = velocity.bounce(collision.get_normal())
+        if collision.get_collider().has_method(&quot;hit&quot;):
+            collision.get_collider().hit()
+
+func _on_VisibilityNotifier2D_screen_exited():
+    # Deletes the bullet when it exits the screen.
+    queue_free()</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> Bullet <span class="op">:</span> CharacterBody2D</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> _speed <span class="op">=</span> <span class="dv">750</span><span class="op">;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">Start</span><span class="op">(</span>Vector2 position<span class="op">,</span> <span class="dt">float</span> direction<span class="op">)</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        Rotation <span class="op">=</span> direction<span class="op">;</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        Position <span class="op">=</span> position<span class="op">;</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        Velocity <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span>speed<span class="op">,</span> <span class="dv">0</span><span class="op">).</span><span class="fu">Rotated</span><span class="op">(</span>Rotation<span class="op">);</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_PhysicsProcess</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> collision <span class="op">=</span> <span class="fu">MoveAndCollide</span><span class="op">(</span>Velocity <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta<span class="op">);</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>collision <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>            Velocity <span class="op">=</span> Velocity<span class="op">.</span><span class="fu">Bounce</span><span class="op">(</span>collision<span class="op">.</span><span class="fu">GetNormal</span><span class="op">());</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>collision<span class="op">.</span><span class="fu">GetCollider</span><span class="op">().</span><span class="fu">HasMethod</span><span class="op">(</span><span class="st">&quot;Hit&quot;</span><span class="op">))</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>                collision<span class="op">.</span><span class="fu">GetCollider</span><span class="op">().</span><span class="fu">Call</span><span class="op">(</span><span class="st">&quot;Hit&quot;</span><span class="op">);</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnVisibilityNotifier2DScreenExited</span><span class="op">()</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Deletes the bullet when it exits the screen.</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>        <span class="fu">QueueFree</span><span class="op">();</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The action happens in <code>_physics_process()</code>. After using <code>move_and_collide()</code>, if a collision occurs, a <code>KinematicCollision2D</code> object is returned (otherwise, the return is <code>null</code>).</p>
+<p>If there is a returned collision, we use the <code>normal</code> of the collision to reflect the bullet's <code>velocity</code> with the <code>Vector2.bounce()</code> method.</p>
+<p>If the colliding object (<code>collider</code>) has a <code>hit</code> method, we also call it. In the example project, we've added a flashing color effect to the Wall to demonstrate this.</p>
+<h3 id="platformer-movement">Platformer movement</h3>
+<p>Let's try one more popular example: the 2D platformer. <code>move_and_slide()</code> is ideal for quickly getting a functional character controller up and running. If you've downloaded the sample project, you can find this in "platformer.tscn".</p>
+<p>For this example, we'll assume you have a level made of one or more <code>StaticBody2D</code> objects. They can be any shape and size. In the sample project, we're using ref to create the platform shapes.</p>
+<p>Here's the code for the player body:</p>
+<pre class="gdscript"><code>extends CharacterBody2D
+
+var speed = 300.0
+var jump_speed = -400.0
+
+func _physics_process(delta):
+    # Add the gravity.
+    velocity += get_gravity() * delta
+
+    # Handle Jump.
+    if Input.is_action_just_pressed(&quot;jump&quot;) and is_on_floor():
+        velocity.y = jump_speed
+
+    # Get the input direction.
+    var direction = Input.get_axis(&quot;ui_left&quot;, &quot;ui_right&quot;)
+    velocity.x = direction * speed
+
+    move_and_slide()</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyCharacterBody2D <span class="op">:</span> CharacterBody2D</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> _speed <span class="op">=</span> <span class="fl">100.0f</span><span class="op">;</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> _jumpSpeed <span class="op">=</span> <span class="op">-</span><span class="fl">400.0f</span><span class="op">;</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Get the gravity from the project settings so you can sync with rigid body nodes.</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_PhysicsProcess</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        Vector2 velocity <span class="op">=</span> Velocity<span class="op">;</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Add the gravity.</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>        velocity <span class="op">+=</span> <span class="fu">GetGravity</span><span class="op">()</span> <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta<span class="op">;</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Handle jump.</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionJustPressed</span><span class="op">(</span><span class="st">&quot;jump&quot;</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu">IsOnFloor</span><span class="op">())</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>            velocity<span class="op">.</span><span class="fu">Y</span> <span class="op">=</span> _jumpSpeed<span class="op">;</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Get the input direction.</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>        <span class="dt">float</span> direction <span class="op">=</span> Input<span class="op">.</span><span class="fu">GetAxis</span><span class="op">(</span><span class="st">&quot;ui_left&quot;</span><span class="op">,</span> <span class="st">&quot;ui_right&quot;</span><span class="op">);</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>        velocity<span class="op">.</span><span class="fu">X</span> <span class="op">=</span> direction <span class="op">*</span> _speed<span class="op">;</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>        Velocity <span class="op">=</span> velocity<span class="op">;</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>        <span class="fu">MoveAndSlide</span><span class="op">();</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In this code we're using <code>move_and_slide()</code> as described above - to move the body along its velocity vector, sliding along any collision surfaces such as the ground or a platform. We're also using <code>is_on_floor()</code> to check if a jump should be allowed. Without this, you'd be able to "jump" in midair; great if you're making Flappy Bird, but not for a platformer game.</p>
+<p>There is a lot more that goes into a complete platformer character: acceleration, double-jumps, coyote-time, and many more. The code above is just a starting point. You can use it as a base to expand into whatever movement behavior you need for your own projects.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

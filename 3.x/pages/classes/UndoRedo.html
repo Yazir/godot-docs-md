@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UndoRedo — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="undoredo">UndoRedo</h1>
+<p><em>Inherits: <a href="Object.html">Object</a></em></p>
+<p>Helper to manage undo/redo operations in the editor or custom tools.</p>
+<h2 id="description">Description</h2>
+<p>Helper to manage undo/redo operations in the editor or custom tools. It works by registering methods and property changes inside "actions".</p>
+<p>Common behavior is to create an action, then add do/undo calls to functions or property changes, then committing the action.</p>
+<p>Here's an example on how to add an action to the Godot editor's own <strong>UndoRedo</strong>, from a plugin:</p>
+<pre class="gdscript"><code>var undo_redo = get_undo_redo() # Method of EditorPlugin.
+
+func do_something():
+    pass # Put your code here.
+
+func undo_something():
+    pass # Put here the code that reverts what&#39;s done by &quot;do_something()&quot;.
+
+func _on_MyButton_pressed():
+    var node = get_node(&quot;MyNode2D&quot;)
+    undo_redo.create_action(&quot;Move the node&quot;)
+    undo_redo.add_do_method(self, &quot;do_something&quot;)
+    undo_redo.add_undo_method(self, &quot;undo_something&quot;)
+    undo_redo.add_do_property(node, &quot;position&quot;, Vector2(100,100))
+    undo_redo.add_undo_property(node, &quot;position&quot;, node.position)
+    undo_redo.commit_action()</code></pre>
+<p><code>create_action</code>, <code>add_do_method</code>, <code>add_undo_method</code>, <code>add_do_property</code>, <code>add_undo_property</code>, and <code>commit_action</code> should be called one after the other, like in the example. Not doing so could lead to crashes.</p>
+<p>If you don't need to register a method, you can leave <code>add_do_method</code> and <code>add_undo_method</code> out; the same goes for properties. You can also register more than one method/property.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-add_do_methodobject-object-method-string-"><code>void add_do_method(object: Object, method: String, ...)</code></h3>
+<p>Register a method that will be called when the action is committed.</p>
+<h3 id="void-add_do_propertyobject-object-property-string-value-variant"><code>void add_do_property(object: Object, property: String, value: Variant)</code></h3>
+<p>Register a property value change for "do".</p>
+<h3 id="void-add_do_referenceobject-object"><code>void add_do_reference(object: Object)</code></h3>
+<p>Register a reference for "do" that will be erased if the "do" history is lost. This is useful mostly for new nodes created for the "do" call. Do not use for resources.</p>
+<h3 id="void-add_undo_methodobject-object-method-string-"><code>void add_undo_method(object: Object, method: String, ...)</code></h3>
+<p>Register a method that will be called when the action is undone.</p>
+<h3 id="void-add_undo_propertyobject-object-property-string-value-variant"><code>void add_undo_property(object: Object, property: String, value: Variant)</code></h3>
+<p>Register a property value change for "undo".</p>
+<h3 id="void-add_undo_referenceobject-object"><code>void add_undo_reference(object: Object)</code></h3>
+<p>Register a reference for "undo" that will be erased if the "undo" history is lost. This is useful mostly for nodes removed with the "do" call (not the "undo" call!).</p>
+<h3 id="void-clear_historyincrease_versiontrue-bool"><code>void clear_history(increase_version=true: bool)</code></h3>
+<p>Clear the undo/redo history and associated references.</p>
+<p>Passing <code>false</code> to <code>increase_version</code> will prevent the version number to be increased from this.</p>
+<h3 id="void-commit_action"><code>void commit_action()</code></h3>
+<p>Commit the action. All "do" methods/properties are called/set when this function is called.</p>
+<h3 id="void-create_actionname-string-merge_mode0-mergemode"><code>void create_action(name: String, merge_mode=0: </code>MergeMode<code>)</code></h3>
+<p>Create a new action. After this is called, do all your calls to <code>add_do_method</code>, <code>add_undo_method</code>, <code>add_do_property</code>, and <code>add_undo_property</code>, then commit the action with <code>commit_action</code>.</p>
+<p>The way actions are merged is dictated by the <code>merge_mode</code> argument. See <code>MergeMode</code> for details.</p>
+<h3 id="string-get_current_action_name-const"><code>String get_current_action_name() const</code></h3>
+<p>Gets the name of the current action.</p>
+<h3 id="int-get_version-const"><code>int get_version() const</code></h3>
+<p>Gets the version. Every time a new action is committed, the <strong>UndoRedo</strong>'s version number is increased automatically.</p>
+<p>This is useful mostly to check if something changed from a saved version.</p>
+<h3 id="bool-has_redo-const"><code>bool has_redo() const</code></h3>
+<p>Returns <code>true</code> if a "redo" action is available.</p>
+<h3 id="bool-has_undo-const"><code>bool has_undo() const</code></h3>
+<p>Returns <code>true</code> if an "undo" action is available.</p>
+<h3 id="bool-is_commiting_action-const"><code>bool is_commiting_action() const</code></h3>
+<p>Returns <code>true</code> if the <strong>UndoRedo</strong> is currently committing the action, i.e. running its "do" method or property change (see <code>commit_action</code>).</p>
+<h3 id="bool-redo"><code>bool redo()</code></h3>
+<p>Redo the last action.</p>
+<h3 id="bool-undo"><code>bool undo()</code></h3>
+<p>Undo the last action.</p>
+<h2 id="signals">Signals</h2>
+<h3 id="version_changed"><code>version_changed()</code></h3>
+<p>Called when <code>undo</code> or <code>redo</code> was called.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-mergemode"><code>enum MergeMode</code></h3>
+<ul>
+<li><p><code>MERGE_DISABLE = 0</code></p>
+<p>Makes "do"/"undo" operations stay in separate actions.</p></li>
+<li><p><code>MERGE_ENDS = 1</code></p>
+<p>Makes so that the action's "do" operation is from the first action created and the "undo" operation is from the last subsequent action with the same name.</p></li>
+<li><p><code>MERGE_ALL = 2</code></p>
+<p>Makes subsequent actions with the same name be merged into one.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

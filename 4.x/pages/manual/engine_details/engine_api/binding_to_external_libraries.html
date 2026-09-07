@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binding to external libraries — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="binding-to-external-libraries">Binding to external libraries</h1>
+<h2 id="modules">Modules</h2>
+<p>The Summator example in <code>doc_custom_modules_in_cpp</code> is great for small, custom modules, but what if you want to use a larger, external library? Let's look at an example using <a href="https://www.cstr.ed.ac.uk/projects/festival/">Festival</a>, a speech synthesis (text-to-speech) library written in C++.</p>
+<p>To bind to an external library, set up a module directory similar to the Summator example:</p>
+<pre class="none"><code>godot/modules/tts/</code></pre>
+<p>Next, you will create a header file with a TTS class:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma once</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;core/object/ref_counted.h&quot;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> TTS <span class="op">:</span> <span class="kw">public</span> RefCounted <span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    GDCLASS<span class="op">(</span>TTS<span class="op">,</span> RefCounted<span class="op">);</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span><span class="op">:</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> _bind_methods<span class="op">();</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">bool</span> say_text<span class="op">(</span>String p_txt<span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    TTS<span class="op">();</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>And then you'll add the cpp file.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;tts.h&quot;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;festival.h&gt;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> TTS<span class="op">::</span>say_text<span class="op">(</span>String p_txt<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">//convert Godot String to Godot CharString to C string</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> festival_say_text<span class="op">(</span>p_txt<span class="op">.</span>ascii<span class="op">().</span>get_data<span class="op">());</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> TTS<span class="op">::</span>_bind_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;say_text&quot;</span><span class="op">,</span> <span class="st">&quot;txt&quot;</span><span class="op">),</span> <span class="op">&amp;</span>TTS<span class="op">::</span>say_text<span class="op">);</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>TTS<span class="op">::</span>TTS<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    festival_initialize<span class="op">(</span><span class="kw">true</span><span class="op">,</span> <span class="dv">210000</span><span class="op">);</span> <span class="co">//not the best way to do it as this should only ever be called once.</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Just as before, the new class needs to be registered somehow, so two more files need to be created:</p>
+<pre class="none"><code>register_types.h
+register_types.cpp</code></pre>
+<blockquote>
+<p><strong>Important:</strong> These files must be in the top-level folder of your module (next to your <code>SCsub</code> and <code>config.py</code> files) for the module to be registered properly.</p>
+</blockquote>
+<p>These files should contain the following:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> initialize_tts_module<span class="op">(</span>ModuleInitializationLevel p_level<span class="op">);</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> uninitialize_tts_module<span class="op">(</span>ModuleInitializationLevel p_level<span class="op">);</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">/* yes, the word in the middle must be the same as the module folder name */</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;register_types.h&quot;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;core/object/class_db.h&quot;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;tts.h&quot;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> initialize_tts_module<span class="op">(</span>ModuleInitializationLevel p_level<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>p_level <span class="op">!=</span> MODULE_INITIALIZATION_LEVEL_SCENE<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>register_class<span class="op">&lt;</span>TTS<span class="op">&gt;();</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> uninitialize_tts_module<span class="op">(</span>ModuleInitializationLevel p_level<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Nothing to do here in this example.</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Next, you need to create an <code>SCsub</code> file so the build system compiles this module:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>Import(<span class="st">&#39;env&#39;</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>env_tts <span class="op">=</span> env.Clone()</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>env_tts.add_source_files(env.modules_sources, <span class="st">&quot;*.cpp&quot;</span>) <span class="co"># Add all cpp files to the build</span></span></code></pre></div>
+<p>You'll need to install the external library on your machine to get the .a library files. See the library's official documentation for specific instructions on how to do this for your operating system. We've included the installation commands for Linux below, for reference.</p>
+<pre class="shell"><code>sudo apt-get install festival festival-dev  # Installs festival and speech_tools libraries
+apt-cache search festvox-*  # Displays list of voice packages
+sudo apt-get install festvox-don festvox-rablpc16k festvox-kallpc16k festvox-kdlpc16k  # Installs voices</code></pre>
+<blockquote>
+<p><strong>Important:</strong> The voices that Festival uses (and any other potential external/3rd-party resource) all have varying licenses and terms of use; some (if not most) of them may be be problematic with Godot, even if the Festival Library itself is MIT License compatible. Please be sure to check the licenses and terms of use.</p>
+</blockquote>
+<p>The external library will also need to be installed inside your module to make the source files accessible to the compiler, while also keeping the module code self-contained. The festival and speech_tools libraries can be installed from the modules/tts/ directory via git using the following commands:</p>
+<pre class="shell"><code>git clone https://github.com/festvox/festival
+git clone https://github.com/festvox/speech_tools</code></pre>
+<p>If you don't want the external repository source files committed to your repository, you can link to them instead by adding them as submodules (from within the modules/tts/ directory), as seen below:</p>
+<pre class="shell"><code>git submodule add https://github.com/festvox/festival
+git submodule add https://github.com/festvox/speech_tools</code></pre>
+<blockquote>
+<p><strong>Important:</strong> Please note that Git submodules are not used in the Godot repository. If you are developing a module to be merged into the main Godot repository, you should not use submodules. If your module doesn't get merged in, you can always try to implement the external library as a GDExtension.</p>
+</blockquote>
+<p>To add include directories for the compiler to look at you can append it to the environment's paths:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># These paths are relative to /modules/tts/</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>env_tts.Append(CPPPATH<span class="op">=</span>[<span class="st">&quot;speech_tools/include&quot;</span>, <span class="st">&quot;festival/src/include&quot;</span>])</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># LIBPATH and LIBS need to be set on the real &quot;env&quot; (not the clone)</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co"># to link the specified libraries to the Godot executable.</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co"># This is an absolute path where your .a libraries reside.</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="co"># If using a relative path, you must convert it to a</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co"># full path using a utility function, such as `Dir(&#39;...&#39;).abspath`.</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>env.Append(LIBPATH<span class="op">=</span>[Dir(<span class="st">&#39;libpath&#39;</span>).abspath])</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Check with the documentation of the external library to see which library</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="co"># files should be included/linked.</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>env.Append(LIBS<span class="op">=</span>[<span class="st">&#39;Festival&#39;</span>, <span class="st">&#39;estools&#39;</span>, <span class="st">&#39;estbase&#39;</span>, <span class="st">&#39;eststring&#39;</span>])</span></code></pre></div>
+<p>If you want to add custom compiler flags when building your module, you need to clone env first, so it won't add those flags to whole Godot build (which can cause errors). Example SCsub with custom flags:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>Import(<span class="st">&#39;env&#39;</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>env_tts <span class="op">=</span> env.Clone()</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>env_tts.add_source_files(env.modules_sources, <span class="st">&quot;*.cpp&quot;</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Append CCFLAGS flags for both C and C++ code.</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>env_tts.Append(CCFLAGS<span class="op">=</span>[<span class="st">&#39;-O2&#39;</span>])</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co"># If you need to, you can:</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co"># - Append CFLAGS for C code only.</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co"># - Append CXXFLAGS for C++ code only.</span></span></code></pre></div>
+<p>The final module should look like this:</p>
+<pre class="none"><code>godot/modules/tts/festival/
+godot/modules/tts/libpath/libestbase.a
+godot/modules/tts/libpath/libestools.a
+godot/modules/tts/libpath/libeststring.a
+godot/modules/tts/libpath/libFestival.a
+godot/modules/tts/speech_tools/
+godot/modules/tts/config.py
+godot/modules/tts/tts.h
+godot/modules/tts/tts.cpp
+godot/modules/tts/register_types.h
+godot/modules/tts/register_types.cpp
+godot/modules/tts/SCsub</code></pre>
+<h2 id="using-the-module">Using the module</h2>
+<p>You can now use your newly created module from any script:</p>
+<pre><code>var t = TTS.new()
+var script = &quot;Hello world. This is a test!&quot;
+var is_spoken = t.say_text(script)
+print(&#39;is_spoken: &#39;, is_spoken)</code></pre>
+<p>And the output will be <code>is_spoken: True</code> if the text is spoken.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

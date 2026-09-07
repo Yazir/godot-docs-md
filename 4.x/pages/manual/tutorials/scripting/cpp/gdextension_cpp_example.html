@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting started — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="getting-started">Getting started</h1>
+<h2 id="workflow-overview">Workflow overview</h2>
+<p>As a GDExtension, godot-cpp is more complicated to use than ref and ref. If you decide to work with it, here's what to expect your workflow to look like:</p>
+<ul>
+<li>Create a new godot-cpp project (from the <a href="https://github.com/godotengine/godot-cpp-template">template</a>, or from scratch, as explained below).</li>
+<li>Develop your code with your ref locally.</li>
+<li>Build and test your code with the earliest compatible Godot version.</li>
+<li>Create builds for all platforms you want to support (e.g. using <a href="https://github.com/godotengine/godot-cpp-template/blob/main/.github/workflows/make_build.yml">GitHub Actions</a>).</li>
+<li>Optional: Publish on the <a href="https://store.godotengine.org/">Godot Asset Store</a>.</li>
+</ul>
+<h2 id="example-project">Example project</h2>
+<p>For your first godot-cpp project, we recommend starting with this guide to understand the technology involved with godot-cpp. After you're done, you can use the <a href="https://github.com/godotengine/godot-cpp-template">godot-cpp template</a>, which has better coverage of features, such as a GitHub action pipeline and useful <code>SConstruct</code> boilerplate code. However, the template does not explain itself to a high level of detail, which is why we recommend going through this guide first.</p>
+<h2 id="setting-up-the-project">Setting up the project</h2>
+<p>There are a few prerequisites you'll need:</p>
+<ul>
+<li>A Godot 4 executable.</li>
+<li>A C++ compiler.</li>
+<li>SCons as a build tool.</li>
+<li>A copy of the <a href="https://github.com/godotengine/godot-cpp">godot-cpp repository</a>.</li>
+</ul>
+<p>See also ref and ref as the build tools are identical to the ones you need to compile Godot from source.</p>
+<p>You can download the <a href="https://github.com/godotengine/godot-cpp">godot-cpp repository</a> from GitHub or let Git do the work for you. Note that this repository has different branches for different versions of Godot. GDExtensions will not work in older versions of Godot (only Godot 4 and up) and vice versa, so make sure you download the correct branch.</p>
+<blockquote>
+<p><strong>Note:</strong> To use <a href="https://godotengine.org/article/introducing-gd-extensions">GDExtension</a> you need to use the godot-cpp branch that matches the version of Godot that you are targeting. For example, if you're targeting Godot 4.1, use the <code>4.1</code> branch. Throughout this tutorial we use <code>4.x</code>, which will need to be replaced with the version of Godot you are targeting.</p>
+<p>The <code>master</code> branch is the development branch which is updated regularly to work with Godot's <code>master</code> branch.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> GDExtensions targeting an earlier version of Godot should work in later minor versions, but not vice-versa. For example, a GDExtension targeting Godot 4.2 should work just fine in Godot 4.3, but one targeting Godot 4.3 won't work in Godot 4.2.</p>
+<p>There is one exception to this: extensions targeting Godot 4.0 will <strong>not</strong> work with Godot 4.1 and later (see <code>updating_your_gdextension_for_godot_4_1</code>).</p>
+</blockquote>
+<p>If you are versioning your project using Git, it is recommended to add it as a Git submodule:</p>
+<pre class="none"><code>mkdir gdextension_cpp_example
+cd gdextension_cpp_example
+git init
+git submodule add -b 4.x https://github.com/godotengine/godot-cpp
+cd godot-cpp
+git submodule update --init</code></pre>
+<p>Alternatively, you can also clone it to the project folder:</p>
+<pre class="none"><code>mkdir gdextension_cpp_example
+cd gdextension_cpp_example
+git clone -b 4.x https://github.com/godotengine/godot-cpp</code></pre>
+<blockquote>
+<p><strong>Note:</strong> If you decide to download the repository or clone it into your folder, make sure to keep the folder layout the same as we've setup here. Much of the code we'll be showcasing here assumes the project has this layout.</p>
+</blockquote>
+<p>If you cloned the example from the link specified in the introduction, the submodules are not automatically initialized. You will need to execute the following commands:</p>
+<pre class="none"><code>cd gdextension_cpp_example
+git submodule update --init</code></pre>
+<p>This will initialize the repository in your project folder.</p>
+<h2 id="creating-a-simple-plugin">Creating a simple plugin</h2>
+<p>Now it's time to build an actual plugin. We'll start by creating an empty Godot project in which we'll place a few files.</p>
+<p>Open Godot and create a new project. For this example, we will place it in a folder called <code>project</code> inside our GDExtension's folder structure.</p>
+<p>In our project, we'll create a scene containing a Node called "Main" and we'll save it as <code>main.tscn</code>. We'll come back to that later.</p>
+<p>Back in the top-level GDExtension module folder, we're also going to create a subfolder called <code>src</code> in which we'll place our source files.</p>
+<p>You should now have <code>project</code>, <code>godot-cpp</code>, and <code>src</code> directories in your GDExtension module.</p>
+<p>Your folder structure should now look like this:</p>
+<pre class="none"><code>gdextension_cpp_example/
+|
++--project/                  # game example/demo to test the extension
+|
++--godot-cpp/             # C++ bindings
+|
++--src/                   # source code of the extension we are building</code></pre>
+<p>In the <code>src</code> folder, we'll start with creating our header file for the GDExtension node we'll be creating. We will name it <code>gdexample.h</code>:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma once</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/classes/sprite2d.hpp&gt;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> godot <span class="op">{</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> GDExample <span class="op">:</span> <span class="kw">public</span> Sprite2D <span class="op">{</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    GDCLASS<span class="op">(</span>GDExample<span class="op">,</span> Sprite2D<span class="op">)</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span><span class="op">:</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> time_passed<span class="op">;</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span><span class="op">:</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> _bind_methods<span class="op">();</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    GDExample<span class="op">();</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">~</span>GDExample<span class="op">();</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _process<span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span> <span class="kw">override</span><span class="op">;</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="co">// namespace godot</span></span></code></pre></div>
+<p>There are a few things of note to the above. We include <code>sprite2d.hpp</code> which contains bindings to the Sprite2D class. We'll be extending this class in our module.</p>
+<p>We're using the namespace <code>godot</code>, since everything in GDExtension is defined within this namespace.</p>
+<p>Then we have our class definition, which inherits from our Sprite2D through a container class. We'll see a few side effects of this later on. The <code>GDCLASS</code> macro sets up a few internal things for us.</p>
+<p>After that, we declare a single member variable called <code>time_passed</code>.</p>
+<p>In the next block we're defining our methods, we have our constructor and destructor defined, but there are two other functions that will likely look familiar to some, and one new method.</p>
+<p>The first is <code>_bind_methods</code>, which is a static function that Godot will call to find out which methods can be called and which properties it exposes. The second is our <code>_process</code> function, which will work exactly the same as the <code>_process</code> function you're used to in GDScript.</p>
+<p>Let's implement our functions by creating our <code>gdexample.cpp</code> file:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;gdexample.h&quot;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/core/class_db.hpp&gt;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> godot<span class="op">;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> GDExample<span class="op">::</span>_bind_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>GDExample<span class="op">::</span>GDExample<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Initialize any variables here.</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    time_passed <span class="op">=</span> <span class="fl">0.0</span><span class="op">;</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>GDExample<span class="op">::~</span>GDExample<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add your cleanup here.</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> GDExample<span class="op">::</span>_process<span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    time_passed <span class="op">+=</span> delta<span class="op">;</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    Vector2 new_position <span class="op">=</span> Vector2<span class="op">(</span><span class="fl">10.0</span> <span class="op">+</span> <span class="op">(</span><span class="fl">10.0</span> <span class="op">*</span> sin<span class="op">(</span>time_passed <span class="op">*</span> <span class="fl">2.0</span><span class="op">)),</span> <span class="fl">10.0</span> <span class="op">+</span> <span class="op">(</span><span class="fl">10.0</span> <span class="op">*</span> cos<span class="op">(</span>time_passed <span class="op">*</span> <span class="fl">1.5</span><span class="op">)));</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    set_position<span class="op">(</span>new_position<span class="op">);</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This one should be straightforward. We're implementing each method of our class that we defined in our header file.</p>
+<p>Note our <code>_process</code> function, which keeps track of how much time has passed and calculates a new position for our sprite using a sine and cosine function.</p>
+<p>There is one more C++ file we need; we'll name it <code>register_types.cpp</code>. Our GDExtension plugin can contain multiple classes, each with their own header and source file like we've implemented <code>GDExample</code> up above. What we need now is a small bit of code that tells Godot about all the classes in our GDExtension plugin.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;register_types.h&quot;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;gdexample.h&quot;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;gdextension_interface.h&gt;</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/core/defs.hpp&gt;</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/godot.hpp&gt;</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> godot<span class="op">;</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> initialize_example_module<span class="op">(</span>ModuleInitializationLevel p_level<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>p_level <span class="op">!=</span> MODULE_INITIALIZATION_LEVEL_SCENE<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    GDREGISTER_CLASS<span class="op">(</span>GDExample<span class="op">);</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> uninitialize_example_module<span class="op">(</span>ModuleInitializationLevel p_level<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>p_level <span class="op">!=</span> MODULE_INITIALIZATION_LEVEL_SCENE<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a><span class="at">extern</span> <span class="st">&quot;C&quot;</span> <span class="op">{</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="co">// Initialization.</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>GDExtensionBool GDE_EXPORT example_library_init<span class="op">(</span>GDExtensionInterfaceGetProcAddress p_get_proc_address<span class="op">,</span> <span class="at">const</span> GDExtensionClassLibraryPtr p_library<span class="op">,</span> GDExtensionInitialization <span class="op">*</span>r_initialization<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>GDExtensionBinding<span class="op">::</span>InitObject init_obj<span class="op">(</span>p_get_proc_address<span class="op">,</span> p_library<span class="op">,</span> r_initialization<span class="op">);</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>    init_obj<span class="op">.</span>register_initializer<span class="op">(</span>initialize_example_module<span class="op">);</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>    init_obj<span class="op">.</span>register_terminator<span class="op">(</span>uninitialize_example_module<span class="op">);</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>    init_obj<span class="op">.</span>set_minimum_library_initialization_level<span class="op">(</span>MODULE_INITIALIZATION_LEVEL_SCENE<span class="op">);</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> init_obj<span class="op">.</span>init<span class="op">();</span></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The <code>initialize_example_module</code> and <code>uninitialize_example_module</code> functions get called respectively when Godot loads our plugin and when it unloads it. All we're doing here is parse through the functions in our bindings module to initialize them, but you might have to set up more things depending on your needs. We call the <code>GDREGISTER_CLASS</code> macro for each of our classes in our library.</p>
+<blockquote>
+<p><strong>Note:</strong> You can find information about <code>GDREGISTER_CLASS</code> (and alternatives) at <code>doc_object_class</code>.</p>
+</blockquote>
+<p>The important function is the third function called <code>example_library_init</code>. We first call a function in our bindings library that creates an initialization object. This object registers the initialization and termination functions of the GDExtension. Furthermore, it sets the level of initialization (core, servers, scene, editor, level).</p>
+<p>At last, we need the header file for the <code>register_types.cpp</code> named <code>register_types.h</code>.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma once</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;godot_cpp/core/class_db.hpp&gt;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> godot<span class="op">;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> initialize_example_module<span class="op">(</span>ModuleInitializationLevel p_level<span class="op">);</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> uninitialize_example_module<span class="op">(</span>ModuleInitializationLevel p_level<span class="op">);</span></span></code></pre></div>
+<h2 id="compiling-the-plugin">Compiling the plugin</h2>
+<p>To compile the project we need to define how SCons using should compile it using an <code>SConstruct</code> file which references the one in <code>godot-cpp</code>. Writing it from scratch is outside the scope of this tutorial, but you can download download. We'll cover a more customizable, detailed example on how to use these build files in a subsequent tutorial.</p>
+<blockquote>
+<p><strong>Note:</strong> This <code>SConstruct</code> file was written to be used with the latest <code>godot-cpp</code> master, you may need to make small changes using it with older versions or refer to the <code>SConstruct</code> file in the Godot 4.x documentation.</p>
+</blockquote>
+<p>Once you've downloaded the <code>SConstruct</code> file, place it in your GDExtension folder structure alongside <code>godot-cpp</code>, <code>src</code>, and <code>project</code>, then run:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">scons</span> platform=<span class="op">&lt;</span>platform<span class="op">&gt;</span></span></code></pre></div>
+<p>You can omit the <code>platform</code> option if you are compiling for the platform you are currently using. The list of available <code>platform</code> options depends on which platform dependencies are set up (use <code>platform=list</code> to see all available platforms). See <code>doc_introduction_to_the_buildsystem</code> for details.</p>
+<p>You should now be able to find the compiled library in <code>project/bin/</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> Here, we've compiled both godot-cpp and our gdexample library as debug builds, which is the default. For optimized builds, you should compile them using the <code>target=template_release</code> option.</p>
+</blockquote>
+<h2 id="using-the-gdextension-module">Using the GDExtension module</h2>
+<p>Before we jump back into Godot, we need to create one more file in <code>project/bin/</code>.</p>
+<p>This file lets Godot know what dynamic libraries should be loaded for each platform and the entry function for the module. It is called <code>gdexample.gdextension</code>.</p>
+<pre class="none"><code>[configuration]
+
+entry_symbol = &quot;example_library_init&quot;
+compatibility_minimum = &quot;4.1&quot;
+reloadable = true
+
+[libraries]
+
+macos.debug = &quot;./libgdexample.macos.template_debug.dylib&quot;
+macos.release = &quot;./libgdexample.macos.template_release.dylib&quot;
+windows.debug.x86_32 = &quot;./gdexample.windows.template_debug.x86_32.dll&quot;
+windows.release.x86_32 = &quot;./gdexample.windows.template_release.x86_32.dll&quot;
+windows.debug.x86_64 = &quot;./gdexample.windows.template_debug.x86_64.dll&quot;
+windows.release.x86_64 = &quot;./gdexample.windows.template_release.x86_64.dll&quot;
+linux.debug.x86_64 = &quot;./libgdexample.linux.template_debug.x86_64.so&quot;
+linux.release.x86_64 = &quot;./libgdexample.linux.template_release.x86_64.so&quot;
+linux.debug.arm64 = &quot;./libgdexample.linux.template_debug.arm64.so&quot;
+linux.release.arm64 = &quot;./libgdexample.linux.template_release.arm64.so&quot;
+linux.debug.rv64 = &quot;./libgdexample.linux.template_debug.rv64.so&quot;
+linux.release.rv64 = &quot;./libgdexample.linux.template_release.rv64.so&quot;</code></pre>
+<p>This file contains a <code>configuration</code> section that controls the entry function of the module. You should also set the minimum compatible Godot version with <code>compatibility_minimum</code>, which prevents older version of Godot from trying to load your extension. The <code>reloadable</code> flag enables automatic reloading of your extension by the editor every time you recompile it, without needing to restart the editor. This only works if you compile your extension in debug mode (default).</p>
+<p>The <code>libraries</code> section is the important bit: it tells Godot the location of the dynamic library in the project's filesystem for each supported platform. It will also result in <em>just</em> that file being exported when you export the project, which means the data pack won't contain libraries that are incompatible with the target platform.</p>
+<p>You can learn more about <code>.gdextension</code> files at <code>doc_gdextension_file</code>.</p>
+<p>Here is another overview to check the correct file structure:</p>
+<pre class="none"><code>gdextension_cpp_example/
+|
++--project/                  # game example/demo to test the extension
+|   |
+|   +--main.tscn
+|   |
+|   +--bin/
+|       |
+|       +--gdexample.gdextension
+|
++--godot-cpp/             # C++ bindings
+|
++--src/                   # source code of the extension we are building
+|   |
+|   +--register_types.cpp
+|   +--register_types.h
+|   +--gdexample.cpp
+|   +--gdexample.h</code></pre>
+<p>Time to jump back into Godot. We load up the main scene we created way back in the beginning and now add a newly available GDExample node to the scene:</p>
+<p>We're going to assign the Godot logo to this node as our texture, disable the <code>centered</code> property:</p>
+<p>We're finally ready to run the project:</p>
+<p><em>Video: Screen recording of a game window, with Godot logo moving in the top-left corner</em></p>
+<h2 id="adding-properties">Adding properties</h2>
+<p>GDScript allows you to add properties to your script using the <code>export</code> keyword. In GDExtension you have to register the properties with a getter and setter function or directly implement the <code>_get_property_list</code>, <code>_get</code> and <code>_set</code> methods of an object (but that goes far beyond the scope of this tutorial).</p>
+<p>Lets add a property that allows us to control the amplitude of our wave.</p>
+<p>In our <code>gdexample.h</code> file we need to add a member variable and getter and setter functions:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span><span class="op">:</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> time_passed<span class="op">;</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> amplitude<span class="op">;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> set_amplitude<span class="op">(</span><span class="at">const</span> <span class="dt">double</span> p_amplitude<span class="op">);</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> get_amplitude<span class="op">()</span> <span class="at">const</span><span class="op">;</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<p>In our <code>gdexample.cpp</code> file we need to make a number of changes, we will only show the methods we end up changing, don't remove the lines we're omitting:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> GDExample<span class="op">::</span>_bind_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;get_amplitude&quot;</span><span class="op">),</span> <span class="op">&amp;</span>GDExample<span class="op">::</span>get_amplitude<span class="op">);</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;set_amplitude&quot;</span><span class="op">,</span> <span class="st">&quot;p_amplitude&quot;</span><span class="op">),</span> <span class="op">&amp;</span>GDExample<span class="op">::</span>set_amplitude<span class="op">);</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    ADD_PROPERTY<span class="op">(</span>PropertyInfo<span class="op">(</span>Variant<span class="op">::</span>FLOAT<span class="op">,</span> <span class="st">&quot;amplitude&quot;</span><span class="op">),</span> <span class="st">&quot;set_amplitude&quot;</span><span class="op">,</span> <span class="st">&quot;get_amplitude&quot;</span><span class="op">);</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>GDExample<span class="op">::</span>GDExample<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Initialize any variables here.</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    time_passed <span class="op">=</span> <span class="fl">0.0</span><span class="op">;</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    amplitude <span class="op">=</span> <span class="fl">10.0</span><span class="op">;</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> GDExample<span class="op">::</span>_process<span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    time_passed <span class="op">+=</span> delta<span class="op">;</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    Vector2 new_position <span class="op">=</span> Vector2<span class="op">(</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>        amplitude <span class="op">+</span> <span class="op">(</span>amplitude <span class="op">*</span> sin<span class="op">(</span>time_passed <span class="op">*</span> <span class="fl">2.0</span><span class="op">)),</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>        amplitude <span class="op">+</span> <span class="op">(</span>amplitude <span class="op">*</span> cos<span class="op">(</span>time_passed <span class="op">*</span> <span class="fl">1.5</span><span class="op">))</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>    set_position<span class="op">(</span>new_position<span class="op">);</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> GDExample<span class="op">::</span>set_amplitude<span class="op">(</span><span class="at">const</span> <span class="dt">double</span> p_amplitude<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>    amplitude <span class="op">=</span> p_amplitude<span class="op">;</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> GDExample<span class="op">::</span>get_amplitude<span class="op">()</span> <span class="at">const</span> <span class="op">{</span></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> amplitude<span class="op">;</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Once you compile the module with these changes in place, you will see that a property has been added to our interface. You can now change this property and when you run your project, you will see that our Godot icon travels along a larger figure.</p>
+<p>Let's do the same but for the speed of our animation and use a setter and getter function. Our <code>gdexample.h</code> header file again only needs a few more lines of code:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> amplitude<span class="op">;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> speed<span class="op">;</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _process<span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span> <span class="kw">override</span><span class="op">;</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> set_speed<span class="op">(</span><span class="at">const</span> <span class="dt">double</span> p_speed<span class="op">);</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> get_speed<span class="op">()</span> <span class="at">const</span><span class="op">;</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<p>This requires a few more changes to our <code>gdexample.cpp</code> file, again we're only showing the methods that have changed so don't remove anything we're omitting:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> GDExample<span class="op">::</span>_bind_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;get_speed&quot;</span><span class="op">),</span> <span class="op">&amp;</span>GDExample<span class="op">::</span>get_speed<span class="op">);</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;set_speed&quot;</span><span class="op">,</span> <span class="st">&quot;p_speed&quot;</span><span class="op">),</span> <span class="op">&amp;</span>GDExample<span class="op">::</span>set_speed<span class="op">);</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    ADD_PROPERTY<span class="op">(</span>PropertyInfo<span class="op">(</span>Variant<span class="op">::</span>FLOAT<span class="op">,</span> <span class="st">&quot;speed&quot;</span><span class="op">,</span> PROPERTY_HINT_RANGE<span class="op">,</span> <span class="st">&quot;0,20,0.01&quot;</span><span class="op">),</span> <span class="st">&quot;set_speed&quot;</span><span class="op">,</span> <span class="st">&quot;get_speed&quot;</span><span class="op">);</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>GDExample<span class="op">::</span>GDExample<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    time_passed <span class="op">=</span> <span class="fl">0.0</span><span class="op">;</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    amplitude <span class="op">=</span> <span class="fl">10.0</span><span class="op">;</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    speed <span class="op">=</span> <span class="fl">1.0</span><span class="op">;</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> GDExample<span class="op">::</span>_process<span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    time_passed <span class="op">+=</span> speed <span class="op">*</span> delta<span class="op">;</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>    Vector2 new_position <span class="op">=</span> Vector2<span class="op">(</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>        amplitude <span class="op">+</span> <span class="op">(</span>amplitude <span class="op">*</span> sin<span class="op">(</span>time_passed <span class="op">*</span> <span class="fl">2.0</span><span class="op">)),</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>        amplitude <span class="op">+</span> <span class="op">(</span>amplitude <span class="op">*</span> cos<span class="op">(</span>time_passed <span class="op">*</span> <span class="fl">1.5</span><span class="op">))</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    set_position<span class="op">(</span>new_position<span class="op">);</span></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> GDExample<span class="op">::</span>set_speed<span class="op">(</span><span class="at">const</span> <span class="dt">double</span> p_speed<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>    speed <span class="op">=</span> p_speed<span class="op">;</span></span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> GDExample<span class="op">::</span>get_speed<span class="op">()</span> <span class="at">const</span> <span class="op">{</span></span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> speed<span class="op">;</span></span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Now when the project is compiled, we'll see another property called speed. Changing its value will make the animation go faster or slower. Furthermore, we added a property range which describes in which range the value can be. The first two arguments are the minimum and maximum value and the third is the step size.</p>
+<blockquote>
+<p><strong>Note:</strong> For simplicity, we've only used the hint_range of the property method. There are a lot more options to choose from. These can be used to further configure how properties are displayed and set on the Godot side. You can find more information on property hints here ref.</p>
+</blockquote>
+<h2 id="signals">Signals</h2>
+<p>Last but not least, signals fully work in GDExtension as well. Having your extension react to a signal given out by another object requires you to call <code>connect</code> on that object. We can't think of a good example for our wobbling Godot icon, we would need to showcase a far more complete example.</p>
+<p>This is the required syntax:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>some_other_node<span class="op">-&gt;</span><span class="fu">connect</span><span class="op">(</span><span class="st">&quot;the_signal&quot;</span><span class="op">,</span> Callable<span class="op">(</span><span class="kw">this</span><span class="op">,</span> <span class="st">&quot;my_method&quot;</span><span class="op">));</span></span></code></pre></div>
+<p>To connect our signal <code>the_signal</code> from some other node with our method <code>my_method</code>, we need to provide the <code>connect</code> method with the name of the signal and a <code>Callable</code>. The <code>Callable</code> holds information about an object on which a method can be called. In our case, it associates our current object instance <code>this</code> with the method <code>my_method</code> of the object. Then the <code>connect</code> method will add this to the observers of <code>the_signal</code>. Whenever <code>the_signal</code> is now emitted, Godot knows which method of which object it needs to call.</p>
+<p>Note that you can only call <code>my_method</code> if you've previously registered it in your <code>_bind_methods</code> method. Otherwise Godot will not know about the existence of <code>my_method</code>.</p>
+<p>To learn more about <code>Callable</code>, check out the class reference here: ref.</p>
+<p>Having your object sending out signals is more common. For our wobbling Godot icon, we'll do something silly just to show how it works. We're going to emit a signal every time a second has passed and pass the new location along.</p>
+<p>In our <code>gdexample.h</code> header file, we need to define a new member <code>time_emit</code>:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> time_passed<span class="op">;</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> time_emit<span class="op">;</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> amplitude<span class="op">;</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<p>This time, the changes in <code>gdexample.cpp</code> are more elaborate. First, you'll need to set <code>time_emit = 0.0;</code> in either our <code>_init</code> method or in our constructor. We'll look at the other 2 needed changes one by one.</p>
+<p>In our <code>_bind_methods</code> method, we need to declare our signal. This is done as follows:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> GDExample<span class="op">::</span>_bind_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    ADD_PROPERTY<span class="op">(</span>PropertyInfo<span class="op">(</span>Variant<span class="op">::</span>FLOAT<span class="op">,</span> <span class="st">&quot;speed&quot;</span><span class="op">,</span> PROPERTY_HINT_RANGE<span class="op">,</span> <span class="st">&quot;0,20,0.01&quot;</span><span class="op">),</span> <span class="st">&quot;set_speed&quot;</span><span class="op">,</span> <span class="st">&quot;get_speed&quot;</span><span class="op">);</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    ADD_SIGNAL<span class="op">(</span>MethodInfo<span class="op">(</span><span class="st">&quot;position_changed&quot;</span><span class="op">,</span> PropertyInfo<span class="op">(</span>Variant<span class="op">::</span>OBJECT<span class="op">,</span> <span class="st">&quot;node&quot;</span><span class="op">),</span> PropertyInfo<span class="op">(</span>Variant<span class="op">::</span>VECTOR2<span class="op">,</span> <span class="st">&quot;new_pos&quot;</span><span class="op">)));</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Here, our <code>ADD_SIGNAL</code> macro can be a single call with a <code>MethodInfo</code> argument. <code>MethodInfo</code>'s first parameter will be the signal's name, and its remaining parameters are <code>PropertyInfo</code> types which describe the essentials of each of the method's parameters. <code>PropertyInfo</code> parameters are defined with the data type of the parameter, and then the name that the parameter will have by default.</p>
+<p>So here, we add a signal, with a <code>MethodInfo</code> which names the signal "position_changed". The <code>PropertyInfo</code> parameters describe two essential arguments, one of type <code>Object</code>, the other of type <code>Vector2</code>, respectively named "node" and "new_pos".</p>
+<p>Next, we'll need to change our <code>_process</code> method:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> GDExample<span class="op">::</span>_process<span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    time_passed <span class="op">+=</span> speed <span class="op">*</span> delta<span class="op">;</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    Vector2 new_position <span class="op">=</span> Vector2<span class="op">(</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>        amplitude <span class="op">+</span> <span class="op">(</span>amplitude <span class="op">*</span> sin<span class="op">(</span>time_passed <span class="op">*</span> <span class="fl">2.0</span><span class="op">)),</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>        amplitude <span class="op">+</span> <span class="op">(</span>amplitude <span class="op">*</span> cos<span class="op">(</span>time_passed <span class="op">*</span> <span class="fl">1.5</span><span class="op">))</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    set_position<span class="op">(</span>new_position<span class="op">);</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    time_emit <span class="op">+=</span> delta<span class="op">;</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>time_emit <span class="op">&gt;</span> <span class="fl">1.0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>        emit_signal<span class="op">(</span><span class="st">&quot;position_changed&quot;</span><span class="op">,</span> <span class="kw">this</span><span class="op">,</span> new_position<span class="op">);</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>        time_emit <span class="op">=</span> <span class="fl">0.0</span><span class="op">;</span></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>After a second has passed, we emit our signal and reset our counter. We can add our parameter values directly to <code>emit_signal</code>.</p>
+<p>Once the GDExtension library is compiled, we can go into Godot and select our sprite node. In the <strong>Node</strong> dock, we can find our new signal and link it up by pressing the <strong>Connect</strong> button or double-clicking the signal. We've added a script on our main node and implemented our signal like this:</p>
+<pre class="gdscript"><code>extends Node
+
+func _on_Sprite2D_position_changed(node, new_pos):
+    print(&quot;The position of &quot; + node.get_class() + &quot; is now &quot; + str(new_pos))</code></pre>
+<p>Every second, we output our position to the console.</p>
+<h2 id="next-steps">Next steps</h2>
+<p>We hope the above example showed you the basics. You can build upon this example to create full-fledged scripts to control nodes in Godot using C++!</p>
+<p>Instead of basing your project off the above example setup, we recommend to restart now by cloning the <a href="https://github.com/godotengine/godot-cpp-template">godot-cpp template</a>, and base your project off of that. It has better coverage of features, such as a GitHub build action and additional useful <code>SConstruct</code> boilerplate.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

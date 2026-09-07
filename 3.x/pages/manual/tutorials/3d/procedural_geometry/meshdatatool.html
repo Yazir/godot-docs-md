@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using the MeshDataTool — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-the-meshdatatool">Using the MeshDataTool</h1>
+<p>The ref is not used to generate geometry. But it is helpful for dynamically altering geometry, for example if you want to write a script to tessellate, simplify, or deform meshes.</p>
+<p>The MeshDataTool is not as fast as altering arrays directly using ArrayMesh. However, it provides more information and tools to work with meshes than the ArrayMesh does. When the MeshDataTool is used, it calculates mesh data that is not available in ArrayMeshes such as faces and edges, which are necessary for certain mesh algorithms. If you do not need this extra information then it may be better to use an ArrayMesh.</p>
+<blockquote>
+<p><strong>Note:</strong> MeshDataTool can only be used on Meshes that use the PrimitiveType <code>Mesh.PRIMITIVE_TRIANGLES</code>.</p>
+</blockquote>
+<p>We initialize the MeshDataTool from an ArrayMesh by calling <code>create_from_surface()</code>. If there is already data initialized in the MeshDataTool, calling <code>create_from_surface()</code> will clear it for you. Alternatively, you can call <code>clear()</code> yourself before reusing the MeshDataTool.</p>
+<p>In the examples below, assume an ArrayMesh called <code>mesh</code> has already been created. See ref for an example of mesh generation.</p>
+<pre class="gdscript"><code>var mdt = MeshDataTool.new()
+mdt.create_from_surface(mesh, 0)</code></pre>
+<p><code>create_from_surface()</code> uses the vertex arrays from the ArrayMesh to calculate two additional arrays, one for edges and one for faces, for a total of three arrays.</p>
+<p>An edge is a connection between any two vertices. Each edge in the edge array contains a reference to the two vertices it is composed of, and up to two faces that it is contained within.</p>
+<p>A face is a triangle made up of three vertices and three corresponding edges. Each face in the face array contains a reference to the three vertices and three edges it is composed of.</p>
+<p>The vertex array contains edge, face, normal, color, tangent, uv, uv2, bone, and weight information connected with each vertex.</p>
+<p>To access information from these arrays you use a function of the form <code>get_****()</code>:</p>
+<pre class="gdscript"><code>mdt.get_vertex_count() # Returns number of vertices in vertex array.
+mdt.get_vertex_faces(0) # Returns array of faces that contain vertex[0].
+mdt.get_face_normal(1) # Calculates and returns face normal of the second face.
+mdt.get_edge_vertex(10, 1) # Returns the second vertex comprising the edge at index 10.</code></pre>
+<p>What you choose to do with these functions is up to you. A common use case is to iterate over all vertices and transform them in some way:</p>
+<pre class="gdscript"><code>for i in range(get_vertex_count):
+    var vert = mdt.get_vertex(i)
+    vert *= 2.0 # Scales the vertex by doubling size.
+    mdt.set_vertex(i, vert)</code></pre>
+<p>These modifications are not done in place on the ArrayMesh. If you are dynamically updating an existing ArrayMesh, first delete the existing surface before adding a new one using ref:</p>
+<pre class="gdscript"><code>mesh.surface_remove(0) # Deletes the first surface of the mesh.
+mdt.commit_to_surface(mesh)</code></pre>
+<p>Below is a complete example that turns a spherical mesh called <code>mesh</code> into a randomly deformed blob complete with updated normals and vertex colors. See ref for how to generate the base mesh.</p>
+<pre class="gdscript"><code>extends MeshInstance
+
+var sn = OpenSimplexNoise.new()
+var mdt = MeshDataTool.new()
+
+func _ready():
+    sn.period = 0.7
+
+    mdt.create_from_surface(mesh, 0)
+
+    for i in range(mdt.get_vertex_count()):
+        var vertex = mdt.get_vertex(i).normalized()
+        # Push out vertex by noise.
+        vertex = vertex * (sn.get_noise_3dv(vertex) * 0.5 + 0.75)
+        mdt.set_vertex(i, vertex)
+
+    # Calculate vertex normals, face-by-face.
+    for i in range(mdt.get_face_count()):
+        # Get the index in the vertex array.
+        var a = mdt.get_face_vertex(i, 0)
+        var b = mdt.get_face_vertex(i, 1)
+        var c = mdt.get_face_vertex(i, 2)
+        # Get vertex position using vertex index.
+        var ap = mdt.get_vertex(a)
+        var bp = mdt.get_vertex(b)
+        var cp = mdt.get_vertex(c)
+        # Calculate face normal.
+        var n = (bp - cp).cross(ap - bp).normalized()
+        # Add face normal to current vertex normal.
+        # This will not result in perfect normals, but it will be close.
+        mdt.set_vertex_normal(a, n + mdt.get_vertex_normal(a))
+        mdt.set_vertex_normal(b, n + mdt.get_vertex_normal(b))
+        mdt.set_vertex_normal(c, n + mdt.get_vertex_normal(c))
+
+    # Run through vertices one last time to normalize normals and
+    # set color to normal.
+    for i in range(mdt.get_vertex_count()):
+        var v = mdt.get_vertex_normal(i).normalized()
+        mdt.set_vertex_normal(i, v)
+        mdt.set_vertex_color(i, Color(v.x, v.y, v.z))
+
+    mesh.surface_remove(0)
+    mdt.commit_to_surface(mesh)</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

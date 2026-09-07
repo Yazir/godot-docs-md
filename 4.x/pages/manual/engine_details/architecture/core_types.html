@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Core types — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="core-types">Core types</h1>
+<p>Godot has a rich set of classes and templates that compose its core, and everything is built upon them.</p>
+<p>This reference will try to list them in order for their better understanding.</p>
+<h2 id="allocating-memory">Allocating memory</h2>
+<p>Godot has many tricks for ensuring memory safety and tracking memory usage. Because of this, the regular C and C++ library calls should not be used. Instead, a few replacements are provided.</p>
+<p>For C-style allocation, Godot provides a few macros:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>memalloc<span class="op">(</span>size<span class="op">)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>memrealloc<span class="op">(</span>pointer<span class="op">)</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>memfree<span class="op">(</span>pointer<span class="op">)</span></span></code></pre></div>
+<p>These are equivalent to the usual <code>malloc()</code>, <code>realloc()</code>, and <code>free()</code> of the C standard library.</p>
+<p>For C++-style allocation, special macros are provided:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>memnew<span class="op">(</span>Class<span class="op">)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>memnew<span class="op">(</span>Class<span class="op">(</span>args<span class="op">))</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>memdelete<span class="op">(</span>instance<span class="op">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>memnew_arr<span class="op">(</span>Class<span class="op">,</span> amount<span class="op">)</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>memdelete_arr<span class="op">(</span>pointer_to_array<span class="op">)</span></span></code></pre></div>
+<p>These are equivalent to <code>new</code>, <code>delete</code>, <code>new[]</code>, and <code>delete[]</code> respectively.</p>
+<p><code>memnew</code>/<code>memdelete</code> also use a little C++ magic to automatically call post-init and pre-release functions. For example, this is used to notify Objects right after they are created, and right before they are deleted.</p>
+<ul>
+<li><a href="https://github.com/godotengine/godot/blob/master/core/os/memory.h">core/os/memory.h</a></li>
+</ul>
+<h2 id="containers">Containers</h2>
+<p>Godot provides its own set of containers, which means STL containers like <code>std::string</code> and <code>std::vector</code> are generally not used in the codebase. See <code>doc_faq_why_not_stl</code> for more information.</p>
+<p>A 📜 icon denotes the type is part of ref. This means it can be used as a parameter or return value of a method exposed to the scripting API.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Godot datatype</th>
+<th>Closest C++ STL datatype</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/string/ustring.h">String</a> 📜</td>
+<td><code>std::string</code></td>
+<td><strong>Use this as the "default" string type.</strong> <code>String</code> uses UTF-32 encoding to simplify processing thanks to its fixed character size.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/vector.h">Vector</a></td>
+<td><code>std::vector</code></td>
+<td><strong>Use this as the "default" vector type.</strong> Uses copy-on-write (COW) semantics. This means it's generally slower but can be copied around almost for free. Use <code>LocalVector</code> instead where COW isn't needed and performance matters.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/hash_set.h">HashSet</a></td>
+<td><code>std::unordered_set</code></td>
+<td><strong>Use this as the "default" set type.</strong></td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/a_hash_map.h">AHashMap</a></td>
+<td><code>std::unordered_map</code></td>
+<td><strong>Use this as the "default" map type.</strong> Does not preserve insertion order. Note that pointers into the map, as well as iterators, are not stable under mutations. If either of these affordances are needed, use <code>HashMap</code> instead.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/string/string_name.h">StringName</a> 📜</td>
+<td><code>std::string</code></td>
+<td>Uses string interning for fast comparisons. Use this for static strings that are referenced frequently and used in multiple locations in the engine.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/local_vector.h">LocalVector</a></td>
+<td><code>std::vector</code></td>
+<td>Closer to <code>std::vector</code> in semantics, doesn't use copy-on-write (COW) thus it's faster than <code>Vector</code>. Prefer it over <code>Vector</code> when copying it cheaply is not needed.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/variant/array.h">Array</a> 📜</td>
+<td><code>std::vector</code></td>
+<td>Values can be of any Variant type. No static typing is imposed. Uses shared reference counting, similar to <code>std::shared_ptr</code>. Uses Vector&lt;Variant&gt; internally.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/variant/typed_array.h">TypedArray</a> 📜</td>
+<td><code>std::vector</code></td>
+<td>Subclass of <code>Array</code> but with static typing for its elements. Not to be confused with <code>Packed*Array</code>, which is internally a <code>Vector</code>.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/variant/variant.h">Packed*Array</a> 📜</td>
+<td><code>std::vector</code></td>
+<td>Alias of <code>Vector</code>, e.g. <code>PackedColorArray = Vector&lt;Color&gt;</code>. Only a limited list of packed array types are available (use <code>TypedArray</code> otherwise).</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/list.h">List</a></td>
+<td><code>std::list</code></td>
+<td>Linked list type. Generally slower than other array/vector types. Prefer using other types in new code, unless using <code>List</code> avoids the need for type conversions.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/fixed_vector.h">FixedVector</a></td>
+<td><code>std::array</code></td>
+<td>Vector with a fixed capacity (more similar to <code>boost::container::static_vector</code>). This container type is more efficient than other vector-like types because it makes no heap allocations.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/span.h">Span</a></td>
+<td><code>std::span</code></td>
+<td>Represents read-only access to a contiguous array without needing to copy any data. Note that <code>Span</code> is designed to be a high performance API: It does not perform parameter correctness checks in the same way you might be used to with other Godot containers. Use with care. Span can be constructed from most array-like containers (e.g. <code>vector.span()</code>).</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/rb_set.h">RBSet</a></td>
+<td><code>std::set</code></td>
+<td>Uses a <a href="https://en.wikipedia.org/wiki/Red-black_tree">red-black tree</a> for faster access.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/vset.h">VSet</a></td>
+<td><code>std::flat_set</code></td>
+<td>Uses copy-on-write (COW) semantics. This means it's generally slower but can be copied around almost for free. The performance benefits of <code>VSet</code> aren't established, so prefer using other types.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/hash_map.h">HashMap</a></td>
+<td><code>std::unordered_map</code></td>
+<td>Defensive (robust but slow) map type. Preserves insertion order. Pointers to keys and values, as well as iterators, are stable under mutation. Use this map type when either of these affordances are needed. Use <code>AHashMap</code> otherwise.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/rb_map.h">RBMap</a></td>
+<td><code>std::map</code></td>
+<td>Map type that uses a <a href="https://en.wikipedia.org/wiki/Red-black_tree">red-black tree</a> to find keys. The performance benefits of <code>RBMap</code> aren't established, so prefer using other types.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/variant/dictionary.h">Dictionary</a> 📜</td>
+<td><code>std::unordered_map</code></td>
+<td>Keys and values can be of any Variant type. No static typing is imposed. Uses shared reference counting, similar to <code>std::shared_ptr</code>. Preserves insertion order. Uses <code>HashMap&lt;Variant&gt;</code> internally.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/variant/typed_dictionary.h">TypedDictionary</a> 📜</td>
+<td><code>std::unordered_map</code></td>
+<td>Subclass of <code>Dictionary</code> but with static typing for its keys and values.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/pair.h">Pair</a></td>
+<td><code>std::pair</code></td>
+<td>Stores a single pair. See also <code>KeyValue</code> in the same file, which uses read-only keys.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="relocation-safety">Relocation safety</h3>
+<p>Godot's containers assume their elements are <a href="https://open-std.org/JTC1/SC22/WG21/docs/papers/2020/p1144r5.html">trivially relocatable</a>.</p>
+<p>This means that, if you store data types in it that have pointers to themselves, or are otherwise <a href="https://open-std.org/JTC1/SC22/WG21/docs/papers/2020/p1144r5.html#non-trivial-samples">not trivially relocatable</a>, Godot might crash. Note that storing <strong>pointers to</strong> objects that are not trivially relocatable, such as some Object subclasses, is unproblematic and supported.</p>
+<p>The reason to assume trivial relocatability is that it allows us to make use of important optimization techniques, such as relocation by <code>memcpy</code> or <code>realloc</code>.</p>
+<p><a href="https://github.com/godotengine/godot/issues/100509">GH-100509</a> tracks this decision.</p>
+<h2 id="multithreading--concurrency">Multithreading / Concurrency</h2>
+<blockquote>
+<p><strong>See also:</strong> You can find more information on multithreading strategies at <code>doc_using_multiple_threads</code>.</p>
+</blockquote>
+<p>None of Godot's containers are thread-safe. When you expect multiple threads to access them, you must use multithread protections.</p>
+<p>Note that some of the types listed here are also available through the bindings, but the binding types are wrapped with <code>class_RefCounted</code> (found in the <code>CoreBind::</code> namespace). Prefer the primitives listed here when possible, for efficiency reasons.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Godot datatype</th>
+<th>Closest C++ STL datatype</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/os/mutex.h">Mutex</a></td>
+<td><code>std::recursive_mutex</code></td>
+<td>Recursive mutex type. Use <code>MutexLock lock(mutex)</code> to lock it.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/os/mutex.h">BinaryMutex</a></td>
+<td><code>std::mutex</code></td>
+<td>Non-recursive mutex type. Use <code>MutexLock lock(mutex)</code> to lock it.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/os/rw_lock.h">RWLock</a></td>
+<td><code>std::shared_mutex</code></td>
+<td>Read-write aware mutex type. Use <code>RWLockRead lock(mutex)</code> or <code>RWLockWrite lock(mutex)</code> to lock it.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/os/safe_binary_mutex.h">SafeBinaryMutex</a></td>
+<td><code>std::mutex</code></td>
+<td>Recursive mutex type that can be used with <code>ConditionVariable</code>. Use <code>MutexLock lock(mutex)</code> to lock it.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/os/condition_variable.h">ConditionVariable</a></td>
+<td><code>std::condition_variable</code></td>
+<td>Condition variable type, used with <code>SafeBinaryMutex</code>.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/os/semaphore.h">Semaphore</a></td>
+<td><code>std::counting_semaphore</code></td>
+<td>Counting semaphore type.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/safe_refcount.h">SafeNumeric</a></td>
+<td><code>std::atomic</code></td>
+<td>Templated atomic type, designed for numbers.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/safe_refcount.h">SafeFlag</a></td>
+<td><code>std::atomic_bool</code></td>
+<td>Bool atomic type.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/godotengine/godot/blob/master/core/templates/safe_refcount.h">SafeRefCount</a></td>
+<td><code>std::atomic</code></td>
+<td>Atomic type designed for reference counting. Will refuse to increment the reference count if it is 0.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="math-types">Math types</h2>
+<p>There are several linear math types available in the <code>core/math</code> directory:</p>
+<ul>
+<li><a href="https://github.com/godotengine/godot/tree/master/core/math">core/math</a></li>
+</ul>
+<h2 id="nodepath">NodePath</h2>
+<p>This is a special datatype used for storing paths in a scene tree and referencing them in an optimized manner:</p>
+<ul>
+<li><a href="https://github.com/godotengine/godot/blob/master/core/string/node_path.h">core/string/node_path.h</a></li>
+</ul>
+<h2 id="rid">RID</h2>
+<p>RIDs are <em>Resource IDs</em>. Servers use these to reference data stored in them. RIDs are opaque, meaning that the data they reference can't be accessed directly. RIDs are unique, even for different types of referenced data:</p>
+<ul>
+<li><a href="https://github.com/godotengine/godot/blob/master/core/templates/rid.h">core/templates/rid.h</a></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

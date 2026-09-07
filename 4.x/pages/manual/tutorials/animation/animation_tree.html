@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using AnimationTree — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-animationtree">Using AnimationTree</h1>
+<h2 id="introduction">Introduction</h2>
+<p>With ref, Godot has one of the most flexible animation systems that you can find in any game engine. It is pretty much unique in its ability to animate almost any property in any node or resource, and its dedicated transform, bezier, function calling, audio, and sub-animation tracks.</p>
+<p>However, the support for blending those animations via <code>AnimationPlayer</code> is limited, as you can only set a fixed cross-fade transition time.</p>
+<p>ref is a node designed to deal with advanced transitions.</p>
+<h2 id="animationtree-and-animationplayer">AnimationTree and AnimationPlayer</h2>
+<p>Before starting, know that an <code>AnimationTree</code> node does not contain its own animations. Instead, it uses animations contained in an <code>AnimationPlayer</code> node. You create, edit, or import your animations in an <code>AnimationPlayer</code> and then use an <code>AnimationTree</code> to control the playback.</p>
+<p><code>AnimationPlayer</code> and <code>AnimationTree</code> can be used in both 2D and 3D scenes. When importing 3D scenes and their animations, you can use <a href="https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/importing_3d_scenes/node_type_customization.html#animation-loop-loop-cycle">name suffixes</a> to simplify the process and import with the correct properties. At the end, the imported Godot scene will contain the animations in an <code>AnimationPlayer</code> node. Since you rarely use imported scenes directly in Godot (they are either instantiated or inherited from), you can place the <code>AnimationTree</code> node in your new scene which contains the imported one. Afterwards, point the <code>AnimationTree</code> node to the <code>AnimationPlayer</code> that was created in the imported scene.</p>
+<p>This is how it's done in the <a href="https://godotengine.org/asset-library/asset/2710">Third Person Shooter demo</a>, for reference:</p>
+<p>A new scene was created for the player with a <code>CharacterBody3D</code> as root. Inside this scene, the original <code>.dae</code> (Collada) file was instantiated and an <code>AnimationTree</code> node was created.</p>
+<h2 id="creating-a-tree">Creating a tree</h2>
+<p>To use an <code>AnimationTree</code>, you have to set a root node. An animation root node is a class that contains and evaluates sub-nodes and outputs an animation. There are 3 types of sub-nodes:</p>
+<ol type="1">
+<li>Animation nodes, which reference an animation from the linked <code>AnimationPlayer</code>.</li>
+<li>Animation Root nodes, which are used to blend sub-nodes and can be nested.</li>
+<li>Animation Blend nodes, which are used in an <code>AnimationNodeBlendTree</code>, a 2D graph of nodes. Blend nodes take multiple input ports and give one output port.</li>
+</ol>
+<p>A few types of root nodes are available:</p>
+<ul>
+<li><code>AnimationNodeAnimation</code>: Selects an animation from the list and plays it. This is the simplest root node, and generally not used as a root.</li>
+<li><code>AnimationNodeBlendTree</code>: Contains multiple nodes as children in a graph. Many blend nodes are available, such as mix, blend2, blend3, one shot, etc.</li>
+<li><code>AnimationNodeBlendSpace1D</code>: Allows linear blending between two animation nodes. Control the blend position in a 1D blend space to mix between animations.</li>
+<li><code>AnimationNodeBlendSpace2D</code>: Allows linear blending between three animation nodes. Control the blend position in a 2D blend space to mix between animations.</li>
+<li><code>AnimationNodeStateMachine</code>: Contains multiple nodes as children in a graph. Each node is used as a state, with multiple functions used to alternate between states.</li>
+</ul>
+<h2 id="blend-tree">Blend tree</h2>
+<p>When you make an <code>AnimationNodeBlendTree</code>, you get an empty 2d graph in the bottom panel, under the AnimationTree tab. It contains only an <code>Output</code> node by default.</p>
+<p>In order for animations to play, a node has to be connected to the output. You can add nodes from the <strong>Add Node..</strong> menu or by right clicking an empty space:</p>
+<p>The simplest connection to make is to connect an <code>Animation</code> node to the output directly, which will just play back the animation.</p>
+<p>Following is a description of the other available nodes:</p>
+<h3 id="blend2--blend3">Blend2 / Blend3</h3>
+<p>These nodes will blend between two or three inputs by a user-specified blend value:</p>
+<p>Blending can use <strong>filters</strong> to control individually which tracks get blended and which do not. This can be useful for layering animations on top of each other.</p>
+<p>For more complex blending, it is recommended to use blend spaces instead.</p>
+<h3 id="oneshot">OneShot</h3>
+<p>This node will execute an animation once and return when it finishes. You can customize blend times for fading in and out, as well as filters.</p>
+<pre class="gdscript"><code># Play child animation connected to &quot;shot&quot; port.
+animation_tree.set(&quot;parameters/OneShot/request&quot;, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+# Alternative syntax (same result).
+animation_tree[&quot;parameters/OneShot/request&quot;] = AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE
+
+# Abort child animation connected to &quot;shot&quot; port.
+animation_tree.set(&quot;parameters/OneShot/request&quot;, AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
+# Alternative syntax (same result).
+animation_tree[&quot;parameters/OneShot/request&quot;] = AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT
+
+# Get current state (read-only).
+animation_tree.get(&quot;parameters/OneShot/active&quot;))
+# Alternative syntax (same result).
+animation_tree[&quot;parameters/OneShot/active&quot;]</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Play child animation connected to &quot;shot&quot; port.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;parameters/OneShot/request&quot;</span><span class="op">,</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>AnimationNodeOneShot<span class="op">.</span><span class="fu">OneShotRequest</span><span class="op">.</span><span class="fu">Fire</span><span class="op">);</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Abort child animation connected to &quot;shot&quot; port.</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;parameters/OneShot/request&quot;</span><span class="op">,</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>AnimationNodeOneShot<span class="op">.</span><span class="fu">OneShotRequest</span><span class="op">.</span><span class="fu">Abort</span><span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Get current state (read-only).</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">Get</span><span class="op">(</span><span class="st">&quot;parameters/OneShot/active&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="timeseek">TimeSeek</h3>
+<p>This node allows you to seek to a time in the animation connected to its in input. Use this node to play an <code>Animation</code> starting from a certain playback position. Note that the seek request value is measured in seconds, so if you would like to play an animation from the beginning, set the value to <code>0.0</code>, or if you would like to play an animation from 3 seconds in, set the value to <code>3.0</code>.</p>
+<pre class="gdscript"><code># Play child animation from the start.
+animation_tree.set(&quot;parameters/TimeSeek/seek_request&quot;, 0.0)
+# Alternative syntax (same result).
+animation_tree[&quot;parameters/TimeSeek/seek_request&quot;] = 0.0
+
+# Play child animation from 12 second timestamp.
+animation_tree.set(&quot;parameters/TimeSeek/seek_request&quot;, 12.0)
+# Alternative syntax (same result).
+animation_tree[&quot;parameters/TimeSeek/seek_request&quot;] = 12.0</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Play child animation from the start.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;parameters/TimeSeek/seek_request&quot;</span><span class="op">,</span> <span class="fl">0.0</span><span class="op">);</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Play child animation from 12 second timestamp.</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;parameters/TimeSeek/seek_request&quot;</span><span class="op">,</span> <span class="fl">12.0</span><span class="op">);</span></span></code></pre></div>
+<h3 id="timescale">TimeScale</h3>
+<p>This node allows you to scale the speed of the animation connected to its in input. The speed of the animation will be multiplied by the number in the scale parameter. Setting the scale to 0 will pause the animation. Setting the scale to a negative number will play the animation backwards.</p>
+<h3 id="transition">Transition</h3>
+<p>This node is a simplified version of a StateMachine. You connect animations to the inputs, and the current state index determines which animation to play. You may specify a crossfade transition time. In the Inspector, you may change the number of input ports, rearrange inputs, or delete inputs.</p>
+<pre class="gdscript"><code># Play child animation connected to &quot;state_2&quot; port.
+animation_tree.set(&quot;parameters/Transition/transition_request&quot;, &quot;state_2&quot;)
+# Alternative syntax (same result).
+animation_tree[&quot;parameters/Transition/transition_request&quot;] = &quot;state_2&quot;
+
+# Get current state name (read-only).
+animation_tree.get(&quot;parameters/Transition/current_state&quot;)
+# Alternative syntax (same result).
+animation_tree[&quot;parameters/Transition/current_state&quot;]
+
+# Get current state index (read-only).
+animation_tree.get(&quot;parameters/Transition/current_index&quot;))
+# Alternative syntax (same result).
+animation_tree[&quot;parameters/Transition/current_index&quot;]</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Play child animation connected to &quot;state_2&quot; port.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;parameters/Transition/transition_request&quot;</span><span class="op">,</span> <span class="st">&quot;state_2&quot;</span><span class="op">);</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Get current state name (read-only).</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">Get</span><span class="op">(</span><span class="st">&quot;parameters/Transition/current_state&quot;</span><span class="op">);</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Get current state index (read-only).</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">Get</span><span class="op">(</span><span class="st">&quot;parameters/Transition/current_index&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="statemachine">StateMachine</h3>
+<p>When you make an <code>AnimationNodeStateMachine</code>, you get an empty 2d graph in the bottom panel, under the AnimationTree tab. It contains a <code>Start</code> and <code>End</code> state by default.</p>
+<p>To add states, right click or use the <strong>create new nodes</strong> button, whose icon is a plus in a box. You can add animations, blendspaces, blendtrees, or even another StateMachine. To edit one of these more complex sub-nodes, click on the pencil icon on the right of the state. To return to the original StateMachine, click <strong>Root</strong> on the top left of the panel.</p>
+<p>Before the StateMachine can do anything useful, the states must be connected with transitions. To add a transition, click the <strong>connect nodes</strong> button, which is a line with a right-facing arrow, and drag between two states. You can create 2 transitions between states, one going in each direction.</p>
+<p>There are 3 types of transitions:</p>
+<ul>
+<li><em>Immediate</em>: Will switch to the next state immediately.</li>
+<li><em>Sync</em>: Will switch to the next state immediately, but will seek the new state to the playback position of the old state.</li>
+<li><em>At End</em>: Will wait for the current state playback to end, then switch to the beginning of the next state animation.</li>
+</ul>
+<p>Transitions also have a few properties. Click a transition and it will be displayed in the inspector:</p>
+<ul>
+<li><em>Xfade Time</em> is the time to cross-fade between this state and the next.</li>
+<li><em>Xfade Curve</em> is a cross-fade following a curve rather than a linear blend.</li>
+<li><em>Reset</em> determines whether the state you are switching into plays from the beginning (true) or not (false).</li>
+<li><em>Priority</em> is used together with the <code>travel()</code> function from code (more on this later). Lower priority transitions are preferred when travelling through the tree.</li>
+<li><em>Switch Mode</em> is the transition type (see above). It can be changed after creation here.</li>
+<li><em>Advance Mode</em> determines the advance mode. If <code>Disabled</code>, the transition will not be used. If <code>Enabled</code>, the transition will only be used during <code>travel()</code>. If <code>Auto</code>, the transition will be used if the advance condition and expression are true, or if there are no advance conditions/expressions.</li>
+</ul>
+<h4 id="advance-condition-and-advance-expression">Advance Condition and Advance Expression</h4>
+<p>The last 2 properties in a StateMachine transition are <code>Advance Condition</code> and <code>Advance Expression.</code> When the Advance Mode is set to <em>Auto</em>, these determine if the transition will advance or not.</p>
+<p>Advance Condition is a true/false check. You may put a custom variable name in the text field, and when the StateMachine reaches this transition, it will check if your variable is <em>true</em>. If so, the transition continues. Note that the advance condition <strong>only</strong> checks if a variable is <em>true</em>, and it cannot check for falseness.</p>
+<p>This gives the Advance Condition a very limited capability. If you wanted to make a transition back and forth based on one property, you would need to make 2 variables that have opposite values, and check if either of them are true. This is why, in Godot 4, the Advance Expression was added.</p>
+<p>The Advance Expression works similar to the Advance Condition, but instead of checking if one variable is true, it evaluates any expression. An expression is anything you could put in an <code>if</code> statement. These are all examples of expressions that would work in the Advance Expression:</p>
+<ul>
+<li><code>is_walking</code></li>
+<li><code>is_walking == true</code> (behaves the same as the one above)</li>
+<li><code>is_walking &amp;&amp; !is_idle</code></li>
+<li><code>velocity &gt; 0</code></li>
+<li><code>player.is_on_floor()</code></li>
+</ul>
+<blockquote>
+<p><strong>Warning:</strong> The expression is <strong>case-sensitive</strong>. If you reference engine properties, such as <code>velocity</code> on a <code>class_CharacterBody3D</code> node, you should use <code>snake_case</code> naming conventions. If you reference script properties, you should match the style used in the script, which is typically <code>snake_case</code> in GDScript and <code>PascalCase</code> in C#.</p>
+</blockquote>
+<p>Here is an example of an improperly-set-up StateMachine transition using Advance Condition:</p>
+<p>This is not working because there is a <code>!</code> variable in the Advance Condition, which cannot be checked.</p>
+<p>Here is the same example, set up properly, using two opposite variables:</p>
+<p>Here is the same example, but using Advance Expression rather than Advance Condition, which eliminates the need for two variables:</p>
+<p>In order to use Advance Expressions, the Advance Expression Base Node has to be set from the Inspector of the AnimationTree node. By default, it is set to the AnimationTree node itself, but it needs to point to whatever node contains the script with your animation variables.</p>
+<blockquote>
+<p><strong>See also:</strong> The Advance Expression is evaluated using Godot's <code>class_expression</code> class. See <code>doc_evaluating_expressions</code> for more information on writing expressions.</p>
+</blockquote>
+<h4 id="statemachine-travel">StateMachine travel</h4>
+<p>One of the nice features in Godot's <code>StateMachine</code> implementation is the ability to travel. You can instruct the graph to go from the current state to another one, while visiting all the intermediate ones. This is done via the A* algorithm. If there is no path of transitions starting at the current state and finishing at the destination state, the graph teleports to the destination state.</p>
+<p>To use the travel ability, you should first retrieve the ref object from the <code>AnimationTree</code> node (it is exported as a property), and then call one of its many functions:</p>
+<pre class="gdscript"><code>var state_machine = animation_tree[&quot;parameters/playback&quot;]
+state_machine.travel(&quot;SomeState&quot;)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>AnimationNodeStateMachinePlayback stateMachine <span class="op">=</span> <span class="op">(</span>AnimationNodeStateMachinePlayback<span class="op">)</span>animationTree<span class="op">.</span><span class="fu">Get</span><span class="op">(</span><span class="st">&quot;parameters/playback&quot;</span><span class="op">);</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>stateMachine<span class="op">.</span><span class="fu">Travel</span><span class="op">(</span><span class="st">&quot;SomeState&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>The StateMachine must be running before you can travel. Make sure to either call <code>start()</code> or connect a node to <strong>Start</strong>.</p>
+<h2 id="blendspace2d-and-blendspace1d">BlendSpace2D and BlendSpace1D</h2>
+<p><code>BlendSpace2D</code> is a node to do advanced blending in two dimensions. Points representing animations are added to a 2D space and then a position between them is controlled to determine the blending:</p>
+<p>You may insert these points anywhere on the graph by right-clicking or using the <strong>add point</strong> button in the toolbar. On creation, a point gets its name from the chosen animation or ref type. This point can then be renamed by clicking on its name, or repositioned by clicking and dragging the name or the point. If <strong>Auto Triangles</strong> is enabled, a blend triangle between inserted points will be automatically generated using <a href="https://en.wikipedia.org/wiki/Delaunay_triangulation">Delaunay triangulation</a>.</p>
+<p>This node's animation blend target can be manipulated in the editor by pressing Shift while dragging the left mouse button, or using the dedicated tool.</p>
+<p><code>BlendSpace1D</code> works just like <code>BlendSpace2D</code>, but in a single dimension (a horizontal line). Since triangles are not used, it is able to function with fewer than three blend points.</p>
+<h3 id="sync-mode">Sync mode</h3>
+<p>Both <code>BlendSpace1D</code> and <code>BlendSpace2D</code> have a <strong>Sync Mode</strong> property that controls how animations advance when they are blended. This replaces the older boolean <code>sync</code> property and offers more precise control.</p>
+<p>There are four modes available:</p>
+<ul>
+<li><strong>None</strong> (default): Inactive animations are frozen and do not advance. Only the currently active (highest-weight) animation moves forward.</li>
+<li><strong>Independent</strong>: Inactive animations advance with a weight of <code>0</code>. This matches the behavior of the old <code>sync = true</code> setting.</li>
+<li><strong>Cyclic Mutable</strong>: All animations are time-scaled so their phases stay aligned. The shared cycle length is computed dynamically from the active blend weights, which means a single unblended animation plays at its normal speed. This is useful when all your animations have the same logical cycle (e.g. locomotion loops) but may differ slightly in length.</li>
+<li><strong>Cyclic Constant</strong>: All animations are time-scaled to complete one full cycle in exactly <strong>Cyclic Length</strong> seconds, regardless of their individual lengths. Set the <code>cyclic_length</code> property to your desired cycle duration (must be greater than <code>0</code>).</li>
+</ul>
+<blockquote>
+<p><strong>Warning:</strong> Cyclic sync modes require that all blend points use ref with a finite, immutable length. If any blend point uses a different node type, a warning will be shown and cyclic sync will not take effect:</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> When using either cyclic mode with animations of different lengths, applying an ref to the output will break synchronization. In that case, use ref to normalize animation lengths before syncing.</p>
+</blockquote>
+<h3 id="blend-mode">Blend mode</h3>
+<p>By default, blending happens in the <em>Continuous</em> mode, by interpolating points inside the closest triangle in <code>BlendSpace2D</code>, or in the line between points in <code>BlendSpace1D</code>. However, this may not always be the best choice. For instance, when dealing with frame-by-frame 2D animations, you may want to switch to the <em>Discrete</em> mode, in which the intermediate states of the blend do not appear in the result. Alternatively, if you want to retain the current play position when switching between discrete animations, the <em>Carry</em> mode allows you to do so. These modes can be set with the <em>Blend</em> menu.</p>
+<h2 id="for-better-blending">For better blending</h2>
+<p>For the blending results to be deterministic (reproducible and always consistent), the blended property values must have a specific initial value. For example, in the case of two animations to be blended, if one animation has a property track and the other does not, the blended animation is calculated as if the latter animation had a property track with the initial value.</p>
+<p>When using Position/Rotation/Scale 3D tracks for Skeleton3D bones, the initial value is Bone Rest. For other properties, the initial value is <code>0</code> and if the track is present in the <code>RESET</code> animation, the value of its first keyframe is used instead.</p>
+<p>For example, the following AnimationPlayer has two animations, but one of them lacks a Property track for Position.</p>
+<p>This means that the animation lacking that will treat those Positions as <code>Vector2(0, 0)</code>.</p>
+<p>This problem can be solved by adding a Property track for Position as an initial value to the <code>RESET</code> animation.</p>
+<blockquote>
+<p><strong>Note:</strong> Be aware that the <code>RESET</code> animation exists to define the default pose when loading an object originally. It is assumed to have only one frame and is not expected to be played back using the timeline.</p>
+</blockquote>
+<p>Also keep in mind that the Rotation 3D tracks and the Property tracks for 2D rotation with Interpolation Type set to Linear Angle or Cubic Angle will prevent rotations greater than 180 degrees from the initial value as blended animation.</p>
+<p>This can be useful for Skeleton3Ds to prevent the bones penetrating the body when blending animations. Therefore, Skeleton3D's Bone Rest values should be as close to the midpoint of the movable range as possible. <strong>This means that for humanoid models, it is preferable to import them in a T-pose</strong>.</p>
+<p>You can see that the shortest rotation path from Bone Rests is prioritized rather than the shortest rotation path between animations.</p>
+<p>If you need to rotate Skeleton3D itself more than 180 degrees by blend animations for movement, you can use Root Motion.</p>
+<h2 id="root-motion">Root motion</h2>
+<p>When working with 3D animations, a popular technique is for animators to use the root skeleton bone to give motion to the rest of the skeleton. This allows animating characters in a way where steps actually match the floor below. It also allows precise interaction with objects during cinematics.</p>
+<p>When playing back the animation in Godot, it is possible to select this bone as the <em>root motion track</em>. Doing so will cancel the bone transformation visually (the animation will stay in place).</p>
+<p>Afterwards, the actual motion can be retrieved via the ref API as a transform:</p>
+<pre class="gdscript"><code># Get the motion delta.
+animation_tree.get_root_motion_position()
+animation_tree.get_root_motion_rotation()
+animation_tree.get_root_motion_scale()
+
+# Get the actual blended value of the animation.
+animation_tree.get_root_motion_position_accumulator()
+animation_tree.get_root_motion_rotation_accumulator()
+animation_tree.get_root_motion_scale_accumulator()</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Get the motion delta.</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">GetRootMotionPosition</span><span class="op">();</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">GetRootMotionRotation</span><span class="op">();</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">GetRootMotionScale</span><span class="op">();</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Get the actual blended value of the animation.</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">GetRootMotionPositionAccumulator</span><span class="op">();</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">GetRootMotionRotationAccumulator</span><span class="op">();</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">GetRootMotionScaleAccumulator</span><span class="op">();</span></span></code></pre></div>
+<p>This can be fed to functions such as ref to control the character movement.</p>
+<p>There is also a tool node, <code>RootMotionView</code>, you can place a scene that will act as a custom floor for your character and animations (this node is disabled by default during the game).</p>
+<h2 id="controlling-from-code">Controlling from code</h2>
+<p>After building the tree and previewing it, the only question remaining is "How is all this controlled from code?".</p>
+<p>Keep in mind that the animation nodes are just resources, so they are shared between all instances using them. Setting values in the nodes directly will affect all instances of the scene that uses this <code>AnimationTree</code>. This is generally undesirable, but does have some cool use cases, e.g. you can copy and paste parts of your animation tree, or reuse nodes with a complex layout (such as a StateMachine or blend space) in different animation trees.</p>
+<p>The actual animation data is contained in the <code>AnimationTree</code> node and is accessed via properties. Check the "Parameters" section of the <code>AnimationTree</code> node to see all the parameters that can be modified in real-time:</p>
+<p>This is handy because it makes it possible to animate them from an <code>AnimationPlayer</code>, or even the <code>AnimationTree</code> itself, allowing very complex animation logic.</p>
+<p>To modify these values from code, you must obtain the property path. You can find them by hovering your mouse over any of the parameters:</p>
+<p>Then you can set or read them:</p>
+<pre class="gdscript"><code>animation_tree.set(&quot;parameters/eye_blend/blend_amount&quot;, 1.0)
+# Alternate syntax (same result)
+animation_tree[&quot;parameters/eye_blend/blend_amount&quot;] = 1.0</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>animationTree<span class="op">.</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;parameters/eye_blend/blend_amount&quot;</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">);</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> Advance Expressions from a StateMachine will not be found under the parameters. This is because they are held in another script rather than the AnimationTree itself. Advance Conditions will be found under parameters.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

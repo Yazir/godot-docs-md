@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Background loading — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="background-loading">Background loading</h1>
+<p>Commonly, games need to load resources asynchronously. When switching the main scene of your game (e.g. going to a new level), you might want to show a loading screen with some indication that progress is being made, or you may want to load additional resources during gameplay.</p>
+<p>The standard load method (ref or GDScript's simpler ref) blocks your thread, making your game appear unresponsive while the resource is being loaded.</p>
+<p>One way around this is using <code>ResourceLoader</code> to load resources asynchronously in background threads.</p>
+<h2 id="using-resourceloader">Using ResourceLoader</h2>
+<p>Generally, you queue requests to load resources for a path using ref, which will then be loaded in threads in the background.</p>
+<p>You can check the status with ref. Progress can be obtained by passing an array variable via progress which will return a one element array containing the percentage.</p>
+<p>Finally, you retrieve loaded resources by calling ref.</p>
+<p>Once you call <code>load_threaded_get()</code>, either the resource finished loading in the background and will be returned instantly or the load will block at this point like <code>load()</code> would. If you want to guarantee this does not block, you either need to ensure there is enough time between requesting the load and retrieving the resource or you need to check the status manually.</p>
+<h2 id="example">Example</h2>
+<p>This example demonstrates how to load a scene in the background. We will have a button spawn an enemy when pressed. The enemy will be <code>Enemy.tscn</code> which we will load on <code>_ready</code> and instantiate when pressed. The path will be <code>"Enemy.tscn"</code> which is located at <code>res://Enemy.tscn</code>.</p>
+<p>First, we will start a request to load the resource and connect the button:</p>
+<pre class="gdscript"><code>const ENEMY_SCENE_PATH : String = &quot;Enemy.tscn&quot;
+
+func _ready():
+    ResourceLoader.load_threaded_request(ENEMY_SCENE_PATH)
+    self.pressed.connect(_on_button_pressed)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyButton <span class="op">:</span> Button</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">const</span> <span class="dt">string</span> EnemyScenePath <span class="op">=</span> <span class="st">&quot;Enemy.tscn&quot;</span><span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        ResourceLoader<span class="op">.</span><span class="fu">LoadThreadedRequest</span><span class="op">(</span>EnemyScenePath<span class="op">);</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        Pressed <span class="op">+=</span> OnButtonPressed<span class="op">;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Now <code>_on_button_pressed</code> will be called when the button is pressed. This method will be used to spawn an enemy.</p>
+<pre class="gdscript"><code>func _on_button_pressed(): # Button was pressed.
+    # Obtain the resource now that we need it.
+    var enemy_scene = ResourceLoader.load_threaded_get(ENEMY_SCENE_PATH)
+    # Instantiate the enemy scene and add it to the current scene.
+    var enemy = enemy_scene.instantiate()
+    add_child(enemy)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnButtonPressed</span><span class="op">()</span> <span class="co">// Button was pressed.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Obtain the resource now that we need it.</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> enemyScene <span class="op">=</span> <span class="op">(</span>PackedScene<span class="op">)</span>ResourceLoader<span class="op">.</span><span class="fu">LoadThreadedGet</span><span class="op">(</span>EnemyScenePath<span class="op">);</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Instantiate the enemy scene and add it to the current scene.</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> enemy <span class="op">=</span> enemyScene<span class="op">.</span><span class="fu">Instantiate</span><span class="op">();</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">AddChild</span><span class="op">(</span>enemy<span class="op">);</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

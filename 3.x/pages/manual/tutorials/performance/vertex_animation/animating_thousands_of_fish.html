@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animating thousands of fish with MultiMeshInstance — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="animating-thousands-of-fish-with-multimeshinstance">Animating thousands of fish with MultiMeshInstance</h1>
+<p>This tutorial explores a technique used in the game <a href="https://www.gdcvault.com/play/1024409/Creating-the-Art-of-ABZ">ABZU</a> for rendering and animating thousands of fish using vertex animation and static mesh instancing.</p>
+<p>In Godot, this can be accomplished with a custom ref and a ref. Using the following technique you can render thousands of animated objects, even on low end hardware.</p>
+<p>We will start by animating one fish. Then, we will see how to extend that animation to thousands of fish.</p>
+<h2 id="animating-one-fish">Animating one Fish</h2>
+<p>We will start with a single fish. Load your fish model into a ref and add a new ref.</p>
+<p>Here is the fish we will be using for the example images, you can use any fish model you like.</p>
+<blockquote>
+<p><strong>Note:</strong> The fish model in this tutorial is made by <a href="http://quaternius.com">QuaterniusDev</a> and is shared with a creative commons license. CC0 1.0 Universal (CC0 1.0) Public Domain Dedication <a href="https://creativecommons.org/publicdomain/zero/1.0/">https://creativecommons.org/publicdomain/zero/1.0/</a></p>
+</blockquote>
+<p>Typically, you would use bones and a ref to animate objects. However, bones are animated on the CPU and so you end having to calculate thousands of operations every frame and it becomes impossible to have thousands of objects. Using vertex animation in a vertex shader, you avoid using bones and can instead calculate the full animation in a few lines of code and completely on the GPU.</p>
+<p>The animation will be made of four key motions:</p>
+<blockquote>
+<ol type="1">
+<li>A side to side motion</li>
+<li>A pivot motion around the center of the fish</li>
+<li>A panning wave motion</li>
+<li>A panning twist motion</li>
+</ol>
+</blockquote>
+<p>All the code for the animation will be in the vertex shader with uniforms controlling the amount of motion. We use uniforms to control the strength of the motion so that you can tweak the animation in editor and see the results in real time, without the shader having to recompile.</p>
+<p>All the motions will be made using cosine waves applied to <code>VERTEX</code> in model space. We want the vertices to be in model space so that the motion is always relative to the orientation of the fish. For example, side-to-side will always move the fish back and forth in its left to right direction, instead of on the <code>x</code> axis in the world orientation.</p>
+<p>In order to control the speed of the animation, we will start by defining our own time variable using <code>TIME</code>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">//time_scale is a uniform float</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> time <span class="op">=</span> TIME <span class="op">*</span> time_scale<span class="op">;</span></span></code></pre></div>
+<p>The first motion we will implement is the side to side motion. It can be made by offsetting <code>VERTEX.x</code> by <code>cos</code> of <code>TIME</code>. Each time the mesh is rendered, all the vertices will move to the side by the amount of <code>cos(time)</code>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">//side_to_side is a uniform float</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>VERTEX<span class="op">.</span><span class="fu">x</span> <span class="op">+=</span> <span class="bu">cos</span><span class="op">(</span>time<span class="op">)</span> <span class="op">*</span> side_to_side<span class="op">;</span></span></code></pre></div>
+<p>The resulting animation should look something like this:</p>
+<p>Next, we add the pivot. Because the fish is centered at (0, 0), all we have to do is multiply <code>VERTEX</code> by a rotation matrix for it to rotate around the center of the fish.</p>
+<p>We construct a rotation matrix like so:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">//angle is scaled by 0.1 so that the fish only pivots and doesn&#39;t rotate all the way around</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">//pivot is a uniform float</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> pivot_angle <span class="op">=</span> <span class="bu">cos</span><span class="op">(</span>time<span class="op">)</span> <span class="op">*</span> <span class="fl">0.1</span> <span class="op">*</span> pivot<span class="op">;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="dt">mat2</span> rotation_matrix <span class="op">=</span> <span class="dt">mat2</span><span class="op">(</span><span class="dt">vec2</span><span class="op">(</span><span class="bu">cos</span><span class="op">(</span>pivot_angle<span class="op">),</span> <span class="op">-</span><span class="bu">sin</span><span class="op">(</span>pivot_angle<span class="op">)),</span> <span class="dt">vec2</span><span class="op">(</span><span class="bu">sin</span><span class="op">(</span>pivot_angle<span class="op">),</span> <span class="bu">cos</span><span class="op">(</span>pivot_angle<span class="op">)));</span></span></code></pre></div>
+<p>And then we apply it in the <code>x</code> and <code>z</code> axes by multiplying it by <code>VERTEX.xz</code>.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>VERTEX<span class="op">.</span><span class="fu">xz</span> <span class="op">=</span> rotation_matrix <span class="op">*</span> VERTEX<span class="op">.</span><span class="fu">xz</span><span class="op">;</span></span></code></pre></div>
+<p>With only the pivot applied you should see something like this:</p>
+<p>The next two motions need to pan down the spine of the fish. For that, we need a new variable, <code>body</code>. <code>body</code> is a float that is <code>0</code> at the tail of the fish and <code>1</code> at its head.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> body <span class="op">=</span> <span class="op">(</span>VERTEX<span class="op">.</span><span class="fu">z</span> <span class="op">+</span> <span class="fl">1.0</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2.0</span><span class="op">;</span> <span class="co">//for a fish centered at (0, 0) with a length of 2</span></span></code></pre></div>
+<p>The next motion is a cosine wave that moves down the length of the fish. To make it move along the spine of the fish, we offset the input to <code>cos</code> by the position along the spine, which is the variable we defined above, <code>body</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">//wave is a uniform float</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>VERTEX<span class="op">.</span><span class="fu">x</span> <span class="op">+=</span> <span class="bu">cos</span><span class="op">(</span>time <span class="op">+</span> body<span class="op">)</span> <span class="op">*</span> wave<span class="op">;</span></span></code></pre></div>
+<p>This looks very similar to the side to side motion we defined above, but in this one, by using <code>body</code> to offset <code>cos</code> each vertex along the spine has a different position in the wave making it look like a wave is moving along the fish.</p>
+<p>The last motion is the twist, which is a panning roll along the spine. Similarly to the pivot, we first construct a rotation matrix.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">//twist is a uniform float</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> twist_angle <span class="op">=</span> <span class="bu">cos</span><span class="op">(</span>time <span class="op">+</span> body<span class="op">)</span> <span class="op">*</span> <span class="fl">0.3</span> <span class="op">*</span> twist<span class="op">;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="dt">mat2</span> twist_matrix <span class="op">=</span> <span class="dt">mat2</span><span class="op">(</span><span class="dt">vec2</span><span class="op">(</span><span class="bu">cos</span><span class="op">(</span>twist_angle<span class="op">),</span> <span class="op">-</span><span class="bu">sin</span><span class="op">(</span>twist_angle<span class="op">)),</span> <span class="dt">vec2</span><span class="op">(</span><span class="bu">sin</span><span class="op">(</span>twist_angle<span class="op">),</span> <span class="bu">cos</span><span class="op">(</span>twist_angle<span class="op">)));</span></span></code></pre></div>
+<p>We apply the rotation in the <code>xy</code> axes so that the fish appears to roll around its spine. For this to work, the fish's spine needs to be centered on the <code>z</code> axis.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>VERTEX<span class="op">.</span><span class="fu">xy</span> <span class="op">=</span> twist_matrix <span class="op">*</span> VERTEX<span class="op">.</span><span class="fu">xy</span><span class="op">;</span></span></code></pre></div>
+<p>Here is the fish with twist applied:</p>
+<p>If we apply all these motions one after another, we get a fluid jelly-like motion.</p>
+<p>Normal fish swim mostly with the back half of their body. Accordingly, we need to limit the panning motions to the back half of the fish. To do this, we create a new variable, <code>mask</code>.</p>
+<p><code>mask</code> is a float that goes from <code>0</code> at the front of the fish to <code>1</code> at the end using <code>smoothstep</code> to control the point at which the transition from <code>0</code> to <code>1</code> happens.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">//mask_black and mask_white are uniforms</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> mask <span class="op">=</span> <span class="bu">smoothstep</span><span class="op">(</span>mask_black<span class="op">,</span> mask_white<span class="op">,</span> <span class="fl">1.0</span> <span class="op">-</span> body<span class="op">);</span></span></code></pre></div>
+<p>Below is an image of the fish with <code>mask</code> used as <code>COLOR</code>:</p>
+<p>For the wave, we multiply the motion by <code>mask</code> which will limit it to the back half.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">//wave motion with mask</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>VERTEX<span class="op">.</span><span class="fu">x</span> <span class="op">+=</span> <span class="bu">cos</span><span class="op">(</span>time <span class="op">+</span> body<span class="op">)</span> <span class="op">*</span> mask <span class="op">*</span> wave<span class="op">;</span></span></code></pre></div>
+<p>In order to apply the mask to the twist, we use <code>mix</code>. <code>mix</code> allows us to mix the vertex position between a fully rotated vertex and one that is not rotated. We need to use <code>mix</code> instead of multiplying <code>mask</code> by the rotated <code>VERTEX</code> because we are not adding the motion to the <code>VERTEX</code> we are replacing the <code>VERTEX</code> with the rotated version. If we multiplied that by <code>mask</code>, we would shrink the fish.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">//twist motion with mask</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>VERTEX<span class="op">.</span><span class="fu">xy</span> <span class="op">=</span> <span class="bu">mix</span><span class="op">(</span>VERTEX<span class="op">.</span><span class="fu">xy</span><span class="op">,</span> twist_matrix <span class="op">*</span> VERTEX<span class="op">.</span><span class="fu">xy</span><span class="op">,</span> mask<span class="op">);</span></span></code></pre></div>
+<p>Putting the four motions together gives us the final animation.</p>
+<p>Go ahead and play with the uniforms in order to alter the swim cycle of the fish. You will find that you can create a wide variety of swim styles using these four motions.</p>
+<h2 id="making-a-school-of-fish">Making a school of fish</h2>
+<p>Godot makes it easy to render thousands of the same object using a MultiMeshInstance node.</p>
+<p>A MultiMeshInstance node is created and used the same way you would make a MeshInstance node. For this tutorial, we will name the MultiMeshInstance node <code>School</code>, because it will contain a school of fish.</p>
+<p>Once you have a MultiMeshInstance add a ref, and to that MultiMesh add your ref with the shader from above.</p>
+<p>MultiMeshes draw your Mesh with three additional per-instance properties: Transform (rotation, translation, scale), Color, and Custom. Custom is used to pass in 4 multi-use variables using a ref.</p>
+<p><code>instance_count</code> specifies how many instances of the mesh you want to draw. For now, leave <code>instance_count</code> at <code>0</code> because you cannot change any of the other parameters while <code>instance_count</code> is larger than <code>0</code>. We will set <code>instance count</code> in GDScript later.</p>
+<p><code>transform_format</code> specifies whether the transforms used are 3D or 2D. For this tutorial, select 3D.</p>
+<p>For both <code>color_format</code> and <code>custom_data_format</code> you can choose between <code>None</code>, <code>Byte</code>, and <code>Float</code>. <code>None</code> means you won't be passing in that data (either a per-instance <code>COLOR</code> variable, or <code>INSTANCE_CUSTOM</code>) to the shader. <code>Byte</code> means each number making up the color you pass in will be stored with 8 bits while <code>Float</code> means each number will be stored in a floating-point number (32 bits). <code>Float</code> is slower but more precise, <code>Byte</code> will take less memory and be faster, but you may see some visual artifacts.</p>
+<p>Now, set <code>instance_count</code> to the number of fish you want to have.</p>
+<p>Next we need to set the per-instance transforms.</p>
+<p>There are two ways to set per-instance transforms for MultiMeshes. The first is entirely in editor and is described in the ref.</p>
+<p>The second is to loop over all the instances and set their transforms in code. Below, we use GDScript to loop over all the instances and set their transform to a random position.</p>
+<pre><code>for i in range($School.multimesh.instance_count):
+  var position = Transform()
+  position = position.translated(Vector3(randf() * 100 - 50, randf() * 50 - 25, randf() * 50 - 25))
+  $School.multimesh.set_instance_transform(i, position)</code></pre>
+<p>Running this script will place the fish in random positions in a box around the position of the MultiMeshInstance.</p>
+<blockquote>
+<p><strong>Note:</strong> If performance is an issue for you, try running the scene with GLES2 or with fewer fish.</p>
+</blockquote>
+<p>Notice how all the fish are all in the same position in their swim cycle? It makes them look very robotic. The next step is to give each fish a different position in the swim cycle so the entire school looks more organic.</p>
+<h2 id="animating-a-school-of-fish">Animating a school of fish</h2>
+<p>One of the benefits of animating the fish using <code>cos</code> functions is that they are animated with one parameter, <code>time</code>. In order to give each fish a unique position in the swim cycle, we only need to offset <code>time</code>.</p>
+<p>We do that by adding the per-instance custom value <code>INSTANCE_CUSTOM</code> to <code>time</code>.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> time <span class="op">=</span> <span class="op">(</span>TIME <span class="op">*</span> time_scale<span class="op">)</span> <span class="op">+</span> <span class="op">(</span><span class="fl">6.28318</span> <span class="op">*</span> INSTANCE_CUSTOM<span class="op">.</span><span class="fu">x</span><span class="op">);</span></span></code></pre></div>
+<p>Next, we need to pass a value into <code>INSTANCE_CUSTOM</code>. We do that by adding one line into the <code>for</code> loop from above. In the <code>for</code> loop we assign each instance a set of four random floats to use.</p>
+<pre><code>$School.multimesh.set_instance_custom_data(i, Color(randf(), randf(), randf(), randf()))</code></pre>
+<p>Now the fish all have unique positions in the swim cycle. You can give them a little more individuality by using <code>INSTANCE_CUSTOM</code> to make them swim faster or slower by multiplying by <code>TIME</code>.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">//set speed from 50% - 150% of regular speed</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> time <span class="op">=</span> <span class="op">(</span>TIME <span class="op">*</span> <span class="op">(</span><span class="fl">0.5</span> <span class="op">+</span> INSTANCE_CUSTOM<span class="op">.</span><span class="fu">y</span><span class="op">)</span> <span class="op">*</span> time_scale<span class="op">)</span> <span class="op">+</span> <span class="op">(</span><span class="fl">6.28318</span> <span class="op">*</span> INSTANCE_CUSTOM<span class="op">.</span><span class="fu">x</span><span class="op">);</span></span></code></pre></div>
+<p>You can even experiment with changing the per-instance color the same way you changed the per-instance custom value.</p>
+<p>One problem that you will run into at this point is that the fish are animated, but they are not moving. You can move them by updating the per-instance transform for each fish every frame. Although doing so will be faster than moving thousands of MeshInstances per frame, it'll still likely be slow.</p>
+<p>In the next tutorial we will cover how to use ref to take advantage of the GPU and move each fish around individually while still receiving the benefits of instancing.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

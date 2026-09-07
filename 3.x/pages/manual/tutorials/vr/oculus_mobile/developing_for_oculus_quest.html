@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Developing for Oculus Quest — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="developing-for-oculus-quest">Developing for Oculus Quest</h1>
+<h2 id="introduction">Introduction</h2>
+<p>This tutorial goes over how to get started developing for the <em>Meta Quest</em> with the Godot Oculus Mobile plugin.</p>
+<p>Before starting, there are two things you need to do:</p>
+<p>First you need to go through the steps on the <code>doc_exporting_for_android</code> page. This leads you through installing the toolset that Godot needs to export to Android devices.</p>
+<p>Next you need the Quest plugin. You can get it from the Asset Library or manually download it from <a href="https://github.com/GodotVR/godot-oculus-mobile-asset">here</a>.</p>
+<h2 id="setting-up-godot">Setting Up Godot</h2>
+<p>To get started open Godot and create a new project.</p>
+<p>Make sure to choose the <code>GLES2</code> renderer. Due to the Quest's GPU this backend is far better suited for the Quest.</p>
+<p>Copy the addons folder from the Oculus Mobile asset into your Godot project. Your project tree should look similar to this:</p>
+<p>Now you can start building the main scene:</p>
+<ul>
+<li>Add an ref node first.</li>
+<li>Then add three child nodes to the origin node, one ref and two ref nodes.</li>
+<li>Assign controller ID 1 to the first ref and rename that to <code>LeftHand</code>.</li>
+<li>Assign controller ID 2 to the second ref and rename that to <code>RightHand</code>.</li>
+<li>Finally add a ref as a child node to our first ref and create a box shape, resize the box so each side is set to 0.1. Now duplicate the ref and move it to the second ref node. These will stand in for our controllers.</li>
+</ul>
+<p>Now add a script to the main node and add the following code:</p>
+<pre class="gdscript"><code>extends Spatial
+
+
+var perform_runtime_config = false
+
+
+onready var ovr_init_config = preload(&quot;res://addons/godot_ovrmobile/OvrInitConfig.gdns&quot;).new()
+onready var ovr_performance = preload(&quot;res://addons/godot_ovrmobile/OvrPerformance.gdns&quot;).new()
+
+
+func _ready():
+    var interface = ARVRServer.find_interface(&quot;OVRMobile&quot;)
+    if interface:
+        ovr_init_config.set_render_target_size_multiplier(1)
+
+        if interface.initialize():
+            get_viewport().arvr = true
+
+
+func _process(_delta):
+    if not perform_runtime_config:
+        ovr_performance.set_clock_levels(1, 1)
+        ovr_performance.set_extra_latency_mode(1)
+        perform_runtime_config = true</code></pre>
+<p>Before you can export this project to the Quest you need to do three more things.</p>
+<p>First go into the project settings and make sure that the main scene is the scene we run. Godot does not ask you to set this on export.</p>
+<p>Then go into the export menu and configure a new Android export. If you still haven't gone through the <code>doc_exporting_for_android</code> page do it now. If you didn't you'll have some red messages on this screen.</p>
+<p>If you did you can forge ahead and make a few small changes to the export settings. First change the XR Mode to <code>Oculus Mobile VR</code>. Then change the Degrees of Freedom mode to <code>6DOF</code>.</p>
+<p>Now save and close the export window.</p>
+<h2 id="setting-up-your-quest">Setting Up Your Quest</h2>
+<p>Follow <a href="https://developer.oculus.com/documentation/native/android/mobile-device-setup/">these instructions</a> to setup your device for development.</p>
+<p>Once your device is set up and connected, click the <strong>Android logo</strong> that should be visible in the top-right corner of the Godot editor. When clicked, it exports your project and runs it on the connected device. If you do not see this Android logo, make sure you have create an Android export preset and that the preset is marked as <strong>Runnable</strong> in the Export dialog.</p>
+<p>The above does the bare minimum to get your project running on the Quest, it's not very exciting. Holger Dammertz has made a great toolkit for the quest that contains a lot of scenes to get help you on your way including really nice controller meshes.</p>
+<p>You can find the toolkit <a href="https://github.com/NeoSpark314/godot_oculus_quest_toolkit">here</a>.</p>
+<p>If you want to help out with improving the plugin please join us <a href="https://github.com/GodotVR/godot_oculus_mobile">here</a>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

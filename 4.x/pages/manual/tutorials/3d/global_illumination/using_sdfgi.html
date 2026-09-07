@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signed distance field global illumination (SDFGI) — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="signed-distance-field-global-illumination-sdfgi">Signed distance field global illumination (SDFGI)</h1>
+<p>Signed distance field global illumination (SDFGI) is a novel technique available in Godot. It provides semi-real-time global illumination that scales to any world size and works with procedurally generated levels.</p>
+<p>SDFGI supports dynamic lights, but <em>not</em> dynamic occluders or dynamic emissive surfaces. Therefore, SDFGI provides better real-time ability than ref, but worse real-time ability than ref.</p>
+<p>From a performance standpoint, SDFGI is one of the most demanding global illumination techniques in Godot. Like with VoxelGI, there are still many settings available to tweak its performance requirements at the cost of quality.</p>
+<blockquote>
+<p><strong>Important:</strong> SDFGI is only supported when using the Forward+ renderer, not the Mobile or Compatibility renderers.</p>
+</blockquote>
+<blockquote>
+<p><strong>See also:</strong> Not sure if SDFGI is suited to your needs? See <code>doc_introduction_to_global_illumination_comparison</code> for a comparison of GI techniques available in Godot 4.</p>
+</blockquote>
+<h2 id="visual-comparison">Visual comparison</h2>
+<p><em>Image: SDFGI disabled.</em></p>
+<p>SDFGI disabled.</p>
+<p><em>Image: SDFGI enabled.</em></p>
+<p>SDFGI enabled.</p>
+<h2 id="setting-up-sdfgi">Setting up SDFGI</h2>
+<p>In Godot, SDFGI is the global illumination technique with the fewest required steps to enable:</p>
+<ol type="1">
+<li>Make sure your MeshInstance nodes have their <strong>Global Illumination &gt; Mode</strong> property set to <strong>Static</strong> in the inspector.</li>
+</ol>
+<blockquote>
+<ul>
+<li>For imported 3D scenes, the bake mode can be configured in the Import dock after selecting the 3D scene file in the FileSystem dock.</li>
+</ul>
+</blockquote>
+<ol start="2" type="1">
+<li>Add a WorldEnvironment node and create an Environment resource for it.</li>
+<li>Edit the Environment resource, scroll down to the <strong>SDFGI</strong> section and unfold it.</li>
+<li>Enable <strong>SDFGI &gt; Enabled</strong>. SDFGI will automatically follow the camera when it moves, so you do not need to configure extents (unlike VoxelGI).</li>
+</ol>
+<h2 id="environment-sdfgi-properties">Environment SDFGI properties</h2>
+<p>In the Environment resource, there are several properties available to adjust SDFGI appearance and quality:</p>
+<ul>
+<li><strong>Use Occlusion:</strong> If enabled, SDFGI will throw additional rays to find and reduce light leaks. This has a performance cost, so only enable this property if you actually need it.</li>
+<li><strong>Read Sky Light:</strong> If enabled, the environment lighting is represented in the global illumination. This should be enabled in outdoor scenes and disabled in fully indoor scenes.</li>
+<li><strong>Bounce Feedback:</strong> By default, indirect lighting only bounces once when using SDFGI. Setting this value above <code>0.0</code> will cause SDFGI to bounce more than once, which provides more realistic indirect lighting at a small performance cost. Sensible values are usually between <code>0.3</code> and <code>1.0</code> depending on the scene. Note that in some scenes, values above <code>0.5</code> can cause infinite feedback loops to happen, causing the scene to become extremely bright in a few seconds' time. If your indirect lighting looks "splotchy", consider increasing this value above <code>0.0</code> to get more uniform-looking lighting. If your lighting ends up looking too bright as a result, decrease <strong>Energy</strong> to compensate.</li>
+<li><strong>Cascades:</strong> Higher values result in more detailed GI information (and/or greater maximum distance), but are significantly more expensive on the CPU and GPU. The performance cost of having more cascades especially increases when the camera moves fast, so consider decreasing this to <code>4</code> or lower if your camera moves fast.</li>
+<li><strong>Min Cell Size:</strong> The minimum SDFGI cell size to use for the nearest, most detailed cascade. Lower values result in more accurate indirect lighting and reflection at the cost of lower performance. Adjusting this setting also affects <strong>Cascade 0 Distance</strong> and <strong>Max Distance</strong> automatically.</li>
+<li><strong>Cascade 0 Distance:</strong> The distance at which the nearest, most detailed cascade ends. Greater values make the nearest cascade transition less noticeable, at the cost of reducing the level of detail in the nearest cascade. Adjusting this setting also affects <strong>Min Cell Size</strong> and <strong>Max Distance</strong> automatically.</li>
+<li><strong>Max Distance:</strong> Controls how far away the signed distance field will be computed (for the least detailed cascade). SDFGI will not have any effect past this distance. This value should always be set below the Camera's Far value, as there is no benefit in computing SDFGI past the viewing distance. Adjusting this setting also affects <strong>Min Cell Size</strong> and <strong>Cascade 0 Distance</strong> automatically.</li>
+<li><strong>Y Scale:</strong> Controls how far apart SDFGI probes are spread <em>vertically</em>. By default, vertical spread is the same as horizontal. However, since most game scenes aren't highly vertical, setting the Y Scale to <code>75%</code> or even <code>50%</code> can provide better quality and reduce light leaks without impacting performance.</li>
+<li><strong>Energy:</strong> The brightness multiplier for SDFGI's indirect lighting.</li>
+<li><strong>Normal Bias:</strong> The normal bias to use for SDFGI's probe ray bounces. Unlike <strong>Probe Bias</strong>, this only increases the value in relation to the mesh's normals. This makes the bias adjustment more nuanced and avoids increasing the bias too much for no reason. Increase this value if you notice striping artifacts in indirect lighting or reflections.</li>
+<li><strong>Probe Bias:</strong> The bias to use for SDFGI's probe ray bounces. Increase this value if you notice striping artifacts in indirect lighting or reflections.</li>
+</ul>
+<h2 id="sdfgi-interaction-with-lights-and-objects">SDFGI interaction with lights and objects</h2>
+<p>The amount of indirect energy emitted by a light is defined by its color, energy <em>and</em> indirect energy properties. To make a specific light emit more or less indirect energy without affecting the amount of direct light emitted by the light, adjust the <strong>Indirect Energy</strong> property in the Light3D inspector.</p>
+<p>To ensure correct visuals when using SDFGI, you must configure your meshes and lights' global illumination properties according to their <em>purpose</em> in the scene (static or dynamic).</p>
+<p>There are 3 global illumination modes available for meshes:</p>
+<ul>
+<li><strong>Disabled:</strong> The mesh won't be taken into account in SDFGI generation. The mesh will receive indirect lighting from the scene, but it will not contribute indirect lighting to the scene.</li>
+<li><strong>Static (default):</strong> The mesh will be taken into account in SDFGI generation. The mesh will both receive <em>and</em> contribute indirect lighting to the scene. If the mesh is changed in any way after SDFGI is generated, the camera must move away from the object then move back close to it for SDFGI to regenerate. Alternatively, SDFGI can be toggled off and back on. If neither is done, indirect lighting will look incorrect.</li>
+<li><strong>Dynamic (not supported with SDFGI):</strong> The mesh won't be taken into account in SDFGI generation. The mesh will receive indirect lighting from the scene, but it will not contribute indirect lighting to the scene. This acts identical to the <strong>Disabled</strong> bake mode when using SDFGI.</li>
+</ul>
+<p>Additionally, there are 3 bake modes available for lights (DirectionalLight3D, OmniLight3D, SpotLight3D, and AreaLight3D):</p>
+<ul>
+<li><strong>Disabled:</strong> The light won't be taken into account for SDFGI baking. The light won't contribute indirect lighting to the scene.</li>
+<li><strong>Static:</strong> The light will be taken into account for SDFGI baking. The light will contribute indirect lighting to the scene. If the light is changed in any way after baking, indirect lighting will look incorrect until the camera moves away from the light and back (which causes SDFGI to be baked again). If in doubt, use this mode for level lighting.</li>
+<li><strong>Dynamic (default):</strong> The light won't be taken into account for SDFGI baking, but it will still contribute indirect lighting to the scene in real-time. This option is slower compared to <strong>Static</strong>. Only use the <strong>Dynamic</strong> global illumination mode on lights that will change significantly during gameplay.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> The amount of indirect energy emitted by a light depends on its color, energy <em>and</em> indirect energy properties. To make a specific light emit more or less indirect energy without affecting the amount of direct light emitted by the light, adjust the <strong>Indirect Energy</strong> property in the Light3D inspector.</p>
+</blockquote>
+<blockquote>
+<p><strong>See also:</strong> See <code>doc_introduction_to_global_illumination_gi_mode_recommendations</code> for general usage recommendations.</p>
+</blockquote>
+<h2 id="adjusting-sdfgi-performance-and-quality">Adjusting SDFGI performance and quality</h2>
+<p>Since SDFGI is relatively demanding, it will perform best on systems with recent dedicated GPUs. On older dedicated GPUs and integrated graphics, tweaking the settings is necessary to achieve reasonable performance.</p>
+<p>In the Project Settings' <strong>Rendering &gt; Global Illumination</strong> section, SDFGI quality can also be adjusted in several ways:</p>
+<ul>
+<li><strong>Sdfgi &gt; Probe Ray Count:</strong> Higher values result in better quality, at the cost of higher GPU usage. If this value is set too low, this can cause surfaces to have visible "splotches" of indirect lighting on them due to the number of rays thrown being very low.</li>
+<li><strong>Sdfgi &gt; Frames To Converge:</strong> Higher values result in better quality, but GI will take more time to fully converge. The effect of this setting is especially noticeable when first loading a scene, or when lights with a bake mode other than <strong>Disabled</strong> are moving fast. If this value is set too low, this can cause surfaces to have visible "splotches" of indirect lighting on them due to the number of rays thrown being very low. If your scene's lighting doesn't have fast-moving lights that contribute to GI, consider setting this to <code>30</code> to improve quality without impacting performance.</li>
+<li><strong>Sdfgi &gt; Frames To Update Light:</strong> Lower values result in moving lights being reflected faster, at the cost of higher GPU usage. If your scene's lighting doesn't have fast-moving lights that contribute to GI, consider setting this to <code>16</code> to improve performance.</li>
+<li><strong>Gi &gt; Use Half Resolution:</strong> If enabled, both SDFGI and VoxelGI will have their GI buffer rendering at halved resolution. For instance, when rendering in 3840×2160, the GI buffer will be computed at a 1920×1080 resolution. Enabling this option saves a lot of GPU time, but it can introduce visible aliasing around thin details.</li>
+</ul>
+<p>SDFGI rendering performance also depends on the number of cascades and the cell size chosen in the Environment resource (see above).</p>
+<h2 id="sdfgi-caveats">SDFGI caveats</h2>
+<p>SDFGI has some downsides due to its cascaded nature. When the camera moves, cascade shifts may be visible in indirect lighting. This can be alleviated by adjusting the cascade size, but also by adding fog (which will make distant cascade shifts less noticeable).</p>
+<p>Additionally, performance will suffer if the camera moves too fast. This can be fixed in two ways:</p>
+<ul>
+<li>Ensuring the camera doesn't move too fast in any given situation.</li>
+<li>Temporarily disabling SDFGI in the Environment resource if the camera needs to be moved at a high speed, then enabling SDFGI once the camera speed slows down.</li>
+</ul>
+<p>When SDFGI is enabled, it will also take some time for global illumination to be fully converged (30 frames by default). This can create a noticeable transition effect while GI is still converging. To hide this, you can use a ColorRect node that spans the whole viewport and fade it out when switching scenes using an AnimationPlayer node.</p>
+<p>The signed distance field is only updated when the camera moves in and out of a cascade. This means that if geometry is modified in the distance, the global illumination appearance will be correct once the camera gets closer. However, if a nearby object with a bake mode set to <strong>Static</strong> or <strong>Dynamic</strong> is moved (such as a door), the global illumination will appear incorrect until the camera moves away from the object.</p>
+<p>SDFGI's sharp reflections are only visible on opaque materials. Transparent materials will only use rough reflections, even if the material's roughness is lower than 0.2.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

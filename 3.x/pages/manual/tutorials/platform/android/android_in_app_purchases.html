@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Android in-app purchases — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="android-in-app-purchases">Android in-app purchases</h1>
+<p>Godot offers a first-party <code>GodotGooglePlayBilling</code> Android plugin since Godot 3.2.2. The new plugin uses the <a href="https://developer.android.com/google/play/billing">Google Play Billing library</a> instead of the now deprecated AIDL IAP implementation.</p>
+<p>If you learn better by looking at an example, you can find the demo project <a href="https://github.com/godotengine/godot-demo-projects/tree/3.5/mobile/android_iap">here</a>.</p>
+<h2 id="migrating-from-godot-321-and-lower-godotpaymentsv3">Migrating from Godot 3.2.1 and lower (GodotPaymentsV3)</h2>
+<p>The new <code>GodotGooglePlayBilling</code> API is not compatible with its predecessor <code>GodotPaymentsV3</code>.</p>
+<h3 id="changes">Changes</h3>
+<ul>
+<li>You need to enable the Custom Build option in your Android export settings and install the <code>GodotGooglePlayBilling</code> plugin manually (see below for details)</li>
+<li>All purchases have to be acknowledged by your app. This is a <a href="https://developer.android.com/google/play/billing/integrate#process">requirement from Google</a>. Purchases that are not acknowledged by your app will be refunded.</li>
+<li>Support for subscriptions</li>
+<li>Signals (no polling or callback objects)</li>
+</ul>
+<h2 id="usage">Usage</h2>
+<h3 id="getting-started">Getting started</h3>
+<p>If not already done, make sure you have enabled and successfully set up ref. Grab the<code>GodotGooglePlayBilling</code> plugin binary and config from the <a href="https://github.com/godotengine/godot-google-play-billing/releases">releases page</a> and put both into res://android/plugins. The plugin should now show up in the Android export settings, where you can enable it.</p>
+<h3 id="getting-started-1">Getting started</h3>
+<p>To use the <code>GodotGooglePlayBilling</code> API you first have to get the <code>GodotGooglePlayBilling</code> singleton and start the connection:</p>
+<pre><code>var payment
+
+func _ready():
+    if Engine.has_singleton(&quot;GodotGooglePlayBilling&quot;):
+        payment = Engine.get_singleton(&quot;GodotGooglePlayBilling&quot;)
+
+        # These are all signals supported by the API
+        # You can drop some of these based on your needs
+        payment.connect(&quot;connected&quot;, self, &quot;_on_connected&quot;) # No params
+        payment.connect(&quot;disconnected&quot;, self, &quot;_on_disconnected&quot;) # No params
+        payment.connect(&quot;connect_error&quot;, self, &quot;_on_connect_error&quot;) # Response ID (int), Debug message (string)
+        payment.connect(&quot;purchases_updated&quot;, self, &quot;_on_purchases_updated&quot;) # Purchases (Dictionary[])
+        payment.connect(&quot;purchase_error&quot;, self, &quot;_on_purchase_error&quot;) # Response ID (int), Debug message (string)
+        payment.connect(&quot;sku_details_query_completed&quot;, self, &quot;_on_sku_details_query_completed&quot;) # SKUs (Dictionary[])
+        payment.connect(&quot;sku_details_query_error&quot;, self, &quot;_on_sku_details_query_error&quot;) # Response ID (int), Debug message (string), Queried SKUs (string[])
+        payment.connect(&quot;purchase_acknowledged&quot;, self, &quot;_on_purchase_acknowledged&quot;) # Purchase token (string)
+        payment.connect(&quot;purchase_acknowledgement_error&quot;, self, &quot;_on_purchase_acknowledgement_error&quot;) # Response ID (int), Debug message (string), Purchase token (string)
+        payment.connect(&quot;purchase_consumed&quot;, self, &quot;_on_purchase_consumed&quot;) # Purchase token (string)
+        payment.connect(&quot;purchase_consumption_error&quot;, self, &quot;_on_purchase_consumption_error&quot;) # Response ID (int), Debug message (string), Purchase token (string)
+
+        payment.startConnection()
+    else:
+        print(&quot;Android IAP support is not enabled. Make sure you have enabled &#39;Custom Build&#39; and the GodotGooglePlayBilling plugin in your Android export settings! IAP will not work.&quot;)</code></pre>
+<p>All API methods only work if the API is connected. You can use <code>payment.isReady()</code> to check the connection status.</p>
+<h3 id="querying-available-items">Querying available items</h3>
+<p>As soon as the API is connected, you can query SKUs using <code>querySkuDetails</code>.</p>
+<p>Full example:</p>
+<pre><code>func _on_connected():
+  payment.querySkuDetails([&quot;my_iap_item&quot;], &quot;inapp&quot;) # &quot;subs&quot; for subscriptions
+
+func _on_sku_details_query_completed(sku_details):
+  for available_sku in sku_details:
+    print(available_sku)</code></pre>
+<h3 id="purchase-an-item">Purchase an item</h3>
+<p>To initiate the purchase flow for an item, call <code>purchase</code>. You <strong>must</strong> query the SKU details for an item before you can initiate the purchase flow for it.</p>
+<pre><code>payment.purchase(&quot;my_iap_item&quot;)</code></pre>
+<p>Then, wait for the <code>_on_purchases_updated</code> callback and handle the purchase result:</p>
+<pre><code>func _on_purchases_updated(purchases):
+    for purchase in purchases:
+        if purchase.purchase_state == 1: # 1 means &quot;purchased&quot;, see https://developer.android.com/reference/com/android/billingclient/api/Purchase.PurchaseState#constants_1
+            # enable_premium(purchase.sku) # unlock paid content, add coins, save token on server, etc. (you have to implement enable_premium yourself)
+            if not purchase.is_acknowledged:
+                payment.acknowledgePurchase(purchase.purchase_token) # call if non-consumable product
+                if purchase.sku in list_of_consumable_products:
+                    payment.consumePurchase(purchase.purchase_token) # call if consumable product</code></pre>
+<h3 id="check-if-the-user-purchased-an-item">Check if the user purchased an item</h3>
+<p>To get all purchases, call <code>queryPurchases</code>. Unlike most of the other functions, <code>queryPurchases</code> is a synchronous operation and returns a ref with a status code and either an array of purchases or an error message. Only active subscriptions and non-consumed one-time purchases are returned.</p>
+<p>Full example:</p>
+<pre><code>var query = payment.queryPurchases(&quot;inapp&quot;) # Or &quot;subs&quot; for subscriptions
+if query.status == OK:
+    for purchase in query.purchases:
+        if purchase.sku == &quot;my_iap_item&quot; and purchase.purchase_state == 1:
+            # enable_premium(purchase.sku) # unlock paid content, save token on server, etc.
+            if !purchase.is_acknowledged:
+                payment.acknowledgePurchase(purchase.purchase_token)
+                # Or wait for the _on_purchase_acknowledged callback before giving the user what they bought</code></pre>
+<h3 id="consumables">Consumables</h3>
+<p>If your in-app item is not a one-time purchase but a consumable item (e.g. coins) which can be purchased multiple times, you can consume an item by calling <code>consumePurchase</code> with a purchase token. Call <code>queryPurchases</code> to get the purchase token. Calling <code>consumePurchase</code> automatically acknowledges a purchase. Consuming a product allows the user to purchase it again, and removes it from appearing in subsequent <code>queryPurchases</code> calls.</p>
+<pre><code>var query = payment.queryPurchases(&quot;inapp&quot;) # Or &quot;subs&quot; for subscriptions
+if query.status == OK:
+    for purchase in query.purchases:
+        if purchase.sku == &quot;my_consumable_iap_item&quot; and purchase.purchase_state == 1:
+            # enable_premium(purchase.sku) # add coins, save token on server, etc.
+            payment.consumePurchase(purchase.purchase_token)
+            # Or wait for the _on_purchase_consumed callback before giving the user what they bought</code></pre>
+<h3 id="subscriptions">Subscriptions</h3>
+<p>Subscriptions don't work much different from regular in-app items. Just use <code>"subs"</code> as second argument to <code>querySkuDetails</code> to get subscription details. Check <code>is_auto_renewing</code> in the results of <code>queryPurchases()</code> to see if a user has cancelled an auto-renewing subscription</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

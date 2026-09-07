@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exporting for the Web — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="exporting-for-the-web">Exporting for the Web</h1>
+<blockquote>
+<p><strong>See also:</strong> This page describes how to export a Godot project to HTML5. If you're looking to compile editor or export template binaries from source instead, read <code>doc_compiling_for_web</code>.</p>
+</blockquote>
+<p>HTML5 export allows publishing games made in Godot Engine to the browser. This requires support for <a href="https://webassembly.org/">WebAssembly</a> and <a href="https://www.khronos.org/webgl/">WebGL 2.0</a> in the user's browser.</p>
+<blockquote>
+<p><strong>Attention:</strong> Projects written in C# using Godot 4 currently cannot be exported to the web. See <a href="https://godotengine.org/article/platform-state-in-csharp-for-godot-4-2/#web">this blog post</a> for more information.</p>
+<p>To use C# on web platforms, use Godot 3 instead.</p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> Use the browser-integrated developer console, usually opened with <code>F12</code> or <code>Ctrl + Shift + I</code> (<code>Cmd + Option + I</code> on macOS), to view <strong>debug information</strong> like JavaScript, engine, and WebGL errors.</p>
+<p>If the shortcut doesn't work, it's because Godot actually captures the input. You can still open the developer console by accessing the browser's menu.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> Due to security concerns with <code>SharedArrayBuffer</code> due to various exploits, the use of multiple threads for the Web platform has multiple drawbacks, including requiring specific server-side headers and complete cross-origin isolation (meaning no ads, nor third-party integrations on the website hosting your game).</p>
+<p>Since Godot 4.3, Godot supports exporting your game on a single thread, which solves this issue. While it has some drawbacks on its own (it cannot use threads, and is not as performant as the multi-threaded export), it doesn't require as much overhead to install. It is also more compatible overall with stores like <a href="https://itch.io/">itch.io</a> or Web publishers like <a href="https://poki.com/">Poki</a> or <a href="https://crazygames.com/">CrazyGames</a>. The single-threaded export works very well on macOS and iOS too, where it always had compatibility issues with multiple threads exports.</p>
+<p>For these reasons, it is the preferred and now default way to export your games on the Web.</p>
+<p>For more information, see <a href="https://godotengine.org/article/progress-report-web-export-in-4-3/#single-threaded-web-export">this blog post about single-threaded Web export</a>.</p>
+</blockquote>
+<blockquote>
+<p><strong>See also:</strong> See the <a href="https://github.com/godotengine/godot/issues?q=is%3Aopen+is%3Aissue+label%3Aplatform%3Aweb">list of open issues on GitHub related to the web export</a> for a list of known bugs.</p>
+</blockquote>
+<h2 id="export-file-name">Export file name</h2>
+<p>We suggest users to export their Web projects with <code>index.html</code> as the file name. <code>index.html</code> is usually the default file loaded by web servers when accessing the parent directory, usually hiding the name of that file.</p>
+<blockquote>
+<p><strong>Attention:</strong> The Godot 4 Web export expects some files to be named the same name as the one set in the initial export. Some issues could occur if some exported files are renamed, including the main HTML file.</p>
+</blockquote>
+<h2 id="webgl-version">WebGL version</h2>
+<p>Godot 4 can only target WebGL 2.0 (using the Compatibility rendering method). Forward+/Mobile are not supported on the web platform, as these rendering methods are designed around modern low-level graphics APIs. Godot currently does not support WebGPU, which is a prerequisite for allowing Forward+/Mobile to run on the web platform.</p>
+<p>See <a href="https://caniuse.com/webgl2">Can I use WebGL 2.0</a> for a list of browser versions supporting WebGL 2.0. Note that Safari has several issues with WebGL 2.0 support that other browsers don't have, so we recommend using a Chromium-based browser or Firefox if possible.</p>
+<h2 id="mobile-considerations">Mobile considerations</h2>
+<p>The Web export can run on mobile platforms with some caveats. While native ref and ref exports will always perform better by a significant margin, the Web export allows people to run your project without going through app stores.</p>
+<p>Remember that CPU and GPU performance is at a premium when running on mobile devices. This is even more the case when running a project exported to Web (as it's WebAssembly instead of native code). See <code>doc_performance</code> section of the documentation for advice on optimizing your project. If your project runs on platforms other than Web, you can use <code>doc_feature_tags</code> to apply low-end-oriented settings when running the project exported to Web.</p>
+<p>To speed up loading times on mobile devices, you should also ref with unused features disabled. Depending on the features used by your project, this can reduce the size of the WebAssembly payload significantly, making it faster to download and initialize (even when cached).</p>
+<h2 id="audio-playback">Audio playback</h2>
+<p>Since Godot 4.3, audio playback is done using the Web Audio API on the web platform. This <strong>Sample</strong> playback mode allows for low latency even when the project is exported without thread support, but it has several limitations:</p>
+<ul>
+<li>AudioEffects are not supported.</li>
+<li>ref effects are not supported.</li>
+<li>Procedural audio generation is not supported.</li>
+<li>Positional audio may not always work correctly depending on the node's properties.</li>
+</ul>
+<p>To use Godot's own audio playback system on the web platform, you can change the default playback mode using the <strong>Audio &gt; General &gt; Default Playback Type.web</strong> project setting, or change the <strong>Playback Type</strong> property to <strong>Stream</strong> on an <code>class_AudioStreamPlayer</code>, <code>class_AudioStreamPlayer2D</code> or <code>class_AudioStreamPlayer3D</code> node. This leads to increased latency (especially when thread support is disabled), but it allows the full suite of Godot's audio features to work.</p>
+<h2 id="export-options">Export options</h2>
+<p>If a runnable web export template is available, a button appears between the <em>Stop scene</em> and <em>Play edited Scene</em> buttons in the editor to quickly open the game in the default browser for testing.</p>
+<p>If your project uses GDExtension, <strong>Extension Support</strong> needs to be enabled.</p>
+<p>If you plan to use ref make sure that <strong>VRAM Texture Compression</strong> is enabled for the targeted platforms (enabling both <strong>For Desktop</strong> and <strong>For Mobile</strong> will result in a bigger, but more compatible export).</p>
+<p>If a path to a <strong>Custom HTML shell</strong> file is given, it will be used instead of the default HTML page. See <code>doc_customizing_html5_shell</code>.</p>
+<p><strong>Head Include</strong> is appended into the <code>&lt;head&gt;</code> element of the generated HTML page. This allows to, for example, load webfonts and third-party JavaScript APIs, include CSS, or run JavaScript code.</p>
+<p>The window size will automatically match the browser window size by default. If you want to use a fixed size instead regardless of the browser window size, change <strong>Canvas Resize Policy</strong> to <strong>None</strong>. This allows controlling the window size with custom JavaScript code in the HTML shell. You can also set it to <strong>Project</strong> to make it behave closer to a native export, according to the ref.</p>
+<blockquote>
+<p><strong>Important:</strong> Each project must generate their own HTML file. On export, several text placeholders are replaced in the generated HTML file specifically for the given export options. Any direct modifications to that HTML file will be lost in future exports. To customize the generated file, use the <strong>Custom HTML shell</strong> option.</p>
+</blockquote>
+<h3 id="thread-and-extension-support">Thread and extension support</h3>
+<p>If <strong>Thread Support</strong> is enabled, the exported project will be able to ref to improve performance. This also allows for low-latency audio playback when the playback type is set to <strong>Stream</strong> (instead of the default <strong>Sample</strong> that is used in web exports). Enabling this feature requires the use of cross-origin isolation headers, which are described in the <code>doc_exporting_for_web_serving_the_files</code> section below.</p>
+<p>If <strong>Extensions Support</strong> is enabled, ref will be able to be loaded. Note that GDExtensions still need to be specifically compiled for the web platform to work. Like thread support, enabling this feature requires the use of cross-origin isolation headers.</p>
+<h3 id="exporting-as-a-progressive-web-app-pwa">Exporting as a Progressive Web App (PWA)</h3>
+<p>If <strong>Progressive Web App &gt; Enable</strong> is enabled, it will have several effects:</p>
+<ul>
+<li>Configure high-resolution icons, a display mode and screen orientation. These are configured at the end of the Progressive Web App section in the export options. These options are used if the user adds the project to their device's homescreen, which is common on mobile platforms. This is also supported on desktop platforms, albeit in a more limited capacity.</li>
+<li>Allow the project to be loaded without an Internet connection if it has been loaded at least once beforehand. This works thanks to the <em>service worker</em> that is installed when the project is first loaded in the user's browser. This service worker provides a local fallback when no Internet connection is available.
+<ul>
+<li>Note that web browsers can choose to evict the cached data if the user runs low on disk space, or if the user hasn't opened the project for a while. To ensure data is cached for a longer duration, the user can bookmark the page, or ideally add it to their device's home screen.</li>
+<li>If the offline data is not available because it was evicted from the cache, you can configure an <strong>Offline Page</strong> that will be displayed in this case. The page must be in HTML format and will be saved on the client's machine the first time the project is loaded.</li>
+</ul></li>
+<li>Ensure cross-origin isolation headers are always present, even if the web server hasn't been configured to send them. This allows exports with threads enabled to work when hosted on any website, even if there is no way for you to control the headers it sends.
+<ul>
+<li>This behavior can be disabled by unchecking <strong>Enable Cross Origin Isolation Headers</strong> in the Progressive Web App section.</li>
+</ul></li>
+</ul>
+<h2 id="limitations">Limitations</h2>
+<p>For security and privacy reasons, many features that work effortlessly on native platforms are more complicated on the web platform. Following is a list of limitations you should be aware of when porting a Godot game to the web.</p>
+<blockquote>
+<p><strong>Important:</strong> Browser vendors are making more and more functionalities only available in <a href="https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts">secure contexts</a>, this means that such features are only be available if the web page is served via a secure HTTPS connection (localhost is usually exempt from such requirement).</p>
+</blockquote>
+<h3 id="using-cookies-for-data-persistence">Using cookies for data persistence</h3>
+<p>Users must <strong>allow cookies</strong> (specifically IndexedDB) if persistence of the <code>user://</code> file system is desired. When playing a game presented in an <code>iframe</code>, <strong>third-party</strong> cookies must also be enabled. Incognito/private browsing mode also prevents persistence.</p>
+<p>The method <code>OS.is_userfs_persistent()</code> can be used to check if the <code>user://</code> file system is persistent, but can give false positives in some cases.</p>
+<h3 id="background-processing">Background processing</h3>
+<p>The project will be paused by the browser when the tab is no longer the active tab in the user's browser. This means functions such as <code>_process()</code> and <code>_physics_process()</code> will no longer run until the tab is made active again by the user (by switching back to the tab). This can cause networked games to disconnect if the user switches tabs for a long duration.</p>
+<p>This limitation does not apply to unfocused browser <em>windows</em>. Therefore, on the user's side, this can be worked around by running the project in a separate <em>window</em> instead of a separate tab.</p>
+<h3 id="full-screen-and-mouse-capture">Full screen and mouse capture</h3>
+<p>Browsers do not allow arbitrarily <strong>entering full screen</strong>. The same goes for <strong>capturing the cursor</strong>. Instead, these actions have to occur as a response to a JavaScript input event. In Godot, this means entering full screen from within a pressed input event callback such as <code>_input</code> or <code>_unhandled_input</code>. Querying the <code>class_Input</code> singleton is not sufficient, the relevant input event must currently be active.</p>
+<p>For the same reason, the full screen project setting doesn't work unless the engine is started from within a valid input event handler. This requires ref.</p>
+<h3 id="audio">Audio</h3>
+<p>Some browsers restrict autoplay for audio on websites. The easiest way around this limitation is to request the player to click, tap or press a key/button to enable audio, for instance when displaying a splash screen at the start of your game.</p>
+<blockquote>
+<p><strong>See also:</strong> Google offers additional information about their <a href="https://www.chromium.org/audio-video/autoplay/">Web Audio autoplay policies</a>.</p>
+<p>Apple's Safari team also posted additional information about their <a href="https://webkit.org/blog/7734/auto-play-policy-changes-for-macos/">Auto-Play Policy Changes for macOS</a>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Access to microphone requires a ref.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Since Godot 4.3, by default Web exports will use samples instead of streams to play audio.</p>
+<p>This is due to the way browsers prefer to play audio and the lack of processing power available when exporting Web games with the <strong>Use Threads</strong> export option off.</p>
+<p>Please note that audio effects aren't yet implemented for samples.</p>
+</blockquote>
+<h3 id="networking">Networking</h3>
+<p>Low-level networking is not implemented due to lacking support in browsers.</p>
+<p>Currently, only ref, ref, ref and ref are supported.</p>
+<p>The HTTP classes also have several restrictions on the HTML5 platform:</p>
+<blockquote>
+<ul>
+<li>Accessing or changing the <code>StreamPeer</code> is not possible</li>
+<li>Threaded/Blocking mode is not available</li>
+<li>Cannot progress more than once per frame, so polling in a loop will freeze</li>
+<li>No chunked responses</li>
+<li>Host verification cannot be disabled</li>
+<li>Subject to <a href="https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy">same-origin policy</a></li>
+</ul>
+</blockquote>
+<h3 id="clipboard">Clipboard</h3>
+<p>Clipboard synchronization between engine and the operating system requires a browser supporting the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API">Clipboard API</a>, additionally, due to the API asynchronous nature might not be reliable when accessed from GDScript.</p>
+<blockquote>
+<p><strong>Warning:</strong> Requires a ref.</p>
+</blockquote>
+<h3 id="gamepads">Gamepads</h3>
+<p>Gamepads will not be detected until one of their button is pressed. Gamepads might have the wrong mapping depending on the browser/OS/gamepad combination, sadly the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API/Using_the_Gamepad_API">Gamepad API</a> does not provide a reliable way to detect the gamepad information necessary to remap them based on model/vendor/OS due to privacy considerations.</p>
+<blockquote>
+<p><strong>Warning:</strong> Requires a ref.</p>
+</blockquote>
+<h2 id="serving-the-files">Serving the files</h2>
+<p>Exporting for the web generates several files to be served from a web server, including a default HTML page for presentation. A custom HTML file can be used, see <code>doc_customizing_html5_shell</code>.</p>
+<blockquote>
+<p><strong>Warning:</strong> Only when exporting with <strong>Use Threads</strong>, to ensure low audio latency and the ability to use <code>class_Thread</code> in web exports, Godot 4 web exports use <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer">SharedArrayBuffer</a>. This requires a ref, while also requiring the following CORS headers to be set when serving the files:</p>
+<pre><code>Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp</code></pre>
+<p>If you don't control the web server or are unable to add response headers, check <strong>Progressive Web App &gt; Enable</strong> in the export options. This applies a service worker-based workaround that allows the project to run by simulating the presence of these response headers. A secure context is still required in this case.</p>
+<p>If the client doesn't receive the required response headers or the service worker-based workaround is not applied, <strong>the project will not run</strong>.</p>
+</blockquote>
+<p>The generated <code>.html</code> file can be used as <code>DirectoryIndex</code> in Apache servers and can be renamed to e.g. <code>index.html</code> at any time. Its name is never depended on by default.</p>
+<p>The HTML page draws the game at maximum size within the browser window. This way, it can be inserted into an <code>&lt;iframe&gt;</code> with the game's size, as is common on most web game hosting sites.</p>
+<p>The other exported files are served as they are, next to the <code>.html</code> file, names unchanged. The <code>.wasm</code> file is a binary WebAssembly module implementing the engine. The <code>.pck</code> file is the Godot main pack containing your game. The <code>.js</code> file contains start-up code and is used by the <code>.html</code> file to access the engine. The <code>.png</code> file contains the boot splash image.</p>
+<p>The <code>.pck</code> file is binary, usually delivered with the MIME-type <code>application/octet-stream</code>. The <code>.wasm</code> file is delivered as <code>application/wasm</code>.</p>
+<blockquote>
+<p><strong>Warning:</strong> Delivering the WebAssembly module (<code>.wasm</code>) with a MIME-type other than <code>application/wasm</code> can prevent some start-up optimizations.</p>
+</blockquote>
+<p>Delivering the files with server-side compression is recommended especially for the <code>.pck</code> and <code>.wasm</code> files, which are usually large in size. The WebAssembly module compresses particularly well, down to around a quarter of its original size with gzip compression. Consider using Brotli precompression if supported on your web server for further file size savings.</p>
+<p><strong>Hosts that provide on-the-fly compression:</strong> GitHub Pages (gzip)</p>
+<p><strong>Hosts that don't provide on-the-fly compression:</strong> itch.io, GitLab Pages (<a href="https://docs.gitlab.com/user/project/pages/introduction/#serving-compressed-assets">supports manual gzip precompression</a>)</p>
+<blockquote>
+<p><strong>Tip:</strong> The Godot repository includes a <a href="https://raw.githubusercontent.com/godotengine/godot/master/platform/web/serve.py">Python script to host a local web server</a>. This script is intended for testing the web editor, but it can also be used to test exported projects.</p>
+<p>Save the linked script to a file called <code>serve.py</code>, move this file to the folder containing the exported project's <code>index.html</code>, then run the following command in a command prompt within the same folder:</p>
+<pre><code># You may need to replace `python` with `python3` on some platforms.
+python serve.py --root .</code></pre>
+<p>On Windows, you can open a command prompt in the current folder by holding <code>Shift</code> and right-clicking on empty space in Windows Explorer, then choosing <strong>Open PowerShell window here</strong>.</p>
+<p>This will serve the contents of the current folder and open the default web browser automatically.</p>
+<p>Note that for production use cases, this Python-based web server should not be used. Instead, you should use an established web server such as Apache or nginx.</p>
+</blockquote>
+<h2 id="interacting-with-the-browser-and-javascript">Interacting with the browser and JavaScript</h2>
+<p>See the ref on how to interact with JavaScript and access some unique Web browser features.</p>
+<h2 id="environment-variables">Environment variables</h2>
+<p>You can use the following environment variables to set export options outside of the editor. During the export process, these override the values that you set in the export menu.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Export option</th>
+<th>Environment variable</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Encryption / Encryption Key</td>
+<td><code>GODOT_SCRIPT_ENCRYPTION_KEY</code></td>
+</tr>
+</tbody>
+</table>
+<p>HTML5 export environment variables</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="running-the-export-locally-shows-another-project-instead">Running the export locally shows another project instead</h3>
+<p>If you use one-click deploy in multiple projects, you may notice that one of the projects you've previously deployed is shown instead of the project you're currently working on. This is due to service worker caching which currently lacks an automated cache busting mechanism.</p>
+<p>As a workaround, you can manually unregister the current service worker so that the cache is reset. This also allows a new service worker to be registered. In Chromium-based browsers, open the Developer Tools by pressing <code>F12</code> or <code>Ctrl + Shift + I</code> (<code>Cmd + Option + I</code> on macOS), then click on the Application tab in DevTools (it may be hidden behind a chevron icon if the devtools pane is narrow). You can either check <code>Update on reload</code> and reload the page, or click <code>Unregister</code> next to the service worker that is currently registered, then reload the page.</p>
+<p><em>Image: Unregistering the service worker in Chromium-based browsers' DevTools</em></p>
+<p>Unregistering the service worker in Chromium-based browsers' DevTools</p>
+<p>The procedure is similar in Firefox. Open developer tools by pressing <code>F12</code> or <code>Ctrl + Shift + I</code> (<code>Cmd + Option + I</code> on macOS), click on the Application tab in DevTools (it may be hidden behind a chevron icon if the devtools pane is narrow). Click <code>Unregister</code> next to the service worker that is currently registered, then reload the page.</p>
+<p><em>Image: Unregistering the service worker in Firefox's DevTools</em></p>
+<p>Unregistering the service worker in Firefox's DevTools</p>
+<h2 id="export-options-1">Export options</h2>
+<p>You can find a full list of export options available in the <code>class_EditorExportPlatformWeb</code> class reference.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Differences between GLES2 and GLES3 — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="differences-between-gles2-and-gles3">Differences between GLES2 and GLES3</h1>
+<p>This page documents the differences between GLES2 and GLES3 that are by design and are not the result of bugs. There may be differences that are unintentional, but they should be reported as bugs.</p>
+<blockquote>
+<p><strong>Note:</strong> "GLES2" and "GLES3" are the names used in Godot for the two OpenGL-based rendering backends. In terms of graphics APIs, the GLES2 backend maps to OpenGL 2.1 on desktop, OpenGL ES 2.0 on mobile and WebGL 1.0 on the web. The GLES3 backend maps to OpenGL 3.3 on desktop, OpenGL ES 3.0 on mobile and WebGL 2.0 on the web.</p>
+</blockquote>
+<h2 id="particles">Particles</h2>
+<p>GLES2 cannot use the ref or ref nodes as they require advanced GPU features. Instead, use ref or ref, which provides a similar interface to a ref.</p>
+<blockquote>
+<p><strong>Tip:</strong> Particles and Particles2D can be converted to their CPU equivalent node with the "Convert to CPUParticles" option in the editor.</p>
+</blockquote>
+<h2 id="screen_texture-mip-maps"><code>SCREEN_TEXTURE</code> mip-maps</h2>
+<p>In GLES2, <code>SCREEN_TEXTURE</code> (accessed via a ref) does not have computed mip-maps. So when accessing at a different LOD, the texture will not appear blurry.</p>
+<h2 id="depth_texture"><code>DEPTH_TEXTURE</code></h2>
+<p>While GLES2 supports <code>DEPTH_TEXTURE</code> in shaders, it may not work on some old hardware (especially mobile).</p>
+<h2 id="color-space">Color space</h2>
+<p>GLES2 and GLES3 are in different color spaces. This means that colors will appear slightly different between them especially when lighting is used.</p>
+<p>If your game is going to use both GLES2 and GLES3, you can use an <code>if</code> statement check and see if the output is in sRGB, using <code>OUTPUT_IS_SRGB</code>. <code>OUTPUT_IS_SRGB</code> is <code>true</code> in GLES2 and <code>false</code> in GLES3.</p>
+<h2 id="hdr">HDR</h2>
+<p>GLES2 is not capable of using High Dynamic Range (HDR) rendering features. If HDR is set for your project, or for a given viewport, Godot will still use Low Dynamic Range (LDR) which limits viewport values to the <code>0-1</code> range.</p>
+<p>The Viewport <strong>Debanding</strong> property and associated project setting will also have no effect when HDR is disabled. This means debanding can't be used in GLES2.</p>
+<h2 id="spatialmaterial-features">SpatialMaterial features</h2>
+<p>In GLES2, the following advanced rendering features in the ref are missing:</p>
+<ul>
+<li>Refraction</li>
+<li>Subsurface scattering</li>
+<li>Anisotropy</li>
+<li>Clearcoat</li>
+<li>Depth mapping</li>
+</ul>
+<p>When using SpatialMaterials they will not even appear in the editor.</p>
+<p>In custom ref, you can set values for these features but they will be non-functional. For example, you will still be able to set the <code>SSS</code> built-in (which normally adds subsurface scattering) in your shader, but nothing will happen.</p>
+<h2 id="environment-features">Environment features</h2>
+<p>In GLES2, the following features in the ref are missing:</p>
+<ul>
+<li>Auto exposure</li>
+<li>Tonemapping</li>
+<li>Screen space reflections</li>
+<li>Screen space ambient occlusion</li>
+</ul>
+<p>That means that in GLES2 environments you can only set:</p>
+<ul>
+<li>Sky (including procedural sky)</li>
+<li>Ambient light</li>
+<li>Fog</li>
+<li>Depth of field</li>
+<li>Glow (also known as bloom)</li>
+<li>Adjustment</li>
+</ul>
+<h2 id="giprobes">GIProbes</h2>
+<p>ref do not work in GLES2. Instead use ref. For a description of how baked lightmaps work see the ref.</p>
+<h2 id="contact-shadows">Contact shadows</h2>
+<p>The <code>shadow_contact</code> property of ref is not supported in GLES2 and so does nothing.</p>
+<h2 id="light-performance">Light performance</h2>
+<p>In GLES2, performance scales poorly with several lights, as each light is processed in a separate render pass (in opposition to GLES3 which is all done in a single pass). Try to limit scenes to as few lights as possible in order to achieve greatest performance.</p>
+<h2 id="texture-compression">Texture compression</h2>
+<p>On mobile, GLES2 requires ETC texture compression, while GLES3 requires ETC2. ETC2 is enabled by default, so if exporting to mobile using GLES2 make sure to set the project setting <code>rendering/vram_compression/import_etc</code> and then reimport textures.</p>
+<blockquote>
+<p><strong>Warning:</strong> Since ETC doesn't support transparency, you must reimport textures that contain an alpha channel to use the Uncompressed, Lossy or Lossless compression mode (instead of Video RAM). This can be done in the Import dock after selecting them in the FileSystem dock.</p>
+</blockquote>
+<h2 id="blend-shapes">Blend shapes</h2>
+<p>In GLES2, blend shapes are implemented on the CPU instead of the GPU. Accordingly, they may not perform as well as blend shapes in GLES3. To avoid performance issues when using blend shapes in GLES2, try to minimize the number of blend shapes that are updated each frame.</p>
+<h2 id="shading-language">Shading language</h2>
+<p>GLES3 provides many built-in functions that GLES2 does not. Below is a list of functions that are not available or are have limited support in GLES2.</p>
+<p>For a complete list of built-in GLSL functions see the ref.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>vec_type <strong>modf</strong> ( vec_type x, out vec_type i )</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>vec_int_type <strong>floatBitsToInt</strong> ( vec_type x )</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>vec_uint_type <strong>floatBitsToUint</strong> ( vec_type x )</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>vec_type <strong>intBitsToFloat</strong> ( vec_int_type x )</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>vec_type <strong>uintBitsToFloat</strong> ( vec_uint_type x )</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>ivec2 <strong>textureSize</strong> ( sampler2D_type s, int lod )</td>
+<td>See workaround below</td>
+</tr>
+<tr class="odd">
+<td>ivec2 <strong>textureSize</strong> ( samplerCube s, int lod )</td>
+<td>See workaround below</td>
+</tr>
+<tr class="even">
+<td>vec4_type <strong>texture</strong> ( sampler_type s, vec_type uv [, float bias] )</td>
+<td><strong>bias</strong> not available in vertex shader</td>
+</tr>
+<tr class="odd">
+<td>vec4_type <strong>textureProj</strong> ( sampler_type s, vec_type uv [, float bias] )</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>vec4_type <strong>textureLod</strong> ( sampler_type s, vec_type uv, float lod )</td>
+<td>Only available in vertex shader on some hardware</td>
+</tr>
+<tr class="odd">
+<td>vec4_type <strong>textureProjLod</strong> ( sampler_type s, vec_type uv, float lod )</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>vec4_type <strong>textureGrad</strong> ( sampler_type s, vec_type uv, vec_type dPdx, vec_type dPdy )</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>vec_type <strong>dFdx</strong> ( vec_type p )</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>vec_type <strong>dFdy</strong> ( vec_type p )</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>vec_type <strong>fwidth</strong> ( vec_type p )</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Functions not in GLES2's GLSL were added with Godots own shader standard library. These functions may perform worse in GLES2 compared to GLES3.</p>
+</blockquote>
+<h3 id="texturesize-workaround"><code>textureSize()</code> workaround</h3>
+<p>GLES2 does not support <code>textureSize()</code>. You can get the size of a texture the old fashioned way by passing in a uniform with the texture size yourself.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">// In the shader:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">sampler2D</span> textureName<span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">vec2</span> textureName_size<span class="op">;</span></span></code></pre></div>
+<pre><code># In GDScript:
+material_name.set_shader_param(&quot;textureName&quot;, my_texture)
+material_name.set_shader_param(&quot;textureName_size&quot;, my_texture_size)</code></pre>
+<h2 id="built-in-variables-and-render-modes">Built in variables and render modes</h2>
+<p>Godot also provides many built-in variables and render modes. Some cannot be supported in GLES2. Below is a list of built-in variables and render modes that, when written to, will have no effect or could even cause issues when using the GLES2 backend.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Variable / Render Mode</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ensure_correct_normals</code></td>
+</tr>
+<tr class="even">
+<td><code>INSTANCE_ID</code></td>
+</tr>
+<tr class="odd">
+<td><code>DEPTH</code></td>
+</tr>
+<tr class="even">
+<td><code>ANISOTROPY</code></td>
+</tr>
+<tr class="odd">
+<td><code>ANISOTROPY_FLOW</code></td>
+</tr>
+<tr class="even">
+<td><code>SSS_STRENGTH</code></td>
+</tr>
+</tbody>
+</table>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

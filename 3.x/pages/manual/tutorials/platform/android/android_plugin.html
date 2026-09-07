@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creating Android plugins — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="creating-android-plugins">Creating Android plugins</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Android plugins are powerful tools to extend the capabilities of the Godot engine by tapping into the functionality provided by the Android platform and ecosystem.</p>
+<p>Mobile gaming monetization is one such example since it requires features and capabilities that don't belong to the core feature set of a game engine:</p>
+<ul>
+<li>Analytics</li>
+<li>In-app purchases</li>
+<li>Receipt validation</li>
+<li>Install tracking</li>
+<li>Ads</li>
+<li>Video ads</li>
+<li>Cross-promotion</li>
+<li>In-game soft &amp; hard currencies</li>
+<li>Promo codes</li>
+<li>A/B testing</li>
+<li>Login</li>
+<li>Cloud saves</li>
+<li>Leaderboards and scores</li>
+<li>User support &amp; feedback</li>
+<li>Posting to Facebook, Twitter, etc.</li>
+<li>Push notifications</li>
+</ul>
+<h2 id="android-plugin">Android plugin</h2>
+<p>While introduced in Godot 3.2, the Android plugin system got a significant architecture update starting with Godot 3.2.2. The new plugin system is backward-incompatible with the previous one, but both systems are kept functional in future releases of the 3.2.x branch. Since we previously did not version the Android plugin systems, the new one is now labelled <code>v1</code> and is the starting point for the modern Godot Android ecosystem.</p>
+<p><strong>Note:</strong> In Godot 4.0, the previous system will be fully deprecated and removed.</p>
+<p>As a prerequisite, make sure you understand how to set up a ref for Android.</p>
+<p>At its core, a Godot Android plugin is a <a href="https://developer.android.com/studio/projects/android-library#aar-contents">Android archive library</a> (<em>aar</em> archive file) with the following caveats:</p>
+<ul>
+<li>The library must have a dependency on the Godot engine library (<code>godot-lib.&lt;version&gt;.&lt;status&gt;.aar</code>). A stable version is made available for each Godot release on the <a href="https://godotengine.org/download">Godot download page</a>.</li>
+<li>The library must include a specifically configured <code>&lt;meta-data&gt;</code> tag in its manifest file.</li>
+</ul>
+<h3 id="building-an-android-plugin">Building an Android plugin</h3>
+<p><strong>Prerequisite:</strong> <a href="https://developer.android.com/studio">Android Studio</a> is strongly recommended as the IDE to use to create Android plugins. The instructions below assumes that you're using Android Studio.</p>
+<ol type="1">
+<li>Follow <a href="https://developer.android.com/studio/projects/android-library">these instructions</a> to create an Android library module for your plugin.</li>
+<li>Add the Godot engine library as a dependency to your plugin module:</li>
+</ol>
+<blockquote>
+<ul>
+<li>Download the Godot engine library (<code>godot-lib.&lt;version&gt;.&lt;status&gt;.aar</code>) from the <a href="https://godotengine.org/download">Godot download page</a> (e.g.: <code>godot-lib.3.4.2.stable.release.aar</code>).</li>
+<li>Follow <a href="https://developer.android.com/studio/projects/android-library#AddDependency">these instructions</a> to add the Godot engine library as a dependency for your plugin.</li>
+<li>In the plugin module's <code>build.gradle</code> file, replace <code>implementation</code> with <code>compileOnly</code> for the dependency line for the Godot engine library.</li>
+</ul>
+</blockquote>
+<ol start="3" type="1">
+<li>Create a new class in the plugin module and make sure it extends <code>org.godotengine.godot.plugin.GodotPlugin</code>. At runtime, it will be used to instantiate a singleton object that will be used by the Godot engine to load, initialize and run the plugin.</li>
+<li>Update the plugin <code>AndroidManifest.xml</code> file:</li>
+</ol>
+<blockquote>
+<ul>
+<li><p>Open the plugin <code>AndroidManifest.xml</code> file.</p></li>
+<li><p>Add the <code>&lt;application&gt;&lt;/application&gt;</code> tag if it's missing.</p></li>
+<li><p>In the <code>&lt;application&gt;</code> tag, add a <code>&lt;meta-data&gt;</code> tag setup as follow:</p>
+<pre><code>&lt;meta-data
+    android:name=&quot;org.godotengine.plugin.v1.[PluginName]&quot;
+    android:value=&quot;[plugin.init.ClassFullName]&quot; /&gt;</code></pre>
+<p>Where <code>PluginName</code> is the name of the plugin, and <code>plugin.init.ClassFullName</code> is the full name (package + class name) of the plugin loading class.</p></li>
+</ul>
+</blockquote>
+<ol start="5" type="1">
+<li><p>Add the remaining logic for your plugin and run the <code>gradlew build</code> command to generate the plugin's <code>aar</code> file. The build will likely generate both a <code>debug</code> and <code>release</code> <code>aar</code> files. Depending on your need, pick only one version (usually the <code>release</code> one) which to provide your users with.</p>
+<p>It's recommended that the <code>aar</code> filename matches the following pattern: <code>[PluginName]*.aar</code> where <code>PluginName</code> is the name of the plugin in PascalCase (e.g.: <code>GodotPayment.release.aar</code>).</p></li>
+<li><p>Create a Godot Android Plugin configuration file to help the system detect and load your plugin:</p></li>
+</ol>
+<blockquote>
+<ul>
+<li><p>The configuration file extension must be <code>gdap</code> (e.g.: <code>MyPlugin.gdap</code>).</p></li>
+<li><p>The configuration file format is as follow:</p>
+<pre><code>[config]
+
+name=&quot;MyPlugin&quot;
+binary_type=&quot;local&quot;
+binary=&quot;MyPlugin.aar&quot;
+
+[dependencies]
+
+local=[&quot;local_dep1.aar&quot;, &quot;local_dep2.aar&quot;]
+remote=[&quot;example.plugin.android:remote-dep1:0.0.1&quot;, &quot;example.plugin.android:remote-dep2:0.0.1&quot;]
+custom_maven_repos=[&quot;http://repo.mycompany.com/maven2&quot;]</code></pre>
+<p>The <code>config</code> section and fields are required and defined as follow:</p>
+<ul>
+<li><strong>name</strong>: name of the plugin.</li>
+<li><strong>binary_type</strong>: can be either <code>local</code> or <code>remote</code>. The type affects the <strong>binary</strong> field.</li>
+<li><strong>binary</strong>:
+<ul>
+<li>If <strong>binary_type</strong> is <code>local</code>, then this should be the filepath of the plugin <code>aar</code> file.
+<ul>
+<li>The filepath can be relative (e.g.: <code>MyPlugin.aar</code>) in which case it's relative to the <code>res://android/plugins</code> directory.</li>
+<li>The filepath can be absolute: <code>res://some_path/MyPlugin.aar</code>.</li>
+</ul></li>
+<li>If <strong>binary_type</strong> is <code>remote</code>, then this should be a declaration for a <a href="https://developer.android.com/studio/build/dependencies#dependency-types">remote gradle binary</a> (e.g.: <code>org.godot.example:my-plugin:0.0.0</code>).</li>
+</ul></li>
+</ul>
+<p>The <code>dependencies</code> section and fields are optional and defined as follow:</p>
+<ul>
+<li><strong>local</strong>: contains a list of filepaths to the local <code>.aar</code> binary files the plugin depends on. Similarly to the <code>binary</code> field (when the <code>binary_type</code> is <code>local</code>), the local binaries' filepaths can be relative or absolute.</li>
+<li><strong>remote</strong>: contains a list of remote binary gradle dependencies for the plugin.</li>
+<li><strong>custom_maven_repos</strong>: contains a list of URLs specifying the custom maven repositories required for the plugin's dependencies.</li>
+</ul></li>
+</ul>
+</blockquote>
+<h3 id="loading-and-using-an-android-plugin">Loading and using an Android plugin</h3>
+<p>Move the plugin configuration file (e.g.: <code>MyPlugin.gdap</code>) and, if any, its local binary (e.g.: <code>MyPlugin.aar</code>) and dependencies to the Godot project's <code>res://android/plugins</code> directory.</p>
+<p>The Godot editor will automatically parse all <code>.gdap</code> files in the <code>res://android/plugins</code> directory and show a list of detected and toggleable plugins in the Android export presets window under the <strong>Plugins</strong> section.</p>
+<p>From your script:</p>
+<pre><code>if Engine.has_singleton(&quot;MyPlugin&quot;):
+    var singleton = Engine.get_singleton(&quot;MyPlugin&quot;)
+    print(singleton.myPluginFunction(&quot;World&quot;))</code></pre>
+<h3 id="bundling-gdnative-resources">Bundling GDNative resources</h3>
+<p>An Android plugin can define and provide C/C++ GDNative resources, either to provide and/or access functionality from the game logic. The GDNative resources can be bundled within the plugin <code>aar</code> file which simplifies the distribution and deployment process:</p>
+<ul>
+<li>The shared libraries (<code>.so</code>) for the defined GDNative libraries will be automatically bundled by the <code>aar</code> build system.</li>
+<li>Godot <code>*.gdnlib</code> and <code>*.gdns</code> resource files must be manually defined in the plugin <code>assets</code> directory. The recommended path for these resources relative to the <code>assets</code> directory should be: <code>godot/plugin/v1/[PluginName]/</code>.</li>
+</ul>
+<p>For GDNative libraries, the plugin singleton object must override the <code>org.godotengine.godot.plugin.GodotPlugin::getPluginGDNativeLibrariesPaths()</code> method, and return the paths to the bundled GDNative libraries config files (<code>*.gdnlib</code>). The paths must be relative to the <code>assets</code> directory. At runtime, the plugin will provide these paths to Godot core which will use them to load and initialize the bundled GDNative libraries.</p>
+<h3 id="reference-implementations">Reference implementations</h3>
+<ul>
+<li><a href="https://github.com/GodotVR/godot_oculus_mobile">Godot Oculus Mobile plugin</a>
+<ul>
+<li><a href="https://github.com/GodotVR/godot_oculus_mobile/tree/master/plugin/src/main/assets/addons/godot_ovrmobile">Bundled gdnative resources</a></li>
+</ul></li>
+<li><a href="https://github.com/godotengine/godot-google-play-billing">Godot Google Play Billing plugin</a></li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="godot-crashes-upon-load">Godot crashes upon load</h3>
+<p>Check <code>adb logcat</code> for possible problems, then:</p>
+<ul>
+<li>Check that the methods exposed by the plugin used the following Java types: <code>void</code>, <code>boolean</code>, <code>int</code>, <code>float</code>, <code>java.lang.String</code>, <code>org.godotengine.godot.Dictionary</code>, <code>int[]</code>, <code>byte[]</code>, <code>float[]</code>, <code>java.lang.String[]</code>.</li>
+<li>More complex datatypes are not supported for now.</li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

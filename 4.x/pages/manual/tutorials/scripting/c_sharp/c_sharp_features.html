@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C# language features — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="c-language-features">C# language features</h1>
+<p>This page provides an overview of the commonly used features of both C# and Godot and how they are used together.</p>
+<h2 id="type-conversion-and-casting">Type conversion and casting</h2>
+<p>C# is a statically typed language. Therefore, you can't do the following:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> mySprite <span class="op">=</span> <span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;MySprite&quot;</span><span class="op">);</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>mySprite<span class="op">.</span><span class="fu">SetFrame</span><span class="op">(</span><span class="dv">0</span><span class="op">);</span></span></code></pre></div>
+<p>The method <code>GetNode()</code> returns a <code>Node</code> instance. You must explicitly convert it to the desired derived type, <code>Sprite2D</code> in this case.</p>
+<p>For this, you have various options in C#.</p>
+<p><strong>Casting and Type Checking</strong></p>
+<p>Throws <code>InvalidCastException</code> if the returned node cannot be cast to Sprite2D. You would use it instead of the <code>as</code> operator if you are pretty sure it won't fail.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>Sprite2D mySprite <span class="op">=</span> <span class="op">(</span>Sprite2D<span class="op">)</span><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;MySprite&quot;</span><span class="op">);</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>mySprite<span class="op">.</span><span class="fu">SetFrame</span><span class="op">(</span><span class="dv">0</span><span class="op">);</span></span></code></pre></div>
+<p><strong>Using the AS operator</strong></p>
+<p>The <code>as</code> operator returns <code>null</code> if the node cannot be cast to Sprite2D, and for that reason, it cannot be used with value types.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>Sprite2D mySprite <span class="op">=</span> <span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;MySprite&quot;</span><span class="op">)</span> <span class="kw">as</span> Sprite2D<span class="op">;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Only call SetFrame() if mySprite is not null</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>mySprite<span class="op">?.</span><span class="fu">SetFrame</span><span class="op">(</span><span class="dv">0</span><span class="op">);</span></span></code></pre></div>
+<p><strong>Using the generic methods</strong></p>
+<p>Generic methods are also provided to make this type conversion transparent.</p>
+<p><code>GetNode&lt;T&gt;()</code> casts the node before returning it. It will throw an <code>InvalidCastException</code> if the node cannot be cast to the desired type.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>Sprite2D mySprite <span class="op">=</span> GetNode<span class="op">&lt;</span>Sprite2D<span class="op">&gt;(</span><span class="st">&quot;MySprite&quot;</span><span class="op">);</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>mySprite<span class="op">.</span><span class="fu">SetFrame</span><span class="op">(</span><span class="dv">0</span><span class="op">);</span></span></code></pre></div>
+<p><code>GetNodeOrNull&lt;T&gt;()</code> uses the <code>as</code> operator and will return <code>null</code> if the node cannot be cast to the desired type.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>Sprite2D mySprite <span class="op">=</span> GetNodeOrNull<span class="op">&lt;</span>Sprite2D<span class="op">&gt;(</span><span class="st">&quot;MySprite&quot;</span><span class="op">);</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Only call SetFrame() if mySprite is not null</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>mySprite<span class="op">?.</span><span class="fu">SetFrame</span><span class="op">(</span><span class="dv">0</span><span class="op">);</span></span></code></pre></div>
+<p><strong>Type checking using the IS operator</strong></p>
+<p>To check if the node can be cast to Sprite2D, you can use the <code>is</code> operator. The <code>is</code> operator returns <code>false</code> if the node cannot be cast to Sprite2D, otherwise it returns <code>true</code>. Note that when the <code>is</code> operator is used against <code>null</code> the result is always going to be <code>false</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;MySprite&quot;</span><span class="op">)</span> <span class="kw">is</span> Sprite2D<span class="op">)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Yup, it&#39;s a Sprite2D!</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span><span class="kw">null</span> <span class="kw">is</span> Sprite2D<span class="op">)</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// This block can never happen.</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>You can also declare a new variable to conditionally store the result of the cast if the <code>is</code> operator returns <code>true</code>.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;MySprite&quot;</span><span class="op">)</span> <span class="kw">is</span> Sprite2D mySprite<span class="op">)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// The mySprite variable only exists inside this block, and it&#39;s never null.</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    mySprite<span class="op">.</span><span class="fu">SetFrame</span><span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>For more advanced type checking, you can look into <a href="https://docs.microsoft.com/en-us/dotnet/csharp/pattern-matching">Pattern Matching</a>.</p>
+<h2 id="preprocessor-defines">Preprocessor defines</h2>
+<p>Godot has a set of defines that allow you to change your C# code depending on the environment you are compiling to.</p>
+<h3 id="examples">Examples</h3>
+<p>For example, you can change code based on the platform:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">#if</span> <span class="op">(</span>GODOT_MOBILE <span class="op">||</span> GODOT_WEB<span class="op">)</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Use simple objects when running on less powerful systems.</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SpawnSimpleObjects</span><span class="op">();</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="kw">#else</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SpawnComplexObjects</span><span class="op">();</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="kw">#endif</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Or you can detect which engine your code is in, useful for making cross-engine libraries:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">MyPlatformPrinter</span><span class="op">()</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="kw">#if</span> GODOT</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;This is Godot.&quot;</span><span class="op">);</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="kw">#elif</span> UNITY_5_3_OR_NEWER</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span><span class="op">(</span><span class="st">&quot;This is Unity.&quot;</span><span class="op">);</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="kw">#else</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">throw</span> <span class="kw">new</span> <span class="fu">NotSupportedException</span><span class="op">(</span><span class="st">&quot;Only Godot and Unity are supported.&quot;</span><span class="op">);</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="kw">#endif</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Or you can write scripts that target multiple Godot versions and take advantage of features that are only available on some of those versions:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">UseCoolFeature</span><span class="op">()</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">#if</span> GODOT4_3_OR_GREATER <span class="op">||</span> GODOT4_2_2_OR_GREATER</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Use CoolFeature, that was added to Godot in 4.3 and cherry-picked into 4.2.2, here.</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="kw">#else</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Use a workaround for the absence of CoolFeature here.</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="kw">#endif</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="full-list-of-defines">Full list of defines</h3>
+<ul>
+<li><p><code>GODOT</code> is always defined for Godot projects.</p></li>
+<li><p><code>TOOLS</code> is defined when building with the Debug configuration (editor and editor player).</p></li>
+<li><p><code>GODOT_REAL_T_IS_DOUBLE</code> is defined when the <code>GodotFloat64</code> property is set to <code>true</code>.</p></li>
+<li><p>One of <code>GODOT_LINUXBSD</code>, <code>GODOT_WINDOWS</code>, <code>GODOT_OSX</code>, <code>GODOT_ANDROID</code>, <code>GODOT_IOS</code>, <code>GODOT_WEB</code> depending on the OS. These names may change in the future. These are created from the <code>get_name()</code> method of the ref singleton, but not every possible OS the method returns is an OS that Godot with .NET runs on.</p></li>
+<li><p><code>GODOTX</code>, <code>GODOTX_Y</code>, <code>GODOTX_Y_Z</code>, <code>GODOTx_OR_GREATER</code>, <code>GODOTX_y_OR_GREATER</code>, and <code>GODOTX_Y_z_OR_GREATER</code>, where <code>X</code>, <code>Y</code>, and <code>Z</code> are replaced by the current major, minor and patch version of Godot. <code>x</code>, <code>y</code>, and <code>z</code> are replaced by all values from 0 to the current version number for that component.</p></li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> These defines were first added in Godot 4.0.4 and 4.1. Version defines for prior versions do not exist, regardless of the current Godot version.</p>
+</blockquote>
+<p>For example: Godot 4.0.5 defines <code>GODOT4</code>, <code>GODOT4_OR_GREATER</code>, <code>GODOT4_0</code>, <code>GODOT4_0_OR_GREATER</code>, <code>GODOT4_0_5</code>, <code>GODOT4_0_4_OR_GREATER</code>, and <code>GODOT4_0_5_OR_GREATER</code>. Godot 4.3.2 defines <code>GODOT4</code>, <code>GODOT4_OR_GREATER</code>, <code>GODOT4_3</code>, <code>GODOT4_0_OR_GREATER</code>, <code>GODOT4_1_OR_GREATER</code>, <code>GODOT4_2_OR_GREATER</code>, <code>GODOT4_3_OR_GREATER</code>, <code>GODOT4_3_2</code>, <code>GODOT4_3_0_OR_GREATER</code>, <code>GODOT4_3_1_OR_GREATER</code>, and <code>GODOT4_3_2_OR_GREATER</code>.</p>
+<p>When <strong>exporting</strong>, the following may also be defined depending on the export features:</p>
+<ul>
+<li>One of <code>GODOT_PC</code>, <code>GODOT_MOBILE</code>, or <code>GODOT_WEB</code> depending on the platform type.</li>
+<li>One of <code>GODOT_WINDOWS</code>, <code>GODOT_LINUXBSD</code>, <code>GODOT_MACOS</code>, <code>GODOT_ANDROID</code>, <code>GODOT_IOS</code>, or <code>GODOT_WEB</code> depending on the platform.</li>
+</ul>
+<p>To see an example project, see the OS testing demo: <a href="https://github.com/godotengine/godot-demo-projects/tree/master/misc/os_test">https://github.com/godotengine/godot-demo-projects/tree/master/misc/os_test</a></p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sync the gameplay with audio and music — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="sync-the-gameplay-with-audio-and-music">Sync the gameplay with audio and music</h1>
+<h2 id="introduction">Introduction</h2>
+<p>In any application or game, sound and music playback will have a slight delay. For games, this delay is often so small that it is negligible. Sound effects will come out a few milliseconds after any play() function is called. For music this does not matter as in most games it does not interact with the gameplay.</p>
+<p>Still, for some games (mainly, rhythm games), it may be required to synchronize player actions with something happening in a song (usually in sync with the BPM). For this, having more precise timing information for an exact playback position is useful.</p>
+<p>Achieving very low playback timing precision is difficult. This is because many factors are at play during audio playback:</p>
+<ul>
+<li>Audio is mixed in chunks (not continuously), depending on the size of audio buffers used (check latency in project settings).</li>
+<li>Mixed chunks of audio are not played immediately.</li>
+<li>Graphics APIs display two or three frames late.</li>
+<li>When playing on TVs, some delay may be added due to image processing.</li>
+</ul>
+<p>The most common way to reduce latency is to shrink the audio buffers (again, by editing the latency setting in the project settings). The problem is that when latency is too small, sound mixing will require considerably more CPU. This increases the risk of skipping (a crack in sound because a mix callback was lost).</p>
+<p>This is a common tradeoff, so Godot ships with sensible defaults that should not need to be altered.</p>
+<p>The problem, in the end, is not this slight delay but synchronizing graphics and audio for games that require it. Some helpers are available to obtain more precise playback timing.</p>
+<h2 id="using-the-system-clock-to-sync">Using the system clock to sync</h2>
+<p>As mentioned before, If you call ref, sound will not begin immediately, but when the audio thread processes the next chunk.</p>
+<p>This delay can't be avoided but it can be estimated by calling ref.</p>
+<p>The output latency (what happens after the mix) can also be estimated by calling ref.</p>
+<p>Add these two and it's possible to guess almost exactly when sound or music will begin playing in the speakers during <em>_process()</em>:</p>
+<pre class="gdscript"><code>var time_begin
+var time_delay
+
+
+func _ready():
+    time_begin = Time.get_ticks_usec()
+    time_delay = AudioServer.get_time_to_next_mix() + AudioServer.get_output_latency()
+    $Player.play()
+
+
+func _process(delta):
+    # Obtain from ticks.
+    var time = (Time.get_ticks_usec() - time_begin) / 1000000.0
+    # Compensate for latency.
+    time -= time_delay
+    # May be below 0 (did not begin yet).
+    time = max(0, time)
+    print(&quot;Time is: &quot;, time)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">double</span> _timeBegin<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">double</span> _timeDelay<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    _timeBegin <span class="op">=</span> Time<span class="op">.</span><span class="fu">GetTicksUsec</span><span class="op">();</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    _timeDelay <span class="op">=</span> AudioServer<span class="op">.</span><span class="fu">GetTimeToNextMix</span><span class="op">()</span> <span class="op">+</span> AudioServer<span class="op">.</span><span class="fu">GetOutputLatency</span><span class="op">();</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>AudioStreamPlayer<span class="op">&gt;(</span><span class="st">&quot;Player&quot;</span><span class="op">).</span><span class="fu">Play</span><span class="op">();</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> time <span class="op">=</span> <span class="op">(</span>Time<span class="op">.</span><span class="fu">GetTicksUsec</span><span class="op">()</span> <span class="op">-</span> _timeBegin<span class="op">)</span> <span class="op">/</span> <span class="fl">1000000.0d</span><span class="op">;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    time <span class="op">=</span> Math<span class="op">.</span><span class="fu">Max</span><span class="op">(</span><span class="fl">0.0d</span><span class="op">,</span> time <span class="op">-</span> _timeDelay<span class="op">);</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="dt">string</span><span class="op">.</span><span class="fu">Format</span><span class="op">(</span><span class="st">&quot;Time is: {0}&quot;</span><span class="op">,</span> time<span class="op">));</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In the long run, though, as the sound hardware clock is never exactly in sync with the system clock, the timing information will slowly drift away.</p>
+<p>For a rhythm game where a song begins and ends after a few minutes, this approach is fine (and it's the recommended approach). For a game where playback can last a much longer time, the game will eventually go out of sync and a different approach is needed.</p>
+<h2 id="using-the-sound-hardware-clock-to-sync">Using the sound hardware clock to sync</h2>
+<p>Using ref to obtain the current position for the song sounds ideal, but it's not that useful as-is. This value will increment in chunks (every time the audio callback mixed a block of sound), so many calls can return the same value. Added to this, the value will be out of sync with the speakers too because of the previously mentioned reasons.</p>
+<p>To compensate for the "chunked" output, there is a function that can help: ref.</p>
+<p>Adding the return value from this function to <em>get_playback_position()</em> increases precision:</p>
+<pre class="gdscript"><code>var time = $Player.get_playback_position() + AudioServer.get_time_since_last_mix()</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> time <span class="op">=</span> GetNode<span class="op">&lt;</span>AudioStreamPlayer<span class="op">&gt;(</span><span class="st">&quot;Player&quot;</span><span class="op">).</span><span class="fu">GetPlaybackPosition</span><span class="op">()</span> <span class="op">+</span> AudioServer<span class="op">.</span><span class="fu">GetTimeSinceLastMix</span><span class="op">();</span></span></code></pre></div>
+<p>To increase precision, subtract the latency information (how much it takes for the audio to be heard after it was mixed):</p>
+<pre class="gdscript"><code>var time = $Player.get_playback_position() + AudioServer.get_time_since_last_mix() - AudioServer.get_output_latency()</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> time <span class="op">=</span> GetNode<span class="op">&lt;</span>AudioStreamPlayer<span class="op">&gt;(</span><span class="st">&quot;Player&quot;</span><span class="op">).</span><span class="fu">GetPlaybackPosition</span><span class="op">()</span> <span class="op">+</span> AudioServer<span class="op">.</span><span class="fu">GetTimeSinceLastMix</span><span class="op">()</span> <span class="op">-</span> AudioServer<span class="op">.</span><span class="fu">GetOutputLatency</span><span class="op">();</span></span></code></pre></div>
+<p>The result may be a bit jittery due how multiple threads work. Just check that the value is not less than in the previous frame (discard it if so). This is also a less precise approach than the one before, but it will work for songs of any length, or synchronizing anything (sound effects, as an example) to music.</p>
+<p>Here is the same code as before using this approach:</p>
+<pre class="gdscript"><code>func _ready():
+    $Player.play()
+
+
+func _process(delta):
+    var time = $Player.get_playback_position() + AudioServer.get_time_since_last_mix()
+    # Compensate for output latency.
+    time -= AudioServer.get_output_latency()
+    print(&quot;Time is: &quot;, time)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>AudioStreamPlayer<span class="op">&gt;(</span><span class="st">&quot;Player&quot;</span><span class="op">).</span><span class="fu">Play</span><span class="op">();</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> time <span class="op">=</span> GetNode<span class="op">&lt;</span>AudioStreamPlayer<span class="op">&gt;(</span><span class="st">&quot;Player&quot;</span><span class="op">).</span><span class="fu">GetPlaybackPosition</span><span class="op">()</span> <span class="op">+</span> AudioServer<span class="op">.</span><span class="fu">GetTimeSinceLastMix</span><span class="op">();</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Compensate for output latency.</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    time <span class="op">-=</span> AudioServer<span class="op">.</span><span class="fu">GetOutputLatency</span><span class="op">();</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="dt">string</span><span class="op">.</span><span class="fu">Format</span><span class="op">(</span><span class="st">&quot;Time is: {0}&quot;</span><span class="op">,</span> time<span class="op">));</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

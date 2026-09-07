@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebRTC — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="webrtc">WebRTC</h1>
+<h2 id="html5-websocket-webrtc">HTML5, WebSocket, WebRTC</h2>
+<p>One of Godot's great features is its ability to export to the HTML5/WebAssembly platform, allowing your game to run directly in the browser when a user visit your webpage.</p>
+<p>This is a great opportunity for both demos and full games, but used to come with some limitations. In the area of networking, browsers used to support only HTTPRequests until recently, when first WebSocket and then WebRTC were proposed as standards.</p>
+<h3 id="websocket">WebSocket</h3>
+<p>When the WebSocket protocol was standardized in December 2011, it allowed browsers to create stable and bidirectional connections to a WebSocket server. The protocol is quite simple, but a very powerful tool to send push notifications to browsers, and has been used to implement chats, turn-based games, etc.</p>
+<p>WebSockets, though, still use a TCP connection, which is good for reliability but not for latency, so not good for real-time applications like VoIP and fast-paced games.</p>
+<h3 id="webrtc-1">WebRTC</h3>
+<p>For this reason, since 2010, Google started working on a new technology called WebRTC, which later on, in 2017, became a W3C candidate recommendation. WebRTC is a much more complex set of specifications, and relies on many other technologies behind the scenes (ICE, DTLS, SDP) to provide fast, real-time, and secure communication between two peers.</p>
+<p>The idea is to find the fastest route between the two peers and establish whenever possible a direct communication (i.e. try to avoid a relaying server).</p>
+<p>However, this comes at a price, which is that some media information must be exchanged between the two peers before the communication can start (in the form of Session Description Protocol - SDP strings). This usually takes the form of a so-called WebRTC Signaling Server.</p>
+<p>Peers connect to a signaling server (for example a WebSocket server) and send their media information. The server then relays this information to other peers, allowing them to establish the desired direct communication. Once this step is done, peers can disconnect from the signaling server and keep the direct Peer-to-Peer (P2P) connection open.</p>
+<h2 id="using-webrtc-in-godot">Using WebRTC in Godot</h2>
+<p>WebRTC is implemented in Godot via two main classes ref and ref, plus the multiplayer API implementation ref. See section on ref for more details.</p>
+<blockquote>
+<p><strong>Note:</strong> These classes are available automatically in HTML5, but <strong>require an external GDNative plugin on native (non-HTML5) platforms</strong>. Check out the <a href="https://github.com/godotengine/webrtc-native">webrtc-native plugin repository</a> for instructions and to get the latest <a href="https://github.com/godotengine/webrtc-native/releases">release</a>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> When exporting to Android, make sure to enable the <code>INTERNET</code> permission in the Android export preset before exporting the project or using one-click deploy. Otherwise, network communication of any kind will be blocked by Android.</p>
+</blockquote>
+<h3 id="minimal-connection-example">Minimal connection example</h3>
+<p>This example will show you how to create a WebRTC connection between two peers in the same application. This is not very useful in real life, but will give you a good overview of how a WebRTC connection is set up.</p>
+<pre><code>extends Node
+
+# Create the two peers
+var p1 = WebRTCPeerConnection.new()
+var p2 = WebRTCPeerConnection.new()
+# And a negotiated channel for each each peer
+var ch1 = p1.create_data_channel(&quot;chat&quot;, {&quot;id&quot;: 1, &quot;negotiated&quot;: true})
+var ch2 = p2.create_data_channel(&quot;chat&quot;, {&quot;id&quot;: 1, &quot;negotiated&quot;: true})
+
+func _ready():
+    # Connect P1 session created to itself to set local description
+    p1.connect(&quot;session_description_created&quot;, p1, &quot;set_local_description&quot;)
+    # Connect P1 session and ICE created to p2 set remote description and candidates
+    p1.connect(&quot;session_description_created&quot;, p2, &quot;set_remote_description&quot;)
+    p1.connect(&quot;ice_candidate_created&quot;, p2, &quot;add_ice_candidate&quot;)
+
+    # Same for P2
+    p2.connect(&quot;session_description_created&quot;, p2, &quot;set_local_description&quot;)
+    p2.connect(&quot;session_description_created&quot;, p1, &quot;set_remote_description&quot;)
+    p2.connect(&quot;ice_candidate_created&quot;, p1, &quot;add_ice_candidate&quot;)
+
+    # Let P1 create the offer
+    p1.create_offer()
+
+    # Wait a second and send message from P1
+    yield(get_tree().create_timer(1), &quot;timeout&quot;)
+    ch1.put_packet(&quot;Hi from P1&quot;.to_utf8())
+
+    # Wait a second and send message from P2
+    yield(get_tree().create_timer(1), &quot;timeout&quot;)
+    ch2.put_packet(&quot;Hi from P2&quot;.to_utf8())
+
+func _process(_delta):
+    # Poll connections
+    p1.poll()
+    p2.poll()
+
+    # Check for messages
+    if ch1.get_ready_state() == ch1.STATE_OPEN and ch1.get_available_packet_count() &gt; 0:
+        print(&quot;P1 received: &quot;, ch1.get_packet().get_string_from_utf8())
+    if ch2.get_ready_state() == ch2.STATE_OPEN and ch2.get_available_packet_count() &gt; 0:
+        print(&quot;P2 received: &quot;, ch2.get_packet().get_string_from_utf8())</code></pre>
+<p>This will print:</p>
+<pre><code>P1 received: Hi from P1
+P2 received: Hi from P2</code></pre>
+<h3 id="local-signaling-example">Local signaling example</h3>
+<p>This example expands on the previous one, separating the peers in two different scenes, and using a ref as a signaling server.</p>
+<pre><code># An example P2P chat client (chat.gd)
+extends Node
+
+var peer = WebRTCPeerConnection.new()
+
+# Create negotiated data channel
+var channel = peer.create_data_channel(&quot;chat&quot;, {&quot;negotiated&quot;: true, &quot;id&quot;: 1})
+
+func _ready():
+    # Connect all functions
+    peer.connect(&quot;ice_candidate_created&quot;, self, &quot;_on_ice_candidate&quot;)
+    peer.connect(&quot;session_description_created&quot;, self, &quot;_on_session&quot;)
+
+    # Register to the local signaling server (see below for the implementation)
+    Signaling.register(get_path())
+
+func _on_ice_candidate(mid, index, sdp):
+    # Send the ICE candidate to the other peer via signaling server
+    Signaling.send_candidate(get_path(), mid, index, sdp)
+
+func _on_session(type, sdp):
+    # Send the session to other peer via signaling server
+    Signaling.send_session(get_path(), type, sdp)
+    # Set generated description as local
+    peer.set_local_description(type, sdp)
+
+func _process(delta):
+    # Always poll the connection frequently
+    peer.poll()
+    if channel.get_ready_state() == WebRTCDataChannel.STATE_OPEN:
+        while channel.get_available_packet_count() &gt; 0:
+            print(get_path(), &quot; received: &quot;, channel.get_packet().get_string_from_utf8())
+
+func send_message(message):
+    channel.put_packet(message.to_utf8())</code></pre>
+<p>And now for the local signaling server:</p>
+<blockquote>
+<p><strong>Note:</strong> This local signaling server is supposed to be used as a ref to connect two peers in the same scene.</p>
+</blockquote>
+<pre><code># A local signaling server. Add this to autoloads with name &quot;Signaling&quot; (/root/Signaling)
+extends Node
+
+# We will store the two peers here
+var peers = []
+
+func register(path):
+    assert(peers.size() &lt; 2)
+    peers.append(path)
+    # If it&#39;s the second one, create an offer
+    if peers.size() == 2:
+        get_node(peers[0]).peer.create_offer()
+
+func _find_other(path):
+    # Find the other registered peer.
+    for p in peers:
+        if p != path:
+            return p
+    return &quot;&quot;
+
+func send_session(path, type, sdp):
+    var other = _find_other(path)
+    assert(other != &quot;&quot;)
+    get_node(other).peer.set_remote_description(type, sdp)
+
+func send_candidate(path, mid, index, sdp):
+    var other = _find_other(path)
+    assert(other != &quot;&quot;)
+    get_node(other).peer.add_ice_candidate(mid, index, sdp)</code></pre>
+<p>Then you can use it like this:</p>
+<pre><code># Main scene (main.gd)
+extends Node
+
+const Chat = preload(&quot;res://chat.gd&quot;)
+
+func _ready():
+    var p1 = Chat.new()
+    var p2 = Chat.new()
+    add_child(p1)
+    add_child(p2)
+    yield(get_tree().create_timer(1), &quot;timeout&quot;)
+    p1.send_message(&quot;Hi from %s&quot; % p1.get_path())
+
+    # Wait a second and send message from P2
+    yield(get_tree().create_timer(1), &quot;timeout&quot;)
+    p2.send_message(&quot;Hi from %s&quot; % p2.get_path())</code></pre>
+<p>This will print something similar to this:</p>
+<pre><code>/root/main/@@3 received: Hi from /root/main/@@2
+/root/main/@@2 received: Hi from /root/main/@@3</code></pre>
+<h3 id="remote-signaling-with-websocket">Remote signaling with WebSocket</h3>
+<p>A more advanced demo using WebSocket for signaling peers and ref is available in the <a href="https://github.com/godotengine/godot-demo-projects">godot demo projects</a> under networking/webrtc_signaling.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

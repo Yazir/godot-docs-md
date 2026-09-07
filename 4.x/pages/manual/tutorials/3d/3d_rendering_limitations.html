@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D rendering limitations — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="3d-rendering-limitations">3D rendering limitations</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Due to their focus on performance, real-time rendering engines have many limitations. Godot's renderer is no exception. To work effectively with those limitations, you need to understand them.</p>
+<h2 id="texture-size-limits">Texture size limits</h2>
+<p>On desktops and laptops, textures larger than 8192×8192 may not be supported on older devices. You can check your target GPU's limitations on <a href="https://www.gpuinfo.org/">GPUinfo.org</a>.</p>
+<p>Mobile GPUs are typically limited to 4096×4096 textures. Also, some mobile GPUs don't support repeating non-power-of-two-sized textures. Therefore, if you want your texture to display correctly on all platforms, you should avoid using textures larger than 4096×4096 and use a power of two size if the texture needs to repeat.</p>
+<p>To limit the size of a specific texture that may be too large to render, you can set the <strong>Process &gt; Size Limit</strong> import option to a value greater than <code>0</code>. This will reduce the texture's dimensions on import (preserving aspect ratio) without affecting the source file.</p>
+<h2 id="color-banding">Color banding</h2>
+<p>When using the Forward+ or Mobile rendering methods, Godot's 3D engine renders internally in HDR. However, the rendering output will typically be written to a lower precision buffer. This can result in visible banding, especially when using untextured materials. For performance reasons, color precision is also lower when using the Mobile rendering method compared to Forward+.</p>
+<p>When using the Compatibility rendering method, internal HDR rendering is not used and the color precision is the lowest of all rendering methods. This also applies to 2D rendering, where banding may be visible when using smooth gradient textures.</p>
+<p>There are two main ways to alleviate banding:</p>
+<ul>
+<li>If using the Forward+ or Forward Mobile rendering methods, enable ref in <strong>Project Settings &gt; Rendering &gt; Anti Aliasing</strong>. This applies a fullscreen debanding shader as a post-processing effect and is very cheap.</li>
+<li>Alternatively, bake some noise into your textures. This is mainly effective in 2D, e.g. for vignetting effects. In 3D, you can also use a <a href="https://github.com/fractilegames/godot-gles2-debanding-material">custom debanding shader</a> to be applied on your <em>materials</em>. This technique works even if your project is rendered with low color precision, which means it will work when using the Mobile and Compatibility rendering methods.</li>
+</ul>
+<p><em>Image: Color banding comparison (contrast increased for more visibility)</em></p>
+<p>Color banding comparison (contrast increased for more visibility)</p>
+<blockquote>
+<p><strong>See also:</strong> See <a href="https://loopit.dk/banding_in_games.pdf">Banding in Games: A Noisy Rant (PDF)</a> for more details about banding and ways to combat it.</p>
+</blockquote>
+<h2 id="depth-buffer-precision">Depth buffer precision</h2>
+<p>To sort objects in 3D space, rendering engines rely on a <em>depth buffer</em> (also called <em>Z-buffer</em>). This buffer has a finite precision: 32-bit on desktop platforms, 24-bit on mobile platforms (for performance reasons). If two different objects end up on the same buffer value, then Z-fighting will occur. This will materialize as textures flickering back and forth as the camera moves or rotates.</p>
+<p>To make the depth buffer more precise over the rendered area, you should <em>increase</em> the Camera node's <strong>Near</strong> property. However, be careful: if you set it too high, players will be able to see through nearby geometry. You should also <em>decrease</em> the Camera node's <strong>Far</strong> property to the lowest permissible value for your use case, though keep in mind it won't impact precision as much as the <strong>Near</strong> property.</p>
+<p>If you only need high precision when the player can see far away, you could change it dynamically based on the game conditions. For instance, if the player enters an airplane, the <strong>Near</strong> property can be temporarily increased to avoid Z-fighting in the distance. It can then be decreased once the player leaves the airplane.</p>
+<p>Depending on the scene and viewing conditions, you may also be able to move the Z-fighting objects further apart without the difference being visible to the player.</p>
+<p><em>Image: Z-fighting comparison (before and after tweaking the scene by offsetting the Label3D away from the floor)</em></p>
+<p>Z-fighting comparison (before and after tweaking the scene by offsetting the Label3D away from the floor)</p>
+<h2 id="transparency-sorting">Transparency sorting</h2>
+<p>In Godot, transparent materials are drawn after opaque materials. Transparent objects are sorted back to front before being drawn based on the Node3D's position, not the vertex position in world space. Due to this, overlapping objects may often be sorted out of order. To fix improperly sorted objects, tweak the material's ref property or the node's ref. Render Priority will force specific materials to appear in front of or behind other transparent materials, while Sorting Offset will move the object forward or backward for the purpose of sorting. Even then, these may not always be sufficient.</p>
+<p>Transparent objects are not rendered to the normal-roughness buffer, as they are drawn after opaque geometry. As a result, features that rely on the normal-roughness buffer will not affect transparent materials.</p>
+<p>Some rendering engines feature <em>order-independent transparency</em> techniques to alleviate this, but this is costly on the GPU. Godot currently doesn't provide this feature. There are still several ways to avoid this problem:</p>
+<ul>
+<li>Only make materials transparent if you actually need it. If a material only has a small transparent part, consider splitting it into a separate material. This will allow the opaque part to cast shadows and will also improve performance.</li>
+<li>If your texture mostly has fully opaque and fully transparent areas, you can use alpha testing instead of alpha blending. This transparency mode is faster to render and doesn't suffer from transparency issues. Enable <strong>Transparency &gt; Transparency</strong> to <strong>Alpha Scissor</strong> in StandardMaterial3D, and adjust <strong>Transparency &gt; Alpha Scissor Threshold</strong> accordingly if needed. Note that MSAA will not antialias the texture's edges unless alpha antialiasing is enabled in the material's properties. However, FXAA, TAA and supersampling will be able to antialias the texture's edges regardless of whether alpha antialiasing is enabled on the material.</li>
+<li>If you need to render semi-transparent areas of the texture, alpha scissor isn't suitable. Instead, setting the StandardMaterial3D's <strong>Transparency &gt; Transparency</strong> property to <strong>Depth Pre-Pass</strong> can sometimes work (at a performance cost). You can also try the <strong>Alpha Hash</strong> mode.</li>
+<li>If you want a material to fade with distance, use the StandardMaterial3D distance fade mode <strong>Pixel Dither</strong> or <strong>Object Dither</strong> instead of <strong>Pixel Alpha</strong>. This will make the material opaque, which also speeds up rendering.</li>
+</ul>
+<p><em>Image: Transparency sorting comparison (alpha-blended materials on the left, alpha scissor materials on the right)</em></p>
+<p>Transparency sorting comparison (alpha-blended materials on the left, alpha scissor materials on the right)</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Controllers, gamepads, and joysticks — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="controllers-gamepads-and-joysticks">Controllers, gamepads, and joysticks</h1>
+<p>Godot supports hundreds of controller models thanks to the community-sourced <a href="https://github.com/gabomdq/SDL_GameControllerDB">SDL game controller database</a>.</p>
+<p>Controllers are supported on Windows, macOS, Linux, Android, iOS, and HTML5.</p>
+<p>Note that more specialized devices such as steering wheels, rudder pedals and <a href="https://en.wikipedia.org/wiki/HOTAS">HOTAS</a> are less tested and may not always work as expected. Overriding force feedback for those devices is also not implemented yet. If you have access to one of those devices, don't hesitate to <a href="https://github.com/godotengine/godot/blob/3.6/CONTRIBUTING.md#reporting-bugs">report bugs on GitHub</a>.</p>
+<p>In this guide, you will learn:</p>
+<ul>
+<li><strong>How to write your input logic to support both keyboard and controller inputs.</strong></li>
+<li><strong>How controllers can behave differently from keyboard/mouse input.</strong></li>
+<li><strong>Troubleshooting issues with controllers in Godot.</strong></li>
+</ul>
+<h2 id="supporting-universal-input">Supporting universal input</h2>
+<p>Thanks to Godot's input action system, Godot makes it possible to support both keyboard and controller input without having to write separate code paths. Instead of hardcoding keys or controller buttons in your scripts, you should create <em>input actions</em> in the Project Settings which will then refer to specified key and controller inputs.</p>
+<p>Input actions are explained in detail on the <code>doc_inputevent</code> page.</p>
+<blockquote>
+<p><strong>Note:</strong> Unlike keyboard input, supporting both mouse and controller input for an action (such as looking around in a first-person game) will require different code paths since these have to be handled separately.</p>
+</blockquote>
+<h3 id="which-input-singleton-method-should-i-use">Which Input singleton method should I use?</h3>
+<p>There are 3 ways to get input in an analog-aware way:</p>
+<ul>
+<li>When you have two axes (such as joystick or WASD movement) and want both axes to behave as a single input, use <code>Input.get_vector()</code>:</li>
+</ul>
+<pre class="gdscript"><code># `velocity` will be a Vector2 between `Vector2(-1.0, -1.0)` and `Vector2(1.0, 1.0)`.
+# This handles deadzone in a correct way for most use cases.
+# The resulting deadzone will have a circular shape as it generally should.
+var velocity = Input.get_vector(&quot;move_left&quot;, &quot;move_right&quot;, &quot;move_forward&quot;, &quot;move_back&quot;)
+
+# The line below is similar to `get_vector()`, except that it handles
+# the deadzone in a less optimal way. The resulting deadzone will have
+# a square-ish shape when it should ideally have a circular shape.
+var velocity = Vector2(
+     Input.get_action_strength(&quot;move_right&quot;) - Input.get_action_strength(&quot;move_left&quot;),
+     Input.get_action_strength(&quot;move_back&quot;) - Input.get_action_strength(&quot;move_forward&quot;)
+).clamped(1.0)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// `velocity` will be a Vector2 between `Vector2(-1.0, -1.0)` and `Vector2(1.0, 1.0)`.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">// This handles deadzone in a correct way for most use cases.</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">// The resulting deadzone will have a circular shape as it generally should.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>Vector2 velocity <span class="op">=</span> Input<span class="op">.</span><span class="fu">GetVector</span><span class="op">(</span><span class="st">&quot;move_left&quot;</span><span class="op">,</span> <span class="st">&quot;move_right&quot;</span><span class="op">,</span> <span class="st">&quot;move_forward&quot;</span><span class="op">,</span> <span class="st">&quot;move_back&quot;</span><span class="op">);</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">// The line below is similar to `get_vector()`, except that it handles</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">// the deadzone in a less optimal way. The resulting deadzone will have</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">// a square-ish shape when it should ideally have a circular shape.</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>Vector2 velocity <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>     Input<span class="op">.</span><span class="fu">GetActionStrength</span><span class="op">(</span><span class="st">&quot;move_right&quot;</span><span class="op">)</span> <span class="op">-</span> Input<span class="op">.</span><span class="fu">GetActionStrength</span><span class="op">(</span><span class="st">&quot;move_left&quot;</span><span class="op">),</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>     Input<span class="op">.</span><span class="fu">GetActionStrength</span><span class="op">(</span><span class="st">&quot;move_back&quot;</span><span class="op">)</span> <span class="op">-</span> Input<span class="op">.</span><span class="fu">GetActionStrength</span><span class="op">(</span><span class="st">&quot;move_forward&quot;</span><span class="op">)</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="op">).</span><span class="fu">Clamped</span><span class="op">(</span><span class="fl">1.0</span><span class="op">);</span></span></code></pre></div>
+<ul>
+<li>When you have one axis that can go both ways (such as a throttle on a flight stick), or when you want to handle separate axes individually, use <code>Input.get_axis()</code>:</li>
+</ul>
+<pre class="gdscript"><code># `walk` will be a floating-point number between `-1.0` and `1.0`.
+var walk = Input.get_axis(&quot;move_left&quot;, &quot;move_right&quot;)
+
+# The line above is a shorter form of:
+var walk = Input.get_action_strength(&quot;move_right&quot;) - Input.get_action_strength(&quot;move_left&quot;)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// `walk` will be a floating-point number between `-1.0` and `1.0`.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> walk <span class="op">=</span> Input<span class="op">.</span><span class="fu">GetAxis</span><span class="op">(</span><span class="st">&quot;move_left&quot;</span><span class="op">,</span> <span class="st">&quot;move_right&quot;</span><span class="op">);</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">// The line above is a shorter form of:</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> walk <span class="op">=</span> Input<span class="op">.</span><span class="fu">GetActionStrength</span><span class="op">(</span><span class="st">&quot;move_right&quot;</span><span class="op">)</span> <span class="op">-</span> Input<span class="op">.</span><span class="fu">GetActionStrength</span><span class="op">(</span><span class="st">&quot;move_left&quot;</span><span class="op">);</span></span></code></pre></div>
+<ul>
+<li>For other types of analog input, such as handling a trigger or handling one direction at a time, use <code>Input.get_action_strength()</code>:</li>
+</ul>
+<pre class="gdscript"><code># `strength` will be a floating-point number between `0.0` and `1.0`.
+var strength = Input.get_action_strength(&quot;accelerate&quot;)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// `strength` will be a floating-point number between `0.0` and `1.0`.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> strength <span class="op">=</span> Input<span class="op">.</span><span class="fu">GetActionStrength</span><span class="op">(</span><span class="st">&quot;accelerate&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>For non-analog digital/boolean input (only "pressed" or "not pressed" values), such as controller buttons, mouse buttons or keyboard keys, use <code>Input.is_action_pressed()</code>:</p>
+<pre class="gdscript"><code># `jumping` will be a boolean with a value of `true` or `false`.
+var jumping = Input.is_action_pressed(&quot;jump&quot;)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// `jumping` will be a boolean with a value of `true` or `false`.</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> jumping <span class="op">=</span> Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;jump&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>In Godot versions before 3.4, such as 3.3, <code>Input.get_vector()</code> and <code>Input.get_axis()</code> aren't available. Only <code>Input.get_action_strength()</code> and <code>Input.is_action_pressed()</code> are available in Godot 3.3.</p>
+<h2 id="differences-between-keyboardmouse-and-controller-input">Differences between keyboard/mouse and controller input</h2>
+<p>If you're used to handling keyboard and mouse input, you may be surprised by how controllers handle specific situations.</p>
+<h3 id="dead-zone">Dead zone</h3>
+<p>Unlike keyboards and mice, controllers offer axes with <em>analog</em> inputs. The upside of analog inputs is that they offer additional flexibility for actions. Unlike digital inputs which can only provide strengths of <code>0.0</code> and <code>1.0</code>, an analog input can provide <em>any</em> strength between <code>0.0</code> and <code>1.0</code>. The downside is that without a deadzone system, an analog axis' strength will never be equal to <code>0.0</code> due to how the controller is physically built. Instead, it will linger at a low value such as <code>0.062</code>. This phenomenon is known as <em>drifting</em> and can be more noticeable on old or faulty controllers.</p>
+<p>Let's take a racing game as a real-world example. Thanks to analog inputs, we can steer the car slowly in one direction or another. However, without a deadzone system, the car would slowly steer by itself even if the player isn't touching the joystick. This is because the directional axis strength won't be equal to <code>0.0</code> when we expect it to. Since we don't want our car to steer by itself in this case, we define a "dead zone" value of <code>0.2</code> which will ignore all input whose strength is lower than <code>0.2</code>. An ideal dead zone value is high enough to ignore the input caused by joystick drifting, but is low enough to not ignore actual input from the player.</p>
+<p>Godot features a built-in dead zone system to tackle this problem. The default value is <code>0.2</code>, but you can increase it or decrease it on a per-action basis in the Project Settings' Input Map tab. For <code>Input.get_vector()</code>, the deadzone can be specified, or otherwise it will calculate the average deadzone value from all of the actions in the vector.</p>
+<h3 id="echo-events">"Echo" events</h3>
+<p>Unlike keyboard input, holding down a controller button such as a D-pad direction will <strong>not</strong> generate repeated input events at fixed intervals (also known as "echo" events). This is because the operating system never sends "echo" events for controller input in the first place.</p>
+<p>If you want controller buttons to send echo events, you will have to generate <code>class_InputEvent</code> objects by code and parse them using ref at regular intervals. This can be accomplished with the help of a <code>class_Timer</code> node.</p>
+<h3 id="window-focus">Window focus</h3>
+<p>Unlike keyboard input, controller inputs can be seen by <strong>all</strong> windows on the operating system, including unfocused windows.</p>
+<p>While this is useful for <a href="https://nucleus-coop.github.io/">third-party split screen functionality</a>, it can also have adverse effects. Players may accidentally send controller inputs to the running project while interacting with another window.</p>
+<p>If you wish to ignore events when the project window isn't focused, you will need to create an ref called <code>Focus</code> with the following script and use it to check all your inputs:</p>
+<pre><code># Focus.gd
+extends Node
+
+var focused := true
+
+func _notification(what: int) -&gt; void:
+    match what:
+        NOTIFICATION_WM_FOCUS_OUT:
+            focused = false
+        NOTIFICATION_WM_FOCUS_IN:
+            focused = true
+
+func input_is_action_pressed(action: String) -&gt; bool:
+    if focused:
+        return Input.is_action_pressed(action)
+
+    return false
+
+func event_is_action_pressed(event: InputEvent, action: String) -&gt; bool:
+    if focused:
+        return Input.is_action_pressed(action)
+
+    return false</code></pre>
+<p>Then, instead of using <code>Input.is_action_pressed(action)</code>, use <code>Focus.input_is_action_pressed(action)</code> where <code>action</code> is the name of the input action. Also, instead of using <code>event.is_action_pressed(action)</code>, use <code>Focus.event_is_action_pressed(event, action)</code> where <code>event</code> is an InputEvent reference and <code>action</code> is the name of the input action.</p>
+<h3 id="power-saving-prevention">Power saving prevention</h3>
+<p>Unlike keyboard and mouse input, controller inputs do <strong>not</strong> inhibit sleep and power saving measures (such as turning off the screen after a certain amount of time has passed).</p>
+<p>To combat this, Godot enables power saving prevention by default when a project is running. If you notice the system is turning off its display when playing with a gamepad, check the value of <strong>Display &gt; Window &gt; Energy Saving &gt; Keep Screen On</strong> in the Project Settings.</p>
+<p>Power saving prevention is <strong>not</strong> supported on Linux in Godot 3.x, but it is supported in Godot 4.x. As a workaround, increase the screensaver's timeout period to make it less likely to occur during gameplay.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<blockquote>
+<p><strong>See also:</strong> You can view a list of <a href="https://github.com/godotengine/godot/issues?q=is%3Aopen+is%3Aissue+label%3Atopic%3Ainput+gamepad">known issues with controller support</a> on GitHub.</p>
+</blockquote>
+<h3 id="my-controller-isnt-recognized-by-godot">My controller isn't recognized by Godot.</h3>
+<p>First, check that your controller is recognized by other applications. You can use the <a href="https://gamepad-tester.com/">Gamepad Tester</a> website to confirm that your controller is recognized.</p>
+<h3 id="my-controller-has-incorrectly-mapped-buttons-or-axes">My controller has incorrectly mapped buttons or axes.</h3>
+<p>If buttons are incorrectly mapped, this may be due to an erroneous mapping from the <a href="https://github.com/gabomdq/SDL_GameControllerDB">SDL game controller database</a>. You can contribute an updated mapping to be included in the next Godot version by opening a pull request on the linked repository.</p>
+<p>There are many ways to create mappings. One option is to use the mapping wizard in the <a href="https://godotengine.org/asset-library/asset/140">official Joypads demo</a>. Once you have a working mapping for your controller, you can test it by defining the <code>SDL_GAMECONTROLLERCONFIG</code> environment variable before running Godot:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">SDL_GAMECONTROLLERCONFIG</span><span class="op">=</span><span class="st">&quot;your:mapping:here&quot;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./path/to/godot.x86_64</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bat"><code class="sourceCode dosbat"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="va">SDL_GAMECONTROLLERCONFIG</span>=your:mapping:here</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">path</span>\to\godot.exe</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="va">$env</span><span class="op">:</span>SDL_GAMECONTROLLERCONFIG<span class="op">=</span><span class="st">&quot;your:mapping:here&quot;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>path\to\godot<span class="op">.</span><span class="fu">exe</span></span></code></pre></div>
+<p>To test mappings on non-desktop platforms or to distribute your project with additional controller mappings, you can add them by calling ref as early as possible in a script's <code>_ready()</code> function.</p>
+<h3 id="my-controller-works-on-a-given-platform-but-not-on-another-platform">My controller works on a given platform, but not on another platform.</h3>
+<h4 id="linux">Linux</h4>
+<p>Prior to Godot 3.3, official Godot binaries were compiled with udev support but self-compiled binaries were compiled <em>without</em> udev support unless <code>udev=yes</code> was passed on the SCons command line. This made controller hotplugging support unavailable in self-compiled binaries.</p>
+<h4 id="html5">HTML5</h4>
+<p>HTML5 controller support is often less reliable compared to "native" platforms. The quality of controller support tends to vary wildly across browsers. As a result, you may have to instruct your players to use a different browser if they can't get their controller to work.</p>
+<p>Also, note that <a href="https://github.com/godotengine/godot/pull/45078">controller support was significantly improved</a> in Godot 3.3 and later.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

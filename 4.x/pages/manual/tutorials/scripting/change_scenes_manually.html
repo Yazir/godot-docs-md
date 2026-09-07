@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Change scenes manually — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="change-scenes-manually">Change scenes manually</h1>
+<p>Sometimes it helps to have more control over how you swap scenes around. A ref's child nodes will render to the image it generates. This holds true even for nodes outside of the "current" scene. Autoloads fall into this category, and also scenes which you instantiate and add to the tree at runtime:</p>
+<pre class="gdscript"><code>var simultaneous_scene = preload(&quot;res://levels/level2.tscn&quot;).instantiate()
+
+func _add_a_scene_manually():
+    # This is like autoloading the scene, only
+    # it happens after already loading the main scene.
+    get_tree().root.add_child(simultaneous_scene)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> Node simultaneousScene<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="fu">MyClass</span><span class="op">()</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    simultaneousScene <span class="op">=</span> ResourceLoader<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>PackedScene<span class="op">&gt;(</span><span class="st">&quot;res://levels/level2.tscn&quot;</span><span class="op">).</span><span class="fu">Instantiate</span><span class="op">();</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">_AddASceneManually</span><span class="op">()</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// This is like autoloading the scene, only</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// it happens after already loading the main scene.</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">GetTree</span><span class="op">().</span><span class="fu">Root</span><span class="op">.</span><span class="fu">AddChild</span><span class="op">(</span>simultaneousScene<span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>To complete the cycle and swap out the new scene with the old one, you have a choice to make. Many strategies exist for removing a scene from view of the ref. The tradeoffs involve balancing operation speed and memory consumption, as well as balancing data access and integrity.</p>
+<ol type="1">
+<li><p><strong>Delete the existing scene.</strong> ref and ref will delete the current scene immediately. You can also delete the main scene. Assuming the root node's name is "Main", you could do <code>get_node("/root/Main").free()</code> to delete the whole scene.</p>
+<blockquote>
+<ul>
+<li><p>Unloads memory.</p>
+<blockquote>
+<ul>
+<li>Pro: RAM is no longer dragging the dead weight.</li>
+<li>Con: Returning to that scene is now more expensive since it must be loaded back into memory again (takes time AND memory). Not a problem if returning soon is unnecessary.</li>
+<li>Con: No longer have access to that scene's data. Not a problem if using that data soon is unnecessary.</li>
+<li>Note: It can be useful to preserve the data in a soon-to-be-deleted scene by re-attaching one or more of its nodes to a different scene, or even directly to the ref.</li>
+</ul>
+</blockquote></li>
+<li><p>Processing stops.</p>
+<blockquote>
+<ul>
+<li>Pro: No nodes means no processing, physics processing, or input handling. The CPU is available to work on the new scene's contents.</li>
+<li>Con: Those nodes' processing and input handling no longer operate. Not a problem if using the updated data is unnecessary.</li>
+</ul>
+</blockquote></li>
+</ul>
+</blockquote></li>
+<li><p><strong>Hide the existing scene.</strong> By changing the visibility or collision detection of the nodes, you can hide the entire node sub-tree from the player's perspective. Use ref to hide a scene and ref to show it again.</p>
+<blockquote>
+<ul>
+<li><p>Memory still exists.</p>
+<blockquote>
+<ul>
+<li>Pro: You can still access the data if needed.</li>
+<li>Pro: There's no need to move any more nodes around to save data.</li>
+<li>Con: More data is being kept in memory, which will be become a problem on memory-sensitive platforms like web or mobile.</li>
+</ul>
+</blockquote></li>
+<li><p>Processing continues.</p>
+<blockquote>
+<ul>
+<li>Pro: Data continues to receive processing updates, so the scene will keep any data within it that relies on delta time or frame data updated.</li>
+<li>Pro: Nodes are still members of groups (since groups belong to the ref).</li>
+<li>Con: The CPU's attention is now divided between both scenes. Too much load could result in low frame rates. You should be sure to test performance as you go to ensure the target platform can support the load from this approach.</li>
+</ul>
+</blockquote></li>
+</ul>
+</blockquote></li>
+<li><p><strong>Remove the existing scene from the tree.</strong> Assign a variable to the existing scene's root node. Then use ref to detach the entire scene from the tree. To attach it later, use ref.</p>
+<blockquote>
+<ul>
+<li>Memory still exists (similar pros/cons as hiding it from view).</li>
+<li>Processing stops (similar pros/cons as deleting it completely).</li>
+<li>Pro: This variation of "hiding" it is much easier to show/hide. Rather than potentially keeping track of multiple changes to the scene, you only need to call the add/remove_child methods. This is similar to disabling game objects in other engines.</li>
+<li>Con: Unlike with hiding it from view only, the data contained within the scene will become stale if it relies on delta time, input, groups, or other data that is derived from ref access.</li>
+</ul>
+</blockquote></li>
+</ol>
+<p>There are also cases where you may wish to have many scenes present at the same time, such as adding your own singleton at runtime, or preserving a scene's data between scene changes (adding the scene to the root node).</p>
+<pre class="gdscript"><code>get_tree().root.add_child(scene)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">GetTree</span><span class="op">().</span><span class="fu">Root</span><span class="op">.</span><span class="fu">AddChild</span><span class="op">(</span>scene<span class="op">);</span></span></code></pre></div>
+<p>Another case may be displaying multiple scenes at the same time using ref. This is optimal for rendering different content in different parts of the screen (e.g. minimaps, split-screen multiplayer).</p>
+<p>Each option will have cases where it is best appropriate, so you must examine the effects of each approach, and determine what path best fits your unique situation.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

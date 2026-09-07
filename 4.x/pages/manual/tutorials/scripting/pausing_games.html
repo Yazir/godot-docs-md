@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pausing games and process mode — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="pausing-games-and-process-mode">Pausing games and process mode</h1>
+<h2 id="introduction">Introduction</h2>
+<p>In most games it is desirable to, at some point, interrupt the game to do something else, such as taking a break or changing options. Implementing a fine-grained control for what can be paused (and what cannot) is a lot of work, so a simple framework for pausing is provided in Godot.</p>
+<h2 id="how-pausing-works">How pausing works</h2>
+<p>To pause the game the pause state must be set. This is done by assigning <code>true</code> to the ref property:</p>
+<pre class="gdscript"><code>get_tree().paused = true</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">GetTree</span><span class="op">().</span><span class="fu">Paused</span> <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span></code></pre></div>
+<p>Doing this will cause two things. First, 2D and 3D physics will be stopped for all nodes. Second, the behavior of certain nodes will stop or start depending on their process mode.</p>
+<blockquote>
+<p><strong>Note:</strong> The physics servers can be made active while the game is paused by using their <code>set_active</code> methods.</p>
+</blockquote>
+<h2 id="process-modes">Process Modes</h2>
+<p>Each node in Godot has a "Process Mode" that defines when it processes. It can be found and changed under a node's ref properties in the inspector.</p>
+<p>You can also alter the property with code:</p>
+<pre class="gdscript"><code>func _ready():
+    process_mode = Node.PROCESS_MODE_PAUSABLE</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    ProcessMode <span class="op">=</span> Node<span class="op">.</span><span class="fu">ProcessModeEnum</span><span class="op">.</span><span class="fu">Pausable</span><span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This is what each mode tells a node to do:</p>
+<ul>
+<li><strong>Inherit</strong>: Process depending on the state of the parent, grandparent, etc. The first parent that has a non-Inherit state.</li>
+<li><strong>Pausable</strong>: Process the node (and its children in Inherit mode) only when the game is not paused.</li>
+<li><strong>WhenPaused</strong>: Process the node (and its children in Inherit mode) <em>only</em> when the game is paused.</li>
+<li><strong>Always</strong>: Process the node (and its children in Inherit mode) no matter what. Paused or not, this node will process.</li>
+<li><strong>Disabled</strong>: The node (and its children in Inherit mode) will not process at all.</li>
+</ul>
+<p>By default, all nodes have this property in the "Inherit" state. If the parent is set to "Inherit", then the grandparent will be checked and so on. If a state can't be found in any of the grandparents, the pause state in SceneTree is used. This means that, by default, when the game is paused every node will be paused. Several things happen when a node stops processing.</p>
+<p>The <code>_process</code>, <code>_physics_process</code>, <code>_input</code>, and <code>_input_event</code> functions will not be called. However signals still work and cause their connected function to run, even if that function's script is attached to a node that is not currently being processed.</p>
+<p>Animation nodes will pause their current animation, audio nodes will pause their current audio stream, and particles will pause. These resume automatically when the game is no longer paused.</p>
+<p>It is important to note that even if a node is processing while the game is paused physics will <strong>NOT</strong> work for it by default. As stated earlier this is because the physics servers are turned off. The physics servers can be made active while the game is paused by using their <code>set_active</code> methods.</p>
+<h2 id="pause-menu-example">Pause menu example</h2>
+<p>Start by creating a button that will be used to pause the game.</p>
+<p>Create a menu containing a close button, set the <strong>Process Mode</strong> of the menu's root node to <strong>When Paused</strong>, then hide the menu. Since the process mode is set to <strong>When Paused</strong> on the root node, all its children and grandchildren will inherit that process mode. This way, all the nodes in the menu will start processing when the game is paused.</p>
+<p>Attach a script to the menu's root node, connect the pause button created earlier to a new method in the script, and inside that method pause the game and show the pause menu.</p>
+<pre class="gdscript"><code>func _on_pause_button_pressed():
+    get_tree().paused = true
+    show()</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnPauseButtonPressed</span><span class="op">()</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">GetTree</span><span class="op">().</span><span class="fu">Paused</span> <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Show</span><span class="op">();</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Finally, connect the menu's close button to a new method in the script. Inside that method, unpause the game and hide the pause menu.</p>
+<pre class="gdscript"><code>func _on_close_button_pressed():
+    hide()
+    get_tree().paused = false</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnCloseButtonPressed</span><span class="op">()</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Hide</span><span class="op">();</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">GetTree</span><span class="op">().</span><span class="fu">Paused</span> <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>You should now have a working pause menu.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

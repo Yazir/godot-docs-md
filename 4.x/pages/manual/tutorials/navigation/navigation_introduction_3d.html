@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D navigation overview — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="3d-navigation-overview">3D navigation overview</h1>
+<p>Godot provides multiple objects, classes and servers to facilitate grid-based or mesh-based navigation and pathfinding for 2D and 3D games. The following section provides a quick overview over all available navigation related objects in Godot for 3D scenes and their primary use.</p>
+<p>Godot provides the following objects and classes for 3D navigation:</p>
+<ul>
+<li><p>ref <code>Astar3D</code> objects provide an option to find the shortest path in a graph of weighted <strong>points</strong>.</p>
+<p>The AStar3D class is best suited for cell-based 3D gameplay that does not require actors to reach any possible position within an area but only predefined, distinct positions.</p></li>
+<li><p>ref <code>NavigationServer3D</code> provides a powerful server API to find the shortest path between two positions on an area defined by a navigation mesh.</p>
+<p>The NavigationServer is best suited for 3D realtime gameplay that does require actors to reach any possible position within a navigation mesh defined area. Mesh-based navigation scales well with large game worlds as a large area can often be defined with a single polygon when it would require many, many grid cells.</p>
+<p>The NavigationServer holds different navigation maps that each consist of regions that hold navigation mesh data. Agents can be placed on a map for avoidance calculation. RIDs are used to reference internal maps, regions, and agents when communicating with the server.</p>
+<p>The following NavigationServer RID types are available.</p>
+<ul>
+<li><p>NavMap RID Reference to a specific navigation map that holds regions and agents. The map will attempt to join the navigation meshes of the regions by proximity. The map will synchronize regions and agents each physics frame.</p></li>
+<li><p>NavRegion RID Reference to a specific navigation region that can hold navigation mesh data. The region can be enabled / disabled or the use restricted with a navigation layer bitmask.</p></li>
+<li><p>NavLink RID Reference to a specific navigation link that connects two navigation mesh positions over arbitrary distances.</p></li>
+<li><p>NavAgent RID Reference to a specific avoidance agent. The avoidance is defined by a radius value.</p></li>
+<li><p>NavObstacle RID Reference to a specific avoidance obstacle used to affect and constrain the avoidance velocity of agents.</p></li>
+</ul></li>
+</ul>
+<p>The following scene tree nodes are available as helpers to work with the NavigationServer3D API.</p>
+<ul>
+<li><p>ref Node A Node that holds a Navigation Mesh resource that defines a navigation mesh for the NavigationServer3D.</p>
+<ul>
+<li>The region can be enabled / disabled.</li>
+<li>The use in pathfinding can be further restricted through the <code>navigation_layers</code> bitmask.</li>
+<li>The NavigationServer3D will join the navigation meshes of regions by proximity for a combined navigation mesh.</li>
+</ul></li>
+<li><p>ref Node A Node that connects two positions on navigation meshes over arbitrary distances for pathfinding.</p>
+<ul>
+<li>The link can be enabled / disabled.</li>
+<li>The link can be made one-way or bidirectional.</li>
+<li>The use in pathfinding can be further restricted through the <code>navigation_layers</code> bitmask.</li>
+</ul>
+<p>Links tell the pathfinding that a connection exists and at what cost. The actual agent handling and movement needs to happen in custom scripts.</p></li>
+<li><p>ref Node A helper Node used to facilitate common NavigationServer3D API calls for pathfinding and avoidance. Use this Node with a Node3D inheriting parent Node.</p></li>
+<li><p>ref Node A Node that can be used to affect and constrain the avoidance velocity of avoidance enabled agents. This Node does NOT affect the pathfinding of agents. You need to change the navigation meshes for that instead.</p></li>
+</ul>
+<p>The 3D navigation meshes are defined with the following resources:</p>
+<ul>
+<li><p>ref Resource A resource that holds 3D navigation mesh data. It provides 3D geometry baking options to define navigation areas inside the Editor as well as at runtime.</p>
+<ul>
+<li>The NavigationRegion3D Node uses this resource to define its navigation area.</li>
+<li>The NavigationServer3D uses this resource to update the navigation mesh of individual regions.</li>
+<li>The GridMap Editor uses this resource when specific navigation meshes are defined for each grid cell.</li>
+</ul></li>
+</ul>
+<blockquote>
+<p><strong>See also:</strong> You can see how 3D navigation works in action using the <a href="https://github.com/godotengine/godot-demo-projects/tree/master/3d/navigation">3D Navigation demo project</a>.</p>
+</blockquote>
+<h2 id="setup-for-3d-scene">Setup for 3D scene</h2>
+<p>The following steps show a basic setup for minimal viable navigation in 3D. It uses the NavigationServer3D and a NavigationAgent3D for path movement.</p>
+<ol type="1">
+<li>Add a NavigationRegion3D Node to the scene.</li>
+<li>Click on the region node and add a new ref Resource to the region node.</li>
+<li>Add a new MeshInstance3D node as a child of the region node.</li>
+<li>Select the MeshInstance3D node and add a new PlaneMesh and increase the xy size to 10.</li>
+<li>Select the region node again and press the "Bake Navmesh" button on the top bar.</li>
+<li>Now a transparent navigation mesh appears that hovers some distance on top of the PlaneMesh.</li>
+<li>Add a CharacterBody3D node in the scene with a basic collision shape and some mesh for visuals.</li>
+<li>Add a NavigationAgent3D node below the character node.</li>
+<li>Add a script to the CharacterBody3D node with the following content. We make sure to set a movement target after the scene has fully loaded and the NavigationServer had time to sync. Also, add a Camera3D and some light and environment to see something.</li>
+</ol>
+<pre class="gdscript"><code>extends CharacterBody3D
+
+var movement_speed: float = 2.0
+var movement_target_position: Vector3 = Vector3(-3.0,0.0,2.0)
+
+@onready var navigation_agent: NavigationAgent3D = $NavigationAgent3D
+
+func _ready():
+    # These values need to be adjusted for the actor&#39;s speed
+    # and the navigation layout.
+    navigation_agent.path_desired_distance = 0.5
+    navigation_agent.target_desired_distance = 0.5
+
+    # Make sure to not await during _ready.
+    actor_setup.call_deferred()
+
+func actor_setup():
+    # Wait for the first physics frame so the NavigationServer can sync.
+    await get_tree().physics_frame
+
+    # Now that the navigation map is no longer empty, set the movement target.
+    set_movement_target(movement_target_position)
+
+func set_movement_target(movement_target: Vector3):
+    navigation_agent.set_target_position(movement_target)
+
+func _physics_process(delta):
+    if navigation_agent.is_navigation_finished():
+        return
+
+    var current_agent_position: Vector3 = global_position
+    var next_path_position: Vector3 = navigation_agent.get_next_path_position()
+
+    velocity = current_agent_position.direction_to(next_path_position) * movement_speed
+    move_and_slide()</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyCharacterBody3D <span class="op">:</span> CharacterBody3D</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> NavigationAgent3D _navigationAgent<span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> _movementSpeed <span class="op">=</span> <span class="fl">2.0f</span><span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector3 _movementTargetPosition <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(-</span><span class="fl">3.0f</span><span class="op">,</span> <span class="fl">0.0f</span><span class="op">,</span> <span class="fl">2.0f</span><span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Vector3 MovementTarget</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">get</span> <span class="op">{</span> <span class="kw">return</span> _navigationAgent<span class="op">.</span><span class="fu">TargetPosition</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="kw">set</span> <span class="op">{</span> _navigationAgent<span class="op">.</span><span class="fu">TargetPosition</span> <span class="op">=</span> value<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        <span class="kw">base</span><span class="op">.</span><span class="fu">_Ready</span><span class="op">();</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        _navigationAgent <span class="op">=</span> GetNode<span class="op">&lt;</span>NavigationAgent3D<span class="op">&gt;(</span><span class="st">&quot;NavigationAgent3D&quot;</span><span class="op">);</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        <span class="co">// These values need to be adjusted for the actor&#39;s speed</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// and the navigation layout.</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        _navigationAgent<span class="op">.</span><span class="fu">PathDesiredDistance</span> <span class="op">=</span> <span class="fl">0.5f</span><span class="op">;</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        _navigationAgent<span class="op">.</span><span class="fu">TargetDesiredDistance</span> <span class="op">=</span> <span class="fl">0.5f</span><span class="op">;</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Make sure to not await during _Ready.</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>        Callable<span class="op">.</span><span class="fu">From</span><span class="op">(</span>ActorSetup<span class="op">).</span><span class="fu">CallDeferred</span><span class="op">();</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_PhysicsProcess</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>        <span class="kw">base</span><span class="op">.</span><span class="fu">_PhysicsProcess</span><span class="op">(</span>delta<span class="op">);</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>_navigationAgent<span class="op">.</span><span class="fu">IsNavigationFinished</span><span class="op">())</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span><span class="op">;</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>        Vector3 currentAgentPosition <span class="op">=</span> GlobalTransform<span class="op">.</span><span class="fu">Origin</span><span class="op">;</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>        Vector3 nextPathPosition <span class="op">=</span> _navigationAgent<span class="op">.</span><span class="fu">GetNextPathPosition</span><span class="op">();</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>        Velocity <span class="op">=</span> currentAgentPosition<span class="op">.</span><span class="fu">DirectionTo</span><span class="op">(</span>nextPathPosition<span class="op">)</span> <span class="op">*</span> _movementSpeed<span class="op">;</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>        <span class="fu">MoveAndSlide</span><span class="op">();</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> async <span class="dt">void</span> <span class="fu">ActorSetup</span><span class="op">()</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Wait for the first physics frame so the NavigationServer can sync.</span></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>        await <span class="fu">ToSignal</span><span class="op">(</span><span class="fu">GetTree</span><span class="op">(),</span> SceneTree<span class="op">.</span><span class="fu">SignalName</span><span class="op">.</span><span class="fu">PhysicsFrame</span><span class="op">);</span></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Now that the navigation map is no longer empty, set the movement target.</span></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>        MovementTarget <span class="op">=</span> _movementTargetPosition<span class="op">;</span></span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> On the first frame the NavigationServer map has not synchronized region data and any path query will return empty. Wait for the NavigationServer synchronization by awaiting one frame in the script.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

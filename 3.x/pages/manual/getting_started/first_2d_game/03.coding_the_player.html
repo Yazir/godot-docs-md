@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coding the player — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="coding-the-player">Coding the player</h1>
+<p>In this lesson, we'll add player movement, animation, and set it up to detect collisions.</p>
+<p>To do so, we need to add some functionality that we can't get from a built-in node, so we'll add a script. Click the <code>Player</code> node and click the "Attach Script" button:</p>
+<p>In the script settings window, you can leave the default settings alone. Just click "Create":</p>
+<blockquote>
+<p><strong>Note:</strong> If you're creating a C# script or other languages, select the language from the language drop down menu before hitting create.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> If this is your first time encountering GDScript, please read <code>doc_scripting</code> before continuing.</p>
+</blockquote>
+<p>Start by declaring the member variables this object will need:</p>
+<pre class="gdscript"><code>extends Area2D
+
+export var speed = 400 # How fast the player will move (pixels/sec).
+var screen_size # Size of the game window.</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Player <span class="op">:</span> Area2D</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> Speed <span class="op">=</span> <span class="dv">400</span><span class="op">;</span> <span class="co">// How fast the player will move (pixels/sec).</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Vector2 ScreenSize<span class="op">;</span> <span class="co">// Size of the game window.</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// A `player.gdns` file has already been created for you. Attach it to the Player node.</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Create two files `player.cpp` and `player.hpp` next to `entry.cpp` in `src`.</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `player.hpp`. We also define the methods we&#39;ll be using here.</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifndef PLAYER_H</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#define PLAYER_H</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;AnimatedSprite.hpp&gt;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Area2D.hpp&gt;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;CollisionShape2D.hpp&gt;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Godot.hpp&gt;</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Input.hpp&gt;</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Player <span class="op">:</span> <span class="kw">public</span> godot<span class="op">::</span>Area2D <span class="op">{</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    GODOT_CLASS<span class="op">(</span>Player<span class="op">,</span> godot<span class="op">::</span>Area2D<span class="op">)</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>AnimatedSprite <span class="op">*</span>_animated_sprite<span class="op">;</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>CollisionShape2D <span class="op">*</span>_collision_shape<span class="op">;</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Input <span class="op">*</span>_input<span class="op">;</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Vector2 _screen_size<span class="op">;</span> <span class="co">// Size of the game window.</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">real_t</span> speed <span class="op">=</span> <span class="dv">400</span><span class="op">;</span> <span class="co">// How fast the player will move (pixels/sec).</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _init<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _ready<span class="op">();</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _process<span class="op">(</span><span class="at">const</span> <span class="dt">double</span> p_delta<span class="op">);</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> start<span class="op">(</span><span class="at">const</span> godot<span class="op">::</span>Vector2 p_position<span class="op">);</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _on_Player_body_entered<span class="op">(</span>godot<span class="op">::</span>Node2D <span class="op">*</span>_body<span class="op">);</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> _register_methods<span class="op">();</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif </span><span class="co">// PLAYER_H</span></span></code></pre></div>
+<p>Using the <code>export</code> keyword on the first variable <code>speed</code> allows us to set its value in the Inspector. This can be handy for values that you want to be able to adjust just like a node's built-in properties. Click on the <code>Player</code> node and you'll see the property now appears in the "Script Variables" section of the Inspector. Remember, if you change the value here, it will override the value written in the script.</p>
+<blockquote>
+<p><strong>Warning:</strong> If you're using C#, you need to (re)build the project assemblies whenever you want to see new export variables or signals. This build can be manually triggered by clicking the word "Mono" at the bottom of the editor window to reveal the Mono Panel, then clicking the "Build Project" button.</p>
+</blockquote>
+<p>The <code>_ready()</code> function is called when a node enters the scene tree, which is a good time to find the size of the game window:</p>
+<pre class="gdscript"><code>func _ready():
+    screen_size = get_viewport_rect().size</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    ScreenSize <span class="op">=</span> <span class="fu">GetViewportRect</span><span class="op">().</span><span class="fu">Size</span><span class="op">;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `player.cpp`.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;player.hpp&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Player<span class="op">::</span>_ready<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    _animated_sprite <span class="op">=</span> get_node<span class="op">&lt;</span>godot<span class="op">::</span>AnimatedSprite<span class="op">&gt;(</span><span class="st">&quot;AnimatedSprite&quot;</span><span class="op">);</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    _collision_shape <span class="op">=</span> get_node<span class="op">&lt;</span>godot<span class="op">::</span>CollisionShape2D<span class="op">&gt;(</span><span class="st">&quot;CollisionShape2D&quot;</span><span class="op">);</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    _input <span class="op">=</span> godot<span class="op">::</span>Input<span class="op">::</span>get_singleton<span class="op">();</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    _screen_size <span class="op">=</span> get_viewport_rect<span class="op">().</span>size<span class="op">;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Now we can use the <code>_process()</code> function to define what the player will do. <code>_process()</code> is called every frame, so we'll use it to update elements of our game, which we expect will change often. For the player, we need to do the following:</p>
+<ul>
+<li>Check for input.</li>
+<li>Move in the given direction.</li>
+<li>Play the appropriate animation.</li>
+</ul>
+<p>First, we need to check for input - is the player pressing a key? For this game, we have 4 direction inputs to check. Input actions are defined in the Project Settings under "Input Map". Here, you can define custom events and assign different keys, mouse events, or other inputs to them. For this game, we will map the arrow keys to the four directions.</p>
+<p>Click on <em>Project -&gt; Project Settings</em> to open the project settings window and click on the <em>Input Map</em> tab at the top. Type "move_right" in the top bar and click the "Add" button to add the <code>move_right</code> action.</p>
+<p>We need to assign a key to this action. Click the "+" icon on the right, then click the "Key" option in the drop-down menu. A dialog asks you to type in the desired key. Press the right arrow on your keyboard and click "Ok".</p>
+<p>Repeat these steps to add three more mappings:</p>
+<ol type="1">
+<li><code>move_left</code> mapped to the left arrow key.</li>
+<li><code>move_up</code> mapped to the up arrow key.</li>
+<li>And <code>move_down</code> mapped to the down arrow key.</li>
+</ol>
+<p>Your input map tab should look like this:</p>
+<p>Click the "Close" button to close the project settings.</p>
+<blockquote>
+<p><strong>Note:</strong> We only mapped one key to each input action, but you can map multiple keys, joystick buttons, or mouse buttons to the same input action.</p>
+</blockquote>
+<p>You can detect whether a key is pressed using <code>Input.is_action_pressed()</code>, which returns <code>true</code> if it's pressed or <code>false</code> if it isn't.</p>
+<pre class="gdscript"><code>func _process(delta):
+    var velocity = Vector2.ZERO # The player&#39;s movement vector.
+    if Input.is_action_pressed(&quot;move_right&quot;):
+        velocity.x += 1
+    if Input.is_action_pressed(&quot;move_left&quot;):
+        velocity.x -= 1
+    if Input.is_action_pressed(&quot;move_down&quot;):
+        velocity.y += 1
+    if Input.is_action_pressed(&quot;move_up&quot;):
+        velocity.y -= 1
+
+    if velocity.length() &gt; 0:
+        velocity = velocity.normalized() * speed
+        $AnimatedSprite.play()
+    else:
+        $AnimatedSprite.stop()</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> velocity <span class="op">=</span> Vector2<span class="op">.</span><span class="fu">Zero</span><span class="op">;</span> <span class="co">// The player&#39;s movement vector.</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;move_right&quot;</span><span class="op">))</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        velocity<span class="op">.</span><span class="fu">x</span> <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;move_left&quot;</span><span class="op">))</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        velocity<span class="op">.</span><span class="fu">x</span> <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;move_down&quot;</span><span class="op">))</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        velocity<span class="op">.</span><span class="fu">y</span> <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;move_up&quot;</span><span class="op">))</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>        velocity<span class="op">.</span><span class="fu">y</span> <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> animatedSprite <span class="op">=</span> GetNode<span class="op">&lt;</span>AnimatedSprite<span class="op">&gt;(</span><span class="st">&quot;AnimatedSprite&quot;</span><span class="op">);</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>velocity<span class="op">.</span><span class="fu">Length</span><span class="op">()</span> <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>        velocity <span class="op">=</span> velocity<span class="op">.</span><span class="fu">Normalized</span><span class="op">()</span> <span class="op">*</span> Speed<span class="op">;</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>        animatedSprite<span class="op">.</span><span class="fu">Play</span><span class="op">();</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>        animatedSprite<span class="op">.</span><span class="fu">Stop</span><span class="op">();</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `player.cpp`.</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Player<span class="op">::</span>_process<span class="op">(</span><span class="at">const</span> <span class="dt">double</span> p_delta<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Vector2 velocity<span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    velocity<span class="op">.</span>x <span class="op">=</span> _input<span class="op">-&gt;</span>get_action_strength<span class="op">(</span><span class="st">&quot;move_right&quot;</span><span class="op">)</span> <span class="op">-</span> _input<span class="op">-&gt;</span>get_action_strength<span class="op">(</span><span class="st">&quot;move_left&quot;</span><span class="op">);</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    velocity<span class="op">.</span>y <span class="op">=</span> _input<span class="op">-&gt;</span>get_action_strength<span class="op">(</span><span class="st">&quot;move_down&quot;</span><span class="op">)</span> <span class="op">-</span> _input<span class="op">-&gt;</span>get_action_strength<span class="op">(</span><span class="st">&quot;move_up&quot;</span><span class="op">);</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>velocity<span class="op">.</span>length<span class="op">()</span> <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>        velocity <span class="op">=</span> velocity<span class="op">.</span>normalized<span class="op">()</span> <span class="op">*</span> speed<span class="op">;</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>        _animated_sprite<span class="op">-&gt;</span>play<span class="op">();</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>        _animated_sprite<span class="op">-&gt;</span>stop<span class="op">();</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>We start by setting the <code>velocity</code> to <code>(0, 0)</code> - by default, the player should not be moving. Then we check each input and add/subtract from the <code>velocity</code> to obtain a total direction. For example, if you hold <code>right</code> and <code>down</code> at the same time, the resulting <code>velocity</code> vector will be <code>(1, 1)</code>. In this case, since we're adding a horizontal and a vertical movement, the player would move <em>faster</em> diagonally than if it just moved horizontally.</p>
+<p>We can prevent that if we <em>normalize</em> the velocity, which means we set its <em>length</em> to <code>1</code>, then multiply by the desired speed. This means no more fast diagonal movement.</p>
+<blockquote>
+<p><strong>Tip:</strong> If you've never used vector math before, or need a refresher, you can see an explanation of vector usage in Godot at <code>doc_vector_math</code>. It's good to know but won't be necessary for the rest of this tutorial.</p>
+</blockquote>
+<p>We also check whether the player is moving so we can call <code>play()</code> or <code>stop()</code> on the AnimatedSprite.</p>
+<blockquote>
+<p><strong>Tip:</strong> <code>$</code> is shorthand for <code>get_node()</code>. So in the code above, <code>$AnimatedSprite.play()</code> is the same as <code>get_node("AnimatedSprite").play()</code>.</p>
+<p>In GDScript, <code>$</code> returns the node at the relative path from the current node, or returns <code>null</code> if the node is not found. Since AnimatedSprite is a child of the current node, we can use <code>$AnimatedSprite</code>.</p>
+</blockquote>
+<p>Now that we have a movement direction, we can update the player's position. We can also use <code>clamp()</code> to prevent it from leaving the screen. <em>Clamping</em> a value means restricting it to a given range. Add the following to the bottom of the <code>_process</code> function (make sure it's not indented under the else):</p>
+<pre class="gdscript"><code>position += velocity * delta
+position.x = clamp(position.x, 0, screen_size.x)
+position.y = clamp(position.y, 0, screen_size.y)</code></pre>
+<div class="sourceCode" id="cb11"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>Position <span class="op">+=</span> velocity <span class="op">*</span> delta<span class="op">;</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>Position <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    x<span class="op">:</span> Mathf<span class="op">.</span><span class="fu">Clamp</span><span class="op">(</span>Position<span class="op">.</span><span class="fu">x</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> ScreenSize<span class="op">.</span><span class="fu">x</span><span class="op">),</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    y<span class="op">:</span> Mathf<span class="op">.</span><span class="fu">Clamp</span><span class="op">(</span>Position<span class="op">.</span><span class="fu">y</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> ScreenSize<span class="op">.</span><span class="fu">y</span><span class="op">)</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>godot<span class="op">::</span>Vector2 position <span class="op">=</span> get_position<span class="op">();</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>position <span class="op">+=</span> velocity <span class="op">*</span> <span class="op">(</span><span class="dt">real_t</span><span class="op">)</span>p_delta<span class="op">;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>position<span class="op">.</span>x <span class="op">=</span> godot<span class="op">::</span>Math<span class="op">::</span>clamp<span class="op">(</span>position<span class="op">.</span>x<span class="op">,</span> <span class="op">(</span><span class="dt">real_t</span><span class="op">)</span><span class="fl">0.0</span><span class="op">,</span> _screen_size<span class="op">.</span>x<span class="op">);</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>position<span class="op">.</span>y <span class="op">=</span> godot<span class="op">::</span>Math<span class="op">::</span>clamp<span class="op">(</span>position<span class="op">.</span>y<span class="op">,</span> <span class="op">(</span><span class="dt">real_t</span><span class="op">)</span><span class="fl">0.0</span><span class="op">,</span> _screen_size<span class="op">.</span>y<span class="op">);</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>set_position<span class="op">(</span>position<span class="op">);</span></span></code></pre></div>
+<blockquote>
+<p><strong>Tip:</strong> The delta parameter in the _process() function refers to the <em>frame length</em> - the amount of time that the previous frame took to complete. Using this value ensures that your movement will remain consistent even if the frame rate changes.</p>
+</blockquote>
+<p>Click "Play Scene" (<code>F6</code>, <code>Cmd + R</code> on macOS) and confirm you can move the player around the screen in all directions.</p>
+<blockquote>
+<p><strong>Warning:</strong> If you get an error in the "Debugger" panel that says</p>
+<p><code>Attempt to call function 'play' in base 'null instance' on a null instance</code></p>
+<p>this likely means you spelled the name of the AnimatedSprite node wrong. Node names are case-sensitive and <code>$NodeName</code> must match the name you see in the scene tree.</p>
+</blockquote>
+<h2 id="choosing-animations">Choosing animations</h2>
+<p>Now that the player can move, we need to change which animation the AnimatedSprite is playing based on its direction. We have the "walk" animation, which shows the player walking to the right. This animation should be flipped horizontally using the <code>flip_h</code> property for left movement. We also have the "up" animation, which should be flipped vertically with <code>flip_v</code> for downward movement. Let's place this code at the end of the <code>_process()</code> function:</p>
+<pre class="gdscript"><code>if velocity.x != 0:
+    $AnimatedSprite.animation = &quot;walk&quot;
+    $AnimatedSprite.flip_v = false
+    # See the note below about boolean assignment.
+    $AnimatedSprite.flip_h = velocity.x &lt; 0
+elif velocity.y != 0:
+    $AnimatedSprite.animation = &quot;up&quot;
+    $AnimatedSprite.flip_v = velocity.y &gt; 0</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>velocity<span class="op">.</span><span class="fu">x</span> <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    animatedSprite<span class="op">.</span><span class="fu">Animation</span> <span class="op">=</span> <span class="st">&quot;walk&quot;</span><span class="op">;</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    animatedSprite<span class="op">.</span><span class="fu">FlipV</span> <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// See the note below about boolean assignment.</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    animatedSprite<span class="op">.</span><span class="fu">FlipH</span> <span class="op">=</span> velocity<span class="op">.</span><span class="fu">x</span> <span class="op">&lt;</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span>velocity<span class="op">.</span><span class="fu">y</span> <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    animatedSprite<span class="op">.</span><span class="fu">Animation</span> <span class="op">=</span> <span class="st">&quot;up&quot;</span><span class="op">;</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    animatedSprite<span class="op">.</span><span class="fu">FlipV</span> <span class="op">=</span> velocity<span class="op">.</span><span class="fu">y</span> <span class="op">&gt;</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>velocity<span class="op">.</span>x <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    _animated_sprite<span class="op">-&gt;</span>set_animation<span class="op">(</span><span class="st">&quot;walk&quot;</span><span class="op">);</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    _animated_sprite<span class="op">-&gt;</span>set_flip_v<span class="op">(</span><span class="kw">false</span><span class="op">);</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// See the note below about boolean assignment.</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    _animated_sprite<span class="op">-&gt;</span>set_flip_h<span class="op">(</span>velocity<span class="op">.</span>x <span class="op">&lt;</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>velocity<span class="op">.</span>y <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    _animated_sprite<span class="op">-&gt;</span>set_animation<span class="op">(</span><span class="st">&quot;up&quot;</span><span class="op">);</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    _animated_sprite<span class="op">-&gt;</span>set_flip_v<span class="op">(</span>velocity<span class="op">.</span>y <span class="op">&gt;</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> The boolean assignments in the code above are a common shorthand for programmers. Since we're doing a comparison test (boolean) and also <em>assigning</em> a boolean value, we can do both at the same time. Consider this code versus the one-line boolean assignment above:</p>
+<blockquote>
+<p>if velocity.x &lt; 0: $AnimatedSprite.flip_h = true</p>
+<p>else: $AnimatedSprite.flip_h = false</p>
+</blockquote>
+</blockquote>
+<div class="sourceCode" id="cb16"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>velocity<span class="op">.</span><span class="fu">x</span> <span class="op">&lt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    animatedSprite<span class="op">.</span><span class="fu">FlipH</span> <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="kw">else</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    animatedSprite<span class="op">.</span><span class="fu">FlipH</span> <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Play the scene again and check that the animations are correct in each of the directions.</p>
+<blockquote>
+<p><strong>Tip:</strong> A common mistake here is to type the names of the animations wrong. The animation names in the SpriteFrames panel must match what you type in the code. If you named the animation <code>"Walk"</code>, you must also use a capital "W" in the code.</p>
+</blockquote>
+<p>When you're sure the movement is working correctly, add this line to <code>_ready()</code>, so the player will be hidden when the game starts:</p>
+<pre class="gdscript"><code>hide()</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Hide</span><span class="op">();</span></span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>hide<span class="op">();</span></span></code></pre></div>
+<h2 id="preparing-for-collisions">Preparing for collisions</h2>
+<p>We want <code>Player</code> to detect when it's hit by an enemy, but we haven't made any enemies yet! That's OK, because we're going to use Godot's <em>signal</em> functionality to make it work.</p>
+<p>Add the following at the top of the script, after <code>extends Area2D</code>:</p>
+<pre class="gdscript"><code>signal hit</code></pre>
+<div class="sourceCode" id="cb21"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Don&#39;t forget to rebuild the project so the editor knows about the new signal.</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">Hit</span><span class="op">();</span></span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `player.cpp`.</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co">// We need to register the signal here, and while we&#39;re here, we can also</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co">// register the other methods and register the speed property.</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Player<span class="op">::</span>_register_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;_ready&quot;</span><span class="op">,</span> <span class="op">&amp;</span>Player<span class="op">::</span>_ready<span class="op">);</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;_process&quot;</span><span class="op">,</span> <span class="op">&amp;</span>Player<span class="op">::</span>_process<span class="op">);</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;start&quot;</span><span class="op">,</span> <span class="op">&amp;</span>Player<span class="op">::</span>start<span class="op">);</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;_on_Player_body_entered&quot;</span><span class="op">,</span> <span class="op">&amp;</span>Player<span class="op">::</span>_on_Player_body_entered<span class="op">);</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_property<span class="op">(</span><span class="st">&quot;speed&quot;</span><span class="op">,</span> <span class="op">&amp;</span>Player<span class="op">::</span>speed<span class="op">,</span> <span class="op">(</span><span class="dt">real_t</span><span class="op">)</span><span class="fl">400.0</span><span class="op">);</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// This below line is the signal.</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_signal<span class="op">&lt;</span>Player<span class="op">&gt;(</span><span class="st">&quot;hit&quot;</span><span class="op">,</span> godot<span class="op">::</span>Dictionary<span class="op">());</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This defines a custom signal called "hit" that we will have our player emit (send out) when it collides with an enemy. We will use <code>Area2D</code> to detect the collision. Select the <code>Player</code> node and click the "Node" tab next to the Inspector tab to see the list of signals the player can emit:</p>
+<p>Notice our custom "hit" signal is there as well! Since our enemies are going to be <code>RigidBody2D</code> nodes, we want the <code>body_entered(body: Node)</code> signal. This signal will be emitted when a body contacts the player. Click "Connect.." and the "Connect a Signal" window appears. We don't need to change any of these settings so click "Connect" again. Godot will automatically create a function in your player's script.</p>
+<p>Note the green icon indicating that a signal is connected to this function. Add this code to the function:</p>
+<pre class="gdscript"><code>func _on_Player_body_entered(body):
+    hide() # Player disappears after being hit.
+    emit_signal(&quot;hit&quot;)
+    # Must be deferred as we can&#39;t change physics properties on a physics callback.
+    $CollisionShape2D.set_deferred(&quot;disabled&quot;, true)</code></pre>
+<div class="sourceCode" id="cb24"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnPlayerBodyEntered</span><span class="op">(</span>PhysicsBody2D body<span class="op">)</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Hide</span><span class="op">();</span> <span class="co">// Player disappears after being hit.</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">EmitSignal</span><span class="op">(</span><span class="fu">nameof</span><span class="op">(</span>Hit<span class="op">));</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Must be deferred as we can&#39;t change physics properties on a physics callback.</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>CollisionShape2D<span class="op">&gt;(</span><span class="st">&quot;CollisionShape2D&quot;</span><span class="op">).</span><span class="fu">SetDeferred</span><span class="op">(</span><span class="st">&quot;disabled&quot;</span><span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb25"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `player.cpp`.</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Player<span class="op">::</span>_on_Player_body_entered<span class="op">(</span>godot<span class="op">::</span>Node2D <span class="op">*</span>_body<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    hide<span class="op">();</span> <span class="co">// Player disappears after being hit.</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    emit_signal<span class="op">(</span><span class="st">&quot;hit&quot;</span><span class="op">);</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Must be deferred as we can&#39;t change physics properties on a physics callback.</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    _collision_shape<span class="op">-&gt;</span>set_deferred<span class="op">(</span><span class="st">&quot;disabled&quot;</span><span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Each time an enemy hits the player, the signal is going to be emitted. We need to disable the player's collision so that we don't trigger the <code>hit</code> signal more than once.</p>
+<blockquote>
+<p><strong>Note:</strong> Disabling the area's collision shape can cause an error if it happens in the middle of the engine's collision processing. Using <code>set_deferred()</code> tells Godot to wait to disable the shape until it's safe to do so.</p>
+</blockquote>
+<p>The last piece is to add a function we can call to reset the player when starting a new game.</p>
+<pre class="gdscript"><code>func start(pos):
+    position = pos
+    show()
+    $CollisionShape2D.disabled = false</code></pre>
+<div class="sourceCode" id="cb27"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">Start</span><span class="op">(</span>Vector2 pos<span class="op">)</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    Position <span class="op">=</span> pos<span class="op">;</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Show</span><span class="op">();</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>CollisionShape2D<span class="op">&gt;(</span><span class="st">&quot;CollisionShape2D&quot;</span><span class="op">).</span><span class="fu">Disabled</span> <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `player.cpp`.</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Player<span class="op">::</span>start<span class="op">(</span><span class="at">const</span> godot<span class="op">::</span>Vector2 p_position<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    set_position<span class="op">(</span>p_position<span class="op">);</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    show<span class="op">();</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    _collision_shape<span class="op">-&gt;</span>set_disabled<span class="op">(</span><span class="kw">false</span><span class="op">);</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>With the player working, we'll work on the enemy in the next lesson.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

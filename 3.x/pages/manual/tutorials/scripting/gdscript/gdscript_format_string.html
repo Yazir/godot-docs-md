@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDScript format strings — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="gdscript-format-strings">GDScript format strings</h1>
+<p>GDScript offers a feature called <em>format strings</em>, which allows reusing text templates to succinctly create different but similar strings.</p>
+<p>Format strings are just like normal strings, except they contain certain placeholder character-sequences. These placeholders can then easily be replaced by parameters handed to the format string.</p>
+<p>As an example, with <code>%s</code> as a placeholder, the format string <code>"Hello %s, how are you?"</code> can easily be changed to <code>"Hello World, how are you?"</code>. Notice the placeholder is in the middle of the string; modifying it without format strings could be cumbersome.</p>
+<h2 id="usage-in-gdscript">Usage in GDScript</h2>
+<p>Examine this concrete GDScript example:</p>
+<pre><code># Define a format string with placeholder &#39;%s&#39;
+var format_string = &quot;We&#39;re waiting for %s.&quot;
+
+# Using the &#39;%&#39; operator, the placeholder is replaced with the desired value
+var actual_string = format_string % &quot;Godot&quot;
+
+print(actual_string)
+# Output: &quot;We&#39;re waiting for Godot.&quot;</code></pre>
+<p>Placeholders always start with a <code>%</code>, but the next character or characters, the <em>format specifier</em>, determines how the given value is converted to a string.</p>
+<p>The <code>%s</code> seen in the example above is the simplest placeholder and works for most use cases: it converts the value by the same method by which an implicit String conversion or <code>str()</code> would convert it. Strings remain unchanged, Booleans turn into either <code>"True"</code> or <code>"False"</code>, an integral or real number becomes a decimal, other types usually return their data in a human-readable string.</p>
+<p>There is also another way to format text in GDScript, namely the <code>String.format()</code> method. It replaces all occurrences of a key in the string with the corresponding value. The method can handle arrays or dictionaries for the key/value pairs.</p>
+<p>Arrays can be used as key, index, or mixed style (see below examples). Order only matters when the index or mixed style of Array is used.</p>
+<p>A quick example in GDScript:</p>
+<pre><code># Define a format string
+var format_string = &quot;We&#39;re waiting for {str}&quot;
+
+# Using the &#39;format&#39; method, replace the &#39;str&#39; placeholder
+var actual_string = format_string.format({&quot;str&quot;: &quot;Godot&quot;})
+
+print(actual_string)
+# Output: &quot;We&#39;re waiting for Godot&quot;</code></pre>
+<p>There are other <a href="#format-specifiers">format specifiers</a>, but they are only applicable when using the <code>%</code> operator.</p>
+<h2 id="multiple-placeholders">Multiple placeholders</h2>
+<p>Format strings may contain multiple placeholders. In such a case, the values are handed in the form of an array, one value per placeholder (unless using a format specifier with <code>*</code>, see <a href="#dynamic-padding">dynamic padding</a>):</p>
+<pre><code>var format_string = &quot;%s was reluctant to learn %s, but now he enjoys it.&quot;
+var actual_string = format_string % [&quot;Estragon&quot;, &quot;GDScript&quot;]
+
+print(actual_string)
+# Output: &quot;Estragon was reluctant to learn GDScript, but now he enjoys it.&quot;</code></pre>
+<p>Note the values are inserted in order. Remember all placeholders must be replaced at once, so there must be an appropriate number of values.</p>
+<h2 id="format-specifiers">Format specifiers</h2>
+<p>There are format specifiers other than <code>s</code> that can be used in placeholders. They consist of one or more characters. Some of them work by themselves like <code>s</code>, some appear before other characters, some only work with certain values or characters.</p>
+<h3 id="placeholder-types">Placeholder types</h3>
+<p>One and only one of these must always appear as the last character in a format specifier. Apart from <code>s</code>, these require certain types of parameters.</p>
+<table>
+<tbody>
+<tr class="odd">
+<td><code>s</code></td>
+<td><strong>Simple</strong> conversion to String by the same method as implicit String conversion.</td>
+</tr>
+<tr class="even">
+<td><code>c</code></td>
+<td>A single <strong>Unicode character</strong>. Expects an unsigned 8-bit integer (0-255) for a code point or a single-character string.</td>
+</tr>
+<tr class="odd">
+<td><code>d</code></td>
+<td>A <strong>decimal integral</strong> number. Expects an integral or real number (will be floored).</td>
+</tr>
+<tr class="even">
+<td><code>o</code></td>
+<td>An <strong>octal integral</strong> number. Expects an integral or real number (will be floored).</td>
+</tr>
+<tr class="odd">
+<td><code>x</code></td>
+<td>A <strong>hexadecimal integral</strong> number with <strong>lower-case</strong> letters. Expects an integral or real number (will be floored).</td>
+</tr>
+<tr class="even">
+<td><code>X</code></td>
+<td>A <strong>hexadecimal integral</strong> number with <strong>upper-case</strong> letters. Expects an integral or real number (will be floored).</td>
+</tr>
+<tr class="odd">
+<td><code>f</code></td>
+<td>A <strong>decimal real</strong> number. Expects an integral or real number.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="placeholder-modifiers">Placeholder modifiers</h3>
+<p>These characters appear before the above. Some of them work only under certain conditions.</p>
+<table>
+<tbody>
+<tr class="odd">
+<td><code>+</code></td>
+<td>In number specifiers, <strong>show + sign</strong> if positive.</td>
+</tr>
+<tr class="even">
+<td>Integer</td>
+<td>Set <strong>padding</strong>. Padded with spaces or with zeroes if integer starts with <code>0</code> in an integer or real number placeholder. The leading <code>0</code> is ignored if <code>-</code> is present. When used after <code>.</code>, see <code>.</code>.</td>
+</tr>
+<tr class="odd">
+<td><code>.</code></td>
+<td>Before <code>f</code>, set <strong>precision</strong> to 0 decimal places. Can be followed up with numbers to change. Padded with zeroes.</td>
+</tr>
+<tr class="even">
+<td><code>-</code></td>
+<td><strong>Pad to the right</strong> rather than the left.</td>
+</tr>
+<tr class="odd">
+<td><code>*</code></td>
+<td><strong>Dynamic padding</strong>, expect additional integral parameter to set padding or precision after <code>.</code>, see <a href="#dynamic-padding">dynamic padding</a>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="padding">Padding</h2>
+<p>The <code>.</code> (<em>dot</em>), <code>*</code> (<em>asterisk</em>), <code>-</code> (<em>minus sign</em>) and digit (<code>0</code>-<code>9</code>) characters are used for padding. This allows printing several values aligned vertically as if in a column, provided a fixed-width font is used.</p>
+<p>To pad a string to a minimum length, add an integer to the specifier:</p>
+<pre><code>print(&quot;%10d&quot; % 12345)
+# output: &quot;     12345&quot;
+# 5 leading spaces for a total length of 10</code></pre>
+<p>If the integer starts with <code>0</code>, integral values are padded with zeroes instead of white space:</p>
+<pre><code>print(&quot;%010d&quot; % 12345)
+# output: &quot;0000012345&quot;</code></pre>
+<p>Precision can be specified for real numbers by adding a <code>.</code> (<em>dot</em>) with an integer following it. With no integer after <code>.</code>, a precision of 0 is used, rounding to integral value. The integer to use for padding must appear before the dot.</p>
+<pre><code># Pad to minimum length of 10, round to 3 decimal places
+print(&quot;%10.3f&quot; % 10000.5555)
+# Output: &quot; 10000.556&quot;
+# 1 leading space</code></pre>
+<p>The <code>-</code> character will cause padding to the right rather than the left, useful for right text alignment:</p>
+<pre><code>print(&quot;%-10d&quot; % 12345678)
+# Output: &quot;12345678  &quot;
+# 2 trailing spaces</code></pre>
+<h3 id="dynamic-padding">Dynamic padding</h3>
+<p>By using the <code>*</code> (<em>asterisk</em>) character, the padding or precision can be set without modifying the format string. It is used in place of an integer in the format specifier. The values for padding and precision are then passed when formatting:</p>
+<pre><code>var format_string = &quot;%*.*f&quot;
+# Pad to length of 7, round to 3 decimal places:
+print(format_string % [7, 3, 8.8888])
+# Output: &quot;  8.889&quot;
+# 2 leading spaces</code></pre>
+<p>It is still possible to pad with zeroes in integer placeholders by adding <code>0</code> before <code>*</code>:</p>
+<pre><code>print(&quot;%0*d&quot; % [2, 3])
+# Output: &quot;03&quot;</code></pre>
+<h2 id="escape-sequence">Escape sequence</h2>
+<p>To insert a literal <code>%</code> character into a format string, it must be escaped to avoid reading it as a placeholder. This is done by doubling the character:</p>
+<pre><code>var health = 56
+print(&quot;Remaining health: %d%%&quot; % health)
+# Output: &quot;Remaining health: 56%&quot;</code></pre>
+<h2 id="format-method-examples">Format method examples</h2>
+<p>The following are some examples of how to use the various invocations of the <code>String.format</code> method.</p>
+<table>
+<tbody>
+<tr class="odd">
+<td><strong>Type</strong></td>
+<td><strong>Style</strong></td>
+<td><strong>Example</strong></td>
+<td><strong>Result</strong></td>
+</tr>
+<tr class="even">
+<td>Dictionary</td>
+<td>key</td>
+<td><code>"Hi, {name} v{version}!".format({"name":"Godette", "version":"3.0"})</code></td>
+<td>Hi, Godette v3.0!</td>
+</tr>
+<tr class="odd">
+<td>Dictionary</td>
+<td>index</td>
+<td><code>"Hi, {0} v{1}!".format({"0":"Godette", "1":"3.0"})</code></td>
+<td>Hi, Godette v3.0!</td>
+</tr>
+<tr class="even">
+<td>Dictionary</td>
+<td>mix</td>
+<td><code>"Hi, {0} v{version}!".format({"0":"Godette", "version":"3.0"})</code></td>
+<td>Hi, Godette v3.0!</td>
+</tr>
+<tr class="odd">
+<td>Array</td>
+<td>key</td>
+<td><code>"Hi, {name} v{version}!".format([["version","3.0"], ["name","Godette"]])</code></td>
+<td>Hi, Godette v3.0!</td>
+</tr>
+<tr class="even">
+<td>Array</td>
+<td>index</td>
+<td><code>"Hi, {0} v{1}!".format(["Godette","3.0"])</code></td>
+<td>Hi, Godette v3.0!</td>
+</tr>
+<tr class="odd">
+<td>Array</td>
+<td>mix</td>
+<td><code>"Hi, {name} v{0}!".format([3.0, ["name","Godette"]])</code></td>
+<td>Hi, Godette v3.0!</td>
+</tr>
+<tr class="even">
+<td>Array</td>
+<td>no index</td>
+<td><code>"Hi, {} v{}!".format(["Godette", 3.0], "{}")</code></td>
+<td>Hi, Godette v3.0!</td>
+</tr>
+</tbody>
+</table>
+<p>Placeholders can also be customized when using <code>String.format</code>, here's some examples of that functionality.</p>
+<table>
+<tbody>
+<tr class="odd">
+<td><strong>Type</strong></td>
+<td><strong>Example</strong></td>
+<td><strong>Result</strong></td>
+</tr>
+<tr class="even">
+<td>Infix (default)</td>
+<td><code>"Hi, {0} v{1}".format(["Godette", "3.0"], "{_}")</code></td>
+<td>Hi, Godette v3.0</td>
+</tr>
+<tr class="odd">
+<td>Postfix</td>
+<td><code>"Hi, 0% v1%".format(["Godette", "3.0"], "_%")</code></td>
+<td>Hi, Godette v3.0</td>
+</tr>
+<tr class="even">
+<td>Prefix</td>
+<td><code>"Hi, %0 v%1".format(["Godette", "3.0"], "%_")</code></td>
+<td>Hi, Godette v3.0</td>
+</tr>
+</tbody>
+</table>
+<p>Combining both the <code>String.format</code> method and the <code>%</code> operator could be useful, as <code>String.format</code> does not have a way to manipulate the representation of numbers.</p>
+<table>
+<tbody>
+<tr class="odd">
+<td><strong>Example</strong></td>
+<td><strong>Result</strong></td>
+</tr>
+<tr class="even">
+<td><code>"Hi, {0} v{version}".format({0:"Godette", "version":"%0.2f" % 3.114})</code></td>
+<td>Hi, Godette v3.11</td>
+</tr>
+</tbody>
+</table>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

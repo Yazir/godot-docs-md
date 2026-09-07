@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Groups — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="groups">Groups</h1>
+<p>Groups in Godot work like tags in other software. You can add a node to as many groups as you want. Then, in code, you can use the SceneTree to:</p>
+<ul>
+<li>Get a list of nodes in a group.</li>
+<li>Call a method on all nodes in a group.</li>
+<li>Send a notification to all nodes in a group.</li>
+</ul>
+<p>This is a useful feature to organize large scenes and decouple code.</p>
+<h2 id="managing-groups">Managing groups</h2>
+<p>Groups are created by adding a node to a new group name, and likewise they are removed by removing all nodes from a given group.</p>
+<p>There are two ways to add/remove nodes to groups:</p>
+<ul>
+<li>During design, by using the Groups dock in the editor, or the Groups tab in the Globals dock in project settings.</li>
+<li>During execution, by calling ref or ref.</li>
+</ul>
+<blockquote>
+<p><strong>Tip:</strong> While not strictly required, it's recommended to use the <code>snake_case</code> naming convention for group names.</p>
+</blockquote>
+<h3 id="using-the-groups-dock">Using the Groups dock</h3>
+<p>You can create new groups using the Groups dock.</p>
+<p>Select a node in the Scene dock then click the add button with the + symbol.</p>
+<p>You should now see the Create New Group modal appear. Write the group name in the field.</p>
+<p>You can optionally mark the option "Global", which will make the group visible project-wide, and able to be reused in any project scene. This will also allow you to give it a description.</p>
+<p>When done, press Ok to create it.</p>
+<p>You should see the new groups appear in the Groups dock under Scene Groups if the Global option was unmarked, or under Global Groups if that option was marked.</p>
+<p>A selected Node from the Scene dock can be added into groups by marking the checkbox on the left side of the groups in the Groups dock. The node you had selected when creating a new group will be automatically checked.</p>
+<p>All groups present in the project that were marked as Global, created from any scene, will be visible under Global Groups.</p>
+<p>Any other group derived from nodes in the current scene will appear under Scene Groups.</p>
+<blockquote>
+<p><strong>Warning:</strong> The same underlying logic is used for both Global and Scene groups. Groups with the same name are considered one and the same. This feature is purely organizational.</p>
+</blockquote>
+<p>You can manage Global Groups in the Groups tab of the Globals dock, inside Project Settings. There, you will be able to add new global groups, or change existing groups' names and descriptions.</p>
+<h3 id="using-code">Using code</h3>
+<p>You can also manage groups from scripts. The following code adds the node to which you attach the script to the <code>guards</code> group as soon as it enters the scene tree.</p>
+<pre class="gdscript"><code>func _ready():
+    add_to_group(&quot;guards&quot;)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">base</span><span class="op">.</span><span class="fu">_Ready</span><span class="op">();</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">AddToGroup</span><span class="op">(</span><span class="st">&quot;guards&quot;</span><span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Imagine you're creating an infiltration game. When an enemy spots the player, you want all guards and robots to be on alert.</p>
+<p>In the fictional example below, we use <code>SceneTree.call_group()</code> to alert all enemies that the player was spotted.</p>
+<pre class="gdscript"><code>func _on_player_spotted():
+    get_tree().call_group(&quot;guards&quot;, &quot;enter_alert_mode&quot;)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">_OnPlayerDiscovered</span><span class="op">()</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">GetTree</span><span class="op">().</span><span class="fu">CallGroup</span><span class="op">(</span><span class="st">&quot;guards&quot;</span><span class="op">,</span> <span class="st">&quot;enter_alert_mode&quot;</span><span class="op">);</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The above code calls the function <code>enter_alert_mode</code> on every member of the group <code>guards</code>.</p>
+<p>To get the full list of nodes in the <code>guards</code> group as an array, you can call ref:</p>
+<pre class="gdscript"><code>var guards = get_tree().get_nodes_in_group(&quot;guards&quot;)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> guards <span class="op">=</span> <span class="fu">GetTree</span><span class="op">().</span><span class="fu">GetNodesInGroup</span><span class="op">(</span><span class="st">&quot;guards&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>The ref class provides many more useful methods to interact with scenes, their node hierarchy, and groups. It allows you to switch scenes easily or reload them, quit the game or pause and unpause it. It also provides useful signals.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

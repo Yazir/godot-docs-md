@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connecting navigation meshes — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="connecting-navigation-meshes">Connecting navigation meshes</h1>
+<p>Different NavigationMeshes are automatically merged by the NavigationServer when at least two vertex positions of one edge exactly overlap.</p>
+<p>To connect over arbitrary distances see <code>doc_navigation_using_navigationlinks</code>.</p>
+<p>The same is true for multiple NavigationPolygon resources. As long as their outline points overlap exactly the NavigationServer will merge them. NavigationPolygon outlines must be from different NavigationPolygon resources to connect.</p>
+<p>Overlapping or intersecting outlines on the same NavigationPolygon will fail the navigation mesh creation. Overlapping or intersecting outlines from different NavigationPolygons will often fail to create the navigation region edge connections on the NavigationServer and should be avoided.</p>
+<blockquote>
+<p><strong>Warning:</strong> Exactly means exactly for the vertex position merge. Small float errors that happen quite regularly with imported meshes will prevent a successful vertex merge.</p>
+</blockquote>
+<p>Alternatively navigation meshes are not merged but still considered as <strong>connected</strong> by the NavigationServer when their edges are nearly parallel and within distance to each other. The connection distance is defined by the <code>edge_connection_margin</code> for each navigation map. In many cases navigation mesh edges cannot properly connect when they partly overlap. Better avoid any navigation mesh overlap at all time for a consistent merge behavior.</p>
+<p>If navigation debug is enabled and the NavigationServer active the established navigation mesh connections will be visualized. See <code>doc_navigation_debug_tools</code> for more info about navigation debug options.</p>
+<p>The default 2D <code>edge_connection_margin</code> can be changed in the ProjectSettings under <code>navigation/2d/default_edge_connection_margin</code>.</p>
+<p>The default 3D <code>edge_connection_margin</code> can be changed in the ProjectSettings under <code>navigation/3d/default_edge_connection_margin</code>.</p>
+<p>The edge connection margin value of any navigation map can also be changed at runtime with the NavigationServer API.</p>
+<pre class="gdscript"><code>extends Node2D
+
+func _ready() -&gt; void:
+    # 2D margins are designed to work with 2D &quot;pixel&quot; values.
+    var default_map_rid: RID = get_world_2d().get_navigation_map()
+    NavigationServer2D.map_set_edge_connection_margin(default_map_rid, 50.0)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2D <span class="op">:</span> Node2D</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 2D margins are designed to work with 2D &quot;pixel&quot; values.</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        Rid defaultMapRid <span class="op">=</span> <span class="fu">GetWorld2D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">MapSetEdgeConnectionMargin</span><span class="op">(</span>defaultMapRid<span class="op">,</span> <span class="fl">50.0f</span><span class="op">);</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="gdscript"><code>extends Node3D
+
+func _ready() -&gt; void:
+    # 3D margins are designed to work with 3D world unit values.
+    var default_map_rid: RID = get_world_3d().get_navigation_map()
+    NavigationServer3D.map_set_edge_connection_margin(default_map_rid, 0.5)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode3D <span class="op">:</span> Node3D</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 3D margins are designed to work with 3D world unit values.</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        Rid defaultMapRid <span class="op">=</span> <span class="fu">GetWorld3D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">MapSetEdgeConnectionMargin</span><span class="op">(</span>defaultMapRid<span class="op">,</span> <span class="fl">0.5f</span><span class="op">);</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> Changing the edge connection margin will trigger a full update of all navigation mesh connections on the NavigationServer.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animation Track types — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="animation-track-types">Animation Track types</h1>
+<p>This page gives an overview of the track types available for Godot's animation player node on top of the default property tracks.</p>
+<blockquote>
+<p><strong>See also:</strong> We assume you already read <code>doc_introduction_animation</code>, which covers the basics, including property tracks.</p>
+</blockquote>
+<h2 id="property-track">Property Track</h2>
+<p>The most basic track type. See <code>doc_introduction_animation</code>.</p>
+<h2 id="position-3d--rotation-3d--scale-3d-track">Position 3D / Rotation 3D / Scale 3D Track</h2>
+<p>These 3D transform tracks control the location, rotation, and scale of a 3D object. They make it easier to animate a 3D object's transform compared to using regular property tracks.</p>
+<p>It is designed for animations imported from external 3D models and can reduce resource capacity through compression.</p>
+<h2 id="blend-shape-track">Blend Shape Track</h2>
+<p>A blend shape track is optimized for animating blend shape in ref.</p>
+<p>It is designed for animations imported from external 3D models and can reduce resource capacity through compression.</p>
+<h2 id="call-method-track">Call Method Track</h2>
+<p>A call method track allow you to call a function at a precise time from within an animation. For example, you can call <code>queue_free()</code> to delete a node at the end of a death animation.</p>
+<blockquote>
+<p><strong>Note:</strong> The events placed on the call method track are not executed when the animation is previewed in the editor for safety.</p>
+</blockquote>
+<p>To create such a track in the editor, click "Add Track -&gt; Call Method Track." Then, a window opens and lets you select the node to associate with the track. To call one of the node's methods, right-click the timeline and select "Insert Key". A window opens with a list of available methods. Double-click one to finish creating the keyframe.</p>
+<p>To change the method call or its arguments, click on the key and head to the inspector dock. There, you can change the method to call. If you expand the "Args" section, you will see a list of arguments you can edit.</p>
+<p>To create such a track through code, pass a dictionary that contains the target method's name and parameters as the Variant for <code>key</code> in <code>Animation.track_insert_key()</code>. The keys and their expected values are as follows:</p>
+<table>
+<thead>
+<tr class="header">
+<th><strong>Key</strong></th>
+<th><strong>Value</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>"method"</code></td>
+<td>The name of the method as a <code>String</code></td>
+</tr>
+<tr class="even">
+<td><code>"args"</code></td>
+<td>The arguments to pass to the function as an <code>Array</code></td>
+</tr>
+</tbody>
+</table>
+<pre class="gdscript"><code># Create a call method track.
+func create_method_animation_track():
+    # Get or create the animation the target method will be called from.
+    var animation = $AnimationPlayer.get_animation(&quot;idle&quot;)
+    # Get or create the target method&#39;s animation track.
+    var track_index = animation.add_track(Animation.TYPE_METHOD)
+    # Make the arguments for the target method jump().
+    var jump_velocity = -400.0
+    var multiplier = randf_range(.8, 1.2)
+    # Get or create a dictionary with the target method&#39;s name and arguments.
+    var method_dictionary = {
+        &quot;method&quot;: &quot;jump&quot;,
+        &quot;args&quot;: [jump_velocity, multiplier],
+    }
+
+    # Set scene-tree path to node with target method.
+    animation.track_set_path(track_index, &quot;.&quot;)
+    # Add the dictionary as the animation method track&#39;s key.
+    animation.track_insert_key(track_index, 0.6, method_dictionary, 0)
+
+
+# The target method that will be called from the animation.
+func jump(jump_velocity, multiplier):
+    velocity.y = jump_velocity * multiplier</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Create a call method track.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">CreateAnimationTrack</span><span class="op">()</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Get reference to the AnimationPlayer.</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> animationPlayer <span class="op">=</span> GetNode<span class="op">&lt;</span>AnimationPlayer<span class="op">&gt;(</span><span class="st">&quot;AnimationPlayer&quot;</span><span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Get or create the animation the target method will be called from.</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> animation <span class="op">=</span> animationPlayer<span class="op">.</span><span class="fu">GetAnimation</span><span class="op">(</span><span class="st">&quot;idle&quot;</span><span class="op">);</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Get or create the target method&#39;s animation track.</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> trackIndex <span class="op">=</span> animation<span class="op">.</span><span class="fu">AddTrack</span><span class="op">(</span>Animation<span class="op">.</span><span class="fu">TrackType</span><span class="op">.</span><span class="fu">Method</span><span class="op">);</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Make the arguments for the target method Jump().</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> jumpVelocity <span class="op">=</span> <span class="op">-</span><span class="fl">400.0</span><span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> multiplier <span class="op">=</span> GD<span class="op">.</span><span class="fu">RandRange</span><span class="op">(.</span><span class="fu">8</span><span class="op">,</span> <span class="fl">1.2</span><span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Get or create a dictionary with the target method&#39;s name and arguments.</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> methodDictionary <span class="op">=</span> <span class="kw">new</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;method&quot;</span><span class="op">,</span> MethodName<span class="op">.</span><span class="fu">Jump</span> <span class="op">},</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;args&quot;</span><span class="op">,</span> <span class="kw">new</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Array</span> <span class="op">{</span> jumpVelocity<span class="op">,</span> multiplier <span class="op">}</span> <span class="op">}</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Set scene-tree path to node with target method.</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    animation<span class="op">.</span><span class="fu">TrackSetPath</span><span class="op">(</span>trackIndex<span class="op">,</span> <span class="st">&quot;.&quot;</span><span class="op">);</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add the dictionary as the animation method track&#39;s key.</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    animation<span class="op">.</span><span class="fu">TrackInsertKey</span><span class="op">(</span>trackIndex<span class="op">,</span> <span class="fl">0.6</span><span class="op">,</span> methodDictionary<span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="co">// The target method that will be called from the animation.</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">Jump</span><span class="op">(</span><span class="dt">float</span> jumpVelocity<span class="op">,</span> <span class="dt">float</span> multiplier<span class="op">)</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    Velocity <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span>Velocity<span class="op">.</span><span class="fu">X</span><span class="op">,</span> jumpVelocity <span class="op">*</span> multiplier<span class="op">);</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="bezier-curve-track">Bezier Curve Track</h2>
+<p>A bezier curve track is similar to a property track, except it allows you to animate a property's value using a bezier curve.</p>
+<blockquote>
+<p><strong>Note:</strong> Bezier curve tracks and property tracks cannot be blended in ref and ref.</p>
+</blockquote>
+<p>To create one, click "Add Track -&gt; Bezier Curve Track". As with property tracks, you need to select a node and a property to animate. To open the bezier curve editor, click the curve icon to the right of the animation track.</p>
+<p>In the editor, keys are represented by filled diamonds and the outlined diamonds connected to them by a line control curve's shape.</p>
+<blockquote>
+<p><strong>Tip:</strong> For better precision while manually working with curves, you might want to alter the zoom levels of the editor. The slider on the bottom right of the editor can be used to zoom in and out on the time axis, you can also do that with <code>Ctrl + Shift + Mouse wheel</code>. Using <code>Ctrl + Alt + Mouse wheel</code> will zoom in and out on the Y axis</p>
+</blockquote>
+<p>While a keyframe is selected (not the handle), in the right click panel of the editor, you can select the handle mode:</p>
+<ul>
+<li>Free: Allows you to orient a manipulator in any direction without affecting the other's position.</li>
+<li>Linear: Does not allow rotation of the manipulator and draws a linear graph.</li>
+<li>Balanced: Makes it so manipulators rotate together, but the distance between the key and a manipulator is not mirrored.</li>
+<li>Mirrored: Makes the position of one manipulator perfectly mirror the other, including their distance to the key.</li>
+</ul>
+<h2 id="audio-playback-track">Audio Playback Track</h2>
+<p>If you want to create an animation with audio, you need to create an audio playback track. To create one, your scene must have either an AudioStreamPlayer, AudioStreamPlayer2D, or AudioStreamPlayer3D node. When creating the track, you must select one of those nodes.</p>
+<p>To play a sound in your animation, drag and drop an audio file from the file system dock onto the animation track. You should see the waveform of your audio file in the track.</p>
+<p>To remove a sound from the animation, you can right-click it and select "Delete Key(s)" or click on it and press the <code>Del</code> key.</p>
+<p>The blend mode allows you to choose whether or not to adjust the audio volume when blending in the ref.</p>
+<h2 id="animation-playback-track">Animation Playback Track</h2>
+<p>Animation playback tracks allow you to sequence the animations of other animation player nodes in a scene. For example, you can use it to animate several characters in a cut-scene.</p>
+<p>To create an animation playback track, select "New Track -&gt; Animation Playback Track."</p>
+<p>Then, select the animation player you want to associate with the track.</p>
+<p>To add an animation to the track, right-click on it and insert a key. Select the key you just created to select an animation in the inspector dock.</p>
+<p>If an animation is already playing and you want to stop it early, you can create a key and have it set to [STOP] in the inspector.</p>
+<blockquote>
+<p><strong>Note:</strong> If you instanced a scene that contains an animation player into your scene, you need to enable "Editable Children" in the scene tree to access its animation player. Also, an animation player cannot reference itself.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

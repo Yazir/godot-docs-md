@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PhysicsServer2D — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="physicsserver2d">PhysicsServer2D</h1>
+<p><em>Inherits: <a href="Object.html">Object</a></em></p>
+<p><em>Implemented by: <a href="PhysicsServer2DExtension.html">PhysicsServer2DExtension</a></em></p>
+<p>A server interface for low-level 2D physics access.</p>
+<h2 id="description">Description</h2>
+<p>PhysicsServer2D is the server responsible for all 2D physics. It can directly create and manipulate all physics objects:</p>
+<ul>
+<li><p>A <em>space</em> is a self-contained world for a physics simulation. It contains bodies, areas, and joints. Its state can be queried for collision and intersection information, and several parameters of the simulation can be modified.</p></li>
+<li><p>A <em>shape</em> is a geometric shape such as a circle, a rectangle, a capsule, or a polygon. It can be used for collision detection by adding it to a body/area, possibly with an extra transformation relative to the body/area's origin. Bodies/areas can have multiple (transformed) shapes added to them, and a single shape can be added to bodies/areas multiple times with different local transformations.</p></li>
+<li><p>A <em>body</em> is a physical object which can be in static, kinematic, or rigid mode. Its state (such as position and velocity) can be queried and updated. A force integration callback can be set to customize the body's physics.</p></li>
+<li><p>An <em>area</em> is a region in space which can be used to detect bodies and areas entering and exiting it. A body monitoring callback can be set to report entering/exiting body shapes, and similarly an area monitoring callback can be set. Gravity and damping can be overridden within the area by setting area parameters.</p></li>
+<li><p>A <em>joint</em> is a constraint, either between two bodies or on one body relative to a point. Parameters such as the joint bias and the rest length of a spring joint can be adjusted.</p></li>
+</ul>
+<p>Physics objects in <strong>PhysicsServer2D</strong> may be created and manipulated independently; they do not have to be tied to nodes in the scene tree.</p>
+<p><strong>Note:</strong> All the 2D physics nodes use the physics server internally. Adding a physics node to the scene tree will cause a corresponding physics object to be created in the physics server. A rigid body node registers a callback that updates the node's transform with the transform of the respective body object in the physics server (every physics update). An area node registers a callback to inform the area node about overlaps with the respective area object in the physics server. The raycast node queries the direct state of the relevant space in the physics server.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-area_add_shapearea-rid-shape-rid-transform-transform2d--transform2d1-0-0-1-0-0-disabled-bool--false"><code>void area_add_shape(area: RID, shape: RID, transform: Transform2D = Transform2D(1, 0, 0, 1, 0, 0), disabled: bool = false)</code></h3>
+<p>Adds a shape to the area, with the given local transform. The shape (together with its <code>transform</code> and <code>disabled</code> properties) is added to an array of shapes, and the shapes of an area are usually referenced by their index in this array.</p>
+<h3 id="void-area_attach_canvas_instance_idarea-rid-id-int"><code>void area_attach_canvas_instance_id(area: RID, id: int)</code></h3>
+<p>Attaches the <code>ObjectID</code> of a canvas to the area. Use <code>Object.get_instance_id()</code> to get the <code>ObjectID</code> of a <a href="CanvasLayer.html">CanvasLayer</a>.</p>
+<h3 id="void-area_attach_object_instance_idarea-rid-id-int"><code>void area_attach_object_instance_id(area: RID, id: int)</code></h3>
+<p>Attaches the <code>ObjectID</code> of an <a href="Object.html">Object</a> to the area. Use <code>Object.get_instance_id()</code> to get the <code>ObjectID</code> of a <a href="CollisionObject2D.html">CollisionObject2D</a>.</p>
+<h3 id="void-area_clear_shapesarea-rid"><code>void area_clear_shapes(area: RID)</code></h3>
+<p>Removes all shapes from the area. This does not delete the shapes themselves, so they can continue to be used elsewhere or added back later.</p>
+<h3 id="rid-area_create"><code>RID area_create()</code></h3>
+<p>Creates a 2D area object in the physics server, and returns the <a href="RID.html">RID</a> that identifies it. The default settings for the created area include a collision layer and mask set to <code>1</code>, and <code>monitorable</code> set to <code>false</code>.</p>
+<p>Use <code>area_add_shape()</code> to add shapes to it, use <code>area_set_transform()</code> to set its transform, and use <code>area_set_space()</code> to add the area to a space. If you want the area to be detectable use <code>area_set_monitorable()</code>.</p>
+<h3 id="int-area_get_canvas_instance_idarea-rid-const"><code>int area_get_canvas_instance_id(area: RID) const</code></h3>
+<p>Returns the <code>ObjectID</code> of the canvas attached to the area. Use <code>@GlobalScope.instance_from_id()</code> to retrieve a <a href="CanvasLayer.html">CanvasLayer</a> from a nonzero <code>ObjectID</code>.</p>
+<h3 id="int-area_get_collision_layerarea-rid-const"><code>int area_get_collision_layer(area: RID) const</code></h3>
+<p>Returns the physics layer or layers the area belongs to, as a bitmask.</p>
+<h3 id="int-area_get_collision_maskarea-rid-const"><code>int area_get_collision_mask(area: RID) const</code></h3>
+<p>Returns the physics layer or layers the area can contact with, as a bitmask.</p>
+<h3 id="int-area_get_object_instance_idarea-rid-const"><code>int area_get_object_instance_id(area: RID) const</code></h3>
+<p>Returns the <code>ObjectID</code> attached to the area. Use <code>@GlobalScope.instance_from_id()</code> to retrieve an <a href="Object.html">Object</a> from a nonzero <code>ObjectID</code>.</p>
+<h3 id="variant-area_get_paramarea-rid-param-areaparameter-const"><code>Variant area_get_param(area: RID, param: </code>AreaParameter<code>) const</code></h3>
+<p>Returns the value of the given area parameter.</p>
+<h3 id="rid-area_get_shapearea-rid-shape_idx-int-const"><code>RID area_get_shape(area: RID, shape_idx: int) const</code></h3>
+<p>Returns the <a href="RID.html">RID</a> of the shape with the given index in the area's array of shapes.</p>
+<h3 id="int-area_get_shape_countarea-rid-const"><code>int area_get_shape_count(area: RID) const</code></h3>
+<p>Returns the number of shapes added to the area.</p>
+<h3 id="transform2d-area_get_shape_transformarea-rid-shape_idx-int-const"><code>Transform2D area_get_shape_transform(area: RID, shape_idx: int) const</code></h3>
+<p>Returns the local transform matrix of the shape with the given index in the area's array of shapes.</p>
+<h3 id="rid-area_get_spacearea-rid-const"><code>RID area_get_space(area: RID) const</code></h3>
+<p>Returns the <a href="RID.html">RID</a> of the space assigned to the area. Returns an empty <a href="RID.html">RID</a> if no space is assigned.</p>
+<h3 id="transform2d-area_get_transformarea-rid-const"><code>Transform2D area_get_transform(area: RID) const</code></h3>
+<p>Returns the transform matrix of the area.</p>
+<h3 id="void-area_remove_shapearea-rid-shape_idx-int"><code>void area_remove_shape(area: RID, shape_idx: int)</code></h3>
+<p>Removes the shape with the given index from the area's array of shapes. The shape itself is not deleted, so it can continue to be used elsewhere or added back later. As a result of this operation, the area's shapes which used to have indices higher than <code>shape_idx</code> will have their index decreased by one.</p>
+<h3 id="void-area_set_area_monitor_callbackarea-rid-callback-callable"><code>void area_set_area_monitor_callback(area: RID, callback: Callable)</code></h3>
+<p>Sets the area's area monitor callback. This callback will be called when any other (shape of an) area enters or exits (a shape of) the given area, and must take the following five parameters:</p>
+<ol type="1">
+<li><p>an integer <code>status</code>: either <code>AREA_BODY_ADDED</code> or <code>AREA_BODY_REMOVED</code> depending on whether the other area's shape entered or exited the area,</p></li>
+<li><p>an <a href="RID.html">RID</a> <code>area_rid</code>: the <a href="RID.html">RID</a> of the other area that entered or exited the area,</p></li>
+<li><p>an integer <code>instance_id</code>: the <code>ObjectID</code> attached to the other area,</p></li>
+<li><p>an integer <code>area_shape_idx</code>: the index of the shape of the other area that entered or exited the area,</p></li>
+<li><p>an integer <code>self_shape_idx</code>: the index of the shape of the area where the other area entered or exited.</p></li>
+</ol>
+<p>By counting (or keeping track of) the shapes that enter and exit, it can be determined if an area (with all its shapes) is entering for the first time or exiting for the last time.</p>
+<h3 id="void-area_set_collision_layerarea-rid-layer-int"><code>void area_set_collision_layer(area: RID, layer: int)</code></h3>
+<p>Assigns the area to one or many physics layers, via a bitmask.</p>
+<h3 id="void-area_set_collision_maskarea-rid-mask-int"><code>void area_set_collision_mask(area: RID, mask: int)</code></h3>
+<p>Sets which physics layers the area will monitor, via a bitmask.</p>
+<h3 id="void-area_set_monitor_callbackarea-rid-callback-callable"><code>void area_set_monitor_callback(area: RID, callback: Callable)</code></h3>
+<p>Sets the area's body monitor callback. This callback will be called when any other (shape of a) body enters or exits (a shape of) the given area, and must take the following five parameters:</p>
+<ol type="1">
+<li><p>an integer <code>status</code>: either <code>AREA_BODY_ADDED</code> or <code>AREA_BODY_REMOVED</code> depending on whether the other body shape entered or exited the area,</p></li>
+<li><p>an <a href="RID.html">RID</a> <code>body_rid</code>: the <a href="RID.html">RID</a> of the body that entered or exited the area,</p></li>
+<li><p>an integer <code>instance_id</code>: the <code>ObjectID</code> attached to the body,</p></li>
+<li><p>an integer <code>body_shape_idx</code>: the index of the shape of the body that entered or exited the area,</p></li>
+<li><p>an integer <code>self_shape_idx</code>: the index of the shape of the area where the body entered or exited.</p></li>
+</ol>
+<p>By counting (or keeping track of) the shapes that enter and exit, it can be determined if a body (with all its shapes) is entering for the first time or exiting for the last time.</p>
+<h3 id="void-area_set_monitorablearea-rid-monitorable-bool"><code>void area_set_monitorable(area: RID, monitorable: bool)</code></h3>
+<p>Sets whether the area is monitorable or not. If <code>monitorable</code> is <code>true</code>, the area monitoring callback of other areas will be called when this area enters or exits them.</p>
+<h3 id="void-area_set_paramarea-rid-param-areaparameter-value-variant"><code>void area_set_param(area: RID, param: </code>AreaParameter<code>, value: Variant)</code></h3>
+<p>Sets the value of the given area parameter.</p>
+<h3 id="void-area_set_shapearea-rid-shape_idx-int-shape-rid"><code>void area_set_shape(area: RID, shape_idx: int, shape: RID)</code></h3>
+<p>Replaces the area's shape at the given index by another shape, while not affecting the <code>transform</code> and <code>disabled</code> properties at the same index.</p>
+<h3 id="void-area_set_shape_disabledarea-rid-shape_idx-int-disabled-bool"><code>void area_set_shape_disabled(area: RID, shape_idx: int, disabled: bool)</code></h3>
+<p>Sets the disabled property of the area's shape with the given index. If <code>disabled</code> is <code>true</code>, then the shape will not detect any other shapes entering or exiting it.</p>
+<h3 id="void-area_set_shape_transformarea-rid-shape_idx-int-transform-transform2d"><code>void area_set_shape_transform(area: RID, shape_idx: int, transform: Transform2D)</code></h3>
+<p>Sets the local transform matrix of the area's shape with the given index.</p>
+<h3 id="void-area_set_spacearea-rid-space-rid"><code>void area_set_space(area: RID, space: RID)</code></h3>
+<p>Adds the area to the given space, after removing the area from the previously assigned space (if any).</p>
+<p><strong>Note:</strong> To remove an area from a space without immediately adding it back elsewhere, use <code>PhysicsServer2D.area_set_space(area, RID())</code>.</p>
+<h3 id="void-area_set_transformarea-rid-transform-transform2d"><code>void area_set_transform(area: RID, transform: Transform2D)</code></h3>
+<p>Sets the transform matrix of the area.</p>
+<h3 id="void-body_add_collision_exceptionbody-rid-excepted_body-rid"><code>void body_add_collision_exception(body: RID, excepted_body: RID)</code></h3>
+<p>Adds <code>excepted_body</code> to the body's list of collision exceptions, so that collisions with it are ignored.</p>
+<h3 id="void-body_add_constant_central_forcebody-rid-force-vector2"><code>void body_add_constant_central_force(body: RID, force: Vector2)</code></h3>
+<p>Adds a constant directional force to the body. The force does not affect rotation. The force remains applied over time until cleared with <code>PhysicsServer2D.body_set_constant_force(body, Vector2(0, 0))</code>.</p>
+<p>This is equivalent to using <code>body_add_constant_force()</code> at the body's center of mass.</p>
+<h3 id="void-body_add_constant_forcebody-rid-force-vector2-position-vector2--vector20-0"><code>void body_add_constant_force(body: RID, force: Vector2, position: Vector2 = Vector2(0, 0))</code></h3>
+<p>Adds a constant positioned force to the body. The force can affect rotation if <code>position</code> is different from the body's center of mass. The force remains applied over time until cleared with <code>PhysicsServer2D.body_set_constant_force(body, Vector2(0, 0))</code>.</p>
+<p><code>position</code> is the offset from the body origin in global coordinates.</p>
+<h3 id="void-body_add_constant_torquebody-rid-torque-float"><code>void body_add_constant_torque(body: RID, torque: float)</code></h3>
+<p>Adds a constant rotational force to the body. The force does not affect position. The force remains applied over time until cleared with <code>PhysicsServer2D.body_set_constant_torque(body, 0)</code>.</p>
+<h3 id="void-body_add_shapebody-rid-shape-rid-transform-transform2d--transform2d1-0-0-1-0-0-disabled-bool--false"><code>void body_add_shape(body: RID, shape: RID, transform: Transform2D = Transform2D(1, 0, 0, 1, 0, 0), disabled: bool = false)</code></h3>
+<p>Adds a shape to the area, with the given local transform. The shape (together with its <code>transform</code> and <code>disabled</code> properties) is added to an array of shapes, and the shapes of a body are usually referenced by their index in this array.</p>
+<h3 id="void-body_apply_central_forcebody-rid-force-vector2"><code>void body_apply_central_force(body: RID, force: Vector2)</code></h3>
+<p>Applies a directional force to the body, at the body's center of mass. The force does not affect rotation. A force is time dependent and meant to be applied every physics update.</p>
+<p>This is equivalent to using <code>body_apply_force()</code> at the body's center of mass.</p>
+<h3 id="void-body_apply_central_impulsebody-rid-impulse-vector2"><code>void body_apply_central_impulse(body: RID, impulse: Vector2)</code></h3>
+<p>Applies a directional impulse to the body, at the body's center of mass. The impulse does not affect rotation.</p>
+<p>An impulse is time-independent! Applying an impulse every frame would result in a framerate-dependent force. For this reason, it should only be used when simulating one-time impacts (use the "_force" functions otherwise).</p>
+<p>This is equivalent to using <code>body_apply_impulse()</code> at the body's center of mass.</p>
+<h3 id="void-body_apply_forcebody-rid-force-vector2-position-vector2--vector20-0"><code>void body_apply_force(body: RID, force: Vector2, position: Vector2 = Vector2(0, 0))</code></h3>
+<p>Applies a positioned force to the body. The force can affect rotation if <code>position</code> is different from the body's center of mass. A force is time dependent and meant to be applied every physics update.</p>
+<p><code>position</code> is the offset from the body origin in global coordinates.</p>
+<h3 id="void-body_apply_impulsebody-rid-impulse-vector2-position-vector2--vector20-0"><code>void body_apply_impulse(body: RID, impulse: Vector2, position: Vector2 = Vector2(0, 0))</code></h3>
+<p>Applies a positioned impulse to the body. The impulse can affect rotation if <code>position</code> is different from the body's center of mass.</p>
+<p>An impulse is time-independent! Applying an impulse every frame would result in a framerate-dependent force. For this reason, it should only be used when simulating one-time impacts (use the "_force" functions otherwise).</p>
+<p><code>position</code> is the offset from the body origin in global coordinates.</p>
+<h3 id="void-body_apply_torquebody-rid-torque-float"><code>void body_apply_torque(body: RID, torque: float)</code></h3>
+<p>Applies a rotational force to the body. The force does not affect position. A force is time dependent and meant to be applied every physics update.</p>
+<h3 id="void-body_apply_torque_impulsebody-rid-impulse-float"><code>void body_apply_torque_impulse(body: RID, impulse: float)</code></h3>
+<p>Applies a rotational impulse to the body. The impulse does not affect position.</p>
+<p>An impulse is time-independent! Applying an impulse every frame would result in a framerate-dependent force. For this reason, it should only be used when simulating one-time impacts (use the "_force" functions otherwise).</p>
+<h3 id="void-body_attach_canvas_instance_idbody-rid-id-int"><code>void body_attach_canvas_instance_id(body: RID, id: int)</code></h3>
+<p>Attaches the <code>ObjectID</code> of a canvas to the body. Use <code>Object.get_instance_id()</code> to get the <code>ObjectID</code> of a <a href="CanvasLayer.html">CanvasLayer</a>.</p>
+<h3 id="void-body_attach_object_instance_idbody-rid-id-int"><code>void body_attach_object_instance_id(body: RID, id: int)</code></h3>
+<p>Attaches the <code>ObjectID</code> of an <a href="Object.html">Object</a> to the body. Use <code>Object.get_instance_id()</code> to get the <code>ObjectID</code> of a <a href="CollisionObject2D.html">CollisionObject2D</a>.</p>
+<h3 id="void-body_clear_shapesbody-rid"><code>void body_clear_shapes(body: RID)</code></h3>
+<p>Removes all shapes from the body. This does not delete the shapes themselves, so they can continue to be used elsewhere or added back later.</p>
+<h3 id="rid-body_create"><code>RID body_create()</code></h3>
+<p>Creates a 2D body object in the physics server, and returns the <a href="RID.html">RID</a> that identifies it. The default settings for the created area include a collision layer and mask set to <code>1</code>, and body mode set to <code>BODY_MODE_RIGID</code>.</p>
+<p>Use <code>body_add_shape()</code> to add shapes to it, use <code>body_set_state()</code> to set its transform, and use <code>body_set_space()</code> to add the body to a space.</p>
+<h3 id="int-body_get_canvas_instance_idbody-rid-const"><code>int body_get_canvas_instance_id(body: RID) const</code></h3>
+<p>Returns the <code>ObjectID</code> of the canvas attached to the body. Use <code>@GlobalScope.instance_from_id()</code> to retrieve a <a href="CanvasLayer.html">CanvasLayer</a> from a nonzero <code>ObjectID</code>.</p>
+<h3 id="int-body_get_collision_layerbody-rid-const"><code>int body_get_collision_layer(body: RID) const</code></h3>
+<p>Returns the physics layer or layers the body belongs to, as a bitmask.</p>
+<h3 id="int-body_get_collision_maskbody-rid-const"><code>int body_get_collision_mask(body: RID) const</code></h3>
+<p>Returns the physics layer or layers the body can collide with, as a bitmask.</p>
+<h3 id="float-body_get_collision_prioritybody-rid-const"><code>float body_get_collision_priority(body: RID) const</code></h3>
+<p>Returns the body's collision priority. This is used in the depenetration phase of <code>body_test_motion()</code>. The higher the priority is, the lower the penetration into the body will be.</p>
+<h3 id="vector2-body_get_constant_forcebody-rid-const"><code>Vector2 body_get_constant_force(body: RID) const</code></h3>
+<p>Returns the body's total constant positional force applied during each physics update.</p>
+<p>See <code>body_add_constant_force()</code> and <code>body_add_constant_central_force()</code>.</p>
+<h3 id="float-body_get_constant_torquebody-rid-const"><code>float body_get_constant_torque(body: RID) const</code></h3>
+<p>Returns the body's total constant rotational force applied during each physics update.</p>
+<p>See <code>body_add_constant_torque()</code>.</p>
+<h3 id="ccdmode-body_get_continuous_collision_detection_modebody-rid-const">``CCDMode<code> body_get_continuous_collision_detection_mode(body: RID) const</code></h3>
+<p>Returns the body's continuous collision detection mode.</p>
+<h3 id="physicsdirectbodystate2d-body_get_direct_statebody-rid"><code>PhysicsDirectBodyState2D body_get_direct_state(body: RID)</code></h3>
+<p>Returns the <a href="PhysicsDirectBodyState2D.html">PhysicsDirectBodyState2D</a> of the body. Returns <code>null</code> if the body is destroyed or not assigned to a space.</p>
+<h3 id="int-body_get_max_contacts_reportedbody-rid-const"><code>int body_get_max_contacts_reported(body: RID) const</code></h3>
+<p>Returns the maximum number of contacts that the body can report. See <code>body_set_max_contacts_reported()</code>.</p>
+<h3 id="bodymode-body_get_modebody-rid-const">``BodyMode<code> body_get_mode(body: RID) const</code></h3>
+<p>Returns the body's mode.</p>
+<h3 id="int-body_get_object_instance_idbody-rid-const"><code>int body_get_object_instance_id(body: RID) const</code></h3>
+<p>Returns the <code>ObjectID</code> attached to the body. Use <code>@GlobalScope.instance_from_id()</code> to retrieve an <a href="Object.html">Object</a> from a nonzero <code>ObjectID</code>.</p>
+<h3 id="variant-body_get_parambody-rid-param-bodyparameter-const"><code>Variant body_get_param(body: RID, param: </code>BodyParameter<code>) const</code></h3>
+<p>Returns the value of the given body parameter.</p>
+<h3 id="rid-body_get_shapebody-rid-shape_idx-int-const"><code>RID body_get_shape(body: RID, shape_idx: int) const</code></h3>
+<p>Returns the <a href="RID.html">RID</a> of the shape with the given index in the body's array of shapes.</p>
+<h3 id="int-body_get_shape_countbody-rid-const"><code>int body_get_shape_count(body: RID) const</code></h3>
+<p>Returns the number of shapes added to the body.</p>
+<h3 id="transform2d-body_get_shape_transformbody-rid-shape_idx-int-const"><code>Transform2D body_get_shape_transform(body: RID, shape_idx: int) const</code></h3>
+<p>Returns the local transform matrix of the shape with the given index in the area's array of shapes.</p>
+<h3 id="rid-body_get_spacebody-rid-const"><code>RID body_get_space(body: RID) const</code></h3>
+<p>Returns the <a href="RID.html">RID</a> of the space assigned to the body. Returns an empty <a href="RID.html">RID</a> if no space is assigned.</p>
+<h3 id="variant-body_get_statebody-rid-state-bodystate-const"><code>Variant body_get_state(body: RID, state: </code>BodyState<code>) const</code></h3>
+<p>Returns the value of the given state of the body.</p>
+<h3 id="bool-body_is_omitting_force_integrationbody-rid-const"><code>bool body_is_omitting_force_integration(body: RID) const</code></h3>
+<p>Returns <code>true</code> if the body is omitting the standard force integration. See <code>body_set_omit_force_integration()</code>.</p>
+<h3 id="void-body_remove_collision_exceptionbody-rid-excepted_body-rid"><code>void body_remove_collision_exception(body: RID, excepted_body: RID)</code></h3>
+<p>Removes <code>excepted_body</code> from the body's list of collision exceptions, so that collisions with it are no longer ignored.</p>
+<h3 id="void-body_remove_shapebody-rid-shape_idx-int"><code>void body_remove_shape(body: RID, shape_idx: int)</code></h3>
+<p>Removes the shape with the given index from the body's array of shapes. The shape itself is not deleted, so it can continue to be used elsewhere or added back later. As a result of this operation, the body's shapes which used to have indices higher than <code>shape_idx</code> will have their index decreased by one.</p>
+<h3 id="void-body_reset_mass_propertiesbody-rid"><code>void body_reset_mass_properties(body: RID)</code></h3>
+<p>Restores the default inertia and center of mass of the body based on its shapes. This undoes any custom values previously set using <code>body_set_param()</code>.</p>
+<h3 id="void-body_set_axis_velocitybody-rid-axis_velocity-vector2"><code>void body_set_axis_velocity(body: RID, axis_velocity: Vector2)</code></h3>
+<p>Modifies the body's linear velocity so that its projection to the axis <code>axis_velocity.normalized()</code> is exactly <code>axis_velocity.length()</code>. This is useful for jumping behavior.</p>
+<h3 id="void-body_set_collision_layerbody-rid-layer-int"><code>void body_set_collision_layer(body: RID, layer: int)</code></h3>
+<p>Sets the physics layer or layers the body belongs to, via a bitmask.</p>
+<h3 id="void-body_set_collision_maskbody-rid-mask-int"><code>void body_set_collision_mask(body: RID, mask: int)</code></h3>
+<p>Sets the physics layer or layers the body can collide with, via a bitmask.</p>
+<h3 id="void-body_set_collision_prioritybody-rid-priority-float"><code>void body_set_collision_priority(body: RID, priority: float)</code></h3>
+<p>Sets the body's collision priority. This is used in the depenetration phase of <code>body_test_motion()</code>. The higher the priority is, the lower the penetration into the body will be.</p>
+<h3 id="void-body_set_constant_forcebody-rid-force-vector2"><code>void body_set_constant_force(body: RID, force: Vector2)</code></h3>
+<p>Sets the body's total constant positional force applied during each physics update.</p>
+<p>See <code>body_add_constant_force()</code> and <code>body_add_constant_central_force()</code>.</p>
+<h3 id="void-body_set_constant_torquebody-rid-torque-float"><code>void body_set_constant_torque(body: RID, torque: float)</code></h3>
+<p>Sets the body's total constant rotational force applied during each physics update.</p>
+<p>See <code>body_add_constant_torque()</code>.</p>
+<h3 id="void-body_set_continuous_collision_detection_modebody-rid-mode-ccdmode"><code>void body_set_continuous_collision_detection_mode(body: RID, mode: </code>CCDMode<code>)</code></h3>
+<p>Sets the continuous collision detection mode.</p>
+<p>Continuous collision detection tries to predict where a moving body would collide in between physics updates, instead of moving it and correcting its movement if it collided.</p>
+<h3 id="void-body_set_force_integration_callbackbody-rid-callable-callable-userdata-variant--null"><code>void body_set_force_integration_callback(body: RID, callable: Callable, userdata: Variant = null)</code></h3>
+<p>Sets the body's custom force integration callback function to <code>callable</code>. Use an empty <a href="Callable.html">Callable</a> (<code>Callable()</code>) to clear the custom callback.</p>
+<p>The function <code>callable</code> will be called every physics tick, before the standard force integration (see <code>body_set_omit_force_integration()</code>). It can be used for example to update the body's linear and angular velocity based on contact with other bodies.</p>
+<p>If <code>userdata</code> is not <code>null</code>, the function <code>callable</code> must take the following two parameters:</p>
+<ol type="1">
+<li><p><code>state</code>: a <a href="PhysicsDirectBodyState2D.html">PhysicsDirectBodyState2D</a> used to retrieve and modify the body's state,</p></li>
+<li><p><code>userdata</code>: a <a href="Variant.html">Variant</a>; its value will be the <code>userdata</code> passed into this method.</p></li>
+</ol>
+<p>If <code>userdata</code> is <code>null</code>, then <code>callable</code> must take only the <code>state</code> parameter.</p>
+<h3 id="void-body_set_max_contacts_reportedbody-rid-amount-int"><code>void body_set_max_contacts_reported(body: RID, amount: int)</code></h3>
+<p>Sets the maximum number of contacts that the body can report. If <code>amount</code> is greater than zero, then the body will keep track of at most this many contacts with other bodies.</p>
+<h3 id="void-body_set_modebody-rid-mode-bodymode"><code>void body_set_mode(body: RID, mode: </code>BodyMode<code>)</code></h3>
+<p>Sets the body's mode.</p>
+<h3 id="void-body_set_omit_force_integrationbody-rid-enable-bool"><code>void body_set_omit_force_integration(body: RID, enable: bool)</code></h3>
+<p>Sets whether the body omits the standard force integration. If <code>enable</code> is <code>true</code>, the body will not automatically use applied forces, torques, and damping to update the body's linear and angular velocity. In this case, <code>body_set_force_integration_callback()</code> can be used to manually update the linear and angular velocity instead.</p>
+<p>This method is called when the property <code>RigidBody2D.custom_integrator</code> is set.</p>
+<h3 id="void-body_set_parambody-rid-param-bodyparameter-value-variant"><code>void body_set_param(body: RID, param: </code>BodyParameter<code>, value: Variant)</code></h3>
+<p>Sets the value of the given body parameter.</p>
+<h3 id="void-body_set_shapebody-rid-shape_idx-int-shape-rid"><code>void body_set_shape(body: RID, shape_idx: int, shape: RID)</code></h3>
+<p>Replaces the body's shape at the given index by another shape, while not affecting the <code>transform</code>, <code>disabled</code>, and one-way collision properties at the same index.</p>
+<h3 id="void-body_set_shape_as_one_way_collisionbody-rid-shape_idx-int-enable-bool-margin-float-direction-vector2--vector20-1"><code>void body_set_shape_as_one_way_collision(body: RID, shape_idx: int, enable: bool, margin: float, direction: Vector2 = Vector2(0, 1))</code></h3>
+<p>Sets the one-way collision properties of the body's shape with the given index. If <code>enable</code> is <code>true</code>, the one-way collision direction given by <code>direction</code> in the shape's local space (that is <code>body_get_shape_transform(body, shape_idx).basis_xform(direction).normalized()</code> in the body's local space) will be used to ignore collisions with the shape in the opposite direction, and to ensure depenetration of kinematic bodies happens in this direction.</p>
+<h3 id="void-body_set_shape_disabledbody-rid-shape_idx-int-disabled-bool"><code>void body_set_shape_disabled(body: RID, shape_idx: int, disabled: bool)</code></h3>
+<p>Sets the disabled property of the body's shape with the given index. If <code>disabled</code> is <code>true</code>, then the shape will be ignored in all collision detection.</p>
+<h3 id="void-body_set_shape_transformbody-rid-shape_idx-int-transform-transform2d"><code>void body_set_shape_transform(body: RID, shape_idx: int, transform: Transform2D)</code></h3>
+<p>Sets the local transform matrix of the body's shape with the given index.</p>
+<h3 id="void-body_set_spacebody-rid-space-rid"><code>void body_set_space(body: RID, space: RID)</code></h3>
+<p>Adds the body to the given space, after removing the body from the previously assigned space (if any). If the body's mode is set to <code>BODY_MODE_RIGID</code>, then adding the body to a space will have the following additional effects:</p>
+<ul>
+<li><p>If the parameter <code>BODY_PARAM_CENTER_OF_MASS</code> has never been set explicitly, then the value of that parameter will be recalculated based on the body's shapes.</p></li>
+<li><p>If the parameter <code>BODY_PARAM_INERTIA</code> is set to a value <code>&lt;= 0.0</code>, then the value of that parameter will be recalculated based on the body's shapes, mass, and center of mass.</p></li>
+</ul>
+<p><strong>Note:</strong> To remove a body from a space without immediately adding it back elsewhere, use <code>PhysicsServer2D.body_set_space(body, RID())</code>.</p>
+<h3 id="void-body_set_statebody-rid-state-bodystate-value-variant"><code>void body_set_state(body: RID, state: </code>BodyState<code>, value: Variant)</code></h3>
+<p>Sets the value of a body's state.</p>
+<p><strong>Note:</strong> The state change doesn't take effect immediately. The state will change on the next physics frame.</p>
+<h3 id="void-body_set_state_sync_callbackbody-rid-callable-callable"><code>void body_set_state_sync_callback(body: RID, callable: Callable)</code></h3>
+<p>Sets the body's state synchronization callback function to <code>callable</code>. Use an empty <a href="Callable.html">Callable</a> (<code>Callable()</code>) to clear the callback.</p>
+<p>The function <code>callable</code> will be called every physics frame, assuming that the body was active during the previous physics tick, and can be used to fetch the latest state from the physics server.</p>
+<p>The function <code>callable</code> must take the following parameters:</p>
+<ol type="1">
+<li><code>state</code>: a <a href="PhysicsDirectBodyState2D.html">PhysicsDirectBodyState2D</a>, used to retrieve the body's state.</li>
+</ol>
+<h3 id="bool-body_test_motionbody-rid-parameters-physicstestmotionparameters2d-result-physicstestmotionresult2d--null"><code>bool body_test_motion(body: RID, parameters: PhysicsTestMotionParameters2D, result: PhysicsTestMotionResult2D = null)</code></h3>
+<p>Returns <code>true</code> if a collision would result from moving the body along a motion vector from a given point in space. See <a href="PhysicsTestMotionParameters2D.html">PhysicsTestMotionParameters2D</a> for the available motion parameters. Optionally a <a href="PhysicsTestMotionResult2D.html">PhysicsTestMotionResult2D</a> object can be passed, which will be used to store the information about the resulting collision.</p>
+<h3 id="rid-capsule_shape_create"><code>RID capsule_shape_create()</code></h3>
+<p>Creates a 2D capsule shape in the physics server, and returns the <a href="RID.html">RID</a> that identifies it. Use <code>shape_set_data()</code> to set the capsule's height and radius.</p>
+<h3 id="rid-circle_shape_create"><code>RID circle_shape_create()</code></h3>
+<p>Creates a 2D circle shape in the physics server, and returns the <a href="RID.html">RID</a> that identifies it. Use <code>shape_set_data()</code> to set the circle's radius.</p>
+<h3 id="rid-concave_polygon_shape_create"><code>RID concave_polygon_shape_create()</code></h3>
+<p>Creates a 2D concave polygon shape in the physics server, and returns the <a href="RID.html">RID</a> that identifies it. Use <code>shape_set_data()</code> to set the concave polygon's segments.</p>
+<h3 id="rid-convex_polygon_shape_create"><code>RID convex_polygon_shape_create()</code></h3>
+<p>Creates a 2D convex polygon shape in the physics server, and returns the <a href="RID.html">RID</a> that identifies it. Use <code>shape_set_data()</code> to set the convex polygon's points.</p>
+<h3 id="float-damped_spring_joint_get_paramjoint-rid-param-dampedspringparam-const"><code>float damped_spring_joint_get_param(joint: RID, param: </code>DampedSpringParam<code>) const</code></h3>
+<p>Returns the value of the given damped spring joint parameter.</p>
+<h3 id="void-damped_spring_joint_set_paramjoint-rid-param-dampedspringparam-value-float"><code>void damped_spring_joint_set_param(joint: RID, param: </code>DampedSpringParam<code>, value: float)</code></h3>
+<p>Sets the value of the given damped spring joint parameter.</p>
+<h3 id="void-free_ridrid-rid"><code>void free_rid(rid: RID)</code></h3>
+<p>Destroys any of the objects created by PhysicsServer2D. If the <a href="RID.html">RID</a> passed is not one of the objects that can be created by PhysicsServer2D, an error will be printed to the console.</p>
+<h3 id="int-get_process_infoprocess_info-processinfo"><code>int get_process_info(process_info: </code>ProcessInfo<code>)</code></h3>
+<p>Returns the value of a physics engine state specified by <code>process_info</code>.</p>
+<h3 id="void-joint_clearjoint-rid"><code>void joint_clear(joint: RID)</code></h3>
+<p>Destroys the joint with the given <a href="RID.html">RID</a>, creates a new uninitialized joint, and makes the <a href="RID.html">RID</a> refer to this new joint.</p>
+<h3 id="rid-joint_create"><code>RID joint_create()</code></h3>
+<p>Creates a 2D joint in the physics server, and returns the <a href="RID.html">RID</a> that identifies it. To set the joint type, use <code>joint_make_damped_spring()</code>, <code>joint_make_groove()</code> or <code>joint_make_pin()</code>. Use <code>joint_set_param()</code> to set generic joint parameters.</p>
+<h3 id="void-joint_disable_collisions_between_bodiesjoint-rid-disable-bool"><code>void joint_disable_collisions_between_bodies(joint: RID, disable: bool)</code></h3>
+<p>Sets whether the bodies attached to the <a href="Joint2D.html">Joint2D</a> will collide with each other.</p>
+<h3 id="float-joint_get_paramjoint-rid-param-jointparam-const"><code>float joint_get_param(joint: RID, param: </code>JointParam<code>) const</code></h3>
+<p>Returns the value of the given joint parameter.</p>
+<h3 id="jointtype-joint_get_typejoint-rid-const">``JointType<code> joint_get_type(joint: RID) const</code></h3>
+<p>Returns the joint's type.</p>
+<h3 id="bool-joint_is_disabled_collisions_between_bodiesjoint-rid-const"><code>bool joint_is_disabled_collisions_between_bodies(joint: RID) const</code></h3>
+<p>Returns whether the bodies attached to the <a href="Joint2D.html">Joint2D</a> will collide with each other.</p>
+<h3 id="void-joint_make_damped_springjoint-rid-anchor_a-vector2-anchor_b-vector2-body_a-rid-body_b-rid--rid"><code>void joint_make_damped_spring(joint: RID, anchor_a: Vector2, anchor_b: Vector2, body_a: RID, body_b: RID = RID())</code></h3>
+<p>Makes the joint a damped spring joint, attached at the point <code>anchor_a</code> (given in global coordinates) on the body <code>body_a</code> and at the point <code>anchor_b</code> (given in global coordinates) on the body <code>body_b</code>. To set the parameters which are specific to the damped spring, see <code>damped_spring_joint_set_param()</code>.</p>
+<h3 id="void-joint_make_groovejoint-rid-groove1_a-vector2-groove2_a-vector2-anchor_b-vector2-body_a-rid--rid-body_b-rid--rid"><code>void joint_make_groove(joint: RID, groove1_a: Vector2, groove2_a: Vector2, anchor_b: Vector2, body_a: RID = RID(), body_b: RID = RID())</code></h3>
+<p>Makes the joint a groove joint.</p>
+<h3 id="void-joint_make_pinjoint-rid-anchor-vector2-body_a-rid-body_b-rid--rid"><code>void joint_make_pin(joint: RID, anchor: Vector2, body_a: RID, body_b: RID = RID())</code></h3>
+<p>Makes the joint a pin joint. If <code>body_b</code> is an empty <a href="RID.html">RID</a>, then <code>body_a</code> is pinned to the point <code>anchor</code> (given in global coordinates); otherwise, <code>body_a</code> is pinned to <code>body_b</code> at the point <code>anchor</code> (given in global coordinates). To set the parameters which are specific to the pin joint, see <code>pin_joint_set_param()</code>.</p>
+<h3 id="void-joint_set_paramjoint-rid-param-jointparam-value-float"><code>void joint_set_param(joint: RID, param: </code>JointParam<code>, value: float)</code></h3>
+<p>Sets the value of the given joint parameter.</p>
+<h3 id="bool-pin_joint_get_flagjoint-rid-flag-pinjointflag-const"><code>bool pin_joint_get_flag(joint: RID, flag: </code>PinJointFlag<code>) const</code></h3>
+<p>Gets a pin joint flag.</p>
+<h3 id="float-pin_joint_get_paramjoint-rid-param-pinjointparam-const"><code>float pin_joint_get_param(joint: RID, param: </code>PinJointParam<code>) const</code></h3>
+<p>Returns the value of a pin joint parameter.</p>
+<h3 id="void-pin_joint_set_flagjoint-rid-flag-pinjointflag-enabled-bool"><code>void pin_joint_set_flag(joint: RID, flag: </code>PinJointFlag<code>, enabled: bool)</code></h3>
+<p>Sets a pin joint flag.</p>
+<h3 id="void-pin_joint_set_paramjoint-rid-param-pinjointparam-value-float"><code>void pin_joint_set_param(joint: RID, param: </code>PinJointParam<code>, value: float)</code></h3>
+<p>Sets a pin joint parameter.</p>
+<h3 id="rid-rectangle_shape_create"><code>RID rectangle_shape_create()</code></h3>
+<p>Creates a 2D rectangle shape in the physics server, and returns the <a href="RID.html">RID</a> that identifies it. Use <code>shape_set_data()</code> to set the rectangle's half-extents.</p>
+<h3 id="rid-segment_shape_create"><code>RID segment_shape_create()</code></h3>
+<p>Creates a 2D segment shape in the physics server, and returns the <a href="RID.html">RID</a> that identifies it. Use <code>shape_set_data()</code> to set the segment's start and end points.</p>
+<h3 id="rid-separation_ray_shape_create"><code>RID separation_ray_shape_create()</code></h3>
+<p>Creates a 2D separation ray shape in the physics server, and returns the <a href="RID.html">RID</a> that identifies it. Use <code>shape_set_data()</code> to set the shape's <code>length</code> and <code>slide_on_slope</code> properties.</p>
+<h3 id="void-set_activeactive-bool"><code>void set_active(active: bool)</code></h3>
+<p>Activates or deactivates the 2D physics server. If <code>active</code> is <code>false</code>, then the physics server will not do anything in its physics step.</p>
+<h3 id="variant-shape_get_datashape-rid-const"><code>Variant shape_get_data(shape: RID) const</code></h3>
+<p>Returns the shape data that defines the configuration of the shape, such as the half-extents of a rectangle or the segments of a concave shape. See <code>shape_set_data()</code> for the precise format of this data in each case.</p>
+<h3 id="shapetype-shape_get_typeshape-rid-const">``ShapeType<code> shape_get_type(shape: RID) const</code></h3>
+<p>Returns the shape's type.</p>
+<h3 id="void-shape_set_datashape-rid-data-variant"><code>void shape_set_data(shape: RID, data: Variant)</code></h3>
+<p>Sets the shape data that defines the configuration of the shape. The <code>data</code> to be passed depends on the shape's type (see <code>shape_get_type()</code>):</p>
+<ul>
+<li><p><code>SHAPE_WORLD_BOUNDARY</code>: an array of length two containing a <a href="Vector2.html">Vector2</a> <code>normal</code> direction and a <a href="float.html">float</a> distance <code>d</code>,</p></li>
+<li><p><code>SHAPE_SEPARATION_RAY</code>: a dictionary containing the key <code>length</code> with a <a href="float.html">float</a> value and the key <code>slide_on_slope</code> with a <a href="bool.html">bool</a> value,</p></li>
+<li><p><code>SHAPE_SEGMENT</code>: a <a href="Rect2.html">Rect2</a> <code>rect</code> containing the first point of the segment in <code>rect.position</code> and the second point of the segment in <code>rect.size</code>,</p></li>
+<li><p><code>SHAPE_CIRCLE</code>: a <a href="float.html">float</a> <code>radius</code>,</p></li>
+<li><p><code>SHAPE_RECTANGLE</code>: a <a href="Vector2.html">Vector2</a> <code>half_extents</code>,</p></li>
+<li><p><code>SHAPE_CAPSULE</code>: an array of length two (or a <a href="Vector2.html">Vector2</a>) containing a <a href="float.html">float</a> <code>height</code> and a <a href="float.html">float</a> <code>radius</code>,</p></li>
+<li><p><code>SHAPE_CONVEX_POLYGON</code>: either a <a href="PackedVector2Array.html">PackedVector2Array</a> of points defining a convex polygon in counterclockwise order (the clockwise outward normal of each segment formed by consecutive points is calculated internally), or a <a href="PackedFloat32Array.html">PackedFloat32Array</a> of length divisible by four so that every 4-tuple of <a href="float.html">float</a> s contains the coordinates of a point followed by the coordinates of the clockwise outward normal vector to the segment between the current point and the next point,</p></li>
+<li><p><code>SHAPE_CONCAVE_POLYGON</code>: a <a href="PackedVector2Array.html">PackedVector2Array</a> of length divisible by two (each pair of points forms one segment).</p></li>
+</ul>
+<p><strong>Warning:</strong> In the case of <code>SHAPE_CONVEX_POLYGON</code>, this method does not check if the points supplied actually form a convex polygon (unlike the <code>CollisionPolygon2D.polygon</code> property).</p>
+<h3 id="rid-space_create"><code>RID space_create()</code></h3>
+<p>Creates a 2D space in the physics server, and returns the <a href="RID.html">RID</a> that identifies it. A space contains bodies and areas, and controls the stepping of the physics simulation of the objects in it.</p>
+<h3 id="physicsdirectspacestate2d-space_get_direct_statespace-rid"><code>PhysicsDirectSpaceState2D space_get_direct_state(space: RID)</code></h3>
+<p>Returns the state of a space, a <a href="PhysicsDirectSpaceState2D.html">PhysicsDirectSpaceState2D</a>. This object can be used for collision/intersection queries.</p>
+<h3 id="float-space_get_paramspace-rid-param-spaceparameter-const"><code>float space_get_param(space: RID, param: </code>SpaceParameter<code>) const</code></h3>
+<p>Returns the value of the given space parameter.</p>
+<h3 id="bool-space_is_activespace-rid-const"><code>bool space_is_active(space: RID) const</code></h3>
+<p>Returns <code>true</code> if the space is active.</p>
+<h3 id="void-space_set_activespace-rid-active-bool"><code>void space_set_active(space: RID, active: bool)</code></h3>
+<p>Activates or deactivates the space. If <code>active</code> is <code>false</code>, then the physics server will not do anything with this space in its physics step.</p>
+<h3 id="void-space_set_paramspace-rid-param-spaceparameter-value-float"><code>void space_set_param(space: RID, param: </code>SpaceParameter<code>, value: float)</code></h3>
+<p>Sets the value of the given space parameter.</p>
+<h3 id="rid-world_boundary_shape_create"><code>RID world_boundary_shape_create()</code></h3>
+<p>Creates a 2D world boundary shape in the physics server, and returns the <a href="RID.html">RID</a> that identifies it. Use <code>shape_set_data()</code> to set the shape's normal direction and distance properties.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-spaceparameter"><code>enum SpaceParameter</code></h3>
+<ul>
+<li><p><code>SPACE_PARAM_CONTACT_RECYCLE_RADIUS = 0</code></p>
+<p>Constant to set/get the maximum distance a pair of bodies has to move before their collision status has to be recalculated. The default value of this parameter is <code>ProjectSettings.physics/2d/solver/contact_recycle_radius</code>.</p></li>
+<li><p><code>SPACE_PARAM_CONTACT_MAX_SEPARATION = 1</code></p>
+<p>Constant to set/get the maximum distance a shape can be from another before they are considered separated and the contact is discarded. The default value of this parameter is <code>ProjectSettings.physics/2d/solver/contact_max_separation</code>.</p></li>
+<li><p><code>SPACE_PARAM_CONTACT_MAX_ALLOWED_PENETRATION = 2</code></p>
+<p>Constant to set/get the maximum distance a shape can penetrate another shape before it is considered a collision. The default value of this parameter is <code>ProjectSettings.physics/2d/solver/contact_max_allowed_penetration</code>.</p></li>
+<li><p><code>SPACE_PARAM_CONTACT_DEFAULT_BIAS = 3</code></p>
+<p>Constant to set/get the default solver bias for all physics contacts. A solver bias is a factor controlling how much two objects "rebound", after overlapping, to avoid leaving them in that state because of numerical imprecision. The default value of this parameter is <code>ProjectSettings.physics/2d/solver/default_contact_bias</code>.</p></li>
+<li><p><code>SPACE_PARAM_BODY_LINEAR_VELOCITY_SLEEP_THRESHOLD = 4</code></p>
+<p>Constant to set/get the threshold linear velocity of activity. A body marked as potentially inactive for both linear and angular velocity will be put to sleep after the time given. The default value of this parameter is <code>ProjectSettings.physics/2d/sleep_threshold_linear</code>.</p></li>
+<li><p><code>SPACE_PARAM_BODY_ANGULAR_VELOCITY_SLEEP_THRESHOLD = 5</code></p>
+<p>Constant to set/get the threshold angular velocity of activity. A body marked as potentially inactive for both linear and angular velocity will be put to sleep after the time given. The default value of this parameter is <code>ProjectSettings.physics/2d/sleep_threshold_angular</code>.</p></li>
+<li><p><code>SPACE_PARAM_BODY_TIME_TO_SLEEP = 6</code></p>
+<p>Constant to set/get the maximum time of activity. A body marked as potentially inactive for both linear and angular velocity will be put to sleep after this time. The default value of this parameter is <code>ProjectSettings.physics/2d/time_before_sleep</code>.</p></li>
+<li><p><code>SPACE_PARAM_CONSTRAINT_DEFAULT_BIAS = 7</code></p>
+<p>Constant to set/get the default solver bias for all physics constraints. A solver bias is a factor controlling how much two objects "rebound", after violating a constraint, to avoid leaving them in that state because of numerical imprecision. The default value of this parameter is <code>ProjectSettings.physics/2d/solver/default_constraint_bias</code>.</p></li>
+<li><p><code>SPACE_PARAM_SOLVER_ITERATIONS = 8</code></p>
+<p>Constant to set/get the number of solver iterations for all contacts and constraints. The greater the number of iterations, the more accurate the collisions will be. However, a greater number of iterations requires more CPU power, which can decrease performance. The default value of this parameter is <code>ProjectSettings.physics/2d/solver/solver_iterations</code>.</p></li>
+</ul>
+<h3 id="enum-shapetype"><code>enum ShapeType</code></h3>
+<ul>
+<li><p><code>SHAPE_WORLD_BOUNDARY = 0</code></p>
+<p>This is the constant for creating world boundary shapes. A world boundary shape is an <em>infinite</em> line with an origin point, and a normal. Thus, it can be used for front/behind checks.</p></li>
+<li><p><code>SHAPE_SEPARATION_RAY = 1</code></p>
+<p>This is the constant for creating separation ray shapes. A separation ray is defined by a length and separates itself from what is touching its far endpoint. Useful for character controllers.</p></li>
+<li><p><code>SHAPE_SEGMENT = 2</code></p>
+<p>This is the constant for creating segment shapes. A segment shape is a <em>finite</em> line from a point A to a point B. It can be checked for intersections.</p></li>
+<li><p><code>SHAPE_CIRCLE = 3</code></p>
+<p>This is the constant for creating circle shapes. A circle shape only has a radius. It can be used for intersections and inside/outside checks.</p></li>
+<li><p><code>SHAPE_RECTANGLE = 4</code></p>
+<p>This is the constant for creating rectangle shapes. A rectangle shape is defined by a width and a height. It can be used for intersections and inside/outside checks.</p></li>
+<li><p><code>SHAPE_CAPSULE = 5</code></p>
+<p>This is the constant for creating capsule shapes. A capsule shape is defined by a radius and a length. It can be used for intersections and inside/outside checks.</p></li>
+<li><p><code>SHAPE_CONVEX_POLYGON = 6</code></p>
+<p>This is the constant for creating convex polygon shapes. A polygon is defined by a list of points. It can be used for intersections and inside/outside checks.</p></li>
+<li><p><code>SHAPE_CONCAVE_POLYGON = 7</code></p>
+<p>This is the constant for creating concave polygon shapes. A polygon is defined by a list of points. It can be used for intersections checks, but not for inside/outside checks.</p></li>
+<li><p><code>SHAPE_CUSTOM = 8</code></p>
+<p>This constant is used internally by the engine. Any attempt to create this kind of shape results in an error.</p></li>
+</ul>
+<h3 id="enum-areaparameter"><code>enum AreaParameter</code></h3>
+<ul>
+<li><p><code>AREA_PARAM_GRAVITY_OVERRIDE_MODE = 0</code></p>
+<p>Constant to set/get gravity override mode in an area. See <code>AreaSpaceOverrideMode</code> for possible values. The default value of this parameter is <code>AREA_SPACE_OVERRIDE_DISABLED</code>.</p></li>
+<li><p><code>AREA_PARAM_GRAVITY = 1</code></p>
+<p>Constant to set/get gravity strength in an area. The default value of this parameter is <code>9.80665</code>.</p></li>
+<li><p><code>AREA_PARAM_GRAVITY_VECTOR = 2</code></p>
+<p>Constant to set/get gravity vector/center in an area. The default value of this parameter is <code>Vector2(0, -1)</code>.</p></li>
+<li><p><code>AREA_PARAM_GRAVITY_IS_POINT = 3</code></p>
+<p>Constant to set/get whether the gravity vector of an area is a direction, or a center point. The default value of this parameter is <code>false</code>.</p></li>
+<li><p><code>AREA_PARAM_GRAVITY_POINT_UNIT_DISTANCE = 4</code></p>
+<p>Constant to set/get the distance at which the gravity strength is equal to the gravity controlled by <code>AREA_PARAM_GRAVITY</code>. For example, on a planet 100 pixels in radius with a surface gravity of 4.0 px/s², set the gravity to 4.0 and the unit distance to 100.0. The gravity will have falloff according to the inverse square law, so in the example, at 200 pixels from the center the gravity will be 1.0 px/s² (twice the distance, 1/4th the gravity), at 50 pixels it will be 16.0 px/s² (half the distance, 4x the gravity), and so on.</p>
+<p>The above is true only when the unit distance is a positive number. When the unit distance is set to 0.0, the gravity will be constant regardless of distance. The default value of this parameter is <code>0.0</code>.</p></li>
+<li><p><code>AREA_PARAM_LINEAR_DAMP_OVERRIDE_MODE = 5</code></p>
+<p>Constant to set/get linear damping override mode in an area. See <code>AreaSpaceOverrideMode</code> for possible values. The default value of this parameter is <code>AREA_SPACE_OVERRIDE_DISABLED</code>.</p></li>
+<li><p><code>AREA_PARAM_LINEAR_DAMP = 6</code></p>
+<p>Constant to set/get the linear damping factor of an area. The default value of this parameter is <code>0.1</code>.</p></li>
+<li><p><code>AREA_PARAM_ANGULAR_DAMP_OVERRIDE_MODE = 7</code></p>
+<p>Constant to set/get angular damping override mode in an area. See <code>AreaSpaceOverrideMode</code> for possible values. The default value of this parameter is <code>AREA_SPACE_OVERRIDE_DISABLED</code>.</p></li>
+<li><p><code>AREA_PARAM_ANGULAR_DAMP = 8</code></p>
+<p>Constant to set/get the angular damping factor of an area. The default value of this parameter is <code>1.0</code>.</p></li>
+<li><p><code>AREA_PARAM_PRIORITY = 9</code></p>
+<p>Constant to set/get the priority (order of processing) of an area. The default value of this parameter is <code>0</code>.</p></li>
+</ul>
+<h3 id="enum-areaspaceoverridemode"><code>enum AreaSpaceOverrideMode</code></h3>
+<ul>
+<li><p><code>AREA_SPACE_OVERRIDE_DISABLED = 0</code></p>
+<p>This area does not affect gravity/damp. These are generally areas that exist only to detect collisions, and objects entering or exiting them.</p></li>
+<li><p><code>AREA_SPACE_OVERRIDE_COMBINE = 1</code></p>
+<p>This area adds its gravity/damp values to whatever has been calculated so far. This way, many overlapping areas can combine their physics to make interesting effects.</p></li>
+<li><p><code>AREA_SPACE_OVERRIDE_COMBINE_REPLACE = 2</code></p>
+<p>This area adds its gravity/damp values to whatever has been calculated so far. Then stops taking into account the rest of the areas, even the default one.</p></li>
+<li><p><code>AREA_SPACE_OVERRIDE_REPLACE = 3</code></p>
+<p>This area replaces any gravity/damp, even the default one, and stops taking into account the rest of the areas.</p></li>
+<li><p><code>AREA_SPACE_OVERRIDE_REPLACE_COMBINE = 4</code></p>
+<p>This area replaces any gravity/damp calculated so far, but keeps calculating the rest of the areas, down to the default one.</p></li>
+</ul>
+<h3 id="enum-bodymode"><code>enum BodyMode</code></h3>
+<ul>
+<li><p><code>BODY_MODE_STATIC = 0</code></p>
+<p>Constant for static bodies. In this mode, a body can be only moved by user code and doesn't collide with other bodies along its path when moved.</p></li>
+<li><p><code>BODY_MODE_KINEMATIC = 1</code></p>
+<p>Constant for kinematic bodies. In this mode, a body can be only moved by user code and collides with other bodies along its path.</p></li>
+<li><p><code>BODY_MODE_RIGID = 2</code></p>
+<p>Constant for rigid bodies. In this mode, a body can be pushed by other bodies and has forces applied.</p></li>
+<li><p><code>BODY_MODE_RIGID_LINEAR = 3</code></p>
+<p>Constant for linear rigid bodies. In this mode, a body can not rotate, and only its linear velocity is affected by external forces.</p></li>
+</ul>
+<h3 id="enum-bodyparameter"><code>enum BodyParameter</code></h3>
+<ul>
+<li><p><code>BODY_PARAM_BOUNCE = 0</code></p>
+<p>Constant to set/get a body's bounce factor. The default value of this parameter is <code>0.0</code>.</p></li>
+<li><p><code>BODY_PARAM_FRICTION = 1</code></p>
+<p>Constant to set/get a body's friction. The default value of this parameter is <code>1.0</code>.</p></li>
+<li><p><code>BODY_PARAM_MASS = 2</code></p>
+<p>Constant to set/get a body's mass. The default value of this parameter is <code>1.0</code>. If the body's mode is set to <code>BODY_MODE_RIGID</code>, then setting this parameter will have the following additional effects:</p>
+<ul>
+<li><p>If the parameter <code>BODY_PARAM_CENTER_OF_MASS</code> has never been set explicitly, then the value of that parameter will be recalculated based on the body's shapes.</p></li>
+<li><p>If the parameter <code>BODY_PARAM_INERTIA</code> is set to a value <code>&lt;= 0.0</code>, then the value of that parameter will be recalculated based on the body's shapes, mass, and center of mass.</p></li>
+</ul></li>
+<li><p><code>BODY_PARAM_INERTIA = 3</code></p>
+<p>Constant to set/get a body's inertia. The default value of this parameter is <code>0.0</code>. If the body's inertia is set to a value <code>&lt;= 0.0</code>, then the inertia will be recalculated based on the body's shapes, mass, and center of mass.</p></li>
+<li><p><code>BODY_PARAM_CENTER_OF_MASS = 4</code></p>
+<p>Constant to set/get a body's center of mass position in the body's local coordinate system. The default value of this parameter is <code>Vector2(0, 0)</code>. If this parameter is never set explicitly, then it is recalculated based on the body's shapes when setting the parameter <code>BODY_PARAM_MASS</code> or when calling <code>body_set_space()</code>.</p></li>
+<li><p><code>BODY_PARAM_GRAVITY_SCALE = 5</code></p>
+<p>Constant to set/get a body's gravity multiplier. The default value of this parameter is <code>1.0</code>.</p></li>
+<li><p><code>BODY_PARAM_LINEAR_DAMP_MODE = 6</code></p>
+<p>Constant to set/get a body's linear damping mode. See <code>BodyDampMode</code> for possible values. The default value of this parameter is <code>BODY_DAMP_MODE_COMBINE</code>.</p></li>
+<li><p><code>BODY_PARAM_ANGULAR_DAMP_MODE = 7</code></p>
+<p>Constant to set/get a body's angular damping mode. See <code>BodyDampMode</code> for possible values. The default value of this parameter is <code>BODY_DAMP_MODE_COMBINE</code>.</p></li>
+<li><p><code>BODY_PARAM_LINEAR_DAMP = 8</code></p>
+<p>Constant to set/get a body's linear damping factor. The default value of this parameter is <code>0.0</code>.</p></li>
+<li><p><code>BODY_PARAM_ANGULAR_DAMP = 9</code></p>
+<p>Constant to set/get a body's angular damping factor. The default value of this parameter is <code>0.0</code>.</p></li>
+<li><p><code>BODY_PARAM_MAX = 10</code></p>
+<p>Represents the size of the <code>BodyParameter</code> enum.</p></li>
+</ul>
+<h3 id="enum-bodydampmode"><code>enum BodyDampMode</code></h3>
+<ul>
+<li><p><code>BODY_DAMP_MODE_COMBINE = 0</code></p>
+<p>The body's damping value is added to any value set in areas or the default value.</p></li>
+<li><p><code>BODY_DAMP_MODE_REPLACE = 1</code></p>
+<p>The body's damping value replaces any value set in areas or the default value.</p></li>
+</ul>
+<h3 id="enum-bodystate"><code>enum BodyState</code></h3>
+<ul>
+<li><p><code>BODY_STATE_TRANSFORM = 0</code></p>
+<p>Constant to set/get the current transform matrix of the body.</p></li>
+<li><p><code>BODY_STATE_LINEAR_VELOCITY = 1</code></p>
+<p>Constant to set/get the current linear velocity of the body.</p></li>
+<li><p><code>BODY_STATE_ANGULAR_VELOCITY = 2</code></p>
+<p>Constant to set/get the current angular velocity of the body.</p></li>
+<li><p><code>BODY_STATE_SLEEPING = 3</code></p>
+<p>Constant to sleep/wake up a body, or to get whether it is sleeping.</p></li>
+<li><p><code>BODY_STATE_CAN_SLEEP = 4</code></p>
+<p>Constant to set/get whether the body can sleep.</p></li>
+</ul>
+<h3 id="enum-jointtype"><code>enum JointType</code></h3>
+<ul>
+<li><p><code>JOINT_TYPE_PIN = 0</code></p>
+<p>Constant to create pin joints.</p></li>
+<li><p><code>JOINT_TYPE_GROOVE = 1</code></p>
+<p>Constant to create groove joints.</p></li>
+<li><p><code>JOINT_TYPE_DAMPED_SPRING = 2</code></p>
+<p>Constant to create damped spring joints.</p></li>
+<li><p><code>JOINT_TYPE_MAX = 3</code></p>
+<p>Represents the size of the <code>JointType</code> enum.</p></li>
+</ul>
+<h3 id="enum-jointparam"><code>enum JointParam</code></h3>
+<ul>
+<li><p><code>JOINT_PARAM_BIAS = 0</code></p>
+<p>Constant to set/get how fast the joint pulls the bodies back to satisfy the joint constraint. The lower the value, the more the two bodies can pull on the joint. The default value of this parameter is <code>0.0</code>.</p>
+<p><strong>Note:</strong> In Godot Physics, this parameter is only used for pin joints and groove joints.</p></li>
+<li><p><code>JOINT_PARAM_MAX_BIAS = 1</code></p>
+<p>Constant to set/get the maximum speed with which the joint can apply corrections. The default value of this parameter is <code>3.40282e+38</code>.</p>
+<p><strong>Note:</strong> In Godot Physics, this parameter is only used for groove joints.</p></li>
+<li><p><code>JOINT_PARAM_MAX_FORCE = 2</code></p>
+<p>Constant to set/get the maximum force that the joint can use to act on the two bodies. The default value of this parameter is <code>3.40282e+38</code>.</p>
+<p><strong>Note:</strong> In Godot Physics, this parameter is only used for groove joints.</p></li>
+</ul>
+<h3 id="enum-pinjointparam"><code>enum PinJointParam</code></h3>
+<ul>
+<li><p><code>PIN_JOINT_SOFTNESS = 0</code></p>
+<p>Constant to set/get a how much the bond of the pin joint can flex. The default value of this parameter is <code>0.0</code>.</p></li>
+<li><p><code>PIN_JOINT_LIMIT_UPPER = 1</code></p>
+<p>The maximum rotation around the pin.</p></li>
+<li><p><code>PIN_JOINT_LIMIT_LOWER = 2</code></p>
+<p>The minimum rotation around the pin.</p></li>
+<li><p><code>PIN_JOINT_MOTOR_TARGET_VELOCITY = 3</code></p>
+<p>Target speed for the motor. In radians per second.</p></li>
+</ul>
+<h3 id="enum-pinjointflag"><code>enum PinJointFlag</code></h3>
+<ul>
+<li><p><code>PIN_JOINT_FLAG_ANGULAR_LIMIT_ENABLED = 0</code></p>
+<p>If <code>true</code>, the pin has a maximum and a minimum rotation.</p></li>
+<li><p><code>PIN_JOINT_FLAG_MOTOR_ENABLED = 1</code></p>
+<p>If <code>true</code>, a motor turns the pin.</p></li>
+</ul>
+<h3 id="enum-dampedspringparam"><code>enum DampedSpringParam</code></h3>
+<ul>
+<li><p><code>DAMPED_SPRING_REST_LENGTH = 0</code></p>
+<p>Sets the resting length of the spring joint. The joint will always try to go to back this length when pulled apart. The default value of this parameter is the distance between the joint's anchor points.</p></li>
+<li><p><code>DAMPED_SPRING_STIFFNESS = 1</code></p>
+<p>Sets the stiffness of the spring joint. The joint applies a force equal to the stiffness times the distance from its resting length. The default value of this parameter is <code>20.0</code>.</p></li>
+<li><p><code>DAMPED_SPRING_DAMPING = 2</code></p>
+<p>Sets the damping ratio of the spring joint. A value of 0 indicates an undamped spring, while 1 causes the system to reach equilibrium as fast as possible (critical damping). The default value of this parameter is <code>1.5</code>.</p></li>
+</ul>
+<h3 id="enum-ccdmode"><code>enum CCDMode</code></h3>
+<ul>
+<li><p><code>CCD_MODE_DISABLED = 0</code></p>
+<p>Disables continuous collision detection. This is the fastest way to detect body collisions, but it can miss small and/or fast-moving objects.</p></li>
+<li><p><code>CCD_MODE_CAST_RAY = 1</code></p>
+<p>Enables continuous collision detection by raycasting. It is faster than shapecasting, but less precise.</p></li>
+<li><p><code>CCD_MODE_CAST_SHAPE = 2</code></p>
+<p>Enables continuous collision detection by shapecasting. It is the slowest CCD method, and the most precise.</p></li>
+</ul>
+<h3 id="enum-areabodystatus"><code>enum AreaBodyStatus</code></h3>
+<ul>
+<li><p><code>AREA_BODY_ADDED = 0</code></p>
+<p>The value of the first parameter and area callback function receives, when an object enters one of its shapes.</p></li>
+<li><p><code>AREA_BODY_REMOVED = 1</code></p>
+<p>The value of the first parameter and area callback function receives, when an object exits one of its shapes.</p></li>
+</ul>
+<h3 id="enum-processinfo"><code>enum ProcessInfo</code></h3>
+<ul>
+<li><p><code>INFO_ACTIVE_OBJECTS = 0</code></p>
+<p>Constant to get the number of objects that are not sleeping.</p></li>
+<li><p><code>INFO_COLLISION_PAIRS = 1</code></p>
+<p>Constant to get the number of possible collisions.</p></li>
+<li><p><code>INFO_ISLAND_COUNT = 2</code></p>
+<p>Constant to get the number of space regions where a collision could occur.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

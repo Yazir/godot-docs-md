@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compiling with PCK encryption key — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="compiling-with-pck-encryption-key">Compiling with PCK encryption key</h1>
+<p>The export dialog gives you the option to encrypt your PCK file with a 256-bit AES key when releasing your project. This will make sure your scenes, scripts and other resources are not stored in plain text and can not easily be ripped by some script kiddie.</p>
+<p>Of course, the key needs to be stored in the binary, but if it's compiled, optimized and without symbols, it would take some effort to find it.</p>
+<p>For this to work, you need to build the export templates from source, with that same key.</p>
+<blockquote>
+<p><strong>Warning:</strong> This will <strong>not</strong> work if you use official, precompiled export templates. It is absolutely <strong>required</strong> to compile your own export templates to use PCK encryption.</p>
+</blockquote>
+<h2 id="step-by-step">Step by step</h2>
+<ol type="1">
+<li><p>Generate a 256-bit AES key in hexadecimal format. You can use the aes-256-cbc variant from <a href="https://asecuritysite.com/encryption/keygen">this service</a>.</p>
+<p>Alternatively, you can generate it yourself using <a href="https://www.openssl.org/">OpenSSL</a> command-line tools:</p>
+<pre><code>openssl rand -hex 32 &gt; godot.gdkey</code></pre>
+<p>The output in <code>godot.gdkey</code> should be similar to:</p>
+<pre><code># NOTE: Do not use the key below! Generate your own key instead.
+aeb1bc56aaf580cc31784e9c41551e9ed976ecba10d315db591e749f3f64890f</code></pre>
+<p>You can generate the key without redirecting the output to a file, but that way you can minimize the risk of exposing the key.</p></li>
+<li><p>Set this key as environment variable in the console that you will use to compile Godot, like this:</p></li>
+</ol>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">SCRIPT_AES256_ENCRYPTION_KEY</span><span class="op">=</span><span class="st">&quot;your_generated_key&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bat"><code class="sourceCode dosbat"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="va">SCRIPT_AES256_ENCRYPTION_KEY</span>=your_generated_key</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bat"><code class="sourceCode dosbat"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>$env:SCRIPT_AES256_ENCRYPTION_KEY=<span class="st">&quot;your_generated_key&quot;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>Note that the commands suggested above do **not** persist the variables</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>across terminal sessions.</span></code></pre></div>
+<ol start="3" type="1">
+<li><p>Compile Godot export templates and set them as custom export templates in the export preset options. If the environment variable is set correctly, the following message is printed at the beginning of compilation:</p>
+<pre><code>*** IMPORTANT: Compiling Godot with custom `SCRIPT_AES256_ENCRYPTION_KEY` set as environment variable.
+*** Make sure to use templates compiled with this key when exporting a project with encryption.</code></pre></li>
+<li><p>Set the encryption key in the <strong>Encryption</strong> tab of the export preset:</p>
+<p>If performing an export from the ref, before exporting, set the <code>GODOT_SCRIPT_ENCRYPTION_KEY</code> environment variable to the same value as the one used to compile the export templates (<code>SCRIPT_AES256_ENCRYPTION_KEY</code>).</p></li>
+<li><p>Add filters for the files/folders to encrypt. <strong>By default</strong>, include filters are empty and <strong>nothing will be encrypted</strong>.</p></li>
+<li><p>Export the project. The project should run with the files encrypted now.</p></li>
+</ol>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you get an error like below, it means the key wasn't properly included in your Godot build. Godot is encrypting PCK file during export, but can't read it at runtime.</p>
+<pre><code>ERROR: open_and_parse: Condition &quot;String::md5(md5.digest) != String::md5(md5d)&quot; is true. Returning: ERR_FILE_CORRUPT
+   At: core/io/file_access_encrypted.cpp:103</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perfetto — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="perfetto">Perfetto</h1>
+<blockquote>
+<p><strong>See also:</strong> Please see the ref for more information.</p>
+</blockquote>
+<p><a href="https://perfetto.dev">Perfetto</a> is the default tracing system for Android. In fact, its system tracing service has been built into the platform since Android 9.</p>
+<h2 id="using-official-perfetto-templates">Using official Perfetto templates</h2>
+<p>Starting with Godot 4.7, Perfetto export templates are provided for every stable Godot release and can be downloaded from the <a href="https://github.com/godotengine/godot/releases/">GitHub Releases page</a>.</p>
+<h3 id="using-the-gradle-build-template">Using the Gradle build template</h3>
+<ul>
+<li>Navigate to the release page and download the <code>Godot_v&lt;godot_version&gt;_android_source.perfetto.zip</code> release artifact where <code>godot_version</code> corresponds to the version of the engine being used.</li>
+<li>In the <strong>Project &gt; Export</strong> dialog, <strong>Advanced Options</strong> and <strong>Use Gradle Build</strong> must be enabled.</li>
+<li>Point <strong>Android Source Template</strong> to the downloaded export template.</li>
+</ul>
+<p>Follow the instructions in the ref to learn how to configure and create a trace.</p>
+<h3 id="using-non-gradle-build-templates">Using non-gradle build templates</h3>
+<ul>
+<li>Navigate to the release page and download the following release artifacts where <code>godot_version</code> corresponds to the version of the engine being used:
+<ul>
+<li><code>Godot_v&lt;godot_version&gt;_android_debug.perfetto.apk</code> (for debug builds)</li>
+<li><code>Godot_v&lt;godot_version&gt;_android_release.perfetto.apk</code> (for release builds)</li>
+</ul></li>
+<li>In the <strong>Project &gt; Export</strong> dialog:
+<ul>
+<li><strong>Advanced Options</strong> must be enabled</li>
+<li><strong>Use Gradle Build</strong> must be disabled</li>
+</ul></li>
+<li>Point <strong>Custom Template</strong> to the downloaded export templates.</li>
+</ul>
+<p>Follow the instructions in the ref to learn how to configure and create a trace.</p>
+<h2 id="custom-godot-builds-with-perfetto-support">Custom Godot builds with Perfetto support</h2>
+<p>From the <code>godot</code> root directory, run the following python script to install the latest version of the Perfetto SDK under <code>thirdparty/perfetto</code>:</p>
+<pre class="shell"><code>python misc/scripts/install_perfetto.py</code></pre>
+<p>Next, build the Android debug or release templates for your architecture using <code>scons</code> (per ref), but adding the <code>profiler=perfetto</code> argument.</p>
+<blockquote>
+<p><strong>Note:</strong> It's generally recommended to profile release templates, because that is the version your players will use, and it will perform differently than other types of builds. However, in the case of Android, it can sometimes be useful to use debug templates, because Godot can only do remote debugging of games exported from debug templates.</p>
+</blockquote>
+<p>For example, to build the release templates for arm64:</p>
+<pre class="shell"><code>scons platform=android target=template_release arch=arm64 generate_android_binaries=yes profiler=perfetto</code></pre>
+<h2 id="configuration">Configuration</h2>
+<p>Perfetto requires a configuration file to tell it which events to track.</p>
+<p>Create a file called <code>godot.config</code> with this content:</p>
+<pre class="text"><code># Trace for 10 seconds.
+duration_ms: 10000
+
+buffers {
+    size_kb: 32768
+    fill_policy: RING_BUFFER
+}
+
+# Write to file once every second to prevent overflowing the buffer.
+write_into_file: true
+file_write_period_ms: 1000
+
+# Track events in the &quot;godot&quot; category.
+data_sources {
+    config {
+        name: &quot;track_event&quot;
+        track_event_config {
+            enabled_categories: &quot;godot&quot;
+        }
+    }
+}</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Godot records two categories of track events:</p>
+<ul>
+<li><strong>godot</strong>: Used to record Godot engine events. This is used for performance analysis. Event tracing overhead should not significantly impact performance. This should be the typical tracing mode for most developers.</li>
+<li><strong>godot_scripting</strong>: Used to record Godot scripting events. This is a slow category as it profiles the entire game scripting logic. This is used for code understanding / debugging / finding what caused a frame hitch. Performance is much slower, but it helps to find that one problematic function call that was otherwise hidden.</li>
+</ul>
+</blockquote>
+<h2 id="record-a-trace">Record a trace</h2>
+<p>Finally, launch your game on an Android device using the export templates you built earlier.</p>
+<p>When you're ready to record a trace (for example, when you've hit the part of your game that is exhibiting performance issues), you can use <a href="https://github.com/google/perfetto/blob/main/tools/record_android_trace">this script from the Perfetto GitHub repository</a>.</p>
+<pre class="shell"><code>./record_android_trace -c /path/to/godot.config</code></pre>
+<p>This will record for 10 seconds (per the configuration), or until you press <code>Ctrl + C</code>.</p>
+<h2 id="examining-the-trace">Examining the trace</h2>
+<p>As soon as that script exits, it will launch the Perfetto UI in a web browser.</p>
+<p>To see the Godot events, expand the row for your application by clicking on its Android <em>Unique Name</em> / <em>Package Name</em> / <em>App ID</em> (Perfetto will also include some events from system services in the trace).</p>
+<p>Then you can use the <code>WASD</code> keys to navigate the graph:</p>
+<ul>
+<li>Press <code>A</code> or <code>D</code> to navigate forward or backward along the timeline</li>
+<li>Press <code>W</code> or <code>S</code> to zoom in or out</li>
+</ul>
+<p>You'll probably need to zoom a bit before you're able to see the individual events from Godot.</p>
+<p>To learn more, see the <a href="https://perfetto.dev/docs/visualization/perfetto-ui">Perfetto UI documentation</a>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

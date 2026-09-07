@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Upgrading from Godot 4.4 to Godot 4.5 — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="upgrading-from-godot-44-to-godot-45">Upgrading from Godot 4.4 to Godot 4.5</h1>
+<p>For most games and apps made with 4.4 it should be relatively safe to migrate to 4.5. This page intends to cover everything you need to pay attention to when migrating your project.</p>
+<h2 id="breaking-changes">Breaking changes</h2>
+<p>If you are migrating from 4.4 to 4.5, the breaking changes listed here might affect you. Changes are grouped by areas/systems.</p>
+<blockquote>
+<p><strong>Warning:</strong> In order to support <a href="https://android-developers.googleblog.com/2025/05/prepare-play-apps-for-devices-with-16kb-page-size.html">new Google Play requirements</a> Android now requires targeting .NET 9 when exporting C# projects to Android, other platforms continue to use .NET 8 as the minimum required version but newer versions are supported and encouraged.</p>
+<p>If you are using C# in your project and want to export to Android, you will need to upgrade your project to .NET 9 (see <a href="https://learn.microsoft.com/en-us/dotnet/core/install/upgrade">Upgrading to a new .NET version</a> for instructions).</p>
+</blockquote>
+<p>This article indicates whether each breaking change affects GDScript and whether the C# breaking change is <em>binary compatible</em> or <em>source compatible</em>:</p>
+<ul>
+<li><strong>Binary compatible</strong> - Existing binaries will load and execute successfully without recompilation, and the run-time behavior won't change.</li>
+<li><strong>Source compatible</strong> - Source code will compile successfully without changes when upgrading Godot.</li>
+</ul>
+<h3 id="core">Core</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Change</th>
+<th>GDScript Compatible</th>
+<th>C# Binary Compatible</th>
+<th>C# Source Compatible</th>
+<th>Introduced</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>JSONRPC</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Method <code>set_scope</code> replaced by <code>set_method</code> <strong>Node</strong></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (Stub compatibility methods were added to prevent crashes. However, this API is not functional anymore.)</code></td>
+<td><code>❌ (Stub compatibility methods were added to prevent crashes. However, this API is not functional anymore.)</code></td>
+<td><a href="https://github.com/godotengine/godot/pull/104890">GH-104890</a></td>
+</tr>
+<tr class="odd">
+<td>Method <code>get_rpc_config</code> renamed to <code>get_node_rpc_config</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>✔️ (This API does not break compatibility. A compatibility method was added.)</code> |</td>
+<td>✔️ with compat| `G</td>
+<td>H-106848`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>set_name</code> changes <code>name</code> parameter type from <code>String</code> to <code>StringName</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-76560`_</td>
+</tr>
+</tbody>
+</table>
+<h3 id="rendering">Rendering</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Change</th>
+<th>GDScript Compatible</th>
+<th>C# Binary Compatible</th>
+<th>C# Source Compatible</th>
+<th>Introduced</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>DisplayServer</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Method <code>file_dialog_show</code> adds a new <code>parent_window_id</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-98194`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>file_dialog_with_options_show</code> adds a new <code>parent_window_id</code> optional parameter <strong>RenderingDevice</strong></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-98194`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>texture_create_from_extension</code> adds a new <code>mipmaps</code> optional parameter <strong>RenderingServer</strong></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-105570`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>instance_reset_physics_interpolation</code> removed</td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>✔️ (This API does not break compatibility. A compatibility method was added.)</code> |</td>
+<td>✔️ with compat| `G</td>
+<td>H-104269`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>instance_set_interpolated</code> removed</td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>✔️ (This API does not break compatibility. A compatibility method was added.)</code> |</td>
+<td>✔️ with compat| `G</td>
+<td>H-104269`_</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> In C#, the enum <code>RenderingDevice.Features</code> breaks compatibility because of the way the bindings generator detects the enum prefix. New members were added to the enum in <a href="https://github.com/godotengine/godot/pull/103941">GH-103941</a> that caused the enum member <code>Address</code> to be renamed to <code>BufferDeviceAddress</code>.</p>
+</blockquote>
+<h3 id="gltf">GLTF</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Change</th>
+<th>GDScript Compatible</th>
+<th>C# Binary Compatible</th>
+<th>C# Source Compatible</th>
+<th>Introduced</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>GLTFAccessor</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Property <code>byte_offset</code> changes type metadata from <code>int32</code> to <code>int64</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>❌| |</td>
+<td>❌| `</td>
+<td>GH-106220`_</td>
+</tr>
+<tr class="odd">
+<td>Property <code>component_type</code> changes type from <code>int</code> to <code>GLTFAccessor::GLTFComponentType</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>❌| |</td>
+<td>❌| `</td>
+<td>GH-106220`_</td>
+</tr>
+<tr class="even">
+<td>Property <code>count</code> changes type metadata from <code>int32</code> to <code>int64</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>❌| |</td>
+<td>❌| `</td>
+<td>GH-106220`_</td>
+</tr>
+<tr class="odd">
+<td>Property <code>sparse_count</code> changes type metadata from <code>int32</code> to <code>int64</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>❌| |</td>
+<td>❌| `</td>
+<td>GH-106220`_</td>
+</tr>
+<tr class="even">
+<td>Property <code>sparse_indices_byte_offset</code> changes type metadata from <code>int32</code> to <code>int64</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>❌| |</td>
+<td>❌| `</td>
+<td>GH-106220`_</td>
+</tr>
+<tr class="odd">
+<td>Property <code>sparse_indices_component_type</code> changes type from <code>int</code> to <code>GLTFAccessor::GLTFComponentType</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>❌| |</td>
+<td>❌| `</td>
+<td>GH-106220`_</td>
+</tr>
+<tr class="even">
+<td>Property <code>sparse_values_byte_offset</code> changes type metadata from <code>int32</code> to <code>int64</code> <strong>GLTFBufferView</strong></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>❌| |</td>
+<td>❌| `</td>
+<td>GH-106220`_</td>
+</tr>
+<tr class="odd">
+<td>Property <code>byte_length</code> changes type metadata from <code>int32</code> to <code>int64</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>❌| |</td>
+<td>❌| `</td>
+<td>GH-106220`_</td>
+</tr>
+<tr class="even">
+<td>Property <code>byte_offset</code> changes type metadata from <code>int32</code> to <code>int64</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>❌| |</td>
+<td>❌| `</td>
+<td>GH-106220`_</td>
+</tr>
+<tr class="odd">
+<td>Property <code>byte_stride</code> changes type metadata from <code>int32</code> to <code>int64</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>❌| |</td>
+<td>❌| `</td>
+<td>GH-106220`_</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> As a result of changing the type metadata, the C# bindings changed the type from <code>int</code> (32-bytes) to <code>long</code> (64-bytes).</p>
+</blockquote>
+<h3 id="text">Text</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Change</th>
+<th>GDScript Compatible</th>
+<th>C# Binary Compatible</th>
+<th>C# Source Compatible</th>
+<th>Introduced</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>CanvasItem</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Method <code>draw_char</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>draw_char_outline</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>draw_multiline_string</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>draw_multiline_string_outline</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>draw_string</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>draw_string_outline</code> adds a new <code>oversampling</code> optional parameter <strong>Font</strong></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>draw_char</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>draw_char_outline</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>draw_multiline_string</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>draw_multiline_string_outline</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>draw_string</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>draw_string_outline</code> adds a new <code>oversampling</code> optional parameter <strong>RichTextLabel</strong></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>add_image</code> adds a new <code>alt_text</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-76829`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>add_image</code> replaced <code>size_in_percent</code> parameter by <code>width_in_percent</code> and <code>height_in_percent</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-107347`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>push_strikethrough</code> adds optional <code>color</code> parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-106300`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>push_table</code> adds a new <code>name</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-76829`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>push_underline</code> adds optional <code>color</code> parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-106300`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>update_image</code> replaced <code>size_in_percent</code> parameter by <code>width_in_percent</code> and <code>height_in_percent</code> <strong>TextLine</strong></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-107347`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>draw</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>draw_outline</code> adds a new <code>oversampling</code> optional parameter <strong>TextParagraph</strong></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>draw</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>draw_dropcap</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>draw_dropcap_outline</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>draw_line</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>draw_line_outline</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>draw_outline</code> adds a new <code>oversampling</code> optional parameter <strong>TextServer</strong></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>font_draw_glyph</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>font_draw_glyph_outline</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>shaped_text_draw</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>shaped_text_draw_outline</code> adds a new <code>oversampling</code> optional parameter <strong>TreeItem</strong></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104872`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>add_button</code> adds a new <code>alt_text</code> optional parameter <strong>TextServerExtension</strong></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-76829`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>_font_draw_glyph</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><a href="https://github.com/godotengine/godot/pull/104872">GH-104872</a></td>
+</tr>
+<tr class="even">
+<td>Method <code>_font_draw_glyph_outline</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><a href="https://github.com/godotengine/godot/pull/104872">GH-104872</a></td>
+</tr>
+<tr class="odd">
+<td>Method <code>_shaped_text_draw</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><a href="https://github.com/godotengine/godot/pull/104872">GH-104872</a></td>
+</tr>
+<tr class="even">
+<td>Method <code>_shaped_text_draw_outline</code> adds a new <code>oversampling</code> optional parameter</td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><a href="https://github.com/godotengine/godot/pull/104872">GH-104872</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="xr">XR</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Change</th>
+<th>GDScript Compatible</th>
+<th>C# Binary Compatible</th>
+<th>C# Source Compatible</th>
+<th>Introduced</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>OpenXRAPIExtension</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Method <code>register_composition_layer_provider</code> changes <code>extension</code> parameter type from <code>OpenXRExtensionWrapperExtension</code> to <code>OpenXRExtensionWrapper</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104087`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>register_projection_views_extension</code> changes <code>extension</code> parameter type from <code>OpenXRExtensionWrapperExtension</code> to <code>OpenXRExtensionWrapper</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104087`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>unregister_composition_layer_provider</code> changes <code>extension</code> parameter type from <code>OpenXRExtensionWrapperExtension</code> to <code>OpenXRExtensionWrapper</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104087`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>unregister_projection_views_extension</code> changes <code>extension</code> parameter type from <code>OpenXRExtensionWrapperExtension</code> to <code>OpenXRExtensionWrapper</code> <strong>OpenXRBindingModifierEditor</strong></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-104087`_</td>
+</tr>
+<tr class="even">
+<td>Type <code>OpenXRBindingModifierEditor</code> changed API type from Core to Editor <strong>OpenXRInteractionProfileEditor</strong></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><a href="https://github.com/godotengine/godot/pull/103869">GH-103869</a></td>
+</tr>
+<tr class="odd">
+<td>Type <code>OpenXRInteractionProfileEditor</code> changed API type from Core to Editor <strong>OpenXRInteractionProfileEditorBase</strong></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><a href="https://github.com/godotengine/godot/pull/103869">GH-103869</a></td>
+</tr>
+<tr class="even">
+<td>Type <code>OpenXRInteractionProfileEditorBase</code> changed API type from Core to Editor</td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><code>❌ (This API breaks compatibility.)</code></td>
+<td><a href="https://github.com/godotengine/godot/pull/103869">GH-103869</a></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Classes <code>OpenXRBindingModifierEditor</code>, <code>OpenXRInteractionProfileEditor</code>, and <code>OpenXRInteractionProfileEditorBase</code> are only available in the editor. Using them outside of the editor will result in a compilation error.</p>
+<p>In C#, this means the types are moved from the <code>GodotSharp</code> assembly to the <code>GodotSharpEditor</code> assembly. Make sure to wrap code that uses these types in a <code>#if TOOLS</code> block to ensure they are not included in an exported game.</p>
+<p><strong>This change was also backported to 4.4.1.</strong></p>
+</blockquote>
+<h3 id="editor-plugins">Editor plugins</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Change</th>
+<th>GDScript Compatible</th>
+<th>C# Binary Compatible</th>
+<th>C# Source Compatible</th>
+<th>Introduced</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>EditorExportPlatform</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Method <code>get_forced_export_files</code> adds a new <code>preset</code> optional parameter <strong>EditorUndoRedoManager</strong></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-71542`_</td>
+</tr>
+<tr class="odd">
+<td>Method <code>create_action</code> adds a new <code>mark_unsaved</code> optional parameter <strong>EditorExportPlatformExtension</strong></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>✔️ with compat| |✔</td>
+<td>️ with compat| `GH</td>
+<td>-106121`_</td>
+</tr>
+<tr class="even">
+<td>Method <code>_get_option_icon</code> changes return type from <code>ImageTexture</code> to <code>Texture2D</code></td>
+<td><code>✔️ (This API does not break compatibility.)</code> |</td>
+<td>❌| |</td>
+<td>❌| `</td>
+<td>GH-108825`_</td>
+</tr>
+</tbody>
+</table>
+<h2 id="behavior-changes">Behavior changes</h2>
+<p>In 4.5, some behavior changes have been introduced, which might require you to adjust your project.</p>
+<h3 id="tilemaplayer">TileMapLayer</h3>
+<p>ref will return different values in 4.5 compared to 4.4, as TileMapLayer physics chunking is enabled by default. Higher values of ref will make this function less precise. To get the exact cell coordinates like in 4.4 and prior versions, you need to set ref to <code>1</code>, which disables physics chunking.</p>
+<h3 id="3d-model-import">3D Model Import</h3>
+<p>A fix has been made to the 3D model importers to correctly handle non-joint nodes within a skeleton hierarchy (<a href="https://github.com/godotengine/godot/pull/104184">GH-104184</a>). To preserve compatibility, the default behavior is to import existing files with the same behavior as before (<a href="https://github.com/godotengine/godot/pull/107352">GH-107352</a>). New <code>.gltf</code>, <code>.glb</code>, <code>.blend</code>, and <code>.fbx</code> files (without a corresponding <code>.import</code> file) will be imported with the new behavior. However, for existing files, if you want to use the new behavior, you must change the "Naming Version" option at the bottom of the Import dock:</p>
+<h3 id="core-1">Core</h3>
+<blockquote>
+<p><strong>Note:</strong> ref (which performs deep duplication) now only duplicates resources internal to the resource file it's called on. In 4.4, this duplicated everything instead, including external resources. If you were deep-duplicating a resource that contained references to other external resources, those external resources aren't duplicated anymore. You must call ref instead to keep the old behavior.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> ref now prints a warning when the dictionary parameter has missing keys or invalid keys. Most importantly, it will now warn when a <code>usage</code> key is passed, as this key is not used. This was also the case before 4.5, but it was silently ignored instead. As a reminder, to set property usage information correctly, you must use ref, ref, or ref instead.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> In C#, <code>StringExtensions.PathJoin</code> now avoids adding an extra path separator when the original string is empty, or when the appended path starts with a path separator (<a href="https://github.com/godotengine/godot/pull/105281">GH-105281</a>).</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> In C#, <code>StringExtensions.GetExtension</code> now returns an empty string instead of the original string when the original string does not contain an extension (<a href="https://github.com/godotengine/godot/pull/108041">GH-108041</a>).</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> In C#, the <code>Quaternion(Vector3, Vector3)</code> constructor now correctly creates a quaternion representing the shortest arc between the two input vectors. Previously, it would return incorrect values for certain inputs (<a href="https://github.com/godotengine/godot/pull/107618">GH-107618</a>).</p>
+</blockquote>
+<h3 id="navigation">Navigation</h3>
+<blockquote>
+<p><strong>Note:</strong> By default, the regions in a NavigationServer map now update asynchronously using threads to improve performance. This can cause additional delay in the update due to thread synchronisation. The asynchronous region update can be toggled with the <code>navigation/world/region_use_async_iterations</code> project setting.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> The merging of navmeshes in the NavigationServer has changed processing order. Regions now merge and cache internal navmeshes first, then the remaining free edges are merged by the navigation map. If a project had navigation map synchronisation errors before, it might now have shifted affected edges, making already existing errors in a layout more noticeable in the pathfinding. The <code>navigation/2d_or_3d/merge_rasterizer_cell_scale</code> project setting can be set to a lower value to increase the detail of the rasterization grid (with 0.01 being the smallest cell size possible). If edge merge errors still persist with the lowest possible rasterization scale value, the error may be caused by overlap: two navmeshes are stacked on top of each other, causing geometry conflict.</p>
+</blockquote>
+<h3 id="physics">Physics</h3>
+<blockquote>
+<p><strong>Note:</strong> When the 3D physics engine is set to Jolt Physics, you will now always have overlaps between <code>Area3D</code> and static bodies reported by default, as the <code>physics/jolt_physics_3d/simulation/areas_detect_static_bodies</code> project setting has been removed (<a href="https://github.com/godotengine/godot/pull/105746">GH-105746</a>). If you still want such overlaps to be ignored, you will need to change the collision mask or layer of either the <code>Area3D</code> or the static body instead.</p>
+</blockquote>
+<h3 id="text-1">Text</h3>
+<blockquote>
+<p><strong>Note:</strong> In GDScript, calls to functions <code>RichTextLabel::add_image</code> and <code>RichTextLabel::update_image</code> will continue to work, but the <code>size_in_percent</code> argument will now be used as the value for <code>width_in_percent</code> and <code>height_in_percent</code> will default to <code>false</code> (<a href="https://github.com/godotengine/godot/pull/107347">GH-107347</a>). To restore the previous behavior, you can explicitly set <code>height_in_percent</code> to the same value you were passing as <code>size_in_percent</code>.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

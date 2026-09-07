@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creating the enemy — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="creating-the-enemy">Creating the enemy</h1>
+<p>Now it's time to make the enemies our player will have to dodge. Their behavior will not be very complex: mobs will spawn randomly at the edges of the screen, choose a random direction, and move in a straight line.</p>
+<p>We'll create a <code>Mob</code> scene, which we can then <em>instance</em> to create any number of independent mobs in the game.</p>
+<h2 id="node-setup">Node setup</h2>
+<p>Click Scene -&gt; New Scene from the top menu and add the following nodes:</p>
+<ul>
+<li><p>ref (named <code>Mob</code>)</p>
+<blockquote>
+<ul>
+<li>ref</li>
+<li>ref</li>
+<li>ref</li>
+</ul>
+</blockquote></li>
+</ul>
+<p>Don't forget to set the children so they can't be selected, like you did with the Player scene. This is done by selecting the parent node (<code>RigidBody2D</code>) in the Scene tree dock, then using the <code>Group</code> button at the top of the 2D editor (<code>Ctrl + G</code> or <code>Cmd + G</code> on macOS).</p>
+<p>Select the <code>Mob</code> node and set its <code>Gravity Scale</code> property in the ref section of the inspector to <code>0</code>. This will prevent the mob from falling downwards.</p>
+<p>In addition, in the <code>Mob</code> node inspector, under the ref section, expand the <strong>Collision</strong> group and uncheck the <code>1</code> inside the <code>Mask</code> property. This will ensure the mobs do not collide with each other.</p>
+<p>Set up the ref like you did for the player. This time, we have 3 animations: <code>fly</code>, <code>swim</code>, and <code>walk</code>. There are two images for each animation in the art folder.</p>
+<p>The <code>Animation Speed</code> property has to be set for each individual animation. Adjust it to <code>3</code> for all 3 animations.</p>
+<p>You can use the "Play Animation" buttons on the right of the <code>Animation Speed</code> input field to preview your animations.</p>
+<p>We'll select one of these animations randomly so that the mobs will have some variety.</p>
+<p>Like the player images, these mob images need to be scaled down. Set the <code>AnimatedSprite2D</code>'s <code>Scale</code> property to <code>(0.75, 0.75)</code>.</p>
+<p>As in the <code>Player</code> scene, add a <code>CapsuleShape2D</code> for the collision. To align the shape with the image, you'll need to set the <code>Rotation</code> property to <code>90</code> (under "Transform" in the Inspector).</p>
+<p>Save the scene.</p>
+<h2 id="enemy-script">Enemy script</h2>
+<p>Add a script to the <code>Mob</code> like this:</p>
+<pre class="gdscript"><code>extends RigidBody2D</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> Mob <span class="op">:</span> RigidBody2D</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Don&#39;t forget to rebuild the project.</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Now let's look at the rest of the script. In <code>_ready()</code> we play the animation and randomly choose one of the three animation types:</p>
+<pre class="gdscript"><code>func _ready():
+    var mob_types = Array($AnimatedSprite2D.sprite_frames.get_animation_names())
+    $AnimatedSprite2D.animation = mob_types.pick_random()
+    $AnimatedSprite2D.play()</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> animatedSprite2D <span class="op">=</span> GetNode<span class="op">&lt;</span>AnimatedSprite2D<span class="op">&gt;(</span><span class="st">&quot;AnimatedSprite2D&quot;</span><span class="op">);</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">string</span><span class="op">[]</span> mobTypes <span class="op">=</span> animatedSprite2D<span class="op">.</span><span class="fu">SpriteFrames</span><span class="op">.</span><span class="fu">GetAnimationNames</span><span class="op">();</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    animatedSprite2D<span class="op">.</span><span class="fu">Play</span><span class="op">(</span>mobTypes<span class="op">[</span>GD<span class="op">.</span><span class="fu">Randi</span><span class="op">()</span> <span class="op">%</span> mobTypes<span class="op">.</span><span class="fu">Length</span><span class="op">]);</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>First, we get the list of animation names from the AnimatedSprite2D's <code>sprite_frames</code> property. This returns an Array containing all three animation names: <code>["walk", "swim", "fly"]</code>.</p>
+<p>In the GDScript code, we use the ref method to select one of these animation names at random. Meanwhile, in the C# code, we pick a random number between <code>0</code> and <code>2</code> to select one of these names from the list (array indices start at <code>0</code>). The expression <code>GD.Randi() % n</code> selects a random integer between <code>0</code> and <code>n-1</code>.</p>
+<p>Finally, we call <code>play()</code> to start playing the chosen animation.</p>
+<p>The last piece is to make the mobs delete themselves when they leave the screen. Connect the <code>screen_exited()</code> signal of the <code>VisibleOnScreenNotifier2D</code> node to the <code>Mob</code> and add this code:</p>
+<pre class="gdscript"><code>func _on_visible_on_screen_notifier_2d_screen_exited():
+    queue_free()</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// We also specified this function name in PascalCase in the editor&#39;s connection window.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnVisibleOnScreenNotifier2DScreenExited</span><span class="op">()</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">QueueFree</span><span class="op">();</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>queue_free()</code> is a function that essentially 'frees', or deletes, the node at the end of the frame.</p>
+<p>This completes the Mob scene.</p>
+<p>With the player and enemies ready, in the next part, we'll bring them together in a new scene. We'll make enemies spawn randomly around the game board and move forward, turning our project into a playable game.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

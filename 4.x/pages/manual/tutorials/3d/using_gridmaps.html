@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using GridMaps — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-gridmaps">Using GridMaps</h1>
+<h2 id="introduction">Introduction</h2>
+<p>ref are a tool for creating 3D game levels, similar to the way ref works in 2D. You start with a predefined collection of 3D meshes (a <code>class_MeshLibrary</code>) that can be placed on a grid, as if you were building a level with an unlimited amount of Lego blocks.</p>
+<p>Collisions and navigation can also be added to the meshes, just like you would do with the tiles of a tilemap.</p>
+<h2 id="example-project">Example project</h2>
+<p>To learn how GridMaps work, start by downloading the sample project: <a href="https://github.com/godotengine/godot-docs-project-starters/releases/download/latest-4.x/gridmap_starter.zip">gridmap_starter.zip</a>.</p>
+<p>Unzip this project and add it to the Project Manager using the "Import" button. You may get a popup saying that it needs to be converted to a newer Godot version, click <strong>Convert project.godot</strong>.</p>
+<h2 id="creating-a-meshlibrary">Creating a MeshLibrary</h2>
+<p>To begin, you need a <code>class_MeshLibrary</code>, which is a collection of individual meshes that can be used in the gridmap. Open the "mesh_library_source.tscn" scene to see an example of how to set up the mesh library.</p>
+<p>As you can see, this scene has a <code>class_Node3D</code> node as its root, and a number of <code>class_MeshInstance3D</code> node children.</p>
+<p>If you don't need any physics in your scene, then you're done. However, in most cases you'll want to assign collision bodies to the meshes.</p>
+<h2 id="collisions">Collisions</h2>
+<p>You can manually assign a <code>class_StaticBody3D</code> and <code>class_CollisionShape3D</code> to each mesh. Alternatively, you can use the "Mesh" menu to automatically create the collision body based on the mesh data.</p>
+<p>Note that a "Convex" collision body will work better for simple meshes. For more complex shapes, select "Create Trimesh Static Body". Once each mesh has a physics body and collision shape assigned, your mesh library is ready to be used.</p>
+<h2 id="materials">Materials</h2>
+<p>Only the materials from within the meshes are used when generating the mesh library. Materials set on the node will be ignored.</p>
+<h2 id="navigationmeshes">NavigationMeshes</h2>
+<p>Like all mesh instances, MeshLibrary items can be assigned a <code>class_NavigationMesh</code> resource, which can be created manually, or baked as described below.</p>
+<p>To create the NavigationMesh from a MeshLibrary scene export, place a <code>class_NavigationRegion3D</code> child node below the main MeshInstance3D for the GridMap item. Add a valid NavigationMesh resource to the NavigationRegion3D and some source geometry nodes below and bake the NavigationMesh.</p>
+<blockquote>
+<p><strong>Note:</strong> With small grid cells it is often necessary to reduce the NavigationMesh properties for agent radius and region minimum size.</p>
+</blockquote>
+<p>Nodes below the NavigationRegion3D are ignored for the MeshLibrary scene export, so additional nodes can be added as source geometry just for baking the navmesh.</p>
+<blockquote>
+<p><strong>Warning:</strong> The baked cell size of the NavigationMesh must match the NavigationServer map cell size to properly merge the navigation meshes of different grid cells.</p>
+</blockquote>
+<h2 id="lightmaps">Lightmaps</h2>
+<p>It is possible to bake lightmaps onto a GridMap. Lightmap UV2 data will be reused from meshes if already present. If UV2 data is not present, then it will be automatically generated on bake with a lightmap texel size of 0.1 units. To generate UV2 data with a different lightmap texel size, you can set the global illumination mode in the Import dock to <strong>Static Lightmaps</strong> and specify the texel size there. This option must be changed <em>before</em> the scene is converted to a MeshLibrary, as changing it later on will not affect the existing MeshLibrary data.</p>
+<p>Aside from this peculiarity, the lightmap baking process is the same as for any other 3D scene. See <code>doc_using_lightmap_gi</code> for more information about lightmap baking.</p>
+<h2 id="meshlibrary-format">MeshLibrary format</h2>
+<p>To summarize the specific constraints of the MeshLibrary format, a MeshLibrary scene has a Node3D as the root node, and several child nodes which will become MeshLibrary items. Each child of the root node should:</p>
+<ul>
+<li>Be a <code>class_MeshInstance3D</code>, which will become the MeshLibrary item. Only this visual mesh will be exported.</li>
+<li>Have a material, in the mesh's material slot, <em>not</em> the MeshInstance3D's material slots.</li>
+<li>Have up to one <code>class_StaticBody3D</code> child, for collision. The StaticBody3D should have one or more <code>class_CollisionShape3D</code> children.</li>
+<li>Have up to one <code>class_NavigationRegion3D</code> child, for navigation. The NavigationRegion3D can have one or more additional <code>class_MeshInstance3D</code> children, which can be baked for navigation, but won't be exported as a visual mesh.</li>
+</ul>
+<p>Only this specific format is recognized. Other node types placed as children will not be recognized and exported. GridMap is not a general-purpose system for placing <em>nodes</em> on a grid, but rather a specific, optimized system, designed to place <em>meshes</em> with collisions and navigation.</p>
+<h2 id="exporting-the-meshlibrary">Exporting the MeshLibrary</h2>
+<p>To export the library, click on <strong>Scene &gt; Export As... &gt; MeshLibrary...</strong>, and save it as a resource.</p>
+<p>You can find an already exported MeshLibrary in the project named <code>MeshLibrary.tres</code>.</p>
+<h2 id="using-gridmap">Using GridMap</h2>
+<p>Create a new scene and add a GridMap node. Add the mesh library by dragging the resource file from the FileSystem dock and dropping it in the <strong>Mesh Library</strong> property in the Inspector.</p>
+<h3 id="inspector-properties">Inspector properties</h3>
+<p>The <strong>Physics Material</strong> setting allows you to override the physics material for every mesh in the NavigationMesh.</p>
+<p>Under <strong>Cells</strong>, the <strong>Size</strong> property should be set to the size of your meshes. You can leave it at the default value for the demo. Uncheck the <strong>Center Y</strong> property.</p>
+<p>The <strong>Collision</strong> options allow you to set the collision layer, collision mask, and priority for the entire grid. For more information on how those work see the <code>doc_physics_index</code> section.</p>
+<p>Under <strong>Navigation</strong> is the "Bake Navigation" option. If enabled it creates a navigation region for each cell that uses a mesh library item with a navigation mesh.</p>
+<p>If you click on the MeshLibrary itself in the inspector you can adjust settings for individual meshes, such as their navigation mesh, navigation layers, or if the mesh casts shadows.</p>
+<h3 id="gridmap-panel">GridMap panel</h3>
+<p>At the bottom of the editor is the GridMap panel, which should have opened automatically when you added the GridMap node.</p>
+<p>From left to right in the toolbar:</p>
+<ul>
+<li><strong>Transform</strong>: Adds a gizmo to the scene that allows you to change the relative position and rotation of the gridmap in the scene.</li>
+<li><strong>Selection</strong>: While active you can select an area in the viewport, click and drag to select more than one space on the grid.</li>
+<li><strong>Erase</strong>: While active, click in the viewport and delete meshes.</li>
+<li><strong>Paint</strong>: While active, click in the viewport and add whatever mesh is currently selected in the GridMap panel to the scene.</li>
+<li><strong>Pick</strong>: While active, clicking on a gridmap mesh in the viewport will cause it to be selected in the GridMap panel.</li>
+<li><strong>Fill</strong>: Fill the area that has been selected in the viewport with whatever mesh is selected in the GridMap bottom panel.</li>
+<li><strong>Move</strong>: Move whatever mesh or meshes are currently selected in the viewport.</li>
+<li><strong>Duplicate</strong>: Create a copy of whatever the selected mesh or meshes in the GridMap are.</li>
+<li><strong>Delete</strong>: Similar to erase, but for the entire selected area.</li>
+<li><strong>Cursor Rotate X</strong>: While the paint tool is selected, this will rotate the mesh that will be painted on the X-axis. This will also rotate selected areas if they are being moved.</li>
+<li><strong>Cursor Rotate Y</strong>: While the paint tool is selected, this will rotate the mesh that will be painted on the Y-axis. This will also rotate selected areas if they are being moved.</li>
+<li><strong>Cursor Rotate Z</strong>: While the paint tool is selected, this will rotate the mesh that will be painted on the Z-axis. This will also rotate selected areas if they are being moved.</li>
+<li><strong>Change Grid Floor</strong>: Adjusts what floor is currently being worked on. Can be changed with the arrows, typing a value in the field, or <code>Ctrl + Mouse wheel</code>.</li>
+<li><strong>Filter Meshes</strong>: Used to search for a specific mesh in the bottom panel.</li>
+<li><strong>Zoom</strong>: Controls the zoom level on meshes in the bottom panel.</li>
+<li><strong>Layout toggles</strong>: These two buttons toggle between different layouts for meshes in the bottom panel.</li>
+<li><strong>Tools dropdown</strong>: This button opens a dropdown menu with a few more options.</li>
+</ul>
+<p>Clicking on <strong>Settings</strong> in that dropdown brings up a window that allows you to change the <strong>Pick Distance</strong>, which is the maximum distance at which tiles can be placed on a GridMap, relative to the camera position (in meters).</p>
+<h2 id="using-gridmap-in-code">Using GridMap in code</h2>
+<p>See <code>class_GridMap</code> for details on the node's methods and member variables.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

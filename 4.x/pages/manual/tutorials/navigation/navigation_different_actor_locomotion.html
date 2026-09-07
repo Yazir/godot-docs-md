@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Support different actor locomotion — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="support-different-actor-locomotion">Support different actor locomotion</h1>
+<p>To support different actor locomotion like crouching and crawling, a similar map setup as supporting <code>doc_navigation_different_actor_types</code> is required.</p>
+<p>Bake different navigation meshes with an appropriate height for crouched or crawling actors so they can find paths through those narrow sections in your game world.</p>
+<p>When an actor changes locomotion state, e.g. stands up, starts crouching or crawling, query the appropriate map for a path.</p>
+<p>If the avoidance behavior should also change with the locomotion e.g. only avoid while standing or only avoid other agents in the same locomotion state, switch the actor's avoidance agent to another avoidance map with each locomotion change.</p>
+<pre class="gdscript"><code>func update_path():
+
+    if actor_standing:
+        path = NavigationServer3D.map_get_path(standing_navigation_map_rid, start_position, target_position, true)
+    elif actor_crouching:
+        path = NavigationServer3D.map_get_path(crouched_navigation_map_rid, start_position, target_position, true)
+    elif actor_crawling:
+        path = NavigationServer3D.map_get_path(crawling_navigation_map_rid, start_position, target_position, true)
+
+func change_agent_avoidance_state():
+
+    if actor_standing:
+        NavigationServer3D.agent_set_map(avoidance_agent_rid, standing_navigation_map_rid)
+    elif actor_crouching:
+        NavigationServer3D.agent_set_map(avoidance_agent_rid, crouched_navigation_map_rid)
+    elif actor_crawling:
+        NavigationServer3D.agent_set_map(avoidance_agent_rid, crawling_navigation_map_rid)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">UpdatePath</span><span class="op">()</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>_actorStanding<span class="op">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        _path <span class="op">=</span> NavigationServer3D<span class="op">.</span><span class="fu">MapGetPath</span><span class="op">(</span>_standingNavigationMapRid<span class="op">,</span> _startPosition<span class="op">,</span> _targetPosition<span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span>_actorCrouching<span class="op">)</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        _path <span class="op">=</span> NavigationServer3D<span class="op">.</span><span class="fu">MapGetPath</span><span class="op">(</span>_crouchedNavigationMapRid<span class="op">,</span> _startPosition<span class="op">,</span> _targetPosition<span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span>_actorCrawling<span class="op">)</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        _path <span class="op">=</span> NavigationServer3D<span class="op">.</span><span class="fu">MapGetPath</span><span class="op">(</span>_crawlingNavigationMapRid<span class="op">,</span> _startPosition<span class="op">,</span> _targetPosition<span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">ChangeAgentAvoidanceState</span><span class="op">()</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>_actorStanding<span class="op">)</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">AgentSetMap</span><span class="op">(</span>_avoidanceAgentRid<span class="op">,</span> _standingNavigationMapRid<span class="op">);</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span>_actorCrouching<span class="op">)</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">AgentSetMap</span><span class="op">(</span>_avoidanceAgentRid<span class="op">,</span> _crouchedNavigationMapRid<span class="op">);</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span>_actorCrawling<span class="op">)</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">AgentSetMap</span><span class="op">(</span>_avoidanceAgentRid<span class="op">,</span> _crawlingNavigationMapRid<span class="op">);</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> While a path query can be execute immediately for multiple maps, the avoidance agent map switch will only take effect after the next server synchronization.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

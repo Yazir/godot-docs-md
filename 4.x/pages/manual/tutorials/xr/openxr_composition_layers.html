@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenXR composition layers — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="openxr-composition-layers">OpenXR composition layers</h1>
+<h2 id="introduction">Introduction</h2>
+<p>In XR games you generally want to create user interactions that happen in 3D space and involve users touching objects as if they are touching them in real life.</p>
+<p>Sometimes however creating a more traditional 2D interface is unavoidable. In XR however you can't just add 2D components to your scene. Godot needs depth information to properly position these elements so they appear at a comfortable place for the user. Even with depth information there are headsets with slanted displays that make it impossible for the standard 2D pipeline to correctly render the 2D elements.</p>
+<p>The solution then is to render the UI to a ref and display the result of this using a ref on a 3D mesh. The ref is a suitable option for this.</p>
+<blockquote>
+<p><strong>Note:</strong> See the <a href="https://github.com/godotengine/godot-demo-projects/tree/master/viewport/gui_in_3d">GUI in 3D</a> example project for an example of this approach.</p>
+</blockquote>
+<p>The problem with displaying the viewport in this way is that the rendered result is sampled for lens distortion by the XR runtime and the resulting quality loss can make UI text hard to read.</p>
+<p>OpenXR offers a solution to this problem through composition layers. With composition layers it is possible for the contents of a viewport to be projected on a surface after lens distortion resulting in a much higher quality end result.</p>
+<blockquote>
+<p><strong>Note:</strong> As not all XR runtimes support all composition layer types, Godot implements a fallback solution where we render the viewport as part of the normal scene but with the aforementioned quality limitations.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> When the composition layer is supported, it is the XR runtime that presents the subviewport. This means the UI is only visible in the headset, it will not be accessible by Godot and will thus not be shown when you have a spectator view on the desktop.</p>
+</blockquote>
+<p>There are currently 3 nodes that expose this functionality:</p>
+<ul>
+<li>ref shows the contents of the SubViewport on the inside of a cylinder (or "slice" of a cylinder).</li>
+<li>ref shows the contents of the SubViewport on the interior of a sphere (or "slice" of a sphere).</li>
+<li>ref shows the contents of the SubViewport on a flat rectangle.</li>
+</ul>
+<h2 id="setting-up-the-subviewport">Setting up the SubViewport</h2>
+<p>The first step is adding a SubViewport for our 2D UI, this doesn't require any specific steps. For our example we do mark the viewport as transparent.</p>
+<p>You can now create the 2D UI by adding child nodes to the SubViewport as you normally would. It is advisable to save the 2D UI in a subscene, this makes it easier to do your layout.</p>
+<blockquote>
+<p><strong>Warning:</strong> The update mode "When Visible" will not work as Godot can't determine whether the viewport is visible to the user. When assigning our viewport to a composition layer Godot will automatically adjust this.</p>
+</blockquote>
+<h2 id="adding-a-composition-layer">Adding a composition layer</h2>
+<p>The second step is adding our composition layer. We can add the correct composition layer node as a child node of our ref node. This is very important as the XR runtime positions everything in relation to our origin.</p>
+<p>We want to position the composition layer so it is at eye height and roughly 1 to 1.5 meters away from the player.</p>
+<p>We now assign the SubViewport to the <code>Layer Viewport</code> property and enable Alpha Blend.</p>
+<blockquote>
+<p><strong>Note:</strong> As the player can walk away from the origin point, you will want to reposition the composition layer when the player recenters the view. Using the reference space <code>Local Floor</code> will apply this logic automatically.</p>
+</blockquote>
+<h2 id="making-the-interface-work">Making the interface work</h2>
+<p>So far we're only displaying our UI, to make it work we need to add some code. For this example we're going to keep things simple and make one of the controllers work as a pointer. We'll then simulate mouse actions with this pointer.</p>
+<p>This code also requires a <code>MeshInstance3D</code> node called <code>Pointer</code> to be added as a child to our <code>OpenXRCompositionLayerQuad</code> node. We configure a <code>SphereMesh</code> with a radius <code>0.01</code> meters. We'll be using this as a helper to visualize where the user is pointing.</p>
+<p>The main function that drives this functionality is the <code>intersects_ray</code> function on our composition layer node. This function takes the global position and orientation of our pointer and returns the UV where our ray intersects our viewport. It returns <code>Vector2(-1.0, -1.0)</code> if we're not pointing at our viewport.</p>
+<p>We start with setting up some variables, important here are the export variables which identify our controller node with which we point to our screen.</p>
+<pre class="gdscript"><code>extends OpenXRCompositionLayerQuad
+
+const NO_INTERSECTION = Vector2(-1.0, -1.0)
+
+@export var controller : XRController3D
+@export var button_action : String = &quot;trigger_click&quot;
+
+var was_pressed : bool = false
+var was_intersect : Vector2 = NO_INTERSECTION
+
+...</code></pre>
+<p>Next we define a helper function that takes the value returned from <code>intersects_ray</code> and gives us the global position for that intersection point. This implementation only works for our <code>OpenXRCompositionLayerQuad</code> node.</p>
+<pre class="gdscript"><code>...
+
+func _intersect_to_global_pos(intersect : Vector2) -&gt; Vector3:
+    if intersect != NO_INTERSECTION:
+        var local_pos : Vector2 = (intersect - Vector2(0.5, 0.5)) * quad_size
+        return global_transform * Vector3(local_pos.x, -local_pos.y, 0.0)
+    else:
+        return Vector3()
+
+...</code></pre>
+<p>We also define a helper function that takes our <code>intersect</code> value and returns our location in the viewport's local coordinate system:</p>
+<pre class="gdscript"><code>...
+
+func _intersect_to_viewport_pos(intersect : Vector2) -&gt; Vector2i:
+    if layer_viewport and intersect != NO_INTERSECTION:
+        var pos : Vector2 = intersect * Vector2(layer_viewport.size)
+        return Vector2i(pos)
+    else:
+        return Vector2i(-1, -1)
+
+...</code></pre>
+<p>The main logic happens in our <code>_process</code> function. Here we start by hiding our pointer, we then check if we have a valid controller and viewport, and we call <code>intersects_ray</code> with the position and orientation of our controller:</p>
+<pre class="gdscript"><code>...
+
+# Called every frame. &#39;delta&#39; is the elapsed time since the previous frame.
+func _process(_delta):
+    # Hide our pointer, we&#39;ll make it visible if we&#39;re interacting with the viewport.
+    $Pointer.visible = false
+
+    if controller and layer_viewport:
+        var controller_t : Transform3D = controller.global_transform
+        var intersect : Vector2 = intersects_ray(controller_t.origin, -controller_t.basis.z)
+
+...</code></pre>
+<p>Next we check if we're intersecting with our viewport. If so, we check if our button is pressed and place our pointer at our intersection point.</p>
+<pre class="gdscript"><code>...
+
+        if intersect != NO_INTERSECTION:
+            var is_pressed : bool = controller.is_button_pressed(button_action)
+
+            # Place our pointer where we&#39;re pointing
+            var pos : Vector3 = _intersect_to_global_pos(intersect)
+            $Pointer.visible = true
+            $Pointer.global_position = pos
+
+...</code></pre>
+<p>If we were intersecting in our previous process call and our pointer has moved, we prepare an ref object to simulate our mouse moving and send that to our viewport for further processing.</p>
+<pre class="gdscript"><code>...
+
+            if was_intersect != NO_INTERSECTION and intersect != was_intersect:
+                # Pointer moved
+                var event : InputEventMouseMotion = InputEventMouseMotion.new()
+                var from : Vector2 = _intersect_to_viewport_pos(was_intersect)
+                var to : Vector2 = _intersect_to_viewport_pos(intersect)
+                if was_pressed:
+                    event.button_mask = MOUSE_BUTTON_MASK_LEFT
+                event.relative = to - from
+                event.position = to
+                layer_viewport.push_input(event)
+
+...</code></pre>
+<p>If we've just released our button we also prepare an ref object to simulate a button release and send that to our viewport for further processing.</p>
+<pre class="gdscript"><code>...
+
+            if not is_pressed and was_pressed:
+                # Button was let go?
+                var event : InputEventMouseButton = InputEventMouseButton.new()
+                event.button_index = 1
+                event.pressed = false
+                event.position = _intersect_to_viewport_pos(intersect)
+                layer_viewport.push_input(event)
+
+...</code></pre>
+<p>Or if we've just pressed our button we prepare an ref object to simulate a button press and send that to our viewport for further processing.</p>
+<pre class="gdscript"><code>...
+
+            elif is_pressed and not was_pressed:
+                # Button was pressed?
+                var event : InputEventMouseButton = InputEventMouseButton.new()
+                event.button_index = 1
+                event.button_mask = MOUSE_BUTTON_MASK_LEFT
+                event.pressed = true
+                event.position = _intersect_to_viewport_pos(intersect)
+                layer_viewport.push_input(event)
+
+...</code></pre>
+<p>Next we remember our state for next frame.</p>
+<pre class="gdscript"><code>...
+
+            was_pressed = is_pressed
+            was_intersect = intersect
+
+...</code></pre>
+<p>Finally, if we aren't intersecting, we clear our state.</p>
+<pre class="gdscript"><code>...
+
+        else:
+            was_pressed = false
+            was_intersect = NO_INTERSECTION</code></pre>
+<h2 id="hole-punching">Hole punching</h2>
+<p>As the composition layer is composited on top of the render result, it can be rendered in front of objects that are actually forward of the viewport.</p>
+<p>By enabling hole punch you instruct Godot to render a transparent object where our viewport is displayed. It does this in a way that fills the depth buffer and clears the current rendering result. Anything behind our viewport will now be cleared, while anything in front of our viewport will be rendered as usual.</p>
+<p>You also need to set <code>Sort Order</code> to a negative value, the XR compositor will now draw the viewport first, and then overlay our rendering result.</p>
+<p>Use case showing how the user's hand is incorrectly obscured by a composition layer when hole punching is not used.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

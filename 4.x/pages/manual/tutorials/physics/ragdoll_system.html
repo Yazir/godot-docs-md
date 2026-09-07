@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ragdoll system — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="ragdoll-system">Ragdoll system</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Godot supports ragdoll physics. Ragdolls rely on physics simulation to create realistic procedural animation. They are used for death animations in many games.</p>
+<p>In this tutorial, we will be using the Platformer 3D demo to set up a ragdoll.</p>
+<blockquote>
+<p><strong>Note:</strong> You can download the Platformer 3D demo on <a href="https://github.com/godotengine/godot-demo-projects/tree/master/3d/platformer">GitHub</a> or using the <a href="https://godotengine.org/asset-library/asset/2748">Asset Library</a>.</p>
+<p>You can also check out an example of a complete ragdoll setup in the <a href="https://github.com/godotengine/godot-demo-projects/tree/master/3d/ragdoll_physics">Ragdoll Physics demo</a>.</p>
+</blockquote>
+<h2 id="setting-up-the-ragdoll">Setting up the ragdoll</h2>
+<h3 id="creating-physical-bones">Creating physical bones</h3>
+<p>Like many other features in the engine, there are two nodes which are used to set up a ragdoll:</p>
+<ul>
+<li>A ref node. This node is the parent of all physical bones and is responsible for controlling the simulation.</li>
+<li>One or more ref children. Each node represents a single bone in the ragdoll.</li>
+</ul>
+<p>Open the platformer demo in Godot, and then the <code>player/player.tscn</code> scene. Select the <code>Skeleton3D</code> node. A skeleton button appears at the top of the 3D editor viewport:</p>
+<p><em>Image: Creating a physical skeleton in the editor</em></p>
+<p>Creating a physical skeleton in the editor</p>
+<p>Click it and select the <code>Create Physical Skeleton</code> option. Godot will generate PhysicalBone3D nodes and collision shapes for each bone in the skeleton and pin joints to connect them together:</p>
+<p><em>Image: Scene tree of the player scene after creating a physical skeleton</em></p>
+<p>Scene tree of the player scene after creating a physical skeleton</p>
+<p>Some of the generated bones aren't necessary, such as the <code>MASTER</code> bone in this scene. We're going to clean up the skeleton by removing them.</p>
+<h3 id="clean-up-and-optimize-the-skeleton">Clean up and optimize the skeleton</h3>
+<p>For each PhysicalBone3D the engine needs to simulate, there is a performance cost. You'll want to remove every bone that is too small to make a difference in the simulation, as well as all utility bones.</p>
+<p>For example, if we take a humanoid, you don't need to have physical bones for each finger. You can use a single bone for the entire hand instead, or one for the palm, one for the thumb, and a last one for the other four fingers.</p>
+<p>Remove these PhysicalBone3D nodes: <code>MASTER</code>, <code>waist</code>, <code>neck</code>, <code>headtracker</code>. This gives us an optimized skeleton and makes it easier to control the ragdoll.</p>
+<h3 id="adjust-joints-and-constraints">Adjust joints and constraints</h3>
+<p>Once you adjusted the collision shapes, your ragdoll is almost ready. Now, you need to adjust the pin joints to get a better simulation. PhysicalBone3D nodes have an unconstrained pin joint assigned to them by default. To change the pin joint, select a PhysicalBone3D node and change the constraint type in the <code>Joint</code> section of the inspector. There, you can change the constraint's orientation and its limits.</p>
+<p>Joints have a gizmo visible in the 3D editor as well, so you can see their constraints in action.</p>
+<p><em>Image: Adjusting joints in the inspector after selecting a PhysicalBone3D node</em></p>
+<p>Adjusting joints in the inspector after selecting a PhysicalBone3D node</p>
+<blockquote>
+<p><strong>Tip:</strong> To get a better view when editing joints and collision shapes, you can do the following:</p>
+<ul>
+<li>Hide PhysicalBone3D nodes you aren't currently working on, so you can focus on the ones you're adjusting.</li>
+<li>Hide the MeshInstance3D of the character by clicking the eye icon next to it in the scene tree dock.</li>
+<li>Hide the Skeleton3D gizmos, so that the orange triangles that represent the skeleton don't clutter the viewport while leaving the rest visible. To do so, click <code>View &gt; Gizmos &gt; Skeleton3D</code> at the top of the 3D editor viewport until the eye icon appears closed.</li>
+<li>Disable the preview environment by clicking the globe icon at the top of the 3D editor viewport.</li>
+<li>Set the <strong>Default Clear Color</strong> project setting to pure black in the Project Settings. This is only effective if the preview environment is disabled.</li>
+<li>Change the debug draw mode using the <code>Perspective</code> button in the top-left corner of the 3D editor viewport. The <code>Display Wireframe</code> and <code>Display Overdraw</code> options are particularly useful when adjusting collision shapes, as they allow you to see through the original mesh.</li>
+<li>Use the orthographic camera by clicking the <code>X</code>/<code>Y</code>/<code>Z</code> buttons in the top-right corner of the 3D editor viewport.</li>
+</ul>
+</blockquote>
+<p>Here is the list of joints available:</p>
+<ul>
+<li><strong>None:</strong> Does not perform any constraint.</li>
+<li><strong>ConeJoint:</strong> Ball-and-socket. Useful for shoulders, hips, neck.</li>
+<li><strong>HingeJoint:</strong> Provides an angular constraint; think of it like a door hinge. Useful for elbows and knees.</li>
+<li><strong>PinJoint:</strong> Keeps two bodies connected <em>(default)</em>. Leads to "crumpling" of the bones, so it's recommended to use other joint types for most characters instead.</li>
+<li><strong>SliderJoint:</strong> Slides one bone along another on a specific axis.</li>
+<li><strong>6DOFJoint:</strong> Most powerful joint, offering both linear and angular constraints, but also the most complex to configure.</li>
+</ul>
+<p>If in doubt, start with HingeJoint and ConeJoint, as they cover most use cases:</p>
+<ul>
+<li>For HingeJoint, make sure to enable <strong>Angular Limit</strong> in the <code>Joint Constraints</code> section of the inspector. After enabling it, you can see the angle that it's being constrained to in the viewport. You can rotate the PhysicalBone3D to change the axis where the joint is constrained, then adjust the angles.</li>
+<li>For ConeJoint, it's usually best to limit <strong>Swing Span</strong> between 20 and 90 degrees, and the <strong>Twist Span</strong> between 20 and 45 degrees.</li>
+</ul>
+<h3 id="adjust-collision-shapes">Adjust collision shapes</h3>
+<p>The next task is adjusting the collision shape and the size of the physical bones to match the part of the body that each bone should simulate.</p>
+<p>It's recommended to adjust collision shapes <em>after</em> adjusting joints and constraints, as rotating a joint will also rotate the collision shape. To avoid having to adjust collision shapes twice, it's better to adjust joints first.</p>
+<p>Note that it's possible to have multiple collision shapes as a child of a PhysicalBone3D node. This can be useful to represent particularly complex shapes of limbs that are otherwise rigid.</p>
+<blockquote>
+<p><strong>Tip:</strong> To pause animation playback while adjusting the ragdoll, select the <code>AnimationTree</code> node and disable the <strong>Active</strong> property in the Inspector. Remember to enable it again when you're done, as it controls animation playback during gameplay.</p>
+</blockquote>
+<p><em>Image: Adjusting collision shapes in the 3D editor</em></p>
+<p>Adjusting collision shapes in the 3D editor</p>
+<p>This is the final result:</p>
+<p><em>Image: Result after adjusting joints and collision shapes (player mesh is hidden for visibility)</em></p>
+<p>Result after adjusting joints and collision shapes (player mesh is hidden for visibility)</p>
+<h2 id="simulate-the-ragdoll">Simulate the ragdoll</h2>
+<p>The ragdoll is now ready to use. To start the simulation and play the ragdoll animation, you need to call the ref method. Attach a script to the ref node that is the parent of all the PhysicalBone3D nodes in our scene, then call it in the script's <code>_ready</code> method:</p>
+<pre class="gdscript"><code>func _ready():
+    physical_bones_start_simulation()</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">PhysicalBonesStartSimulation</span><span class="op">();</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>To stop the simulation, call the ref method.</p>
+<p><em>Video: Full simulation of ragdoll system, with the player falling to the ground</em></p>
+<p>You can also limit the simulation to only a few bones. This can be useful to create effects such as ragdoll limbs or attachments that can interact with the world. To do so, pass the bone names (<em>not</em> the PhysicalBone3D node names) as a parameter. To see the bone name, look at the <strong>Bone Name</strong> property in the inspector after selecting a PhysicalBone3D node.</p>
+<blockquote>
+<p><strong>Tip:</strong> When using an automatically generated physical skeleton as shown in this tutorial, the bone name is also contained in the node name. For example, in <code>Physical Bone l-arm</code>, <code>l-arm</code> is the bone name.</p>
+</blockquote>
+<pre class="gdscript"><code>func _ready():
+    physical_bones_start_simulation([&quot;l-arm&quot;, &quot;r-arm&quot;])</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">PhysicalBonesStartSimulation</span><span class="op">([</span><span class="st">&quot;l-arm&quot;</span><span class="op">,</span> <span class="st">&quot;r-arm&quot;</span><span class="op">]);</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Note that nonexistent bone names will not print any error or warning. If nothing happens when starting the simulation (or if the whole body is ragdolled instead of only specific bones), double-check the list of provided bones.</p>
+<p>Here's an example of partial ragdoll simulation:</p>
+<p><em>Video: Partial simulation of ragdoll system, with arms flailing while the player is walking</em></p>
+<blockquote>
+<p><strong>Tip:</strong> To control how strongly the partial ragdoll simulation affects the overall animation, you can adjust the <strong>Influence</strong> property in the ref node that is the parent of all PhysicalBone3D nodes. By default, it's set to <code>1.0</code>, which means the ragdoll simulation fully overrides the rest of the animation.</p>
+</blockquote>
+<h3 id="collision-layer-and-mask">Collision layer and mask</h3>
+<p>Make sure to set up your collision layers and masks properly so the CharacterBody3D's capsule doesn't get in the way of the physics simulation. Remember to adjust the collision layer and mask in the coin scene as well, so that the player can still collect coins:</p>
+<p><em>Image: Layers and masks must be adjusted to these values in the inspector for each node</em></p>
+<p>Layers and masks must be adjusted to these values in the inspector for each node</p>
+<p>You can find the GridMap in the 3D platformer demo in <code>stage/grid_map.scn</code>. The coin's Area3D node (on which the layers and masks must be adjusted) can be found at <code>coin/coin.tscn</code>.</p>
+<blockquote>
+<p><strong>Tip:</strong> To select all PhysicalBone3D nodes quickly, enter <code>t:PhysicalBone3D</code> in the search bar at the top of the scene tree dock. This filters the scene tree to only show PhysicalBone3D nodes, which allows you to select them all at once using <code>Shift + Left mouse button</code> on the first and last entries.</p>
+</blockquote>
+<p>If this is not done, collision will behave incorrectly as the player will collide with its own (inactive) ragdoll. This can cause the player to wildly bounce around or get stuck.</p>
+<p>Like RigidBody3D, PhysicalBone3D supports collision exceptions through code using the ref and ref methods. This can be used to prevent collisions with a specific object without relying on layers and masks.</p>
+<blockquote>
+<p><strong>See also:</strong> For more information, see <code>doc_physics_introduction_collision_layers_and_masks</code>.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

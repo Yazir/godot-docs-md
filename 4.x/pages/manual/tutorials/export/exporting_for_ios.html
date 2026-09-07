@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exporting for iOS — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="exporting-for-ios">Exporting for iOS</h1>
+<blockquote>
+<p><strong>See also:</strong> This page describes how to export a Godot project to iOS. If you're looking to compile export template binaries from source instead, read <code>doc_compiling_for_ios</code>.</p>
+</blockquote>
+<p>These are the steps to load a Godot project in Xcode. This allows you to build and deploy to an iOS device, build a release for the App Store, and do everything else you can normally do with Xcode.</p>
+<blockquote>
+<p><strong>Attention:</strong> Projects written in C# can be exported to iOS as of Godot 4.2, but support is experimental and ref.</p>
+</blockquote>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>You must export for iOS from a computer running macOS with Xcode installed.</li>
+<li>Download the Godot export templates. Use the Godot menu: Editor &gt; Manage Export Templates</li>
+</ul>
+<h2 id="export-a-godot-project-to-xcode">Export a Godot project to Xcode</h2>
+<p>In the Godot editor, open the <strong>Export</strong> window from the <strong>Project</strong> menu. When the Export window opens, click <strong>Add..</strong> and select <strong>iOS</strong>.</p>
+<p>The <strong>App Store Team ID</strong> and (Bundle) <strong>Identifier</strong> options in the <strong>Application</strong> category are required. Leaving them blank will cause the exporter to throw an error. The bundle ID must be unique.</p>
+<blockquote>
+<p><strong>Note:</strong> A valid bundle ID can only contain alphanumeric characters, hyphens, and periods (<code>A-Z</code>, <code>a-z</code>, <code>0-9</code>, <code>-</code>, and <code>.</code>). Apple recommends using reverse-DNS format (e.g. <code>com.example.your-game</code>) of a domain you own, so that your bundle ID is guaranteed to be unique. Bundle IDs are case-insensitive. See <a href="https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundleidentifier">CFBundleIdentifier</a>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> If you encounter an error during export similar to <code>JSON text did not start with array or object and option to allow fragments not set</code> then it might be due to a malformated <strong>App Store Team ID</strong>! The exporter expects a (10 characters long) code like <code>ABCDE12XYZ</code> and not, e.g., your name as Xcode likes to display in the <em>Signing &amp; Capabilities</em> tab. You can find the code over at <a href="https://developer.apple.com/account/resources/certificates/list">developer.apple.com</a> next to your name in the top right corner.</p>
+</blockquote>
+<p>After you click <strong>Export Project</strong>, there are still two important options left:</p>
+<blockquote>
+<ul>
+<li><strong>Path</strong> is an empty folder that will contain the exported Xcode project files.</li>
+<li><strong>File</strong> will be the name of the Xcode project and several project specific files and directories.</li>
+</ul>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> This tutorial uses <strong>exported_xcode_project_name</strong>, but you will use your project's name. When you see <strong>exported_xcode_project_name</strong> in the following steps, replace it with the name you used instead.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> Avoid using spaces when you choose your <strong>exported_xcode_project_name</strong> as this can lead to corruption in your XCode project file.</p>
+</blockquote>
+<p>When the export completes, the output folder should look like this:</p>
+<blockquote>
+<p><strong>Warning:</strong> The iOS simulator only supports the <code>Compatibility</code> renderer.</p>
+<p>Apple Silicon Macs can run iOS apps natively, so you can run exported iOS projects directly on an Apple Silicon Mac without iOS simulator limitations.</p>
+</blockquote>
+<p>Opening <strong>exported_xcode_project_name.xcodeproj</strong> lets you build and deploy like any other iOS app.</p>
+<h2 id="active-development-considerations">Active development considerations</h2>
+<p>The above method creates an exported project that you can build for release, but you have to re-export every time you make a change in Godot.</p>
+<p>While developing, you can speed this process up by linking your Godot project files directly into your app.</p>
+<p>In the following example:</p>
+<blockquote>
+<ul>
+<li><strong>exported_xcode_project_name</strong> is the name of the exported iOS application (as above).</li>
+<li><strong>godot_project_to_export</strong> is the name of the Godot project.</li>
+</ul>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> <strong>godot_project_to_export</strong> must not be the same as <strong>exported_xcode_project_name</strong> to prevent signing issues in Xcode.</p>
+</blockquote>
+<h3 id="steps-to-link-a-godot-project-folder-to-xcode">Steps to link a Godot project folder to Xcode</h3>
+<ol type="1">
+<li>Start from an exported iOS project (follow the steps above).</li>
+<li>In Finder, drag the Godot project folder into the Xcode file browser.</li>
+<li>In the dialog, make sure to select Action: <strong>Reference files in place</strong> and Groups: <strong>Create folders</strong>. Uncheck Targets: <strong>exported_xcode_project_name</strong>.</li>
+<li>See the <strong>godot_project_to_export</strong> folder in the Xcode file browser.</li>
+<li>Select the godot project in the Project navigator. Then on the other side of the XCode window, in the File Inspector, make these selections:</li>
+</ol>
+<blockquote>
+<ul>
+<li><strong>Location</strong>: Relative to Project</li>
+<li><strong>Build Rules</strong>: Apply Once to Folder</li>
+<li>add your project to <strong>Target Membership</strong></li>
+</ul>
+</blockquote>
+<ol start="7" type="1">
+<li>Delete <strong>exported_xcode_project_name.pck</strong> from the Xcode project in the project navigator.</li>
+</ol>
+<p>8. Open <strong>exported_xcode_project_name-Info.plist</strong> and add a string property named <strong>godot_path</strong> (this is the real key name) with a value <strong>godot_project_to_export</strong> (this is the name of your project)</p>
+<p>That's it! You can now edit your project in the Godot editor and build it in Xcode when you want to run it on a device.</p>
+<h2 id="plugins-for-ios">Plugins for iOS</h2>
+<p>Special iOS plugins can be used in Godot. Check out the <code>doc_ios_plugin</code> page.</p>
+<h2 id="environment-variables">Environment variables</h2>
+<p>You can use the following environment variables to set export options outside of the editor. During the export process, these override the values that you set in the export menu.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Export option</th>
+<th>Environment variable</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Encryption / Encryption Key</td>
+<td><code>GODOT_SCRIPT_ENCRYPTION_KEY</code></td>
+</tr>
+<tr class="even">
+<td>Options / Application / Provisioning Profile UUID Debug</td>
+<td><code>GODOT_IOS_PROVISIONING_PROFILE_UUID_DEBUG</code></td>
+</tr>
+<tr class="odd">
+<td>Options / Application / Provisioning Profile UUID Release</td>
+<td><code>GODOT_IOS_PROVISIONING_PROFILE_UUID_RELEASE</code></td>
+</tr>
+</tbody>
+</table>
+<p>iOS export environment variables</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="xcode-select-points-at-wrong-sdk-location">xcode-select points at wrong SDK location</h3>
+<p>xcode-select is a tool that comes with Xcode and among other things points at iOS SDKs on your Mac. If you have Xcode installed, opened it, agreed to the license agreement, and installed the command line tools, xcode-select should point at the right location for the iPhone SDK. If it somehow doesn't, Godot will fail exporting to iOS with an error that may look like this:</p>
+<pre><code>MSB3073: The command &quot;&quot;clang&quot; &lt;LOTS OF PATHS AND COMMAND LINE ARGUMENTS HERE&gt;
+&quot;/Library/Developer/CommandLineTools/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk&quot;&quot; exited with code 1.</code></pre>
+<p>In this case, Godot is trying to find the <code>Platforms</code> folder containing the iPhone SDK inside the <code>/Library/Developer/CommandLineTools/</code> folder, but the <code>Platforms</code> folder with the iPhone SDK is actually located under <code>/Applications/Xcode.app/Contents/Developer</code>. To verify this, you can open up Terminal and run the following command to see what xcode-select points at:</p>
+<pre><code>xcode-select -p</code></pre>
+<p>To fix xcode-select pointing at a wrong location, enter this command in Terminal:</p>
+<pre><code>sudo xcode-select -switch /Applications/Xcode.app</code></pre>
+<p>After running this command, Godot should be able to successfully export to iOS.</p>
+<h2 id="export-options">Export options</h2>
+<p>You can find a full list of export options available in the <code>class_EditorExportPlatformIOS</code> class reference.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

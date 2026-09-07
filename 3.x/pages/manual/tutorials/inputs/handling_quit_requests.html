@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Handling quit requests — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="handling-quit-requests">Handling quit requests</h1>
+<h2 id="quitting">Quitting</h2>
+<p>Most platforms have the option to request the application to quit. On desktops, this is usually done with the "x" icon on the window title bar. On Android, the back button is used to quit when on the main screen (and to go back otherwise).</p>
+<h2 id="handling-the-notification">Handling the notification</h2>
+<p>On desktop platforms, the ref has a special <code>MainLoop.NOTIFICATION_WM_QUIT_REQUEST</code> notification that is sent to all nodes when quitting is requested.</p>
+<p>On Android, <code>MainLoop.NOTIFICATION_WM_GO_BACK_REQUEST</code> is sent instead. Pressing the Back button will exit the application if <strong>Application &gt; Config &gt; Quit On Go Back</strong> is checked in the Project Settings (which is the default).</p>
+<blockquote>
+<p><strong>Note:</strong> <code>MainLoop.NOTIFICATION_WM_GO_BACK_REQUEST</code> isn't supported on iOS, as iOS devices don't have a physical Back button.</p>
+</blockquote>
+<p>Handling the notification is done as follows (on any node):</p>
+<pre class="gdscript"><code>func _notification(what):
+    if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST:
+        get_tree().quit() # default behavior</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Notification</span><span class="op">(</span><span class="dt">int</span> what<span class="op">)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>what <span class="op">==</span> MainLoop<span class="op">.</span><span class="fu">NotificationWmQuitRequest</span><span class="op">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        <span class="fu">GetTree</span><span class="op">().</span><span class="fu">Quit</span><span class="op">();</span> <span class="co">// default behavior</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>When developing mobile apps, quitting is not desired unless the user is on the main screen, so the behavior can be changed.</p>
+<p>It is important to note that by default, Godot apps have the built-in behavior to quit when quit is requested, this can be changed:</p>
+<pre class="gdscript"><code>get_tree().set_auto_accept_quit(false)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">GetTree</span><span class="op">().</span><span class="fu">SetAutoAcceptQuit</span><span class="op">(</span><span class="kw">false</span><span class="op">);</span></span></code></pre></div>
+<h2 id="sending-your-own-quit-notification">Sending your own quit notification</h2>
+<p>While forcing the application to close can be done by calling ref, doing so will not send the quit <em>notification</em>. This means the function described above won't be called. Quitting by calling ref will not allow custom actions to complete (such as saving, confirming the quit, or debugging), even if you try to delay the line that forces the quit.</p>
+<p>Instead, you should send a quit request:</p>
+<pre class="gdscript"><code>get_tree().notification(MainLoop.NOTIFICATION_WM_QUIT_REQUEST)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">GetTree</span><span class="op">().</span><span class="fu">Notification</span><span class="op">(</span>MainLoop<span class="op">.</span><span class="fu">NotificationWmQuitRequest</span><span class="op">)</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2D lights and shadows — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="2d-lights-and-shadows">2D lights and shadows</h1>
+<h2 id="introduction">Introduction</h2>
+<p>This tutorial explains how the 2D lighting works in the <a href="https://github.com/godotengine/godot-demo-projects/tree/3.5/2d/lights_and_shadows">lights and shadows</a> demo project. It begins with a brief description of the resources used in the final demo and then describes how to make a scene like the demo step by step.</p>
+<p>All the resources for this tutorial can be found in the <a href="https://github.com/godotengine/godot-demo-projects">official demo repository</a> on GitHub. I suggest you download it before starting. Alternatively, it can be downloaded from the Project Manager. Launch Godot and in the top bar select "Templates" and search for "2D Lights and Shadows Demo".</p>
+<h2 id="setup">Setup</h2>
+<p>For this demo we use four textures: two for the lights, one for the shadow casters, and one for the background. I've included links to them all here if you want to download them separately from the demo.</p>
+<p>The first is the background image (background.png) used in the demo. You do not necessarily need a background, but we use one for the demo.</p>
+<p>The second is a plain black image (caster.png) to use as our shadow caster object. For a top down game this could be a wall or any other object that casts a shadow.</p>
+<p>Next is the light itself (light.png). If you click the link you will notice how large it is. The image you use for a light should cover the area you want your light to cover. This image is 1024x1024 pixels, so you should use it to cover 1024x1024 pixels in your game.</p>
+<p>Lastly, we have the spotlight image (spot.png). The demo uses a blob to show where the light is and the larger light image to show the effect of the light upon the rest of the scene.</p>
+<h2 id="nodes">Nodes</h2>
+<p>The demo uses four different nodes:</p>
+<ul>
+<li>ref</li>
+<li>ref</li>
+<li>ref</li>
+<li>ref</li>
+</ul>
+<p>ref is used to darken the scene.</p>
+<p>ref are used to display the textures for the light blobs, the background, and for the shadow casters.</p>
+<p>ref are used to light the scene. The way a light typically works is by adding a selected texture over the rest of the scene to simulate lighting. But it can be used in other ways, for example masking out parts of the scene.</p>
+<p>ref are used to tell the shader which parts of the scene cast shadows. The shadows appear only on areas covered by the ref and their direction is based on the center of the ref.</p>
+<h2 id="lights">Lights</h2>
+<p>ref cover the entire extent of their respective Texture. They use additive blending to add the color of their texture to the scene.</p>
+<p>ref have four <code>Modes</code>: <code>Add</code>, <code>Sub</code>, <code>Mix</code>, and <code>Mask</code>.</p>
+<p><code>Add</code> adds the color of the light texture to the scene. It brightens the area under the light.</p>
+<p><code>Sub</code> subtracts the color of the light from the scene. It darkens the area under the light.</p>
+<p><code>Mix</code> mixes the color of the light with the underlying scene. The resulting brightness is halfway between the color of the light and the color underneath.</p>
+<p><code>Mask</code> is used to mask out areas that are covered by the light. Masked out areas are hidden or revealed based on the color of the light.</p>
+<p>For the demo the lights have two components, the ref itself (which is the effect of the light), and a ref blob which is an image showing the location of the light source. A child ref is not necessary to make a ref work.</p>
+<h2 id="shadows">Shadows</h2>
+<p>Shadows are made by intersecting a ref with a ref.</p>
+<p>By default shadows are turned off. To turn them on click on the ref and under the Shadows section check <code>Enabled</code>.</p>
+<p>In the demo we are using a ref with a Texture on it to make the "Shadow Casters", but in reality all you need is a couple of ref. By itself the ref looks like a dark spot and in this demo the ref is just a black square.</p>
+<h2 id="step-by-step">Step by step</h2>
+<p>Now that we have covered the basics of the nodes being used, we can now walk step by step through the process of making a scene like the one found in the demo.</p>
+<p>First add a ref and set its texture to the background image. For your game this can be any background you choose. For this style of shadow it is most likely to be a floor texture.</p>
+<p>Next create three ref and set their textures to the light image. You can alter their color in the top section. By default shadows are turned off and the <code>mode</code> is set to <code>add</code>. This means that each light adds its own color to whatever is underneath.</p>
+<p>Next add a child ref to each of the ref nodes, and set the ref texture to the blob image. Each of these should stay centered on the ref node. The blob is the image of the light itself while the ref shows the effect that the light has on the scene. The ref will treat the position of the light as the center of the ref node, which is why we want the blob to be centered on its parent ref.</p>
+<blockquote>
+<p><strong>Note:</strong> The animations in the demo will not be covered here. See <code>doc_introduction_animation</code> for information on creating animations.</p>
+</blockquote>
+<p>Right now the scene should look too bright. This is because all three lights are adding color to the scene. This is why the demo uses a ref in the scene. The ref multiples the entire viewport by a specific color.</p>
+<p>Add a ref to the scene and set its color to <code>rgb(70, 70, 70)</code>. This will make the scene sufficiently dark to see the effects of the lights distinctly.</p>
+<p>Now we add the shadow casters.</p>
+<p>The demo uses a ref named "casters" to organize the shadow casters. Add a ref to the scene. It will be used to group all the shadow casters together. This way we can show and hide them all at the same time.</p>
+<p>Each shadow caster is made of a ref, with a ref child. For the demo the ref has a texture set to the caster image and nothing else. The child ref is where all the magic happens. In a game the ref could be more than a black box; it could be an image of whatever object is casting the shadow: a wall, a magical chest, or anything else.</p>
+<p>ref tell the game what shape the occluder has. They hold an ref, which is a container for a polygon and some other information. For this demo, since our wall is a square, we set <code>Polygon</code> to a square. The other default settings are fine.</p>
+<p>The first setting, <code>Closed</code> can be either <code>on</code> or <code>off</code>. A closed polygon occludes light coming from all directions. An open polygon only occludes light from one direction.</p>
+<p><code>Cull Mode</code> lets you select which direction gets culled. The default is <code>Disabled</code>, meaning the occluder will cast a shadow no matter which side the light is on. The other two settings <code>Clockwise</code> and <code>Counter-Clockwise</code> refer to the winding order of the vertices of the polygon. The winding order is used to determine which side of the line is inside the polygon. Only outward facing lines cast shadows.</p>
+<p>To illustrate the difference, here is an image of a ref with <code>Closed</code> set to <code>off</code> in the corresponding ref, so that the lines of the polygon can be seen:</p>
+<blockquote>
+<p><strong>Note:</strong> <code>Cull Mode</code> is set to <code>Disabled</code>. All three lines cast shadows.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> <code>Cull Mode</code> is set to <code>Clockwise</code>. Only the top and right lines cast shadows.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> <code>Cull Mode</code> is set to <code>Counter-Clockwise</code>. Only the bottom line casts a shadow. If <code>Closed</code> was set to <code>on</code> there would be an additional vertical line on the left which would cast a shadow as well.</p>
+</blockquote>
+<p>When you have added the ref the shadows still won't appear. You need to go back into the ref and under the Shadow section set <code>Enable</code> to <code>on</code>. This turns on shadows with hard edges like in the image below.</p>
+<p>To give the shadows that nice, soft edge look we set the variables <code>filter</code>, <code>filter smooth</code>, and <code>gradient length</code>. Godot supports <a href="https://developer.nvidia.com/gpugems/GPUGems/gpugems_ch11.html">Percentage Closer Filtering</a> (PCF), which takes multiple samples of the shadow map around a pixel and blurs them to create a smooth shadow effect. The higher the number of samples the smoother the shadow will look, but the slower it will run. That is why Godot provides 3-13 samples by default and allows you to choose. The demo uses PCF7.</p>
+<blockquote>
+<p><strong>Note:</strong> This is a shadow rendered with the demo's settings. <code>gradient length</code> is set to <code>1.3</code>, <code>filter smooth</code> is set to <code>11.1</code>, and <code>filter</code> is set to <code>PCF7</code>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> <code>filter</code> is set to <code>PCF13</code>. Notice how the shadow becomes wider, this is because the distance between samples is based on the variable <code>filter smooth</code>.</p>
+</blockquote>
+<p>In order to make use of filtering you need to set the <code>filter smooth</code> variable. This dictates how far apart the samples are. If you want the soft area to extend quite far, you can increase the size of <code>filter smooth</code>. However, with few samples and a large filter smooth, you can see lines forming between the samples.</p>
+<blockquote>
+<p><strong>Note:</strong> <code>filter smooth</code> is set to <code>30</code>.</p>
+</blockquote>
+<p>The different ref nodes in the demo use different values for filter smooth. Play around with it and see what you like.</p>
+<blockquote>
+<p><strong>Note:</strong> <code>filter smooth</code> is set to <code>0</code>.</p>
+</blockquote>
+<p>Lastly, there is the variable <code>gradient length</code>. For some smooth shadows it is preferable not to have the shadow start immediately on the object, as this produces a hard edge. The gradient length variable creates a smooth gradient to begin the shadow to reduce the effect of the hard edge.</p>
+<blockquote>
+<p><strong>Note:</strong> <code>gradient length</code> is set to <code>0</code>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> <code>gradient length</code> is set to <code>10</code>.</p>
+</blockquote>
+<p>You will need to play around with the options a bit to find settings that suit your project. There is no right solution for everyone, which is why Godot provides so much flexibility. Just keep in mind that the higher <code>filter</code> set the more expensive the shadows will be.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

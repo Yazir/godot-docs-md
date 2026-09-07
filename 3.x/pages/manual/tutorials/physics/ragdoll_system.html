@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ragdoll system — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="ragdoll-system">Ragdoll system</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Since version 3.1, Godot supports ragdoll physics. Ragdolls rely on physics simulation to create realistic procedural animation. They are used for death animations in many games.</p>
+<p>In this tutorial, we will be using the Platformer3D demo to set up a ragdoll.</p>
+<blockquote>
+<p><strong>Note:</strong> You can download the Platformer3D demo on <a href="https://github.com/godotengine/godot-demo-projects/tree/3.5/3d/platformer">GitHub</a> or using the <a href="https://godotengine.org/asset-library/asset/125">Asset Library</a>.</p>
+</blockquote>
+<h2 id="setting-up-the-ragdoll">Setting up the ragdoll</h2>
+<h3 id="creating-physical-bones">Creating physical bones</h3>
+<p>Like many other features in the engine, there is a node to set up a ragdoll: the ref node. To simplify the setup, you can generate <code>PhysicalBone</code> nodes with the "Create physical skeleton" feature in the skeleton node.</p>
+<p>Open the platformer demo in Godot, and then the Robi scene. Select the <code>Skeleton</code> node. A skeleton button appears on the top bar menu:</p>
+<p>Click it and select the <code>Create physical skeleton</code> option. Godot will generate <code>PhysicalBone</code> nodes and collision shapes for each bone in the skeleton and pin joints to connect them together:</p>
+<p>Some of the generated bones aren't necessary: the <code>MASTER</code> bone for example. So we're going to clean up the skeleton by removing them.</p>
+<h3 id="cleaning-up-the-skeleton">Cleaning up the skeleton</h3>
+<p>Each <code>PhysicalBone</code> the engine needs to simulate has a performance cost, so you want to remove every bone that is too small to make a difference in the simulation, as well as all utility bones.</p>
+<p>For example, if we take a humanoid, you do not want to have physical bones for each finger. You can use a single bone for the entire hand instead, or one for the palm, one for the thumb, and a last one for the other four fingers.</p>
+<p>Remove these physical bones: <code>MASTER</code>, <code>waist</code>, <code>neck</code>, <code>headtracker</code>. This gives us an optimized skeleton and makes it easier to control the ragdoll.</p>
+<h3 id="collision-shape-adjustment">Collision shape adjustment</h3>
+<p>The next task is adjusting the collision shape and the size of physical bones to match the part of the body that each bone should simulate.</p>
+<h3 id="joints-adjustment">Joints adjustment</h3>
+<p>Once you adjusted the collision shapes, your ragdoll is almost ready. You just want to adjust the pin joints to get a better simulation. <code>PhysicalBone</code> nodes have an unconstrained pin joint assigned to them by default. To change the pin joint, select the <code>PhysicalBone</code> and change the constraint type in the <code>Joint</code> section. There, you can change the constraint's orientation and its limits.</p>
+<p>This is the final result:</p>
+<h2 id="simulating-the-ragdoll">Simulating the ragdoll</h2>
+<p>The ragdoll is now ready to use. To start the simulation and play the ragdoll animation, you need to call the <code>physical_bones_start_simulation</code> method. Attach a script to the skeleton node and call the method in the <code>_ready</code> method:</p>
+<pre class="gdscript"><code>func _ready():
+    physical_bones_start_simulation()</code></pre>
+<p>To stop the simulation, call the <code>physical_bones_stop_simulation()</code> method.</p>
+<p>You can also limit the simulation to only a few bones. To do so, pass the bone names as a parameter. Here's an example of partial ragdoll simulation:</p>
+<h3 id="collision-layer-and-mask">Collision layer and mask</h3>
+<p>Make sure to set up your collision layers and masks properly so the <code>KinematicBody</code>'s capsule doesn't get in the way of the physics simulation:</p>
+<p>For more information, read <code>doc_physics_introduction_collision_layers_and_masks</code>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

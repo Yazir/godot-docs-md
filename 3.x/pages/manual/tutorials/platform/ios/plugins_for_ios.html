@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plugins for iOS — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="plugins-for-ios">Plugins for iOS</h1>
+<p>Godot provides StoreKit, GameCenter, iCloud services and other plugins. They are using same model of asynchronous calls explained below.</p>
+<p>ARKit and Camera access are also provided as plugins.</p>
+<p>Latest updates, documentation and source code can be found at <a href="https://github.com/godotengine/godot-ios-plugins">Godot iOS plugins repository</a></p>
+<h2 id="accessing-plugin-singletons">Accessing plugin singletons</h2>
+<p>To access plugin functionality, you first need to check that the plugin is exported and available by calling the Engine.has_singleton() function, which returns a registered singleton.</p>
+<p>Here's an example of how to do this in GDScript:</p>
+<pre><code>var in_app_store
+var game_center
+
+func _ready():
+    if Engine.has_singleton(&quot;InAppStore&quot;):
+        in_app_store = Engine.get_singleton(&quot;InAppStore&quot;)
+    else:
+        print(&quot;iOS IAP plugin is not available on this platform.&quot;)
+
+    if Engine.has_singleton(&quot;GameCenter&quot;):
+        game_center = Engine.get_singleton(&quot;GameCenter&quot;)
+    else:
+        print(&quot;iOS Game Center plugin is not available on this platform.&quot;)</code></pre>
+<h2 id="asynchronous-methods">Asynchronous methods</h2>
+<p>When requesting an asynchronous operation, the method will look like this:</p>
+<pre><code>Error purchase(Variant params);</code></pre>
+<p>The parameter will usually be a Dictionary, with the information necessary to make the request, and the call will have two phases. First, the method will immediately return an Error value. If the Error is not 'OK', the call operation is completed, with an error probably caused locally (no internet connection, API incorrectly configured, etc). If the error value is 'OK', a response event will be produced and added to the 'pending events' queue. Example:</p>
+<pre><code>func on_purchase_pressed():
+    var result = InAppStore.purchase({ &quot;product_id&quot;: &quot;my_product&quot; })
+    if result == OK:
+        animation.play(&quot;busy&quot;) # show the &quot;waiting for response&quot; animation
+    else:
+        show_error()
+
+# put this on a 1 second timer or something
+func check_events():
+    while in_app_store.get_pending_event_count() &gt; 0:
+        var event = in_app_store.pop_pending_event()
+        if event.type == &quot;purchase&quot;:
+            if event.result == &quot;ok&quot;:
+                show_success(event.product_id)
+            else:
+                show_error()</code></pre>
+<p>Remember that when a call returns OK, the API will <em>always</em> produce an event through the pending_event interface, even if it's an error, or a network timeout, etc. You should be able to, for example, safely block the interface waiting for a reply from the server. If any of the APIs don't behave this way it should be treated as a bug.</p>
+<p>The pending event interface consists of two methods:</p>
+<ul>
+<li><code>get_pending_event_count()</code> Returns the number of pending events on the queue.</li>
+<li><code>Variant pop_pending_event()</code> Pops the first event from the queue and returns it.</li>
+</ul>
+<h2 id="store-kit">Store Kit</h2>
+<p>Implemented in <a href="https://github.com/godotengine/godot-ios-plugins/blob/3.6/plugins/inappstore/in_app_store.mm">Godot iOS InAppStore plugin</a>.</p>
+<p>The Store Kit API is accessible through the <code>InAppStore</code> singleton. It is initialized automatically.</p>
+<p>The following methods are available and documented below:</p>
+<pre><code>Error purchase(Variant params)
+Error request_product_info(Variant params)
+Error restore_purchases()
+void set_auto_finish_transaction(bool enable)
+void finish_transaction(String product_id)
+
+and the pending events interface:
+
+::
+
+int get_pending_event_count()
+Variant pop_pending_event()</code></pre>
+<h3 id="purchase"><code>purchase</code></h3>
+<p>Purchases a product ID through the Store Kit API. You have to call <code>finish_transaction(product_id)</code> once you receive a successful response or call <code>set_auto_finish_transaction(true)</code> prior to calling <code>purchase()</code>. These two methods ensure the transaction is completed.</p>
+<h4 id="parameters">Parameters</h4>
+<p>Takes a dictionary as a parameter, with one field, <code>product_id</code>, a string with your product ID. Example:</p>
+<pre><code>var result = in_app_store.purchase({ &quot;product_id&quot;: &quot;my_product&quot; })</code></pre>
+<h4 id="response-event">Response event</h4>
+<p>The response event will be a dictionary with the following fields:</p>
+<p>On error:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;purchase&quot;,
+  &quot;result&quot;: &quot;error&quot;,
+  &quot;product_id&quot;: &quot;the product ID requested&quot;,
+}</code></pre>
+<p>On success:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;purchase&quot;,
+  &quot;result&quot;: &quot;ok&quot;,
+  &quot;product_id&quot;: &quot;the product ID requested&quot;,
+}</code></pre>
+<h3 id="request_product_info"><code>request_product_info</code></h3>
+<p>Requests the product info on a list of product IDs.</p>
+<h4 id="parameters-1">Parameters</h4>
+<p>Takes a dictionary as a parameter, with a single <code>product_ids</code> key to which a string array of product IDs is assigned. Example:</p>
+<pre><code>var result = in_app_store.request_product_info({ &quot;product_ids&quot;: [&quot;my_product1&quot;, &quot;my_product2&quot;] })</code></pre>
+<h4 id="response-event-1">Response event</h4>
+<p>The response event will be a dictionary with the following fields:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;product_info&quot;,
+  &quot;result&quot;: &quot;ok&quot;,
+  &quot;invalid_ids&quot;: [ list of requested IDs that were invalid ],
+  &quot;ids&quot;: [ list of IDs that were valid ],
+  &quot;titles&quot;: [ list of valid product titles (corresponds with list of valid IDs) ],
+  &quot;descriptions&quot;: [ list of valid product descriptions ] ,
+  &quot;prices&quot;: [ list of valid product prices ],
+  &quot;localized_prices&quot;: [ list of valid product localized prices ],
+}</code></pre>
+<h3 id="restore_purchases"><code>restore_purchases</code></h3>
+<p>Restores previously made purchases on user's account. This will create response events for each previously purchased product ID.</p>
+<h4 id="response-event-2">Response event</h4>
+<p>The response events will be dictionaries with the following fields:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;restore&quot;,
+  &quot;result&quot;: &quot;ok&quot;,
+  &quot;product_id&quot;: &quot;product ID of restored purchase&quot;,
+}</code></pre>
+<h3 id="set_auto_finish_transaction"><code>set_auto_finish_transaction</code></h3>
+<p>If set to <code>true</code>, once a purchase is successful, your purchase will be finalized automatically. Call this method prior to calling <code>purchase()</code>.</p>
+<h4 id="parameters-2">Parameters</h4>
+<p>Takes a boolean as a parameter which specifies if purchases should be automatically finalized. Example:</p>
+<pre><code>in_app_store.set_auto_finish_transaction(true)</code></pre>
+<h3 id="finish_transaction"><code>finish_transaction</code></h3>
+<p>If you don't want transactions to be automatically finalized, call this method after you receive a successful purchase response.</p>
+<h4 id="parameters-3">Parameters</h4>
+<p>Takes a string <code>product_id</code> as an argument. <code>product_id</code> specifies what product to finalize the purchase on. Example:</p>
+<pre><code>in_app_store.finish_transaction(&quot;my_product1&quot;)</code></pre>
+<h2 id="game-center">Game Center</h2>
+<p>Implemented in <a href="https://github.com/godotengine/godot-ios-plugins/blob/3.6/plugins/gamecenter/game_center.mm">Godot iOS GameCenter plugin</a>.</p>
+<p>The Game Center API is available through the "GameCenter" singleton. It has the following methods:</p>
+<pre><code>Error authenticate()
+bool is_authenticated()
+Error post_score(Variant score)
+Error award_achievement(Variant params)
+void reset_achievements()
+void request_achievements()
+void request_achievement_descriptions()
+Error show_game_center(Variant params)
+Error request_identity_verification_signature()</code></pre>
+<p>and the pending events interface:</p>
+<pre><code>int get_pending_event_count()
+Variant pop_pending_event()</code></pre>
+<h3 id="authenticate"><code>authenticate</code></h3>
+<p>Authenticates a user in Game Center.</p>
+<h4 id="response-event-3">Response event</h4>
+<p>The response event will be a dictionary with the following fields:</p>
+<p>On error:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;authentication&quot;,
+  &quot;result&quot;: &quot;error&quot;,
+  &quot;error_code&quot;: the value from NSError::code,
+  &quot;error_description&quot;: the value from NSError::localizedDescription,
+}</code></pre>
+<p>On success:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;authentication&quot;,
+  &quot;result&quot;: &quot;ok&quot;,
+  &quot;player_id&quot;: the value from GKLocalPlayer::playerID,
+}</code></pre>
+<h3 id="post_score"><code>post_score</code></h3>
+<p>Posts a score to a Game Center leaderboard.</p>
+<h4 id="parameters-4">Parameters</h4>
+<p>Takes a dictionary as a parameter, with two fields:</p>
+<ul>
+<li><code>score</code> a float number</li>
+<li><code>category</code> a string with the category name</li>
+</ul>
+<p>Example:</p>
+<pre><code>var result = game_center.post_score({ &quot;score&quot;: 100, &quot;category&quot;: &quot;my_leaderboard&quot;, })</code></pre>
+<h4 id="response-event-4">Response event</h4>
+<p>The response event will be a dictionary with the following fields:</p>
+<p>On error:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;post_score&quot;,
+  &quot;result&quot;: &quot;error&quot;,
+  &quot;error_code&quot;: the value from NSError::code,
+  &quot;error_description&quot;: the value from NSError::localizedDescription,
+}</code></pre>
+<p>On success:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;post_score&quot;,
+  &quot;result&quot;: &quot;ok&quot;,
+}</code></pre>
+<h3 id="award_achievement"><code>award_achievement</code></h3>
+<p>Modifies the progress of a Game Center achievement.</p>
+<h4 id="parameters-5">Parameters</h4>
+<p>Takes a Dictionary as a parameter, with 3 fields:</p>
+<ul>
+<li><code>name</code> (string) the achievement name</li>
+<li><code>progress</code> (float) the achievement progress from 0.0 to 100.0 (passed to <code>GKAchievement::percentComplete</code>)</li>
+<li><code>show_completion_banner</code> (bool) whether Game Center should display an achievement banner at the top of the screen</li>
+</ul>
+<p>Example:</p>
+<pre><code>var result = award_achievement({ &quot;name&quot;: &quot;hard_mode_completed&quot;, &quot;progress&quot;: 6.1 })</code></pre>
+<h4 id="response-event-5">Response event</h4>
+<p>The response event will be a dictionary with the following fields:</p>
+<p>On error:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;award_achievement&quot;,
+  &quot;result&quot;: &quot;error&quot;,
+  &quot;error_code&quot;: the error code taken from NSError::code,
+}</code></pre>
+<p>On success:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;award_achievement&quot;,
+  &quot;result&quot;: &quot;ok&quot;,
+}</code></pre>
+<h3 id="reset_achievements"><code>reset_achievements</code></h3>
+<p>Clears all Game Center achievements. The function takes no parameters.</p>
+<h4 id="response-event-6">Response event</h4>
+<p>The response event will be a dictionary with the following fields:</p>
+<p>On error:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;reset_achievements&quot;,
+  &quot;result&quot;: &quot;error&quot;,
+  &quot;error_code&quot;: the value from NSError::code,
+}</code></pre>
+<p>On success:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;reset_achievements&quot;,
+  &quot;result&quot;: &quot;ok&quot;,
+}</code></pre>
+<h3 id="request_achievements"><code>request_achievements</code></h3>
+<p>Request all the Game Center achievements the player has made progress on. The function takes no parameters.</p>
+<h4 id="response-event-7">Response event</h4>
+<p>The response event will be a dictionary with the following fields:</p>
+<p>On error:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;achievements&quot;,
+  &quot;result&quot;: &quot;error&quot;,
+  &quot;error_code&quot;: the value from NSError::code,
+}</code></pre>
+<p>On success:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;achievements&quot;,
+  &quot;result&quot;: &quot;ok&quot;,
+  &quot;names&quot;: [ list of the name of each achievement ],
+  &quot;progress&quot;: [ list of the progress made on each achievement ],
+}</code></pre>
+<h3 id="request_achievement_descriptions"><code>request_achievement_descriptions</code></h3>
+<p>Request the descriptions of all existing Game Center achievements regardless of progress. The function takes no parameters.</p>
+<h4 id="response-event-8">Response event</h4>
+<p>The response event will be a dictionary with the following fields:</p>
+<p>On error:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;achievement_descriptions&quot;,
+  &quot;result&quot;: &quot;error&quot;,
+  &quot;error_code&quot;: the value from NSError::code,
+}</code></pre>
+<p>On success:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;achievement_descriptions&quot;,
+  &quot;result&quot;: &quot;ok&quot;,
+  &quot;names&quot;: [ list of the name of each achievement ],
+  &quot;titles&quot;: [ list of the title of each achievement ],
+  &quot;unachieved_descriptions&quot;: [ list of the description of each achievement when it is unachieved ],
+  &quot;achieved_descriptions&quot;: [ list of the description of each achievement when it is achieved ],
+  &quot;maximum_points&quot;: [ list of the points earned by completing each achievement ],
+  &quot;hidden&quot;: [ list of booleans indicating whether each achievement is initially visible ],
+  &quot;replayable&quot;: [ list of booleans indicating whether each achievement can be earned more than once ],
+}</code></pre>
+<h3 id="show_game_center"><code>show_game_center</code></h3>
+<p>Displays the built in Game Center overlay showing leaderboards, achievements, and challenges.</p>
+<h4 id="parameters-6">Parameters</h4>
+<p>Takes a Dictionary as a parameter, with two fields:</p>
+<ul>
+<li><code>view</code> (string) (optional) the name of the view to present. Accepts "default", "leaderboards", "achievements", or "challenges". Defaults to "default".</li>
+<li><code>leaderboard_name</code> (string) (optional) the name of the leaderboard to present. Only used when "view" is "leaderboards" (or "default" is configured to show leaderboards). If not specified, Game Center will display the aggregate leaderboard.</li>
+</ul>
+<p>Examples:</p>
+<pre><code>var result = show_game_center({ &quot;view&quot;: &quot;leaderboards&quot;, &quot;leaderboard_name&quot;: &quot;best_time_leaderboard&quot; })
+var result = show_game_center({ &quot;view&quot;: &quot;achievements&quot; })</code></pre>
+<h4 id="response-event-9">Response event</h4>
+<p>The response event will be a dictionary with the following fields:</p>
+<p>On close:</p>
+<pre><code>{
+  &quot;type&quot;: &quot;show_game_center&quot;,
+  &quot;result&quot;: &quot;ok&quot;,
+}</code></pre>
+<h2 id="multi-platform-games">Multi-platform games</h2>
+<p>When working on a multi-platform game, you won't always have the "GameCenter" singleton available (for example when running on PC or Android). Because the gdscript compiler looks up the singletons at compile time, you can't just query the singletons to see and use what you need inside a conditional block, you need to also define them as valid identifiers (local variable or class member). This is an example of how to work around this in a class:</p>
+<pre><code>var GameCenter = null # define it as a class member
+
+func post_score(score):
+    if GameCenter == null:
+        return
+    GameCenter.post_score({ &quot;value&quot;: score, &quot;category&quot;: &quot;my_leaderboard&quot; })
+
+func check_events():
+    while GameCenter.get_pending_event_count() &gt; 0:
+        # do something with events here
+        pass
+
+func _ready():
+    # check if the singleton exists
+    if Globals.has_singleton(&quot;GameCenter&quot;):
+        GameCenter = Globals.get_singleton(&quot;GameCenter&quot;)
+        # connect your timer here to the &quot;check_events&quot; function</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

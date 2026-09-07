@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creating the enemy — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="creating-the-enemy">Creating the enemy</h1>
+<p>Now it's time to make the enemies our player will have to dodge. Their behavior will not be very complex: mobs will spawn randomly at the edges of the screen, choose a random direction, and move in a straight line.</p>
+<p>We'll create a <code>Mob</code> scene, which we can then <em>instance</em> to create any number of independent mobs in the game.</p>
+<h2 id="node-setup">Node setup</h2>
+<p>Click Scene -&gt; New Scene and add the following nodes:</p>
+<ul>
+<li><p>ref (named <code>Mob</code>)</p>
+<blockquote>
+<ul>
+<li>ref</li>
+<li>ref</li>
+<li>ref</li>
+</ul>
+</blockquote></li>
+</ul>
+<p>Don't forget to set the children so they can't be selected, like you did with the Player scene.</p>
+<p>In the ref properties, set <code>Gravity Scale</code> to <code>0</code>, so the mob will not fall downward. In addition, under the ref section, click the <code>Mask</code> property and uncheck the first box. This will ensure the mobs do not collide with each other.</p>
+<p>Set up the ref like you did for the player. This time, we have 3 animations: <code>fly</code>, <code>swim</code>, and <code>walk</code>. There are two images for each animation in the art folder.</p>
+<p>Adjust the "Speed (FPS)" to <code>3</code> for all animations.</p>
+<p>Set the <code>Playing</code> property in the Inspector to "On".</p>
+<p>We'll select one of these animations randomly so that the mobs will have some variety.</p>
+<p>Like the player images, these mob images need to be scaled down. Set the <code>AnimatedSprite</code>'s <code>Scale</code> property to <code>(0.75, 0.75)</code>.</p>
+<p>As in the <code>Player</code> scene, add a <code>CapsuleShape2D</code> for the collision. To align the shape with the image, you'll need to set the <code>Rotation Degrees</code> property to <code>90</code> (under "Transform" in the Inspector).</p>
+<p>Save the scene.</p>
+<h2 id="enemy-script">Enemy script</h2>
+<p>Add a script to the <code>Mob</code> like this:</p>
+<pre class="gdscript"><code>extends RigidBody2D</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Mob <span class="op">:</span> RigidBody2D</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Don&#39;t forget to rebuild the project.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Copy `player.gdns` to `mob.gdns` and replace `Player` with `Mob`.</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Attach the `mob.gdns` file to the Mob node.</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Create two files `mob.cpp` and `mob.hpp` next to `entry.cpp` in `src`.</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `mob.hpp`. We also define the methods we&#39;ll be using here.</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifndef MOB_H</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#define MOB_H</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;AnimatedSprite.hpp&gt;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Godot.hpp&gt;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;RigidBody2D.hpp&gt;</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Mob <span class="op">:</span> <span class="kw">public</span> godot<span class="op">::</span>RigidBody2D <span class="op">{</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    GODOT_CLASS<span class="op">(</span>Mob<span class="op">,</span> godot<span class="op">::</span>RigidBody2D<span class="op">)</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>AnimatedSprite <span class="op">*</span>_animated_sprite<span class="op">;</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _init<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _ready<span class="op">();</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _on_VisibilityNotifier2D_screen_exited<span class="op">();</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> _register_methods<span class="op">();</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif </span><span class="co">// MOB_H</span></span></code></pre></div>
+<p>Now let's look at the rest of the script. In <code>_ready()</code> we play the animation and randomly choose one of the three animation types:</p>
+<pre class="gdscript"><code>func _ready():
+    $AnimatedSprite.playing = true
+    var mob_types = $AnimatedSprite.frames.get_animation_names()
+    $AnimatedSprite.animation = mob_types[randi() % mob_types.size()]</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> animSprite <span class="op">=</span> GetNode<span class="op">&lt;</span>AnimatedSprite<span class="op">&gt;(</span><span class="st">&quot;AnimatedSprite&quot;</span><span class="op">);</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    animSprite<span class="op">.</span><span class="fu">Playing</span> <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">string</span><span class="op">[]</span> mobTypes <span class="op">=</span> animSprite<span class="op">.</span><span class="fu">Frames</span><span class="op">.</span><span class="fu">GetAnimationNames</span><span class="op">();</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    animSprite<span class="op">.</span><span class="fu">Animation</span> <span class="op">=</span> mobTypes<span class="op">[</span>GD<span class="op">.</span><span class="fu">Randi</span><span class="op">()</span> <span class="op">%</span> mobTypes<span class="op">.</span><span class="fu">Length</span><span class="op">];</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `mob.cpp`.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;mob.hpp&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;RandomNumberGenerator.hpp&gt;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;SpriteFrames.hpp&gt;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Mob<span class="op">::</span>_ready<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Ref<span class="op">&lt;</span>godot<span class="op">::</span>RandomNumberGenerator<span class="op">&gt;</span> random <span class="op">=</span> godot<span class="op">::</span>RandomNumberGenerator<span class="op">::</span>_new<span class="op">();</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    random<span class="op">-&gt;</span>randomize<span class="op">();</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    _animated_sprite <span class="op">=</span> get_node<span class="op">&lt;</span>godot<span class="op">::</span>AnimatedSprite<span class="op">&gt;(</span><span class="st">&quot;AnimatedSprite&quot;</span><span class="op">);</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    _animated_sprite<span class="op">-&gt;</span>_set_playing<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>PoolStringArray mob_types <span class="op">=</span> _animated_sprite<span class="op">-&gt;</span>get_sprite_frames<span class="op">()-&gt;</span>get_animation_names<span class="op">();</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    _animated_sprite<span class="op">-&gt;</span>set_animation<span class="op">(</span>mob_types<span class="op">[</span>random<span class="op">-&gt;</span>randi<span class="op">()</span> <span class="op">%</span> mob_types<span class="op">.</span>size<span class="op">()]);</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>First, we get the list of animation names from the AnimatedSprite's <code>frames</code> property. This returns an Array containing all three animation names: <code>["walk", "swim", "fly"]</code>.</p>
+<p>We then need to pick a random number between <code>0</code> and <code>2</code> to select one of these names from the list (array indices start at <code>0</code>). <code>randi() % n</code> selects a random integer between <code>0</code> and <code>n-1</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> You must use <code>randomize()</code> if you want your sequence of "random" numbers to be different every time you run the scene. We're going to use <code>randomize()</code> in our <code>Main</code> scene, so we won't need it here.</p>
+</blockquote>
+<p>The last piece is to make the mobs delete themselves when they leave the screen. Connect the <code>screen_exited()</code> signal of the <code>VisibilityNotifier2D</code> node and add this code:</p>
+<pre class="gdscript"><code>func _on_VisibilityNotifier2D_screen_exited():
+    queue_free()</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnVisibilityNotifier2DScreenExited</span><span class="op">()</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">QueueFree</span><span class="op">();</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `mob.cpp`.</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Mob<span class="op">::</span>_on_VisibilityNotifier2D_screen_exited<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    queue_free<span class="op">();</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This completes the Mob scene.</p>
+<p>With the player and enemies ready, in the next part, we'll bring them together in a new scene. We'll make enemies spawn randomly around the game board and move forward, turning our project into a playable game.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

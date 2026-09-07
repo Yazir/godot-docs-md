@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adding documentation — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="adding-documentation">Adding documentation</h1>
+<blockquote>
+<p><strong>Note:</strong> Adding documentation for GDExtensions is only possible with Godot 4.3 and later.</p>
+</blockquote>
+<p>The GDExtension documentation system works in a similar manner to the built-in engine documentation: It uses ref (one per class) to document the exposed constructors, properties, methods, constants, signals, and more.</p>
+<p>To get started, identify your project's test project folder, which should contain a Godot project with your extension installed and working. If you are using <a href="https://github.com/godotengine/godot-cpp-template">godot-cpp-template</a>, your GDExtension project already has a <code>project</code> folder. Alternatively, you can add one by following the steps described in <code>doc_godot_cpp_getting_started</code>. Inside the <code>project</code> folder, run the following terminal command:</p>
+<pre class="shell"><code># Replace &quot;godot&quot; with the full path to a Godot editor binary
+# if Godot is not installed in your `PATH`.
+godot --doctool ../ --gdextension-docs</code></pre>
+<p>This command instructs Godot to generate documentation via the <code>--doctool</code> and <code>--gdextension-docs</code> commands. The <code>../</code> argument specifies the base path of your GDExtension.</p>
+<p>After running this command, you should find XML files for your registered GDExtension classes inside the <code>doc_classes</code> folder in your GDExtension project. You could edit them now, but for this tutorial, the empty files will suffice.</p>
+<p>Now that you have XML files containing your documentation, the next step is to include them in your GDExtension binary. Assuming you are using SCons as your build system, you can add the following lines to your <code>SConstruct</code> file. If you are using <a href="https://github.com/godotengine/godot-cpp-template">godot-cpp-template</a>, your file already contains code for this.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> env[<span class="st">&quot;target&quot;</span>] <span class="kw">in</span> [<span class="st">&quot;editor&quot;</span>, <span class="st">&quot;template_debug&quot;</span>]:</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    doc_data <span class="op">=</span> env.GodotCPPDocData(<span class="st">&quot;src/gen/doc_data.gen.cpp&quot;</span>, source<span class="op">=</span>Glob(<span class="st">&quot;doc_classes/*.xml&quot;</span>))</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    sources.append(doc_data)</span></code></pre></div>
+<p>The <code>if</code> statement avoids adding the documentation to release builds of your GDExtension, where it is not needed. SCons then loads all the XML files inside the <code>doc_classes</code> directory, and appends the resulting targets to the <code>sources</code> array, to be included in your GDExtension build.</p>
+<p>After building, launch your Godot project again. You can open the documentation of one of your extension classes either using <code>Ctrl + Click</code> on a class name in the script editor, or inside by finding it in the Editor help dialog. If everything went well, you should see something like this:</p>
+<h2 id="writing-and-styling-documentation">Writing and styling documentation</h2>
+<p>The format of the class reference XML files is the same as the one used by Godot. It is documented in <code>doc_class_reference_primer</code>.</p>
+<p>If you are looking for pointers to write high quality documentation, feel free to refer to Godot's <a href="https://contributing.godotengine.org/en/latest/documentation/guidelines/index.html">documentation guidelines</a>.</p>
+<h2 id="publishing-documentation-online">Publishing documentation online</h2>
+<p>You may want to publish an online reference for your GDExtension, similar to this website. The most important step is to build reStructuredText (<code>.rst</code>) files from your XML class reference:</p>
+<pre class="shell"><code># You need a version.py file, so download it first.
+curl -sSLO https://raw.githubusercontent.com/godotengine/godot/refs/heads/master/version.py
+
+# Edit version.py according to your project before proceeding.
+# Then, run the rst generator. You&#39;ll need to have Python installed for this command to work.
+curl -sSL https://raw.githubusercontent.com/godotengine/godot/master/doc/tools/make_rst.py | python3 - -o &quot;docs/classes&quot; -l &quot;en&quot; doc_classes</code></pre>
+<p>Your <code>.rst</code> files will now be available in <code>docs/classes/</code>. From here, you can use any documentation builder that supports reStructuredText syntax to create a website from them.</p>
+<p><a href="https://github.com/godotengine/godot-docs">godot-docs</a> uses <a href="https://www.sphinx-doc.org/en/master/">Sphinx</a>. You can use the repository as a basis to build your own documentation system. The following guide describes the basic steps, but they are not exhaustive: you will need a bit of personal insight to make it work.</p>
+<ol type="1">
+<li>Add <a href="https://github.com/godotengine/godot-docs">godot-docs</a> as a submodule to your <code>docs/</code> folder.</li>
+<li>Copy over its <code>conf.py</code>, <code>index.rst</code>, <code>.readthedocs.yaml</code> files into <code>/docs/</code>. You may later decide to copy over and edit more of godot-docs' files, like <code>_templates/layout.html</code>.</li>
+<li>Modify these files according to your project. This mostly involves adjusting paths to point to the <code>godot-docs</code> subfolder, as well as strings to reflect it's your project rather than Godot you're building the docs for.</li>
+<li>Create an account on <a href="http://readthedocs.org">readthedocs.org</a>. Import your project, and modify its base <code>.readthedocs.yaml</code> file path to <code>/docs/.readthedocs.yaml</code>.</li>
+</ol>
+<p>Once you have completed all these steps, your documentation should be available at <code>&lt;repo-name&gt;.readthedocs.io</code>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

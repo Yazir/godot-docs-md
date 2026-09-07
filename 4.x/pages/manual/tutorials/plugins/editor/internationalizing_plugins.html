@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Internationalizing plugins — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="internationalizing-plugins">Internationalizing plugins</h1>
+<p>In the same way <code>doc_internationalizing_games</code> works, you can create translations for editor plugins. Everything that applies to games also applies to plugins, but the process of enabling translations for plugins is slightly different.</p>
+<p>After generating your CSV or POT file and creating translations, you cannot simply load the translations in the project settings; instead, you must go through the <code>class_TranslationServer</code> to add a new <code>class_TranslationDomain</code>.</p>
+<pre><code>func _enter_tree():
+    var domain = TranslationServer.get_or_add_domain(&quot;addons/my_plugin&quot;)
+    var dir = &quot;res://addons/my_plugin/locale&quot;
+    for file in DirAccess.get_files_at(dir):
+        var translation = ResourceLoader.load(dir.path_join(file)) as Translation
+        if translation:
+            domain.add_translation(translation)
+
+    # Existing plugin initialization...</code></pre>
+<p>The above code will load all available translations for your plugin, assuming the translations are located in the <code>addons/my_plugin/locale</code> directory. You should also choose a unique translation domain name to avoid collisions with other domains; using your plugin's path as the domain name ensures this.</p>
+<p>If we consider the dock from <code>doc_making_plugins_custom_dock</code>, you now need to tell the dock to use this translation domain:</p>
+<pre><code>dock.set_translation_domain(&quot;addons/my_plugin&quot;)</code></pre>
+<p>The last thing you need to do is remove the translation domain when the plugin is disabled:</p>
+<pre><code>func _exit_tree():
+    # Existing plugin cleanup...
+    TranslationServer.remove_domain(&quot;addons/my_plugin&quot;)</code></pre>
+<p>With all of this done, you can change the editor's language to check your translations.</p>
+<blockquote>
+<p><strong>Note:</strong> You will need to disable and re-enable your plugin once, as it needs to call ref in order to load translations.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

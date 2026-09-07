@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Making HTTP requests — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="making-http-requests">Making HTTP requests</h1>
+<p>The ref node is the easiest way to make HTTP requests in Godot. It is backed by the more low-level ref, for which a tutorial is available ref.</p>
+<p>For the sake of this example, we will create a simple UI with a button, that when pressed will start the HTTP request to the specified URL.</p>
+<blockquote>
+<p><strong>Warning:</strong> When exporting to Android, make sure to enable the <code>INTERNET</code> permission in the Android export preset before exporting the project or using one-click deploy. Otherwise, network communication of any kind will be blocked by Android.</p>
+</blockquote>
+<h2 id="preparing-scene">Preparing scene</h2>
+<p>Create a new empty scene, add a CanvasLayer as the root node and add a script to it. Then add two child nodes to it: a Button and an HTTPRequest node. You will need to connect the following signals to the CanvasLayer script:</p>
+<ul>
+<li>Button.pressed: When the button is pressed, we will start the request.</li>
+<li>HTTPRequest.request_completed: When the request is completed, we will get the requested data as an argument.</li>
+</ul>
+<h2 id="scripting">Scripting</h2>
+<p>Below is all the code we need to make it work. The URL points to an online API mocker; it returns a pre-defined JSON string, which we will then parse to get access to the data.</p>
+<pre class="gdscript"><code>extends CanvasLayer
+
+func _ready():
+    $HTTPRequest.connect(&quot;request_completed&quot;, self, &quot;_on_request_completed&quot;)
+    $Button.connect(&quot;pressed&quot;, self, &quot;_on_Button_pressed&quot;)
+
+func _on_Button_pressed():
+    $HTTPRequest.request(&quot;http://www.mocky.io/v2/5185415ba171ea3a00704eed&quot;)
+
+func _on_request_completed(result, response_code, headers, body):
+    var json = JSON.parse(body.get_string_from_utf8())
+    print(json.result)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> HTTPRequestDemo <span class="op">:</span> CanvasLayer</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;HTTPRequest&quot;</span><span class="op">).</span><span class="fu">Connect</span><span class="op">(</span><span class="st">&quot;request_completed&quot;</span><span class="op">,</span> <span class="kw">this</span><span class="op">,</span> <span class="st">&quot;OnRequestCompleted&quot;</span><span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        <span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Button&quot;</span><span class="op">).</span><span class="fu">Connect</span><span class="op">(</span><span class="st">&quot;pressed&quot;</span><span class="op">,</span> <span class="kw">this</span><span class="op">,</span> <span class="st">&quot;OnButtonPressed&quot;</span><span class="op">);</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnButtonPressed</span><span class="op">()</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        HTTPRequest httpRequest <span class="op">=</span> GetNode<span class="op">&lt;</span>HTTPRequest<span class="op">&gt;(</span><span class="st">&quot;HTTPRequest&quot;</span><span class="op">);</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        httpRequest<span class="op">.</span><span class="fu">Request</span><span class="op">(</span><span class="st">&quot;http://www.mocky.io/v2/5185415ba171ea3a00704eed&quot;</span><span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnRequestCompleted</span><span class="op">(</span><span class="dt">int</span> result<span class="op">,</span> <span class="dt">int</span> response_code<span class="op">,</span> <span class="dt">string</span><span class="op">[]</span> headers<span class="op">,</span> <span class="dt">byte</span><span class="op">[]</span> body<span class="op">)</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        JSONParseResult json <span class="op">=</span> JSON<span class="op">.</span><span class="fu">Parse</span><span class="op">(</span>Encoding<span class="op">.</span><span class="fu">UTF8</span><span class="op">.</span><span class="fu">GetString</span><span class="op">(</span>body<span class="op">));</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>json<span class="op">.</span><span class="fu">Result</span><span class="op">);</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>With this, you should see <code>(hello:world)</code> printed on the console; hello being a key, and world being a value, both of them strings.</p>
+<p>For more information on parsing JSON, see the class references for ref and ref.</p>
+<p>Note that you may want to check whether the <code>result</code> equals <code>RESULT_SUCCESS</code> and whether a JSON parsing error occurred, see the JSON class reference and ref for more.</p>
+<p>Of course, you can also set custom HTTP headers. These are given as a string array, with each string containing a header in the format <code>"header: value"</code>. For example, to set a custom user agent (the HTTP <code>user-agent</code> header) you could use the following:</p>
+<pre class="gdscript"><code>$HTTPRequest.request(&quot;http://www.mocky.io/v2/5185415ba171ea3a00704eed&quot;, [&quot;user-agent: YourCustomUserAgent&quot;])</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>HTTPRequest httpRequest <span class="op">=</span> GetNode<span class="op">&lt;</span>HTTPRequest<span class="op">&gt;(</span><span class="st">&quot;HTTPRequest&quot;</span><span class="op">);</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>httpRequest<span class="op">.</span><span class="fu">Request</span><span class="op">(</span><span class="st">&quot;http://www.mocky.io/v2/5185415ba171ea3a00704eed&quot;</span><span class="op">,</span> <span class="kw">new</span> <span class="dt">string</span><span class="op">[]</span> <span class="op">{</span> <span class="st">&quot;user-agent: YourCustomUserAgent&quot;</span> <span class="op">});</span></span></code></pre></div>
+<p>Please note that, for SSL/TLS encryption and thus HTTPS URLs to work, you may need to take some steps as described ref.</p>
+<p>Also, when calling APIs using authorization, be aware that someone might analyse and decompile your released application and thus may gain access to any embedded authorization information like tokens, usernames or passwords. That means it is usually not a good idea to embed things such as database access credentials inside your game. Avoid providing information useful to an attacker whenever possible.</p>
+<h2 id="sending-data-to-server">Sending data to server</h2>
+<p>Until now, we have limited ourselves to requesting data from a server. But what if you need to send data to the server? Here is a common way of doing it:</p>
+<pre class="gdscript"><code>func _make_post_request(url, data_to_send, use_ssl):
+    # Convert data to json string:
+    var query = JSON.print(data_to_send)
+    # Add &#39;Content-Type&#39; header:
+    var headers = [&quot;Content-Type: application/json&quot;]
+    $HTTPRequest.request(url, headers, use_ssl, HTTPClient.METHOD_POST, query)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">MakePostRequest</span><span class="op">(</span><span class="dt">string</span> url<span class="op">,</span> <span class="dt">object</span> data_to_send<span class="op">,</span> <span class="dt">bool</span> use_ssl<span class="op">)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">string</span> query <span class="op">=</span> JSON<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>data_to_send<span class="op">);</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    HTTPRequest httpRequest <span class="op">=</span> GetNode<span class="op">&lt;</span>HTTPRequest<span class="op">&gt;(</span><span class="st">&quot;HTTPRequest&quot;</span><span class="op">);</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">string</span><span class="op">[]</span> headers <span class="op">=</span> <span class="kw">new</span> <span class="dt">string</span><span class="op">[]</span> <span class="op">{</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="op">};</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    httpRequest<span class="op">.</span><span class="fu">Request</span><span class="op">(</span>url<span class="op">,</span> headers<span class="op">,</span> use_ssl<span class="op">,</span> HTTPClient<span class="op">.</span><span class="fu">Method</span><span class="op">.</span><span class="fu">Post</span><span class="op">,</span> query<span class="op">);</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Keep in mind that you have to wait for a request to finish before sending another one. Making multiple request at once requires you to have one node per request. A common strategy is to create and delete HTTPRequest nodes at runtime as necessary.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

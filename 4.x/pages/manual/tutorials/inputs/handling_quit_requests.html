@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Handling quit requests — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="handling-quit-requests">Handling quit requests</h1>
+<h2 id="quitting">Quitting</h2>
+<p>Most platforms have the option to request the application to quit. On desktops, this is usually done with the "x" icon on the window title bar. On mobile devices, the app can quit at any time while it is suspended to the background.</p>
+<h2 id="handling-the-notification">Handling the notification</h2>
+<p>On desktop and web platforms, ref receives a special <code>NOTIFICATION_WM_CLOSE_REQUEST</code> notification when quitting is requested from the window manager.</p>
+<p>Handling the notification is done as follows (on any node):</p>
+<pre class="gdscript"><code>func _notification(what):
+    if what == NOTIFICATION_WM_CLOSE_REQUEST:
+        get_tree().quit() # default behavior</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Notification</span><span class="op">(</span><span class="dt">int</span> what<span class="op">)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>what <span class="op">==</span> NotificationWMCloseRequest<span class="op">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">GetTree</span><span class="op">().</span><span class="fu">Quit</span><span class="op">();</span> <span class="co">// default behavior</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>It is important to note that by default, Godot apps have the built-in behavior to quit when quit is requested from the window manager. This can be changed, so that the user can take care of the complete quitting procedure:</p>
+<pre class="gdscript"><code>get_tree().set_auto_accept_quit(false)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">GetTree</span><span class="op">().</span><span class="fu">AutoAcceptQuit</span> <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span></code></pre></div>
+<h2 id="on-mobile-devices">On mobile devices</h2>
+<p>There is no direct equivalent to <code>NOTIFICATION_WM_CLOSE_REQUEST</code> on mobile platforms. Due to the nature of mobile operating systems, the only place that you can run code prior to quitting is when the app is being suspended to the background. On both Android and iOS, the app can be killed while suspended at any time by either the user or the OS. A way to plan ahead for this possibility is to utilize <code>NOTIFICATION_APPLICATION_PAUSED</code> in order to perform any needed actions as the app is being suspended.</p>
+<blockquote>
+<p><strong>Note:</strong> On iOS, you only have approximately 5 seconds to finish a task started by this signal. If you go over this allotment, iOS will kill the app instead of pausing it.</p>
+</blockquote>
+<p>On Android, pressing the Back button will exit the application if <strong>Application &gt; Config &gt; Quit On Go Back</strong> is checked in the Project Settings (which is the default). This will fire <code>NOTIFICATION_WM_GO_BACK_REQUEST</code>.</p>
+<h2 id="sending-your-own-quit-notification">Sending your own quit notification</h2>
+<p>While forcing the application to close can be done by calling ref, doing so will not send the <code>NOTIFICATION_WM_CLOSE_REQUEST</code> to the nodes in the scene tree. Quitting by calling ref will not allow custom actions to complete (such as saving, confirming the quit, or debugging), even if you try to delay the line that forces the quit.</p>
+<p>Instead, if you want to notify the nodes in the scene tree about the upcoming program termination, you should send the notification yourself:</p>
+<pre class="gdscript"><code>get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">GetTree</span><span class="op">().</span><span class="fu">Root</span><span class="op">.</span><span class="fu">PropagateNotification</span><span class="op">((</span><span class="dt">int</span><span class="op">)</span>NotificationWMCloseRequest<span class="op">);</span></span></code></pre></div>
+<p>Sending this notification will inform all nodes about the program termination, but will not terminate the program itself <em>unlike in 3.X</em>. In order to achieve the previous behavior, ref should be called after the notification.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

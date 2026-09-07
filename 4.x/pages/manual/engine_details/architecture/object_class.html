@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Object class — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="object-class">Object class</h1>
+<blockquote>
+<p><strong>See also:</strong> This page describes the C++ implementation of objects in Godot. Looking for the Object class reference? ref</p>
+</blockquote>
+<h2 id="general-definition">General definition</h2>
+<p>ref is the base class for almost everything. Most classes in Godot inherit directly or indirectly from it. Declaring them is a matter of using a single macro like this:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CustomObject <span class="op">:</span> <span class="kw">public</span> Object <span class="op">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    GDCLASS<span class="op">(</span>CustomObject<span class="op">,</span> Object<span class="op">);</span> <span class="co">// This is required to inherit from Object.</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>Objects come with a lot of built-in functionality, like reflection and editable properties:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>CustomObject <span class="op">*</span>obj <span class="op">=</span> memnew<span class="op">(</span>CustomObject<span class="op">);</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>print_line<span class="op">(</span><span class="st">&quot;Object class: &quot;</span><span class="op">,</span> obj<span class="op">-&gt;</span>get_class<span class="op">());</span> <span class="co">// print object class</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>OtherClass <span class="op">*</span>obj2 <span class="op">=</span> Object<span class="op">::</span>cast_to<span class="op">&lt;</span>OtherClass<span class="op">&gt;(</span>obj<span class="op">);</span> <span class="co">// Converting between classes, similar to dynamic_cast</span></span></code></pre></div>
+<h3 id="references">References:</h3>
+<ul>
+<li><a href="https://github.com/godotengine/godot/blob/master/core/object/object.h">core/object/object.h</a></li>
+</ul>
+<h2 id="registering-object-classes">Registering Object classes</h2>
+<p>Most <code>Object</code> subclasses are registered by calling <code>GDREGISTER_CLASS</code>.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>GDREGISTER_CLASS<span class="op">(</span>MyCustomClass<span class="op">)</span></span></code></pre></div>
+<p>This will register it as a named, public class in the <code>ClassDB</code>, which will allow the class to be instantiated by scripts, code, or by deserialization. Note that classes registered as <code>GDREGISTER_CLASS</code> should expect to be instantiated or freed automatically, for example by the editor or the documentation system.</p>
+<p>Besides <code>GDREGISTER_CLASS</code>, there are a few other modes of privateness:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Registers the class publicly, but prevents automatic instantiation through ClassDB.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>GDREGISTER_VIRTUAL_CLASS<span class="op">(</span>MyCustomClass<span class="op">);</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Registers the class publicly, but prevents all instantiation through ClassDB.</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>GDREGISTER_ABSTRACT_CLASS<span class="op">(</span>MyCustomClass<span class="op">);</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Registers the class in ClassDB, but marks it as private,</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">// such that it is not visible to scripts or extensions.</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co">// This is the same as not registering the class explicitly at all</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">// - in this case, the class is registered as internal automatically</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co">// when it is first constructed.</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>GDREGISTER_INTERNAL_CLASS<span class="op">(</span>MyCustomClass<span class="op">);</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="co">// Registers the class such that it is only available at runtime (but not in the editor).</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>GDREGISTER_RUNTIME_CLASS<span class="op">(</span>MyCustomClass<span class="op">);</span></span></code></pre></div>
+<p>It is also possible to use <code>GDSOFTCLASS(MyCustomClass, SuperClass)</code> instead of <code>GDCLASS(MyCustomClass, SuperClass)</code>. Classes defined this way are not registered in the <code>ClassDB</code> at all. This is sometimes used for platform-specific subclasses.</p>
+<h3 id="registering-bindings">Registering bindings</h3>
+<p>Object-derived classes can override the static function <code>static void _bind_methods()</code>. When the class is registered, this static function is called to register all the object methods, properties, constants, etc. It's only called once.</p>
+<p>Inside <code>_bind_methods</code>, there are a couple of things that can be done. Registering functions is one:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;methodname&quot;</span><span class="op">,</span> <span class="st">&quot;arg1name&quot;</span><span class="op">,</span> <span class="st">&quot;arg2name&quot;</span><span class="op">,</span> <span class="st">&quot;arg3name&quot;</span><span class="op">),</span> <span class="op">&amp;</span>MyCustomType<span class="op">::</span>method<span class="op">);</span></span></code></pre></div>
+<p>Default values for arguments can be passed as parameters at the end:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;methodname&quot;</span><span class="op">,</span> <span class="st">&quot;arg1name&quot;</span><span class="op">,</span> <span class="st">&quot;arg2name&quot;</span><span class="op">,</span> <span class="st">&quot;arg3name&quot;</span><span class="op">),</span> <span class="op">&amp;</span>MyCustomType<span class="op">::</span>method<span class="op">,</span> DEFVAL<span class="op">(-</span><span class="dv">1</span><span class="op">),</span> DEFVAL<span class="op">(-</span><span class="dv">2</span><span class="op">));</span> <span class="co">// Default values for arg2name (-1) and arg3name (-2).</span></span></code></pre></div>
+<p>Default values must be provided in the same order as they are declared, skipping required arguments and then providing default values for the optional ones. This matches the syntax for declaring methods in C++.</p>
+<p><code>D_METHOD</code> is a macro that converts "methodname" to a StringName for more efficiency. Argument names are used for introspection, but when compiling on release, the macro ignores them, so the strings are unused and optimized away.</p>
+<p>Check <code>_bind_methods</code> of Control or Object for more examples.</p>
+<p>If just adding modules and functionality that is not expected to be documented as thoroughly, the <code>D_METHOD()</code> macro can safely be ignored and a string passing the name can be passed for brevity.</p>
+<h4 id="references-1">References:</h4>
+<ul>
+<li><a href="https://github.com/godotengine/godot/blob/master/core/object/class_db.h">core/object/class_db.h</a></li>
+</ul>
+<h3 id="constants">Constants</h3>
+<p>Classes often have enums such as:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">enum</span> SomeMode <span class="op">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>   MODE_FIRST<span class="op">,</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>   MODE_SECOND</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>For these to work when binding to methods, the enum must be declared convertible to int. A macro is provided to help with this:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>VARIANT_ENUM_CAST<span class="op">(</span>MyClass<span class="op">::</span>SomeMode<span class="op">);</span> <span class="co">// now functions that take SomeMode can be bound.</span></span></code></pre></div>
+<p>The constants can also be bound inside <code>_bind_methods</code>, by using:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>BIND_CONSTANT<span class="op">(</span>MODE_FIRST<span class="op">);</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>BIND_CONSTANT<span class="op">(</span>MODE_SECOND<span class="op">);</span></span></code></pre></div>
+<h3 id="properties-setget">Properties (set/get)</h3>
+<p>Objects export properties, properties are useful for the following:</p>
+<ul>
+<li>Serializing and deserializing the object.</li>
+<li>Creating a list of editable values for the Object derived class.</li>
+</ul>
+<p>Properties are usually defined by the PropertyInfo() class and constructed as:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>PropertyInfo<span class="op">(</span>type<span class="op">,</span> name<span class="op">,</span> hint<span class="op">,</span> hint_string<span class="op">,</span> usage_flags<span class="op">)</span></span></code></pre></div>
+<p>For example:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>PropertyInfo<span class="op">(</span>Variant<span class="op">::</span>INT<span class="op">,</span> <span class="st">&quot;amount&quot;</span><span class="op">,</span> PROPERTY_HINT_RANGE<span class="op">,</span> <span class="st">&quot;0,49,1&quot;</span><span class="op">,</span> PROPERTY_USAGE_EDITOR<span class="op">)</span></span></code></pre></div>
+<p>This is an integer property named "amount". The hint is a range, and the range goes from 0 to 49 in steps of 1 (integers). It is only usable for the editor (editing the value visually) but won't be serialized.</p>
+<p>Another example:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>PropertyInfo<span class="op">(</span>Variant<span class="op">::</span>STRING<span class="op">,</span> <span class="st">&quot;modes&quot;</span><span class="op">,</span> PROPERTY_HINT_ENUM<span class="op">,</span> <span class="st">&quot;Enabled,Disabled,Turbo&quot;</span><span class="op">)</span></span></code></pre></div>
+<p>This is a string property, can take any string but the editor will only allow the defined hint ones. Since no usage flags were specified, the default ones are PROPERTY_USAGE_STORAGE and PROPERTY_USAGE_EDITOR.</p>
+<p>There are plenty of hints and usage flags available in object.h, give them a check.</p>
+<p>Properties can also work like C# properties and be accessed from script using indexing, but this usage is generally discouraged, as using functions is preferred for legibility. Many properties are also bound with categories, such as "animation/frame" which also make indexing impossible unless using operator [].</p>
+<p>From <code>_bind_methods()</code>, properties can be created and bound as long as set/get functions exist. Example:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>ADD_PROPERTY<span class="op">(</span>PropertyInfo<span class="op">(</span>Variant<span class="op">::</span>INT<span class="op">,</span> <span class="st">&quot;amount&quot;</span><span class="op">),</span> <span class="st">&quot;set_amount&quot;</span><span class="op">,</span> <span class="st">&quot;get_amount&quot;</span><span class="op">)</span></span></code></pre></div>
+<p>This creates the property using the setter and the getter.</p>
+<h3 id="binding-properties-using-_set_get_get_property_list">Binding properties using <code>_set</code>/<code>_get</code>/<code>_get_property_list</code></h3>
+<p>An additional method of creating properties exists when more flexibility is desired (i.e. adding or removing properties on context).</p>
+<p>The following functions can be overridden in an Object derived class, they are NOT virtual, DO NOT make them virtual, they are called for every override and the previous ones are not invalidated (multilevel call).</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span><span class="op">:</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>     <span class="dt">void</span> _get_property_list<span class="op">(</span>List<span class="op">&lt;</span>PropertyInfo<span class="op">&gt;</span> <span class="op">*</span>r_props<span class="op">)</span> <span class="at">const</span><span class="op">;</span>      <span class="co">// return list of properties</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>     <span class="dt">bool</span> _get<span class="op">(</span><span class="at">const</span> StringName <span class="op">&amp;</span>p_property<span class="op">,</span> Variant <span class="op">&amp;</span>r_value<span class="op">)</span> <span class="at">const</span><span class="op">;</span> <span class="co">// return true if property was found</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>     <span class="dt">bool</span> _set<span class="op">(</span><span class="at">const</span> StringName <span class="op">&amp;</span>p_property<span class="op">,</span> <span class="at">const</span> Variant <span class="op">&amp;</span>p_value<span class="op">);</span> <span class="co">// return true if property was found</span></span></code></pre></div>
+<p>This is also a little less efficient since <code>p_property</code> must be compared against the desired names in serial order.</p>
+<h3 id="signals">Signals</h3>
+<p>Objects can have a set of signals defined (similar to Delegates in other languages). This example shows how to connect to them:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This is the function signature:</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co">//</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Error connect(const StringName &amp;p_signal, const Callable &amp;p_callable, uint32_t p_flags = 0)</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">//</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">// For example:</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>obj<span class="op">-&gt;</span><span class="fu">connect</span><span class="op">(</span><span class="st">&quot;signal_name_here&quot;</span><span class="op">,</span> callable_mp<span class="op">(</span><span class="kw">this</span><span class="op">,</span> <span class="op">&amp;</span>MyCustomType<span class="op">::</span>method<span class="op">),</span> CONNECT_DEFERRED<span class="op">);</span></span></code></pre></div>
+<p><code>callable_mp</code> is a macro to create a custom callable function pointer to member functions. For the values of <code>p_flags</code>, see ref.</p>
+<p>Adding signals to a class is done in <code>_bind_methods</code>, using the <code>ADD_SIGNAL</code> macro, for example:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>ADD_SIGNAL<span class="op">(</span>MethodInfo<span class="op">(</span><span class="st">&quot;been_killed&quot;</span><span class="op">))</span></span></code></pre></div>
+<h2 id="object-ownership-and-casting">Object ownership and casting</h2>
+<p>Objects are allocated on the heap. There are two different ownership models:</p>
+<ul>
+<li>Objects derived from <code>RefCounted</code> are reference counted.</li>
+<li>All other objects are manually memory managed.</li>
+</ul>
+<p>The ownership models are fundamentally different. Refer to the section for each respectively to learn how to create, store, and free the object.</p>
+<p>When you do not know whether an object passed to you (via <code>Object *</code>) is <code>RefCounted</code>, and you need to store it, you should store its <code>ObjectID</code> rather than a pointer (as explained below, in the manual memory management section).</p>
+<p>When an object is passed to you via ref, especially when using deferred callbacks, it is possible that the contained <code>Object *</code> was already freed by the time your function runs. Instead of converting directly to <code>Object *</code>, you should use <code>get_validated_object</code>:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> do_something<span class="op">(</span>Variant p_variant<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    Object <span class="op">*</span>object <span class="op">=</span> p_variant<span class="op">.</span>get_validated_object<span class="op">();</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    ERR_FAIL_NULL<span class="op">(</span>object<span class="op">);</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="manual-memory-management">Manual memory management</h3>
+<p>Manually memory managed objects are created using <code>memnew</code> and freed using <code>memdelete</code>:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>Node <span class="op">*</span>node <span class="op">=</span> memnew<span class="op">(</span>Node<span class="op">);</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co">// ...</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>memdelete<span class="op">(</span>node<span class="op">);</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>node <span class="op">=</span> <span class="kw">nullptr</span><span class="op">;</span></span></code></pre></div>
+<p>When you are not the sole owner of an object, storing a pointer to it is dangerous: The object may at any point be freed through other references to it, causing your pointer to become a dangling pointer, which will eventually result in a crash.</p>
+<p>When storing objects you are not the only owner of, you should store its <code>ObjectID</code> rather than a pointer:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>Node <span class="op">*</span>node <span class="op">=</span> memnew<span class="op">(</span>Node<span class="op">);</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>ObjectID node_id <span class="op">=</span> node<span class="op">.</span>get_instance_id<span class="op">();</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">// ...</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>Object <span class="op">*</span>maybe_node <span class="op">=</span> ObjectDB<span class="op">::</span>get_instance<span class="op">(</span>node_id<span class="op">);</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>ERR_FAIL_NULL<span class="op">(</span>maybe_node<span class="op">);</span> <span class="co">// The node may have been freed between calls.</span></span></code></pre></div>
+<h3 id="refcounted-memory-management"><code>RefCounted</code> memory management</h3>
+<p>ref subclasses are memory managed with <a href="https://en.wikipedia.org/wiki/Reference_counting">reference counting semantics</a>.</p>
+<p>They are constructed using <code>memnew</code>, and should be stored in <code>Ref</code> instances. When the last <code>Ref</code> instance is dropped, the object automatically self-destructs.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MyRefCounted<span class="op">:</span> <span class="kw">public</span> RefCounted <span class="op">{</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    GDCLASS<span class="op">(</span>MyRefCounted<span class="op">,</span> RefCounted<span class="op">);</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>Ref<span class="op">&lt;</span>MyRefCounted<span class="op">&gt;</span> my_ref <span class="op">=</span> memnew<span class="op">(</span>MyRefCounted<span class="op">);</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co">// ...</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Ref holds shared ownership over the object, so the object</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="co">// will not be freed. As long as you have a valid, non-null</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="co">// Ref, it can be safely assumed the object is still valid.</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>my_ref<span class="op">-&gt;</span>get_class_name<span class="op">();</span></span></code></pre></div>
+<p>You should never call <code>memdelete</code> for <code>RefCounted</code> subclasses, because there may be other owners of it.</p>
+<p>You should also never store <code>RefCounted</code> subclasses using raw pointers, for example <code>RefCounted *object = memnew(RefCounted)</code>. This is unsafe because other owners may destruct the object, leaving you with a dangling pointer, which will eventually result in a crash.</p>
+<h4 id="references-2">References:</h4>
+<ul>
+<li><a href="https://github.com/godotengine/godot/blob/master/core/object/ref_counted.h">core/object/ref_counted.h</a></li>
+</ul>
+<h3 id="dynamic-casting">Dynamic casting</h3>
+<p>Godot provides dynamic casting between Object-derived classes, for example:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> some_func<span class="op">(</span>Object <span class="op">*</span>p_object<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>     Button <span class="op">*</span>button <span class="op">=</span> Object<span class="op">::</span>cast_to<span class="op">&lt;</span>Button<span class="op">&gt;(</span>p_object<span class="op">);</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>If the cast fails, <code>nullptr</code> is returned. This works the same as <code>dynamic_cast</code>, but does not use <a href="https://en.wikipedia.org/wiki/Run-time_type_information">C++ RTTI</a>.</p>
+<h2 id="notifications">Notifications</h2>
+<p>All objects in Godot have a ref method that allows them to respond to engine-level callbacks that may relate to it. More information can be found on the <code>doc_godot_notifications</code> page.</p>
+<h2 id="resources">Resources</h2>
+<p>ref inherits from RefCounted, so all resources are reference counted. Resources can optionally contain a path, which reference a file on disk. This can be set with <code>resource.set_path(path)</code>, though this is normally done by the resource loader. No two different resources can have the same path; attempting to do so will result in an error.</p>
+<p>Resources without a path are fine too.</p>
+<h3 id="references-3">References:</h3>
+<ul>
+<li><a href="https://github.com/godotengine/godot/blob/master/core/io/resource.h">core/io/resource.h</a></li>
+</ul>
+<h3 id="resource-loading">Resource loading</h3>
+<p>Resources can be loaded with the ResourceLoader API, like this:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>Ref<span class="op">&lt;</span>Resource<span class="op">&gt;</span> res <span class="op">=</span> ResourceLoader<span class="op">::</span>load<span class="op">(</span><span class="st">&quot;res://someresource.res&quot;</span><span class="op">)</span></span></code></pre></div>
+<p>If a reference to that resource has been loaded previously and is in memory, the ref will return that reference. This means that there can be only one resource loaded from a file referenced on disk at the same time.</p>
+<h4 id="references-4">References:</h4>
+<ul>
+<li><a href="https://github.com/godotengine/godot/blob/master/core/io/resource_loader.h">core/io/resource_loader.h</a></li>
+</ul>
+<h3 id="resource-saving">Resource saving</h3>
+<p>Saving a resource can be done with the resource saver API:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>ResourceSaver<span class="op">::</span>save<span class="op">(</span><span class="st">&quot;res://someresource.res&quot;</span><span class="op">,</span> instance<span class="op">)</span></span></code></pre></div>
+<p>The instance will be saved, and sub resources that have a path to a file will be saved as a reference to that resource. Sub resources without a path will be bundled with the saved resource and assigned sub-IDs, like <code>res://someresource.res::1</code>. This also helps to cache them when loaded.</p>
+<h4 id="references-5">References:</h4>
+<ul>
+<li><a href="https://github.com/godotengine/godot/blob/master/core/io/resource_saver.h">core/io/resource_saver.h</a></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

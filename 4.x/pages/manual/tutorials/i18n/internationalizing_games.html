@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Internationalizing games — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="internationalizing-games">Internationalizing games</h1>
+<h2 id="introduction">Introduction</h2>
+<p>While indie or niche games usually do not need localization, games targeting a more massive market often require localization. Godot offers many tools to make this process more straightforward, so this tutorial is more like a collection of tips and tricks.</p>
+<p>Localization is usually done by specific studios hired for the job. Despite the huge amount of software and file formats available for this, the most common way to do localization to this day is still with spreadsheets. The process of creating the spreadsheets and importing them is already covered in the <code>doc_importing_translations</code> tutorial. If you haven't read the Importing translations page before, we recommend you give it a read before reading this page.</p>
+<blockquote>
+<p><strong>Note:</strong> We will be using the official demo as an example; you can <a href="https://godotengine.org/asset-library/asset/2776">download it from the Asset Library</a>.</p>
+</blockquote>
+<h2 id="configuring-the-imported-translation">Configuring the imported translation</h2>
+<p>Translations can get updated and re-imported when they change, but they still have to be added to the project. This is done in <code>Project &gt; Project Settings &gt; Localization &gt; Translations</code>:</p>
+<p>The above dialog is used to add or remove translations project-wide.</p>
+<h2 id="localizing-resources">Localizing resources</h2>
+<p>It is also possible to instruct Godot to use alternate versions of assets (resources) depending on the current language. This can be used for localized images such as in-game billboards or localized voices.</p>
+<p>The <code>Remaps</code> tab can be used for this:</p>
+<p>Select the resource to be remapped then add some alternatives for each locale.</p>
+<blockquote>
+<p><strong>Note:</strong> The resource remapping system isn't supported for DynamicFonts. To use different fonts depending on the language's script, use the DynamicFont fallback system instead, which lets you define as many fallback fonts as you want.</p>
+<p>The upside of the DynamicFont fallback system is that it works regardless of the current language, making it ideal for things like multiplayer chat where the text language may not match the client's language.</p>
+</blockquote>
+<h2 id="automatically-setting-a-language">Automatically setting a language</h2>
+<p>It is recommended to default to the user's preferred language which can be obtained via ref. If your game is not available in that language, it will fall back to the ref in <code>Project &gt; Project Settings &gt; General &gt; Internationalization &gt; Locale</code>, or to <code>en</code> if empty. Nevertheless, letting players change the language in game is recommended for various reasons (e.g. translation quality or player preference).</p>
+<pre class="gdscript"><code>var language = &quot;automatic&quot;
+# Load here language from the user settings file
+if language == &quot;automatic&quot;:
+   var preferred_language = OS.get_locale_language()
+   TranslationServer.set_locale(preferred_language)
+else:
+   TranslationServer.set_locale(language)</code></pre>
+<h2 id="locale-vs-language">Locale vs. language</h2>
+<p>A ref is commonly a combination of a language with a region or country, but can also contain information like a script or a variant.</p>
+<p>Examples:</p>
+<ul>
+<li><code>en</code>: English language</li>
+<li><code>en_GB</code>: English in Great Britain / British English</li>
+<li><code>en_US</code>: English in the USA / American English</li>
+<li><code>en_DE</code>: English in Germany</li>
+</ul>
+<p>Indie games generally only need to care about language, but read on for more information.</p>
+<p>Why locales exist can be illustrated through the USA and Great Britain. Both speak the same language (English), yet differ in many aspects:</p>
+<ul>
+<li>Spelling: e.g. gray (USA), grey (GB)</li>
+<li>Use of words: e.g. eggplant (USA), aubergine (GB)</li>
+<li>Units or currencies: e.g. feet/inches (USA), metres/cm (GB)</li>
+</ul>
+<p>It can get more complex however. Imagine you offer different content in Europe and in China (e.g. in an MMO). You will need to translate each of those content variations into many languages and store and load them accordingly.</p>
+<h2 id="converting-keys-to-text">Converting keys to text</h2>
+<p>Some controls, such as ref and ref, will automatically fetch a translation if their text matches a translation key. For example, if a label's text is <code>MAIN_SCREEN_GREETING1</code> and that key exists in the current translation, then the text will automatically be translated.</p>
+<p>This automatic translation behavior may be undesirable in certain cases. For instance, when using a Label to display a player's name, you most likely don't want the player's name to be translated if it matches a translation key. To disable automatic translation on a specific node, set the <code>Auto Translate &gt; Mode</code> to <code>Disabled</code> in the inspector.</p>
+<p>In code, the ref function can be used. This will just look up the text in the translations and convert it if found:</p>
+<pre class="gdscript"><code>level.text = tr(&quot;LEVEL_5_NAME&quot;)
+status.text = tr(&quot;GAME_STATUS_%d&quot; % status_index)</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>level<span class="op">.</span><span class="fu">Text</span> <span class="op">=</span> <span class="fu">Tr</span><span class="op">(</span><span class="st">&quot;LEVEL_5_NAME&quot;</span><span class="op">);</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>status<span class="op">.</span><span class="fu">Text</span> <span class="op">=</span> <span class="fu">Tr</span><span class="op">(</span>$<span class="st">&quot;GAME_STATUS_{statusIndex}&quot;</span><span class="op">);</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> If no text is displayed after changing the language, try to use a different font. The default project font only supports a subset of the Latin-1 character set, which cannot be used to display languages like Russian or Chinese.</p>
+<p>A good resource for multilingual fonts is <a href="https://www.google.com/get/noto/">Noto Fonts</a>. Make sure to download the correct variation if you're using a less common language.</p>
+<p>Once you've downloaded the font, load the TTF file into a DynamicFont resource and use it as a custom font of your Control node. For better reusability, associate a new a Theme resource to your root Control node and define the DynamicFont as the Default Font in the theme.</p>
+</blockquote>
+<h3 id="placeholders">Placeholders</h3>
+<p>To feature placeholders in your translated strings, use <code>doc_gdscript_printf</code> or the equivalent feature in C#. This lets translators move the location of the placeholder in the string freely, which allows translations to sound more natural. Named placeholders with the <code>String.format()</code> function should be used whenever possible, as they also allow translators to choose the <em>order</em> in which placeholders appear:</p>
+<pre class="gdscript"><code># The placeholder&#39;s locations can be changed, but not their order.
+# This will probably not suffice for some target languages.
+message.text = tr(&quot;%s picked up the %s&quot;) % [&quot;Ogre&quot;, &quot;Sword&quot;]
+
+# The placeholder&#39;s locations and order can be changed.
+# Additionally, this form gives more context for translators to work with.
+message.text = tr(&quot;{character} picked up the {weapon}&quot;).format({character = &quot;Ogre&quot;, weapon = &quot;Sword&quot;})</code></pre>
+<h3 id="translation-contexts">Translation contexts</h3>
+<p>If you're using plain English as source strings (rather than message codes <code>LIKE_THIS</code>), you may run into ambiguities when you have to translate the same English string to different strings in certain target languages. You can optionally specify a <em>translation context</em> to resolve this ambiguity and allow target languages to use different strings, even though the source string is identical:</p>
+<pre class="gdscript"><code># &quot;Close&quot;, as in an action (to close something).
+button.set_text(tr(&quot;Close&quot;, &quot;Actions&quot;))
+
+# &quot;Close&quot;, as in a distance (opposite of &quot;far&quot;).
+distance_label.set_text(tr(&quot;Close&quot;, &quot;Distance&quot;))</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// &quot;Close&quot;, as in an action (to close something).</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;Button&quot;</span><span class="op">).</span><span class="fu">Text</span> <span class="op">=</span> <span class="fu">Tr</span><span class="op">(</span><span class="st">&quot;Close&quot;</span><span class="op">,</span> <span class="st">&quot;Actions&quot;</span><span class="op">);</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">// &quot;Close&quot;, as in a distance (opposite of &quot;far&quot;).</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;Distance&quot;</span><span class="op">).</span><span class="fu">Text</span> <span class="op">=</span> <span class="fu">Tr</span><span class="op">(</span><span class="st">&quot;Close&quot;</span><span class="op">,</span> <span class="st">&quot;Distance&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="pluralization">Pluralization</h3>
+<p>Most languages require different strings depending on whether an object is in singular or plural form. However, hardcoding the "is plural" condition depending on whether there is more than 1 object is not valid in all languages.</p>
+<p>Some languages have more than two plural forms, and the rules on the number of objects required for each plural form vary. Godot offers support for <em>pluralization</em> so that the target locales can handle this automatically.</p>
+<p>Pluralization is meant to be used with positive (or zero) integer numbers only. Negative and floating-point values usually represent physical entities for which singular and plural don't clearly apply.</p>
+<pre class="gdscript"><code>var num_apples = 5
+label.text = tr_n(&quot;There is %d apple&quot;, &quot;There are %d apples&quot;, num_apples) % num_apples</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> numApples <span class="op">=</span> <span class="dv">5</span><span class="op">;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;Label&quot;</span><span class="op">).</span><span class="fu">Text</span> <span class="op">=</span> <span class="dt">string</span><span class="op">.</span><span class="fu">Format</span><span class="op">(</span><span class="fu">TrN</span><span class="op">(</span><span class="st">&quot;There is {0} apple&quot;</span><span class="op">,</span> <span class="st">&quot;There are {0} apples&quot;</span><span class="op">,</span> numApples<span class="op">),</span> numApples<span class="op">);</span></span></code></pre></div>
+<p>This can be combined with a context if needed:</p>
+<pre class="gdscript"><code>var num_jobs = 1
+label.text = tr_n(&quot;%d job&quot;, &quot;%d jobs&quot;, num_jobs, &quot;Task Manager&quot;) % num_jobs</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> numJobs <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;Label&quot;</span><span class="op">).</span><span class="fu">Text</span> <span class="op">=</span> <span class="dt">string</span><span class="op">.</span><span class="fu">Format</span><span class="op">(</span><span class="fu">TrN</span><span class="op">(</span><span class="st">&quot;{0} job&quot;</span><span class="op">,</span> <span class="st">&quot;{0} jobs&quot;</span><span class="op">,</span> numJobs<span class="op">,</span> <span class="st">&quot;Task Manager&quot;</span><span class="op">),</span> numJobs<span class="op">);</span></span></code></pre></div>
+<h2 id="making-controls-resizable">Making controls resizable</h2>
+<p>The same text in different languages can vary greatly in length. For this, make sure to read the tutorial on <code>doc_size_and_anchors</code>, as dynamically adjusting control sizes may help. ref can be useful, as well as the text wrapping options available in ref.</p>
+<p>To check whether your UI can accommodate translations with longer strings than the original, you can enable ref in the advanced Project Settings. This will replace all your localizable strings with longer versions of themselves, while also replacing some characters in the original strings with accented versions (while still being readable). Placeholders are kept as-is, so that they keep working when pseudolocalization is enabled.</p>
+<p>For example, the string <code>Hello world, this is %s!</code> becomes <code>[Ĥéłłô ŵôŕłd́, ŧh̀íš íš %s!]</code> when pseudolocalization is enabled.</p>
+<p>While looking strange at first, pseudolocalization has several benefits:</p>
+<ul>
+<li>It lets you spot non-localizable strings quickly, so you can go over them and make them localizable (if it makes sense to do so).</li>
+<li>It lets you check UI elements that can't fit long strings. Many languages will feature much longer translations than the source text, so it's important to ensure your UI can accommodate longer-than-usual strings.</li>
+<li>It lets you check whether your font contains all the characters required to support various languages. However, since the goal of pseudolocalization is to keep the original strings readable, it's not an effective test for checking whether a font can support <code>CJK (Chinese, Japanese, Korean)</code> or right-to-left languages.</li>
+</ul>
+<p>The project settings allow you to tune pseudolocalization behavior, so that you can disable parts of it if desired.</p>
+<h2 id="translationserver">TranslationServer</h2>
+<p>Godot has a server handling low-level translation management called the ref. Translations can be added or removed during runtime; the current language can also be changed at runtime.</p>
+<h2 id="bidirectional-text-and-ui-mirroring">Bidirectional text and UI mirroring</h2>
+<p>Arabic and Hebrew are written from right to left (except for the numbers and Latin words mixed in), and the user interface for these languages should be mirrored as well. In some languages the shape of a glyph changes depending on the surrounding characters.</p>
+<p>Support for bidirectional writing systems and UI mirroring is transparent, you don't usually need to change anything or have any knowledge of the specific writing system.</p>
+<p>For RTL languages, Godot will automatically do the following changes to the UI:</p>
+<ul>
+<li>Mirrors left/right anchors and margins.</li>
+<li>Swaps left and right text alignment.</li>
+<li>Mirrors horizontal order of the child controls in the containers, and items in Tree/ItemList controls.</li>
+<li>Uses mirrored order of the internal control elements (e.g., OptionButton dropdown button, CheckBox/CheckButton alignment, List column order, TreeItem icons and connecting line alignment). In some cases, mirrored controls use separate theme styles.</li>
+<li>Coordinate system is <strong>not</strong> mirrored.</li>
+<li>Non-UI nodes (sprites, etc.) are <strong>not</strong> affected.</li>
+</ul>
+<p>It is possible to override text and control layout direction by using the following control properties:</p>
+<ul>
+<li><code>text_direction</code>, sets the base text direction. When set to "auto", the direction depends on the first strong directional character in the text according to the Unicode Bidirectional Algorithm.</li>
+<li><code>language</code>, overrides the current project locale.</li>
+<li>The <code>structured_text_bidi_override</code> property and <code>_structured_text_parser</code> callback, enable special handling for structured text.</li>
+<li><code>layout_direction</code>, overrides control mirroring.</li>
+</ul>
+<blockquote>
+<p><strong>See also:</strong> You can see how right-to-left typesetting works in action using the <a href="https://github.com/godotengine/godot-demo-projects/tree/master/gui/bidi_and_font_features">BiDI and Font Features demo project</a>.</p>
+</blockquote>
+<h2 id="adding-break-iterator-data-to-exported-project">Adding break iterator data to exported project</h2>
+<p>Some languages are written without spaces. In those languages, word and line breaking require more than rules over character sequences. Godot includes ICU rule and dictionary-based break iterator data, but this data is not included in exported projects by default.</p>
+<p>To include it, go to <code>Project &gt; Project Settings &gt; General &gt; Internationalization &gt; Locale</code> and enable <code>Include Text Server Data</code>, then export the project. Break iterator data is about 4 MB in size.</p>
+<h2 id="structured-text-bidi-override">Structured text BiDi override</h2>
+<p>Unicode BiDi algorithm is designed to work with natural text and it's incapable of handling text with the higher level order, like file names, URIs, email addresses, regular expressions or source code.</p>
+<p>For example, the path for this shown directory structure will be displayed incorrectly (top "LineEdit" control). "File" type structured text override splits text into segments, then BiDi algorithm is applied to each of them individually to correctly display directory names in any language and preserve correct order of the folders (bottom "LineEdit" control).</p>
+<p>Custom callbacks provide a way to override BiDi for the other types of structured text.</p>
+<h2 id="localizing-numbers">Localizing numbers</h2>
+<p>Controls specifically designed for number input or output (e.g. ProgressBar, SpinBox) will use localized numbering system automatically, for the other control ref can be used to convert Western Arabic numbers (0..9) to the localized numbering system and ref to convert it back.</p>
+<h2 id="localizing-icons-and-images">Localizing icons and images</h2>
+<p>Icons with left and right pointing arrows which may need to be reversed for Arabic and Hebrew locales, in case they indicate movement or direction (e.g. back/forward buttons). Otherwise, they can remain the same.</p>
+<h2 id="testing-translations">Testing translations</h2>
+<p>You may want to test a project's translation before releasing it. Godot provides three ways to do this.</p>
+<p>Under <code>Project &gt; Project Settings &gt; General &gt; Internationalization &gt; Locale</code> (with advanced settings enabled) is a <code>Test</code> property. Set this property to the locale code of the language you want to test. Godot will run the project with that locale when the project is run (either from the editor or when exported).</p>
+<p>Keep in mind that since this is a project setting, it will show up in version control when it is set to a non-empty value. Therefore, it should be set back to an empty value before committing changes to version control.</p>
+<p>Second, from within the editor go to the top bar and click on <code>View</code> on the top bar, then go down to <code>Preview Translation</code> and select the language you want to preview.</p>
+<p>All text in scenes in the editor should now be displayed using the selected language.</p>
+<p>Translations can also be tested when ref. For example, to test a game in French, the following argument can be supplied:</p>
+<pre class="shell"><code>godot --language fr</code></pre>
+<h2 id="translating-the-project-name">Translating the project name</h2>
+<p>The project name becomes the app name when exporting to different operating systems and platforms. To specify the project name in more than one language go to <code>Project &gt; Project Settings &gt; General &gt; Application &gt; Config</code>. From here click on the <code>Localizable String (Size 0)</code> button, then the <code>Add Translation</code> button. It will take you to a page where you can choose the language (and country if needed) for your project name translation. After doing that you can now type in the localized name.</p>
+<p>If you are unsure about the language code to use, refer to the ref.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

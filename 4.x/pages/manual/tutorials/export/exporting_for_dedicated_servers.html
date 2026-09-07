@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exporting for dedicated servers — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="exporting-for-dedicated-servers">Exporting for dedicated servers</h1>
+<p>If you want to run a dedicated server for your project on a machine that doesn't have a GPU or display server available, you'll need to run Godot with the <code>headless</code> display server and <code>Dummy</code> ref.</p>
+<p>Since Godot 4.0, this can be done by running a Godot binary on any platform with the <code>--headless</code> command line argument, or running a project exported as dedicated server. You do not need to use a specialized server binary anymore, unlike Godot 3.x.</p>
+<h2 id="editor-versus-export-template">Editor versus export template</h2>
+<p>It is possible to use either an editor or export template (debug or release) binary in headless mode. Which one you should use depends on your use case:</p>
+<ul>
+<li><strong>Export template:</strong> Use this one for running dedicated servers. It does not contain editor functionality, and is therefore smaller and more optimized.</li>
+<li><strong>Editor:</strong> This binary contains editor functionality and is intended to be used for exporting projects. This binary <em>can</em> be used to run dedicated servers, but it's not recommended as it's larger and less optimized.</li>
+</ul>
+<h2 id="export-approaches">Export approaches</h2>
+<p>There are two ways to export a project for a server:</p>
+<ul>
+<li>Create a separate export preset for the platform that will host the server, then export your project as usual.</li>
+<li>Export a PCK file only, preferably for the platform that matches the platform that will host the server. Place this PCK file in the same folder as an export template binary, rename the binary to have the same name as the PCK (minus the file extension), then run the binary.</li>
+</ul>
+<p>Both methods should result in identical output. The rest of the page will focus on the first approach.</p>
+<p>See <code>doc_exporting_projects</code> for more information.</p>
+<h2 id="exporting-a-project-for-a-dedicated-server">Exporting a project for a dedicated server</h2>
+<p>If you export a project as usual when targeting a server, you will notice that the PCK file is just as large as for the client. This is because it includes all resources, including those the server doesn't need (such as texture data). Additionally, headless mode won't be automatically used; the user will have to specify <code>--headless</code> to make sure no window spawns.</p>
+<p>Many resources such as textures can be stripped from the PCK file to greatly reduce its size. Godot offers a way to do this for textures and materials in a way that preserves references in scene or resource files (built-in or external).</p>
+<p>To begin doing so, make sure you have a dedicated export preset for your server, then select it, go to its <strong>Resources</strong> tab and change its export mode:</p>
+<p><em>Image: Choosing theExport as dedicated server</em>* export mode in the export preset*</p>
+<p>Choosing the <strong>Export as dedicated server</strong> export mode in the export preset</p>
+<p>When this export mode is chosen, the <code>dedicated_server</code> feature tag is automatically added to the exported project.</p>
+<blockquote>
+<p><strong>Note:</strong> If you do not wish to use this export mode but still want the feature tag, you can write the name <code>dedicated_server</code> in the <strong>Features</strong> tab of the export preset. This will also force <code>--headless</code> when running the exported project.</p>
+</blockquote>
+<p>After selecting this export mode, you will be presented with a list of resources in the project:</p>
+<p><em>Image: Choosing resources to keep, keep with stripped visuals or remove</em></p>
+<p>Choosing resources to keep, keep with stripped visuals or remove</p>
+<p>Ticking a box allows you to override options for the specified file or folder. Checking boxes does <strong>not</strong> affect which files are exported; this is done by the options selected for each checkbox instead.</p>
+<p>Files within a checked folder will automatically use the parent's option by default, which is indicated by the <strong>(Inherited)</strong> suffix for the option name (and the option name being grayed out). To change the option for a file whose option is currently inherited, you must tick the box next to it first.</p>
+<ul>
+<li><strong>Strip Visuals:</strong> Export this resource, with visual files (textures and materials) replaced by placeholder classes. Placeholder classes store the image size (as it's sometimes used to position elements in a 2D scene), but nothing else.</li>
+<li><strong>Keep:</strong> Export this resource as usual, with visual files intact.</li>
+<li><strong>Remove:</strong> The file is not included in the PCK. This is useful to ignore scenes and resources that only the client needs. If you do so, make sure the server doesn't reference these client-only scenes and resources in any way.</li>
+</ul>
+<p>The general recommendation is to use <strong>Strip Visuals</strong> whenever possible, unless the server needs to access image data such as pixels' colors. For example, if your server generates collision data based on an image's contents, you need to use <strong>Keep</strong> for that particular image.</p>
+<blockquote>
+<p><strong>Tip:</strong> To check the file structure of your exported PCK, use the <strong>Export PCK/ZIP...</strong> button with a <code>.zip</code> file extension, then open the resulting ZIP file in a file manager.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Be careful when using the <strong>Remove</strong> mode, as scenes/resources that reference a removed file will no longer be able to load successfully.</p>
+<p>If you wish to remove specific resources but make the scenes still be able to load without them, you'll have to remove the reference in the scene file and load the files to the nodes' properties using <code>load()</code> in a script. This approach can be used to strip resources that Godot doesn't support replacing with placeholders yet, such as audio.</p>
+<p>Removing textures is often what makes the greatest impact on the PCK size, so it is recommended to stick with <strong>Strip Visuals</strong> at first.</p>
+</blockquote>
+<p>With the above options used, a PCK for the client (which exports all resources normally) will look as follows:</p>
+<pre><code>.
+├── .godot
+│   ├── exported
+│   │   └── 133200997
+│   │       └── export-78c237d4bfdb4e1d02e0b5f38ddfd8bd-scene.scn
+│   ├── global_script_class_cache.cfg
+│   ├── imported
+│   │   ├── map_data.png-ce840618f399a990343bfc7298195a13.ctex
+│   │   ├── music.ogg-fa883da45ae49695a3d022f64e60aee2.oggvorbisstr
+│   │   └── sprite.png-7958af25f91bb9dbae43f35388f8e840.ctex
+│   └── uid_cache.bin
+├── client
+│   ├── music.ogg.import
+│   └── sprite.png.import
+├── server
+│   └── map_data.png.import
+├── test
+│   └── scene.gd
+└── unused
+│   └── development_test.gd
+├── project.binary
+├── scene.gd
+├── scene.tscn.remap</code></pre>
+<p>The PCK's file structure for the server will look as follows:</p>
+<pre><code>.
+├── .godot
+│   ├── exported
+│   │   └── 3400186661
+│   │       ├── export-78c237d4bfdb4e1d02e0b5f38ddfd8bd-scene.scn
+│   │       ├── export-7958af25f91bb9dbae43f35388f8e840-sprite.res  # Placeholder texture
+│   │       └── export-fa883da45ae49695a3d022f64e60aee2-music.res
+│   ├── global_script_class_cache.cfg
+│   ├── imported
+│   │   └── map_data.png-ce840618f399a990343bfc7298195a13.ctex
+│   └── uid_cache.bin
+├── client
+│   ├── music.ogg.import
+│   └── sprite.png.import  # Points to placeholder texture
+└── server
+│   └── map_data.png.import
+├── project.binary
+├── scene.gd
+├── scene.tscn.remap</code></pre>
+<h2 id="starting-the-dedicated-server">Starting the dedicated server</h2>
+<p>If both your client and server are part of the same Godot project, you will have to add a way to start the server directly using a command-line argument.</p>
+<p>If you ref using the <strong>Export as dedicated server</strong> export mode (or have added <code>dedicated_server</code> as a custom feature tag), you can use the <code>dedicated_server</code> feature tag to detect whether a dedicated server PCK is being used:</p>
+<pre class="gdscript"><code># Note: Feature tags are case-sensitive.
+if OS.has_feature(&quot;dedicated_server&quot;):
+    # Run your server startup code here...
+    pass</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Note: Feature tags are case-sensitive.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>OS<span class="op">.</span><span class="fu">HasFeature</span><span class="op">(</span><span class="st">&quot;dedicated_server&quot;</span><span class="op">))</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Run your server startup code here...</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>If you also wish to host a server when using the built-in <code>--headless</code> command line argument, this can be done by adding the following code snippet in your main scene (or an autoload)'s <code>_ready()</code> method:</p>
+<pre class="gdscript"><code>if DisplayServer.get_name() == &quot;headless&quot;:
+    # Run your server startup code here...
+    #
+    # Using this check, you can start a dedicated server by running
+    # a Godot binary (editor or export template) with the `--headless`
+    # command-line argument.
+    pass</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">.</span><span class="fu">Linq</span><span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>DisplayServer<span class="op">.</span><span class="fu">GetName</span><span class="op">()</span> <span class="op">==</span> <span class="st">&quot;headless&quot;</span><span class="op">)</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Run your server startup code here...</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">//</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Using this check, you can start a dedicated server by running</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// a Godot binary (editor or export template) with the `--headless`</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// command-line argument.</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>If you wish to use a custom command line argument, this can be done by adding the following code snippet in your main scene (or an autoload)'s <code>_ready()</code> method:</p>
+<pre class="gdscript"><code>if &quot;--server&quot; in OS.get_cmdline_user_args():
+    # Run your server startup code here...
+    #
+    # Using this check, you can start a dedicated server by running
+    # a Godot binary (editor or export template) with the `--server`
+    # command-line argument.
+    pass</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">.</span><span class="fu">Linq</span><span class="op">;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>OS<span class="op">.</span><span class="fu">GetCmdlineUserArgs</span><span class="op">().</span><span class="fu">Contains</span><span class="op">(</span><span class="st">&quot;--server&quot;</span><span class="op">))</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Run your server startup code here...</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">//</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Using this check, you can start a dedicated server by running</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// a Godot binary (editor or export template) with the `--server`</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// command-line argument.</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>It's a good idea to add at least one of the above command-line arguments to start a server, as it can be used to test server functionality from the command line without having to export the project.</p>
+<p>If your client and server are separate Godot projects, your server should most likely be configured in a way where running the main scene starts a server automatically.</p>
+<h2 id="next-steps">Next steps</h2>
+<p>On Linux, to make your dedicated server restart after a crash or system reboot, you can <a href="https://medium.com/@benmorel/creating-a-linux-service-with-systemd-611b5c8b91d6">create a systemd service</a>. This also lets you view server logs in a more convenient fashion, with automatic log rotation provided by systemd. When making your project hostable as a systemd service, you should also enable the <code>application/run/flush_stdout_on_print</code> project setting. This way, journald (the systemd logging service) can collect logs while the process is running.</p>
+<p>If you have experience with containers, you could also look into wrapping your dedicated server in a <a href="https://www.docker.com/">Docker</a> container. This way, it can be used more easily in an automatic scaling setup (which is outside the scope of this tutorial).</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

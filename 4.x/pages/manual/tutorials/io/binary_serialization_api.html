@@ -1,0 +1,1263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binary serialization API — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="binary-serialization-api">Binary serialization API</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Godot has a serialization API based on Variant. It's used for converting data types to an array of bytes efficiently. This API is exposed via the global ref and ref functions, but it is also used in the <code>get_var</code> and <code>store_var</code> methods of <code>class_FileAccess</code> as well as the packet APIs for <code>class_PacketPeer</code>. This format is <em>not</em> used for binary scenes and resources.</p>
+<h2 id="full-objects-vs-object-instance-ids">Full Objects vs Object instance IDs</h2>
+<p>If a variable is serialized with <code>full_objects = true</code>, then any Objects contained in the variable will be serialized and included in the result. This is recursive.</p>
+<p>If <code>full_objects = false</code>, then only the instance IDs will be serialized for any Objects contained in the variable.</p>
+<h2 id="packet-specification">Packet specification</h2>
+<p>The packet is designed to be always padded to 4 bytes. All values are little-endian-encoded. All packets have a 4-byte header representing an integer, specifying the type of data.</p>
+<p>The lowest value two bytes are used to determine the type, while the highest value two bytes contain flags:</p>
+<pre><code>base_type = val &amp; 0xFFFF;
+flags = val &gt;&gt; 16;</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th>Type</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>null</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>bool</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td>integer</td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td>float</td>
+</tr>
+<tr class="odd">
+<td>4</td>
+<td>string</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td>vector2</td>
+</tr>
+<tr class="odd">
+<td>6</td>
+<td>rect2</td>
+</tr>
+<tr class="even">
+<td>7</td>
+<td>vector3</td>
+</tr>
+<tr class="odd">
+<td>8</td>
+<td>transform2d</td>
+</tr>
+<tr class="even">
+<td>9</td>
+<td>plane</td>
+</tr>
+<tr class="odd">
+<td>10</td>
+<td>quaternion</td>
+</tr>
+<tr class="even">
+<td>11</td>
+<td>aabb</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td>basis</td>
+</tr>
+<tr class="even">
+<td>13</td>
+<td>transform3d</td>
+</tr>
+<tr class="odd">
+<td>14</td>
+<td>color</td>
+</tr>
+<tr class="even">
+<td>15</td>
+<td>node path</td>
+</tr>
+<tr class="odd">
+<td>16</td>
+<td>rid</td>
+</tr>
+<tr class="even">
+<td>17</td>
+<td>object</td>
+</tr>
+<tr class="odd">
+<td>18</td>
+<td>dictionary</td>
+</tr>
+<tr class="even">
+<td>19</td>
+<td>array</td>
+</tr>
+<tr class="odd">
+<td>20</td>
+<td>raw array</td>
+</tr>
+<tr class="even">
+<td>21</td>
+<td>int32 array</td>
+</tr>
+<tr class="odd">
+<td>22</td>
+<td>int64 array</td>
+</tr>
+<tr class="even">
+<td>23</td>
+<td>float32 array</td>
+</tr>
+<tr class="odd">
+<td>24</td>
+<td>float64 array</td>
+</tr>
+<tr class="even">
+<td>25</td>
+<td>string array</td>
+</tr>
+<tr class="odd">
+<td>26</td>
+<td>vector2 array</td>
+</tr>
+<tr class="even">
+<td>27</td>
+<td>vector3 array</td>
+</tr>
+<tr class="odd">
+<td>28</td>
+<td>color array</td>
+</tr>
+<tr class="even">
+<td>29</td>
+<td>max</td>
+</tr>
+</tbody>
+</table>
+<p>Following this is the actual packet contents, which varies for each type of packet. Note that this assumes Godot is compiled with single-precision floats, which is the default. If Godot was compiled with double-precision floats, the length of "Float" fields within data structures should be 8, and the offset should be <code>(offset - 4) * 2 + 4</code>. The "float" type itself always uses double precision.</p>
+<h3 id="0-null">0: null</h3>
+<h3 id="1-ref">1: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>0 for False, 1 for True</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2-ref">2: ref</h3>
+<p>If no flags are set (flags == 0), the integer is sent as a 32 bit integer:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>32-bit signed integer</td>
+</tr>
+</tbody>
+</table>
+<p>If flag <code>ENCODE_FLAG_64</code> is set (<code>flags &amp; 1 == 1</code>), the integer is sent as a 64-bit integer:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>8</td>
+<td>Integer</td>
+<td>64-bit signed integer</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-ref">3: ref</h3>
+<p>If no flags are set (flags == 0), the float is sent as a 32 bit single precision:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Float</td>
+<td>IEEE 754 single-precision float</td>
+</tr>
+</tbody>
+</table>
+<p>If flag <code>ENCODE_FLAG_64</code> is set (<code>flags &amp; 1 == 1</code>), the float is sent as a 64-bit double precision number:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>8</td>
+<td>Float</td>
+<td>IEEE 754 double-precision float</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4-ref">4: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>String length (in bytes)</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>X</td>
+<td>Bytes</td>
+<td>UTF-8 encoded string</td>
+</tr>
+</tbody>
+</table>
+<p>This field is padded to 4 bytes.</p>
+<h3 id="5-ref">5: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Float</td>
+<td>X coordinate</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>4</td>
+<td>Float</td>
+<td>Y coordinate</td>
+</tr>
+</tbody>
+</table>
+<h3 id="6-ref">6: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Float</td>
+<td>X coordinate</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>4</td>
+<td>Float</td>
+<td>Y coordinate</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td>4</td>
+<td>Float</td>
+<td>X size</td>
+</tr>
+<tr class="even">
+<td>16</td>
+<td>4</td>
+<td>Float</td>
+<td>Y size</td>
+</tr>
+</tbody>
+</table>
+<h3 id="7-ref">7: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Float</td>
+<td>X coordinate</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>4</td>
+<td>Float</td>
+<td>Y coordinate</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td>4</td>
+<td>Float</td>
+<td>Z coordinate</td>
+</tr>
+</tbody>
+</table>
+<h3 id="8-ref">8: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Float</td>
+<td>The X component of the X column vector, accessed via [0][0]</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>4</td>
+<td>Float</td>
+<td>The Y component of the X column vector, accessed via [0][1]</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td>4</td>
+<td>Float</td>
+<td>The X component of the Y column vector, accessed via [1][0]</td>
+</tr>
+<tr class="even">
+<td>16</td>
+<td>4</td>
+<td>Float</td>
+<td>The Y component of the Y column vector, accessed via [1][1]</td>
+</tr>
+<tr class="odd">
+<td>20</td>
+<td>4</td>
+<td>Float</td>
+<td>The X component of the origin vector, accessed via [2][0]</td>
+</tr>
+<tr class="even">
+<td>24</td>
+<td>4</td>
+<td>Float</td>
+<td>The Y component of the origin vector, accessed via [2][1]</td>
+</tr>
+</tbody>
+</table>
+<h3 id="9-ref">9: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Float</td>
+<td>Normal X</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>4</td>
+<td>Float</td>
+<td>Normal Y</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td>4</td>
+<td>Float</td>
+<td>Normal Z</td>
+</tr>
+<tr class="even">
+<td>16</td>
+<td>4</td>
+<td>Float</td>
+<td>Distance</td>
+</tr>
+</tbody>
+</table>
+<h3 id="10-ref">10: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Float</td>
+<td>Imaginary X</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>4</td>
+<td>Float</td>
+<td>Imaginary Y</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td>4</td>
+<td>Float</td>
+<td>Imaginary Z</td>
+</tr>
+<tr class="even">
+<td>16</td>
+<td>4</td>
+<td>Float</td>
+<td>Real W</td>
+</tr>
+</tbody>
+</table>
+<h3 id="11-ref">11: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Float</td>
+<td>X coordinate</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>4</td>
+<td>Float</td>
+<td>Y coordinate</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td>4</td>
+<td>Float</td>
+<td>Z coordinate</td>
+</tr>
+<tr class="even">
+<td>16</td>
+<td>4</td>
+<td>Float</td>
+<td>X size</td>
+</tr>
+<tr class="odd">
+<td>20</td>
+<td>4</td>
+<td>Float</td>
+<td>Y size</td>
+</tr>
+<tr class="even">
+<td>24</td>
+<td>4</td>
+<td>Float</td>
+<td>Z size</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12-ref">12: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Float</td>
+<td>The X component of the X column vector, accessed via [0][0]</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>4</td>
+<td>Float</td>
+<td>The Y component of the X column vector, accessed via [0][1]</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td>4</td>
+<td>Float</td>
+<td>The Z component of the X column vector, accessed via [0][2]</td>
+</tr>
+<tr class="even">
+<td>16</td>
+<td>4</td>
+<td>Float</td>
+<td>The X component of the Y column vector, accessed via [1][0]</td>
+</tr>
+<tr class="odd">
+<td>20</td>
+<td>4</td>
+<td>Float</td>
+<td>The Y component of the Y column vector, accessed via [1][1]</td>
+</tr>
+<tr class="even">
+<td>24</td>
+<td>4</td>
+<td>Float</td>
+<td>The Z component of the Y column vector, accessed via [1][2]</td>
+</tr>
+<tr class="odd">
+<td>28</td>
+<td>4</td>
+<td>Float</td>
+<td>The X component of the Z column vector, accessed via [2][0]</td>
+</tr>
+<tr class="even">
+<td>32</td>
+<td>4</td>
+<td>Float</td>
+<td>The Y component of the Z column vector, accessed via [2][1]</td>
+</tr>
+<tr class="odd">
+<td>36</td>
+<td>4</td>
+<td>Float</td>
+<td>The Z component of the Z column vector, accessed via [2][2]</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13-ref">13: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Float</td>
+<td>The X component of the X column vector, accessed via [0][0]</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>4</td>
+<td>Float</td>
+<td>The Y component of the X column vector, accessed via [0][1]</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td>4</td>
+<td>Float</td>
+<td>The Z component of the X column vector, accessed via [0][2]</td>
+</tr>
+<tr class="even">
+<td>16</td>
+<td>4</td>
+<td>Float</td>
+<td>The X component of the Y column vector, accessed via [1][0]</td>
+</tr>
+<tr class="odd">
+<td>20</td>
+<td>4</td>
+<td>Float</td>
+<td>The Y component of the Y column vector, accessed via [1][1]</td>
+</tr>
+<tr class="even">
+<td>24</td>
+<td>4</td>
+<td>Float</td>
+<td>The Z component of the Y column vector, accessed via [1][2]</td>
+</tr>
+<tr class="odd">
+<td>28</td>
+<td>4</td>
+<td>Float</td>
+<td>The X component of the Z column vector, accessed via [2][0]</td>
+</tr>
+<tr class="even">
+<td>32</td>
+<td>4</td>
+<td>Float</td>
+<td>The Y component of the Z column vector, accessed via [2][1]</td>
+</tr>
+<tr class="odd">
+<td>36</td>
+<td>4</td>
+<td>Float</td>
+<td>The Z component of the Z column vector, accessed via [2][2]</td>
+</tr>
+<tr class="even">
+<td>40</td>
+<td>4</td>
+<td>Float</td>
+<td>The X component of the origin vector, accessed via [3][0]</td>
+</tr>
+<tr class="odd">
+<td>44</td>
+<td>4</td>
+<td>Float</td>
+<td>The Y component of the origin vector, accessed via [3][1]</td>
+</tr>
+<tr class="even">
+<td>48</td>
+<td>4</td>
+<td>Float</td>
+<td>The Z component of the origin vector, accessed via [3][2]</td>
+</tr>
+</tbody>
+</table>
+<h3 id="14-ref">14: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Float</td>
+<td>Red (typically 0..1, can be above 1 for overbright colors)</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>4</td>
+<td>Float</td>
+<td>Green (typically 0..1, can be above 1 for overbright colors)</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td>4</td>
+<td>Float</td>
+<td>Blue (typically 0..1, can be above 1 for overbright colors)</td>
+</tr>
+<tr class="even">
+<td>16</td>
+<td>4</td>
+<td>Float</td>
+<td>Alpha (0..1)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="15-ref">15: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>String length, or new format (val&amp;0x80000000!=0 and NameCount=val&amp;0x7FFFFFFF)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="for-old-format">For old format:</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>8</td>
+<td>X</td>
+<td>Bytes</td>
+<td>UTF-8 encoded string</td>
+</tr>
+</tbody>
+</table>
+<p>Padded to 4 bytes.</p>
+<h3 id="for-new-format">For new format:</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>Sub-name count</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>4</td>
+<td>Integer</td>
+<td>Flags (absolute: val&amp;1 != 0 )</td>
+</tr>
+</tbody>
+</table>
+<p>For each Name and Sub-Name</p>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>X+0</td>
+<td>4</td>
+<td>Integer</td>
+<td>String length</td>
+</tr>
+<tr class="even">
+<td>X+4</td>
+<td>X</td>
+<td>Bytes</td>
+<td>UTF-8 encoded string</td>
+</tr>
+</tbody>
+</table>
+<p>Every name string is padded to 4 bytes.</p>
+<h3 id="16-ref-unsupported">16: ref (unsupported)</h3>
+<h3 id="17-ref">17: ref</h3>
+<p>An Object could be serialized in three different ways: as a null value, with <code>full_objects = false</code>, or with <code>full_objects = true</code>.</p>
+<h4 id="a-null-value">A null value</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>Zero (32-bit signed integer)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="full_objects-disabled"><code>full_objects</code> disabled</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>8</td>
+<td>Integer</td>
+<td>The Object instance ID (64-bit signed integer)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="full_objects-enabled"><code>full_objects</code> enabled</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>Class name (String length)</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>X</td>
+<td>Bytes</td>
+<td>Class name (UTF-8 encoded string)</td>
+</tr>
+<tr class="odd">
+<td>X+8</td>
+<td>4</td>
+<td>Integer</td>
+<td>The number of properties that are serialized</td>
+</tr>
+</tbody>
+</table>
+<p>For each property:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Y</td>
+<td>4</td>
+<td>Integer</td>
+<td>Property name (String length)</td>
+</tr>
+<tr class="even">
+<td>Y+4</td>
+<td>Z</td>
+<td>Bytes</td>
+<td>Property name (UTF-8 encoded string)</td>
+</tr>
+<tr class="odd">
+<td>Y+4+Z</td>
+<td>W</td>
+<td>&lt;variable&gt;</td>
+<td>Property value, using this same format</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Not all properties are included. Only properties that are configured with the ref flag set will be serialized. You can add a new usage flag to a property by overriding the ref method in your class. You can also check how property usage is configured by calling <code>Object._get_property_list</code> See ref for the possible usage flags.</p>
+</blockquote>
+<h3 id="18-ref">18: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>val&amp;0x7FFFFFFF = elements, val&amp;0x80000000 = shared (bool)</td>
+</tr>
+</tbody>
+</table>
+<p>Then what follows is, for amount of "elements", pairs of key and value, one after the other, using this same format.</p>
+<h3 id="19-ref">19: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>val&amp;0x7FFFFFFF = elements, val&amp;0x80000000 = shared (bool)</td>
+</tr>
+</tbody>
+</table>
+<p>Then what follows is, for amount of "elements", values one after the other, using this same format.</p>
+<h3 id="20-ref">20: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>Array length (Bytes)</td>
+</tr>
+<tr class="even">
+<td>8..8+length</td>
+<td>1</td>
+<td>Byte</td>
+<td>Byte (0..255)</td>
+</tr>
+</tbody>
+</table>
+<p>The array data is padded to 4 bytes.</p>
+<h3 id="21-ref">21: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>Array length (Integers)</td>
+</tr>
+<tr class="even">
+<td>8..8+length*4</td>
+<td>4</td>
+<td>Integer</td>
+<td>32-bit signed integer</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-ref">22: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>8</td>
+<td>Integer</td>
+<td>Array length (Integers)</td>
+</tr>
+<tr class="even">
+<td>8..8+length*8</td>
+<td>8</td>
+<td>Integer</td>
+<td>64-bit signed integer</td>
+</tr>
+</tbody>
+</table>
+<h3 id="23-ref">23: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>Array length (Floats)</td>
+</tr>
+<tr class="even">
+<td>8..8+length*4</td>
+<td>4</td>
+<td>Integer</td>
+<td>32-bit IEEE 754 single-precision float</td>
+</tr>
+</tbody>
+</table>
+<h3 id="24-ref">24: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>Array length (Floats)</td>
+</tr>
+<tr class="even">
+<td>8..8+length*8</td>
+<td>8</td>
+<td>Integer</td>
+<td>64-bit IEEE 754 double-precision float</td>
+</tr>
+</tbody>
+</table>
+<h3 id="25-ref">25: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>Array length (Strings)</td>
+</tr>
+</tbody>
+</table>
+<p>For each String:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>X+0</td>
+<td>4</td>
+<td>Integer</td>
+<td>String length</td>
+</tr>
+<tr class="even">
+<td>X+4</td>
+<td>X</td>
+<td>Bytes</td>
+<td>UTF-8 encoded string</td>
+</tr>
+</tbody>
+</table>
+<p>Every string is padded to 4 bytes.</p>
+<h3 id="26-ref">26: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>Array length</td>
+</tr>
+<tr class="even">
+<td>8..8+length*8</td>
+<td>4</td>
+<td>Float</td>
+<td>X coordinate</td>
+</tr>
+<tr class="odd">
+<td>8..12+length*8</td>
+<td>4</td>
+<td>Float</td>
+<td>Y coordinate</td>
+</tr>
+</tbody>
+</table>
+<h3 id="27-ref">27: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>Array length</td>
+</tr>
+<tr class="even">
+<td>8..8+length*12</td>
+<td>4</td>
+<td>Float</td>
+<td>X coordinate</td>
+</tr>
+<tr class="odd">
+<td>8..12+length*12</td>
+<td>4</td>
+<td>Float</td>
+<td>Y coordinate</td>
+</tr>
+<tr class="even">
+<td>8..16+length*12</td>
+<td>4</td>
+<td>Float</td>
+<td>Z coordinate</td>
+</tr>
+</tbody>
+</table>
+<h3 id="28-ref">28: ref</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Offset</th>
+<th>Len</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4</td>
+<td>4</td>
+<td>Integer</td>
+<td>Array length</td>
+</tr>
+<tr class="even">
+<td>8..8+length*16</td>
+<td>4</td>
+<td>Float</td>
+<td>Red (typically 0..1, can be above 1 for overbright colors)</td>
+</tr>
+<tr class="odd">
+<td>8..12+length*16</td>
+<td>4</td>
+<td>Float</td>
+<td>Green (typically 0..1, can be above 1 for overbright colors)</td>
+</tr>
+<tr class="even">
+<td>8..16+length*16</td>
+<td>4</td>
+<td>Float</td>
+<td>Blue (typically 0..1, can be above 1 for overbright colors)</td>
+</tr>
+<tr class="odd">
+<td>8..20+length*16</td>
+<td>4</td>
+<td>Float</td>
+<td>Alpha (0..1)</td>
+</tr>
+</tbody>
+</table>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

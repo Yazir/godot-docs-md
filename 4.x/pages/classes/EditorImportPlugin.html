@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EditorImportPlugin — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="editorimportplugin">EditorImportPlugin</h1>
+<p><em>Inherits: <a href="ResourceImporter.html">ResourceImporter</a> &lt; <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Registers a custom resource importer in the editor. Use the class to parse any file and import it as a new resource type.</p>
+<h2 id="description">Description</h2>
+<p><strong>EditorImportPlugin</strong> s provide a way to extend the editor's resource import functionality. Use them to import resources from custom files or to provide alternatives to the editor's existing importers.</p>
+<p>EditorImportPlugins work by associating with specific file extensions and a resource type. See <code>_get_recognized_extensions()</code> and <code>_get_resource_type()</code>. They may optionally specify some import presets that affect the import process. EditorImportPlugins are responsible for creating the resources and saving them in the <code>.godot/imported</code> directory (see <code>ProjectSettings.application/config/use_hidden_project_data_directory</code>).</p>
+<p>Below is an example EditorImportPlugin that imports a <a href="Mesh.html">Mesh</a> from a file with the extension ".special" or ".spec":</p>
+<pre class="gdscript"><code>@tool
+extends EditorImportPlugin
+
+func _get_importer_name():
+    return &quot;my.special.plugin&quot;
+
+func _get_visible_name():
+    return &quot;Special Mesh&quot;
+
+func _get_recognized_extensions():
+    return [&quot;special&quot;, &quot;spec&quot;]
+
+func _get_save_extension():
+    return &quot;mesh&quot;
+
+func _get_resource_type():
+    return &quot;Mesh&quot;
+
+func _get_preset_count():
+    return 1
+
+func _get_preset_name(preset_index):
+    return &quot;Default&quot;
+
+func _get_import_options(path, preset_index):
+    return [{&quot;name&quot;: &quot;my_option&quot;, &quot;default_value&quot;: false}]
+
+func _import(source_file, save_path, options, platform_variants, gen_files):
+    var file = FileAccess.open(source_file, FileAccess.READ)
+    if file == null:
+        return FAILED
+    var mesh = ArrayMesh.new()
+    # Fill the Mesh with data read in &quot;file&quot;, left as an exercise to the reader.
+
+    var filename = save_path + &quot;.&quot; + _get_save_extension()
+    return ResourceSaver.save(mesh, filename)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MySpecialPlugin <span class="op">:</span> EditorImportPlugin</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">string</span> <span class="fu">_GetImporterName</span><span class="op">()</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="st">&quot;my.special.plugin&quot;</span><span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">string</span> <span class="fu">_GetVisibleName</span><span class="op">()</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="st">&quot;Special Mesh&quot;</span><span class="op">;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">string</span><span class="op">[]</span> <span class="fu">_GetRecognizedExtensions</span><span class="op">()</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="op">[</span><span class="st">&quot;special&quot;</span><span class="op">,</span> <span class="st">&quot;spec&quot;</span><span class="op">];</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">string</span> <span class="fu">_GetSaveExtension</span><span class="op">()</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="st">&quot;mesh&quot;</span><span class="op">;</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">string</span> <span class="fu">_GetResourceType</span><span class="op">()</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="st">&quot;Mesh&quot;</span><span class="op">;</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">int</span> <span class="fu">_GetPresetCount</span><span class="op">()</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">string</span> <span class="fu">_GetPresetName</span><span class="op">(</span><span class="dt">int</span> presetIndex<span class="op">)</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="st">&quot;Default&quot;</span><span class="op">;</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Array</span><span class="op">&lt;</span>Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&gt;</span> <span class="fu">_GetImportOptions</span><span class="op">(</span><span class="dt">string</span> path<span class="op">,</span> <span class="dt">int</span> presetIndex<span class="op">)</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>        <span class="op">[</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>                <span class="op">{</span> <span class="st">&quot;name&quot;</span><span class="op">,</span> <span class="st">&quot;myOption&quot;</span> <span class="op">},</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>                <span class="op">{</span> <span class="st">&quot;default_value&quot;</span><span class="op">,</span> <span class="kw">false</span> <span class="op">},</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>            <span class="op">},</span></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>        <span class="op">];</span></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> Error <span class="fu">_Import</span><span class="op">(</span><span class="dt">string</span> sourceFile<span class="op">,</span> <span class="dt">string</span> savePath<span class="op">,</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span> options<span class="op">,</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Array</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">&gt;</span> platformVariants<span class="op">,</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Array</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">&gt;</span> genFiles<span class="op">)</span></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>        <span class="kw">using</span> <span class="dt">var</span> file <span class="op">=</span> FileAccess<span class="op">.</span><span class="fu">Open</span><span class="op">(</span>sourceFile<span class="op">,</span> FileAccess<span class="op">.</span><span class="fu">ModeFlags</span><span class="op">.</span><span class="fu">Read</span><span class="op">);</span></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>file<span class="op">.</span><span class="fu">GetError</span><span class="op">()</span> <span class="op">!=</span> Error<span class="op">.</span><span class="fu">Ok</span><span class="op">)</span></span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span> Error<span class="op">.</span><span class="fu">Failed</span><span class="op">;</span></span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> mesh <span class="op">=</span> <span class="kw">new</span> <span class="fu">ArrayMesh</span><span class="op">();</span></span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Fill the Mesh with data read in &quot;file&quot;, left as an exercise to the reader.</span></span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>        <span class="dt">string</span> filename <span class="op">=</span> $<span class="st">&quot;{savePath}.{_GetSaveExtension()}&quot;</span><span class="op">;</span></span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> ResourceSaver<span class="op">.</span><span class="fu">Save</span><span class="op">(</span>mesh<span class="op">,</span> filename<span class="op">);</span></span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>To use <strong>EditorImportPlugin</strong>, register it using the <code>EditorPlugin.add_import_plugin()</code> method first.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/tutorials/plugins/editor/import_plugins.html">Import plugins</a></li>
+</ul>
+<h2 id="methods">Methods</h2>
+<h3 id="bool-_can_import_threaded-virtual-const"><code>bool _can_import_threaded() virtual const</code></h3>
+<p>Tells whether this importer can be run in parallel on threads, or, on the contrary, it's only safe for the editor to call it from the main thread, for one file at a time.</p>
+<p>If this importer's implementation is thread-safe and can be run in parallel, override this with <code>true</code> to optimize for concurrency.</p>
+<p>If not overridden, returns <code>false</code>.</p>
+<h3 id="int-_get_format_version-virtual-const"><code>int _get_format_version() virtual const</code></h3>
+<p>Gets the format version of this importer. Increment this version when making incompatible changes to the format of the imported resources.</p>
+<p>If not overridden, the format version is <code>0</code>.</p>
+<h3 id="arraydictionary-_get_import_optionspath-string-preset_index-int-virtual-required-const"><code>Array\[Dictionary\] _get_import_options(path: String, preset_index: int) virtual required const</code></h3>
+<p>Gets the options and default values for the preset at this index. Returns an Array of Dictionaries with the following keys: <code>name</code>, <code>default_value</code>, <code>property_hint</code> (optional), <code>hint_string</code> (optional), <code>usage</code> (optional).</p>
+<h3 id="int-_get_import_order-virtual-const"><code>int _get_import_order() virtual const</code></h3>
+<p>Gets the order of this importer to be run when importing resources. Importers with <em>lower</em> import orders will be called first, and higher values will be called later. Use this to ensure the importer runs after the dependencies are already imported. The default import order is <code>0</code> unless overridden by a specific importer. See <code>ResourceImporter.ImportOrder</code> for some predefined values.</p>
+<h3 id="string-_get_importer_name-virtual-required-const"><code>String _get_importer_name() virtual required const</code></h3>
+<p>Gets the unique name of the importer.</p>
+<h3 id="bool-_get_option_visibilitypath-string-option_name-stringname-options-dictionary-virtual-const"><code>bool _get_option_visibility(path: String, option_name: StringName, options: Dictionary) virtual const</code></h3>
+<p>Gets whether the import option specified by <code>option_name</code> should be visible in the Import dock. The default implementation always returns <code>true</code>, making all options visible. This is mainly useful for hiding options that depend on others if one of them is disabled.</p>
+<pre class="gdscript"><code>func _get_option_visibility(path, option_name, options):
+    # Only show the lossy quality setting if the compression mode is set to &quot;Lossy&quot;.
+    if option_name == &quot;compress/lossy_quality&quot; and options.has(&quot;compress/mode&quot;):
+        return int(options[&quot;compress/mode&quot;]) == COMPRESS_LOSSY # This is a constant that you set
+
+    return true</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">bool</span> <span class="fu">_GetOptionVisibility</span><span class="op">(</span><span class="dt">string</span> path<span class="op">,</span> StringName optionName<span class="op">,</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span> options<span class="op">)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Only show the lossy quality setting if the compression mode is set to &quot;Lossy&quot;.</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>optionName <span class="op">==</span> <span class="st">&quot;compress/lossy_quality&quot;</span> <span class="op">&amp;&amp;</span> options<span class="op">.</span><span class="fu">ContainsKey</span><span class="op">(</span><span class="st">&quot;compress/mode&quot;</span><span class="op">))</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>options<span class="op">[</span><span class="st">&quot;compress/mode&quot;</span><span class="op">]</span> <span class="op">==</span> CompressLossy<span class="op">;</span> <span class="co">// This is a constant you set</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="int-_get_preset_count-virtual-const"><code>int _get_preset_count() virtual const</code></h3>
+<p>Gets the number of initial presets defined by the plugin. Use <code>_get_import_options()</code> to get the default options for the preset and <code>_get_preset_name()</code> to get the name of the preset.</p>
+<p>By default, there are no presets.</p>
+<h3 id="string-_get_preset_namepreset_index-int-virtual-required-const"><code>String _get_preset_name(preset_index: int) virtual required const</code></h3>
+<p>Gets the name of the options preset at this index.</p>
+<h3 id="float-_get_priority-virtual-const"><code>float _get_priority() virtual const</code></h3>
+<p>Gets the priority of this plugin for the recognized extension. Higher priority plugins will be preferred. The default priority is <code>1.0</code>.</p>
+<h3 id="packedstringarray-_get_recognized_extensions-virtual-required-const"><code>PackedStringArray _get_recognized_extensions() virtual required const</code></h3>
+<p>Gets the list of file extensions to associate with this loader (case-insensitive). e.g. <code>["obj"]</code>.</p>
+<h3 id="string-_get_resource_type-virtual-required-const"><code>String _get_resource_type() virtual required const</code></h3>
+<p>Gets the Godot resource type associated with this loader. e.g. <code>"Mesh"</code> or <code>"Animation"</code>.</p>
+<h3 id="string-_get_save_extension-virtual-required-const"><code>String _get_save_extension() virtual required const</code></h3>
+<p>Gets the extension used to save this resource in the <code>.godot/imported</code> directory (see <code>ProjectSettings.application/config/use_hidden_project_data_directory</code>).</p>
+<h3 id="string-_get_visible_name-virtual-required-const"><code>String _get_visible_name() virtual required const</code></h3>
+<p>Gets the name to display in the import window. You should choose this name as a continuation to "Import as", e.g. "Import as Special Mesh".</p>
+<h3 id="globalscopeerror-_importsource_file-string-save_path-string-options-dictionary-platform_variants-arraystring-gen_files-arraystring-virtual-required-const">``@GlobalScope.Error<code> _import(source_file: String, save_path: String, options: Dictionary, platform_variants: Array\[String\], gen_files: Array\[String\]) virtual required const</code></h3>
+<p>Imports <code>source_file</code> with the import <code>options</code> specified. Should return <code>@GlobalScope.OK</code> if the import is successful, other values indicate failure.</p>
+<p>The imported resource is expected to be saved to <code>save_path + "." + _get_save_extension()</code>. If a different variant is preferred for a <a href="../manual/tutorials/export/feature_tags.html">feature tag</a>, save the variant to <code>save_path + "." + tag + "." + _get_save_extension()</code> and add the feature tag to <code>platform_variants</code>.</p>
+<p>If additional resource files are generated in the resource filesystem (<code>res://</code>), add their full path to <code>gen_files</code> so that the editor knows they depend on <code>source_file</code>.</p>
+<p>This method must be overridden to do the actual importing work. See this class' description for an example of overriding this method.</p>
+<h3 id="globalscopeerror-append_import_external_resourcepath-string-custom_options-dictionary---custom_importer-string---generator_parameters-variant--null">``@GlobalScope.Error<code> append_import_external_resource(path: String, custom_options: Dictionary = {}, custom_importer: String = "", generator_parameters: Variant = null)</code></h3>
+<p>This function can only be called during the <code>_import()</code> callback and it allows manually importing resources from it. This is useful when the imported file generates external resources that require importing (as example, images). Custom parameters for the ".import" file can be passed via the <code>custom_options</code>. Additionally, in cases where multiple importers can handle a file, the <code>custom_importer</code> can be specified to force a specific one. This function performs a resource import and returns immediately with a success or error code. <code>generator_parameters</code> defines optional extra metadata which will be stored as <code>generator_parameters</code> in the <code>remap</code> section of the <code>.import</code> file, for example to store a md5 hash of the source data.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

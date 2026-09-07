@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C# signals — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="c-signals">C# signals</h1>
+<p>For a detailed explanation of signals in general, see the <code>doc_signals</code> section in the step by step tutorial.</p>
+<p>Signals are implemented using C# events, the idiomatic way to represent ref in C#. This is the recommended way to use signals in C# and the focus of this page.</p>
+<p>In some cases it's necessary to use the older ref and ref APIs. See <code>using_connect_and_disconnect</code> for more details.</p>
+<p>If you encounter a <code>System.ObjectDisposedException</code> while handling a signal, you might be missing a signal disconnection. See <code>disconnecting_automatically_when_the_receiver_is_freed</code> for more details.</p>
+<h2 id="signals-as-c-events">Signals as C# events</h2>
+<p>To provide more type-safety, Godot signals are also all available through <a href="https://learn.microsoft.com/en-us/dotnet/csharp/events-overview">events</a>. You can handle these events, as any other event, with the <code>+=</code> and <code>-=</code> operators.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>Timer myTimer <span class="op">=</span> GetNode<span class="op">&lt;</span>Timer<span class="op">&gt;(</span><span class="st">&quot;Timer&quot;</span><span class="op">);</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>myTimer<span class="op">.</span><span class="fu">Timeout</span> <span class="op">+=</span> <span class="op">()</span> <span class="op">=&gt;</span> GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;Timeout!&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>In addition, you can always access signal names associated with a node type through its nested <code>SignalName</code> class. This is useful when, for example, you want to await on a signal (see <code>doc_c_sharp_differences_await</code>).</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>await <span class="fu">ToSignal</span><span class="op">(</span><span class="fu">GetTree</span><span class="op">(),</span> SceneTree<span class="op">.</span><span class="fu">SignalName</span><span class="op">.</span><span class="fu">ProcessFrame</span><span class="op">);</span></span></code></pre></div>
+<h2 id="custom-signals-as-c-events">Custom signals as C# events</h2>
+<p>To declare a custom event in your C# script, use the <code>[Signal]</code> attribute on a public delegate type. Note that the name of this delegate needs to end with <code>EventHandler</code>.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">MySignalEventHandler</span><span class="op">();</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">MySignalWithArgumentEventHandler</span><span class="op">(</span><span class="dt">string</span> myString<span class="op">);</span></span></code></pre></div>
+<p>Once this is done, Godot will create the appropriate events automatically behind the scenes. You can then use said events as you'd do for any other Godot signal. Note that events are named using your delegate's name minus the final <code>EventHandler</code> part.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    MySignal <span class="op">+=</span> <span class="op">()</span> <span class="op">=&gt;</span> GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;Hello!&quot;</span><span class="op">);</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    MySignalWithArgument <span class="op">+=</span> SayHelloTo<span class="op">;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">SayHelloTo</span><span class="op">(</span><span class="dt">string</span> name<span class="op">)</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>$<span class="st">&quot;Hello {name}!&quot;</span><span class="op">);</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Warning:</strong> If you want to connect to these signals in the editor, you will need to (re)build the project to see them appear.</p>
+<p>You can click the <strong>Build</strong> button in the upper-right corner of the editor to do so.</p>
+</blockquote>
+<h2 id="signal-emission">Signal emission</h2>
+<p>To emit signals, use the <code>EmitSignal</code> method. Note that, as for signals defined by the engine, your custom signal names are listed under the nested <code>SignalName</code> class.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">MyMethodEmittingSignals</span><span class="op">()</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">EmitSignal</span><span class="op">(</span>SignalName<span class="op">.</span><span class="fu">MySignal</span><span class="op">);</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">EmitSignal</span><span class="op">(</span>SignalName<span class="op">.</span><span class="fu">MySignalWithArgument</span><span class="op">,</span> <span class="st">&quot;World&quot;</span><span class="op">);</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In contrast with other C# events, you cannot use <code>Invoke</code> to raise events tied to Godot signals.</p>
+<p>Signals support arguments of any ref.</p>
+<p>Consequently, any <code>Node</code> or <code>RefCounted</code> will be compatible automatically, but custom data objects will need to inherit from <code>GodotObject</code> or one of its subclasses.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> DataObject <span class="op">:</span> GodotObject</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">string</span> MyFirstString <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">string</span> MySecondString <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="bound-values">Bound values</h2>
+<p>Sometimes you'll want to bind values to a signal when the connection is established, rather than (or in addition to) when the signal is emitted. To do so, you can use an anonymous function like in the following example.</p>
+<p>Here, the ref signal does not take any argument. But we want to use the same <code>ModifyValue</code> for both the "plus" and "minus" buttons. So we bind the modifier value at the time we're connecting the signals.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">int</span> Value <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">private</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    Button plusButton <span class="op">=</span> GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;PlusButton&quot;</span><span class="op">);</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    plusButton<span class="op">.</span><span class="fu">Pressed</span> <span class="op">+=</span> <span class="op">()</span> <span class="op">=&gt;</span> <span class="fu">ModifyValue</span><span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    Button minusButton <span class="op">=</span> GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;MinusButton&quot;</span><span class="op">);</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    minusButton<span class="op">.</span><span class="fu">Pressed</span> <span class="op">+=</span> <span class="op">()</span> <span class="op">=&gt;</span> <span class="fu">ModifyValue</span><span class="op">(-</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">ModifyValue</span><span class="op">(</span><span class="dt">int</span> modifier<span class="op">)</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    Value <span class="op">+=</span> modifier<span class="op">;</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="signal-creation-at-runtime">Signal creation at runtime</h2>
+<p>Finally, you can create custom signals directly while your game is running. Use the <code>AddUserSignal</code> method for that. Be aware that it should be executed before any use of said signals (either connecting to them or emitting them). Also, note that signals created this way won't be visible through the <code>SignalName</code> nested class.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">AddUserSignal</span><span class="op">(</span><span class="st">&quot;MyCustomSignal&quot;</span><span class="op">);</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">EmitSignal</span><span class="op">(</span><span class="st">&quot;MyCustomSignal&quot;</span><span class="op">);</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="using-connect-and-disconnect">Using Connect and Disconnect</h2>
+<p>In general, it isn't recommended to use ref and ref. These APIs don't provide as much type safety as the events. However, they're necessary for ref and passing ref.</p>
+<p>In the following example, pressing the button for the first time prints <code>Greetings!</code>. <code>OneShot</code> disconnects the signal, so pressing the button again does nothing.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    Button button <span class="op">=</span> GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;GreetButton&quot;</span><span class="op">);</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    button<span class="op">.</span><span class="fu">Connect</span><span class="op">(</span>Button<span class="op">.</span><span class="fu">SignalName</span><span class="op">.</span><span class="fu">Pressed</span><span class="op">,</span> Callable<span class="op">.</span><span class="fu">From</span><span class="op">(</span>OnButtonPressed<span class="op">),</span> <span class="op">(</span><span class="dt">uint</span><span class="op">)</span>GodotObject<span class="op">.</span><span class="fu">ConnectFlags</span><span class="op">.</span><span class="fu">OneShot</span><span class="op">);</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnButtonPressed</span><span class="op">()</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;Greetings!&quot;</span><span class="op">);</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="disconnecting-automatically-when-the-receiver-is-freed">Disconnecting automatically when the receiver is freed</h2>
+<p>Normally, when any <code>GodotObject</code> is freed (such as any <code>Node</code>), Godot automatically disconnects all connections associated with that object. This happens for both signal emitters and signal receivers.</p>
+<p>For example, a node with this code will print "Hello!" when the button is pressed, then free itself. Freeing the node disconnects the signal, so pressing the button again doesn't do anything:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    Button myButton <span class="op">=</span> GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;../MyButton&quot;</span><span class="op">);</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    myButton<span class="op">.</span><span class="fu">Pressed</span> <span class="op">+=</span> SayHello<span class="op">;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">SayHello</span><span class="op">()</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;Hello!&quot;</span><span class="op">);</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Free</span><span class="op">();</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>When a signal receiver is freed while the signal emitter is still alive, in some cases automatic disconnection won't happen:</p>
+<ul>
+<li>The signal is connected to a lambda expression that captures a variable.</li>
+<li>The signal is a custom signal.</li>
+</ul>
+<p>The following sections explain these cases in more detail and include suggestions for how to disconnect manually.</p>
+<blockquote>
+<p><strong>Note:</strong> Automatic disconnection is totally reliable if a signal emitter is freed before any of its receivers are freed. With a project style that prefers this pattern, the above limits may not be a concern.</p>
+</blockquote>
+<h3 id="no-automatic-disconnection-a-lambda-expression-that-captures-a-variable">No automatic disconnection: a lambda expression that captures a variable</h3>
+<p>If you connect to a lambda expression that captures variables, Godot can't tell that the lambda is associated with the instance that created it. This causes this example to have potentially unexpected behavior:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>Timer myTimer <span class="op">=</span> GetNode<span class="op">&lt;</span>Timer<span class="op">&gt;(</span><span class="st">&quot;../Timer&quot;</span><span class="op">);</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> x <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>myTimer<span class="op">.</span><span class="fu">Timeout</span> <span class="op">+=</span> <span class="op">()</span> <span class="op">=&gt;</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    x<span class="op">++;</span> <span class="co">// This lambda expression captures x.</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>$<span class="st">&quot;Tick {x} my name is {Name}&quot;</span><span class="op">);</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>x <span class="op">==</span> <span class="dv">3</span><span class="op">)</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;Time&#39;s up!&quot;</span><span class="op">);</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>        <span class="fu">Free</span><span class="op">();</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<pre class="text"><code>Tick 1, my name is ExampleNode
+Tick 2, my name is ExampleNode
+Tick 3, my name is ExampleNode
+Time&#39;s up!
+[...] System.ObjectDisposedException: Cannot access a disposed object.</code></pre>
+<p>On tick 4, the lambda expression tries to access the <code>Name</code> property of the node, but the node has already been freed. This causes the exception.</p>
+<p>To disconnect, keep a reference to the delegate created by the lambda expression and pass that to <code>-=</code>. For example, this node connects and disconnects using the <code>_EnterTree</code> and <code>_ExitTree</code> lifecycle methods:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> Timer MyTimer <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Action _tick<span class="op">;</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_EnterTree</span><span class="op">()</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> x <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    _tick <span class="op">=</span> <span class="op">()</span> <span class="op">=&gt;</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>        x<span class="op">++;</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>$<span class="st">&quot;Tick {x} my name is {Name}&quot;</span><span class="op">);</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>x <span class="op">==</span> <span class="dv">3</span><span class="op">)</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;Time&#39;s up!&quot;</span><span class="op">);</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>            <span class="fu">Free</span><span class="op">();</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    MyTimer<span class="op">.</span><span class="fu">Timeout</span> <span class="op">+=</span> _tick<span class="op">;</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_ExitTree</span><span class="op">()</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>    MyTimer<span class="op">.</span><span class="fu">Timeout</span> <span class="op">-=</span> _tick<span class="op">;</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In this example, <code>Free</code> causes the node to leave the tree, which calls <code>_ExitTree</code>. <code>_ExitTree</code> disconnects the signal, so <code>_tick</code> is never called again.</p>
+<p>The lifecycle methods to use depend on what the node does. Another option is to connect to signals in <code>_Ready</code> and disconnect in <code>Dispose</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> Godot uses <a href="https://learn.microsoft.com/en-us/dotnet/api/system.delegate.target">Delegate.Target</a> to determine what instance a delegate is associated with. When a lambda expression doesn't capture a variable, the generated delegate's <code>Target</code> is the instance that created the delegate. When a variable is captured, the <code>Target</code> instead points at a generated type that stores the captured variable. This is what breaks the association. If you want to see if a delegate will be automatically cleaned up, try checking its <code>Target</code>.</p>
+<p><code>Callable.From</code> doesn't affect the <code>Delegate.Target</code>, so connecting a lambda that captures variables using <code>Connect</code> doesn't work any better than <code>+=</code>.</p>
+</blockquote>
+<h3 id="no-automatic-disconnection-a-custom-signal">No automatic disconnection: a custom signal</h3>
+<p>Connecting to a custom signal using <code>+=</code> doesn't disconnect automatically when the receiving node is freed.</p>
+<p>To disconnect, use <code>-=</code> at an appropriate time. For example:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> MyClass Target <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_EnterTree</span><span class="op">()</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    Target<span class="op">.</span><span class="fu">MySignal</span> <span class="op">+=</span> OnMySignal<span class="op">;</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_ExitTree</span><span class="op">()</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    Target<span class="op">.</span><span class="fu">MySignal</span> <span class="op">-=</span> OnMySignal<span class="op">;</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Another solution is to use <code>Connect</code>, which does disconnect automatically with custom signals:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> MyClass Target <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_EnterTree</span><span class="op">()</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    Target<span class="op">.</span><span class="fu">Connect</span><span class="op">(</span>MyClass<span class="op">.</span><span class="fu">SignalName</span><span class="op">.</span><span class="fu">MySignal</span><span class="op">,</span> Callable<span class="op">.</span><span class="fu">From</span><span class="op">(</span>OnMySignal<span class="op">));</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

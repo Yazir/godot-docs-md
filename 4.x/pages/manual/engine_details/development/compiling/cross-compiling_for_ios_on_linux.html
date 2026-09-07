@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cross-compiling for iOS on Linux — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="cross-compiling-for-ios-on-linux">Cross-compiling for iOS on Linux</h1>
+<p>The procedure for this is somewhat complex and requires a lot of steps, but once you have the environment properly configured you can compile Godot for iOS anytime you want.</p>
+<h2 id="disclaimer">Disclaimer</h2>
+<p>While it is possible to compile for iOS on a Linux environment, Apple is very restrictive about the tools to be used (especially hardware-wise), allowing pretty much only their products to be used for development. So this is <strong>not official</strong>. However, in 2010 Apple said they relaxed some of the <a href="https://developer.apple.com/app-store/review/guidelines/">App Store review guidelines</a> to allow any tool to be used, as long as the resulting binary does not download any code, which means it should be OK to use the procedure described here and cross-compiling the binary.</p>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li><a href="https://developer.apple.com/download/all/?q=Xcode">XCode with the iOS SDK</a> (you must be logged into an Apple ID to download Xcode).</li>
+<li><a href="https://clang.llvm.org">Clang &gt;= 3.5</a> for your development machine installed and in the <code>PATH</code>. It has to be version &gt;= 3.5 to target <code>arm64</code> architecture.</li>
+<li><a href="https://mackyle.github.io/xar/">xar</a> and <a href="https://github.com/NiklasRosenstein/pbzx">pbzx</a> (required to extract the <code>.xip</code> archive Xcode comes in).
+<ul>
+<li>For building xar and pbzx, you may want to follow <a href="https://gist.github.com/phracker/1944ce190e01963c550566b749bd2b54">this guide</a>.</li>
+</ul></li>
+<li><a href="https://github.com/tpoechtrager/cctools-port">cctools-port</a> for the needed build tools. The procedure for building is quite peculiar and is described below.
+<ul>
+<li>This also has some extra dependencies: automake, autogen, libtool.</li>
+</ul></li>
+</ul>
+<h2 id="configuring-the-environment">Configuring the environment</h2>
+<h3 id="preparing-the-sdk">Preparing the SDK</h3>
+<p>Extract the Xcode <code>.xip</code> file you downloaded from Apple's developer website:</p>
+<pre><code>mkdir xcode
+xar -xf /path/to/Xcode_X.x.xip -C xcode
+pbzx -n Content | cpio -i
+
+[...]
+######### Blocks</code></pre>
+<p>Note that for the commands below, you will need to replace the version (<code>x.x</code>) with whatever iOS SDK version you're using. If you don't know your iPhone SDK version, you can see the JSON file inside of <code>Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs</code>.</p>
+<p>Extract the iOS SDK:</p>
+<pre><code>export IOS_SDK_VERSION=&quot;x.x&quot;
+mkdir -p iPhoneSDK/iPhoneOS${IOS_SDK_VERSION}.sdk
+cp -r xcode/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/* iPhoneSDK/iPhoneOS${IOS_SDK_VERSION}.sdk
+cp -r xcode/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/* iPhoneSDK/iPhoneOS${IOS_SDK_VERSION}.sdk/usr/include/c++
+fusermount -u xcode</code></pre>
+<p>Pack the SDK so that cctools can use it:</p>
+<pre><code>cd iPhoneSDK
+tar -cf - * | xz -9 -c - &gt; iPhoneOS${IOS_SDK_VERSION}.sdk.tar.xz</code></pre>
+<h3 id="toolchain">Toolchain</h3>
+<p>Build cctools:</p>
+<pre><code>git clone https://github.com/tpoechtrager/cctools-port.git
+cd cctools-port/usage_examples/ios_toolchain
+./build.sh /path/iPhoneOS${IOS_SDK_VERSION}.sdk.tar.xz arm64</code></pre>
+<p>Copy the tools to a nicer place. Note that the SCons scripts for building will look under <code>usr/bin</code> inside the directory you provide for the toolchain binaries, so you must copy to such subdirectory, akin to the following commands:</p>
+<pre><code>mkdir -p &quot;$HOME/iostoolchain/usr&quot;
+cp -r target/bin &quot;$HOME/iostoolchain/usr/&quot;</code></pre>
+<p>Now you should have the iOS toolchain binaries in <code>$HOME/iostoolchain/usr/bin</code>.</p>
+<h2 id="compiling-godot-for-iphone">Compiling Godot for iPhone</h2>
+<p>Once you've done the above steps, you should keep two things in your environment: the built toolchain and the iPhoneOS SDK directory. Those can stay anywhere you want since you have to provide their paths to the SCons build command.</p>
+<p>For the iPhone platform to be detected, you need the <code>OSXCROSS_IOS</code> environment variable defined to anything.</p>
+<pre><code>export OSXCROSS_IOS=&quot;anything&quot;</code></pre>
+<p>Now you can compile for iPhone using SCons like the standard Godot way, with some additional arguments to provide the correct paths:</p>
+<pre><code>scons platform=ios arch=arm64 target=template_release IOS_SDK_PATH=&quot;/path/to/iPhoneSDK&quot; IOS_TOOLCHAIN_PATH=&quot;/path/to/iostoolchain&quot; ios_triple=&quot;arm-apple-darwin11-&quot;</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

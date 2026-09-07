@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDNative C example — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="gdnative-c-example">GDNative C example</h1>
+<h2 id="introduction">Introduction</h2>
+<p>This tutorial will introduce you to the bare minimum required to create GDNative modules. This should be your starting point into the world of GDNative. Understanding the contents of this tutorial will help you in understanding all that is to come after this.</p>
+<p>Before we begin, you can download the source code to the example object we describe below in the <a href="https://github.com/godotengine/gdnative-demos/tree/master/c/simple">GDNative-demos repository</a>.</p>
+<p>This example project also contains a SConstruct file that makes compiling a little easier, but in this tutorial we'll be doing things by hand to understand the process.</p>
+<p>ref can be used to create several types of additions to Godot, using interfaces such as ref or ref. In this tutorial we are going to look at creating a ref module. NativeScript allows you to write logic in C or C++ in a similar fashion as you would write a GDScript file. We'll be creating the C equivalent of this GDScript:</p>
+<pre><code>extends Reference
+
+var data
+
+func _ready():
+    data = &quot;World from GDScript!&quot;
+
+func get_data():
+    return data</code></pre>
+<p>Future tutorials will focus on the other types of GDNative modules and explain when and how to use each of them.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<p>Before we start you'll need a few things:</p>
+<ol type="1">
+<li>A Godot executable for your target version.</li>
+<li>A C compiler. On Linux, install <code>gcc</code> or <code>clang</code> from your package manager. On macOS, you can install Xcode from the Mac App Store. On Windows, you can use Visual Studio 2015 or later, or MinGW-w64.</li>
+<li>A Git clone of the <a href="https://github.com/godotengine/godot-headers.git">godot-headers repository</a>: these are the C headers for Godot's public API exposed to GDNative.</li>
+</ol>
+<p>For the latter, we suggest that you create a dedicated folder for this GDNative example project, open a terminal in that folder and execute:</p>
+<pre class="none"><code>git clone https://github.com/godotengine/godot-headers.git --branch=3.4</code></pre>
+<p>This will download the required files into that folder.</p>
+<blockquote>
+<p><strong>Tip:</strong> If you plan to use Git for your GDNative project, you can also add <code>godot-headers</code> as a Git submodule.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> The <code>godot-headers</code> repository has different branches. As Godot evolves, so does GDNative. While we try to preserve compatibility between version, you should always build your GDNative module against headers matching the Godot stable branch (e.g. <code>3.4</code>) and ideally actual release (e.g. <code>3.4.4-stable</code>) that you use. GDNative modules built against older versions of the Godot headers <em>may</em> work with newer versions of the engine, but not the other way around.</p>
+</blockquote>
+<p>The <code>master</code> branch of the <code>godot-headers</code> repository is kept in line with the <code>master</code> branch of Godot and thus contains the GDNative class and structure definitions that will work with the latest development builds.</p>
+<p>If you want to write a GDNative module for a stable version of Godot, look at the available Git tags (with <code>git tags</code>) for the one matching your engine version. In the <code>godot-headers</code> repository, such tags are prefixed with <code>godot-</code>, so you can e.g. checkout the <code>godot-3.4.4-stable</code> tag for use with Godot 3.4.4. In your cloned repository, you can do:</p>
+<pre class="none"><code>git checkout godot-3.4.4-stable</code></pre>
+<p>If a tag matching your stable release is missing for any reason, you can fall back to the matching stable branch (e.g. <code>3.4</code>), which you would also check out with <code>git checkout 3.4</code>.</p>
+<p>If you are building Godot from source with your own changes that impact GDNative, you can find the updated class and structure definition in <code>&lt;godotsource&gt;/modules/gdnative/include</code></p>
+<h2 id="our-c-source">Our C source</h2>
+<p>Let's start by writing our main code. Eventually, we want to end up with a file structure that looks along those lines:</p>
+<pre class="none"><code>+ &lt;your development folder&gt;
+  + godot-headers
+    - &lt;lots of files here&gt;
+  + simple
+    + bin
+      - libsimple.dll/so/dylib
+      - libsimple.gdnlib
+      - simple.gdns
+    main.tscn
+    project.godot
+  + src
+    - simple.c</code></pre>
+<p>Open up Godot and create a new project called "simple" alongside your <code>godot-headers</code> Git clone. This will create the <code>simple</code> folder and <code>project.godot</code> file. Then manually create a <code>src</code> folder alongside the <code>simple</code> folder, and a <code>bin</code> subfolder in the <code>simple</code> folder.</p>
+<p>We're going to start by having a look at what our <code>simple.c</code> file contains. Now, for our example here we're making a single C source file without a header to keep things simple. Once you start writing bigger projects it is advisable to break your project up into multiple files. That however falls outside of the scope of this tutorial.</p>
+<p>We'll be looking at the source code bit by bit so all the parts below should all be put together into one big file. Each section will be explained as we add it.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode C"><code class="sourceCode c"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;gdnative_api_struct.gen.h&gt;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;string.h&gt;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="dt">const</span> godot_gdnative_core_api_struct <span class="op">*</span>api <span class="op">=</span> NULL<span class="op">;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="dt">const</span> godot_gdnative_ext_nativescript_api_struct <span class="op">*</span>nativescript_api <span class="op">=</span> NULL<span class="op">;</span></span></code></pre></div>
+<p>The above code includes the GDNative API struct header and a standard header that we will use further down for string operations. It then defines two pointers to two different structs. GDNative supports a large collection of functions for calling back into the main Godot executable. In order for your module to have access to these functions, GDNative provides your application with a struct containing pointers to all these functions.</p>
+<p>To keep this implementation modular and easily extendable, the core functions are available directly through the "core" API struct, but additional functions have their own "GDNative structs" that are accessible through extensions.</p>
+<p>In our example, we access one of these extension to gain access to the functions specifically needed for NativeScript.</p>
+<p>A NativeScript behaves like any other script in Godot. Because the NativeScript API is rather low level, it requires the library to specify many things more verbosely than other scripting systems, such as GDScript. When a NativeScript instance gets created, a library-given constructor gets called. When that instance gets destroyed, the given destructor will be executed.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode C"><code class="sourceCode c"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="op">*</span>simple_constructor<span class="op">(</span>godot_object <span class="op">*</span>p_instance<span class="op">,</span> <span class="dt">void</span> <span class="op">*</span>p_method_data<span class="op">);</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> simple_destructor<span class="op">(</span>godot_object <span class="op">*</span>p_instance<span class="op">,</span> <span class="dt">void</span> <span class="op">*</span>p_method_data<span class="op">,</span> <span class="dt">void</span> <span class="op">*</span>p_user_data<span class="op">);</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>godot_variant simple_get_data<span class="op">(</span>godot_object <span class="op">*</span>p_instance<span class="op">,</span> <span class="dt">void</span> <span class="op">*</span>p_method_data<span class="op">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">void</span> <span class="op">*</span>p_user_data<span class="op">,</span> <span class="dt">int</span> p_num_args<span class="op">,</span> godot_variant <span class="op">**</span>p_args<span class="op">);</span></span></code></pre></div>
+<p>These are forward declarations for the functions we'll be implementing for our object. A constructor and destructor is needed. Additionally, the object will have a single method called <code>get_data</code>.</p>
+<p>Next up is the first of the entry points Godot will call when our dynamic library is loaded. These methods are all prefixed with <code>godot_</code> (you can change this later on) followed by their name. <code>gdnative_init</code> is a function that initializes our dynamic library. Godot will give it a pointer to a structure that contains various bits of information we may find useful among which the pointers to our API structures.</p>
+<p>For any additional API structures we need to loop through our extensions array and check the type of extension.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode C"><code class="sourceCode c"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> GDN_EXPORT godot_gdnative_init<span class="op">(</span>godot_gdnative_init_options <span class="op">*</span>p_options<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    api <span class="op">=</span> p_options<span class="op">-&gt;</span>api_struct<span class="op">;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Now find our extensions.</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> api<span class="op">-&gt;</span>num_extensions<span class="op">;</span> i<span class="op">++)</span> <span class="op">{</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">switch</span> <span class="op">(</span>api<span class="op">-&gt;</span>extensions<span class="op">[</span>i<span class="op">]-&gt;</span>type<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>            <span class="cf">case</span> GDNATIVE_EXT_NATIVESCRIPT<span class="op">:</span> <span class="op">{</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>                nativescript_api <span class="op">=</span> <span class="op">(</span>godot_gdnative_ext_nativescript_api_struct <span class="op">*)</span>api<span class="op">-&gt;</span>extensions<span class="op">[</span>i<span class="op">];</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>            <span class="op">};</span> <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">default</span><span class="op">:</span> <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Next up is <code>gdnative_terminate</code> which is called before the library is unloaded. Godot will unload the library when no object uses it anymore. Here, you can do any cleanup you may need to do. For our example, we're simply going to clear our API pointers.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode C"><code class="sourceCode c"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> GDN_EXPORT godot_gdnative_terminate<span class="op">(</span>godot_gdnative_terminate_options <span class="op">*</span>p_options<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    api <span class="op">=</span> NULL<span class="op">;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    nativescript_api <span class="op">=</span> NULL<span class="op">;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Finally, we have <code>nativescript_init</code> which is the most important function we'll need today. This function will be called by Godot as part of loading a GDNative library and communicates back to the engine what objects we make available.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode C"><code class="sourceCode c"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> GDN_EXPORT godot_nativescript_init<span class="op">(</span><span class="dt">void</span> <span class="op">*</span>p_handle<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    godot_instance_create_func create <span class="op">=</span> <span class="op">{</span> NULL<span class="op">,</span> NULL<span class="op">,</span> NULL <span class="op">};</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    create<span class="op">.</span>create_func <span class="op">=</span> <span class="op">&amp;</span>simple_constructor<span class="op">;</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    godot_instance_destroy_func destroy <span class="op">=</span> <span class="op">{</span> NULL<span class="op">,</span> NULL<span class="op">,</span> NULL <span class="op">};</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    destroy<span class="op">.</span>destroy_func <span class="op">=</span> <span class="op">&amp;</span>simple_destructor<span class="op">;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    nativescript_api<span class="op">-&gt;</span>godot_nativescript_register_class<span class="op">(</span>p_handle<span class="op">,</span> <span class="st">&quot;SIMPLE&quot;</span><span class="op">,</span> <span class="st">&quot;Reference&quot;</span><span class="op">,</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>            create<span class="op">,</span> destroy<span class="op">);</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    godot_instance_method get_data <span class="op">=</span> <span class="op">{</span> NULL<span class="op">,</span> NULL<span class="op">,</span> NULL <span class="op">};</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    get_data<span class="op">.</span>method <span class="op">=</span> <span class="op">&amp;</span>simple_get_data<span class="op">;</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    godot_method_attributes attributes <span class="op">=</span> <span class="op">{</span> GODOT_METHOD_RPC_MODE_DISABLED <span class="op">};</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    nativescript_api<span class="op">-&gt;</span>godot_nativescript_register_method<span class="op">(</span>p_handle<span class="op">,</span> <span class="st">&quot;SIMPLE&quot;</span><span class="op">,</span> <span class="st">&quot;get_data&quot;</span><span class="op">,</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>            attributes<span class="op">,</span> get_data<span class="op">);</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>We first tell the engine which classes are implemented by calling <code>nativescript_register_class</code>. The first parameter here is the handle pointer given to us. The second is the name of our object class. The third is the type of object in Godot that we 'inherit' from; this is not true inheritance but it's close enough. Finally, our fourth and fifth parameters are descriptions for our constructor and destructor.</p>
+<p>We then tell Godot about our methods (well our one method in this case), by calling <code>nativescript_register_method</code> for each method of our class. In our case, that is just <code>get_data</code>. Our first parameter is yet again our handle pointer. The second is again the name of the object class we're registering. The third is the name of our function as it will be known to GDScript. The fourth is our attributes setting (see <code>godot_method_rpc_mode</code> enum in <code>godot-headers/nativescript/godot_nativescript.h</code> for possible values). The fifth and final parameter is a description of which function to call when the method gets called.</p>
+<p>The description struct <code>instance_method</code> contains the function pointer to the function itself as first field. The other two fields in these structs are for specifying per-method userdata. The second is the <code>method_data</code> field which is passed on every function call as the <code>p_method_data</code> argument. This is useful to reuse one function for different methods on possibly multiple different script-classes. If the <code>method_data</code> value is a pointer to memory that needs to be freed, the third <code>free_func</code> field can contain a pointer to a function that will free that memory. That free function gets called when the script itself (not instance!) gets unloaded (so usually at library-unload time).</p>
+<p>Now, it's time to start working on the functions of our object. First, we define a structure that we use to store the member data of an instance of our GDNative class.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode C"><code class="sourceCode c"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">typedef</span> <span class="kw">struct</span> user_data_struct <span class="op">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> data<span class="op">[</span><span class="dv">256</span><span class="op">];</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> user_data_struct<span class="op">;</span></span></code></pre></div>
+<p>And then, we define our constructor. All we do in our constructor is allocate memory for our structure and fill it with some data. Note that we use Godot's memory functions so the memory gets tracked and then return the pointer to our new structure. This pointer will act as our instance identifier in case multiple objects are instantiated.</p>
+<p>This pointer will be passed to any of our functions related to our object as a parameter called <code>p_user_data</code>, and can both be used to identify our instance and to access its member data.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode C"><code class="sourceCode c"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="op">*</span>simple_constructor<span class="op">(</span>godot_object <span class="op">*</span>p_instance<span class="op">,</span> <span class="dt">void</span> <span class="op">*</span>p_method_data<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    user_data_struct <span class="op">*</span>user_data <span class="op">=</span> api<span class="op">-&gt;</span>godot_alloc<span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span>user_data_struct<span class="op">));</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    strcpy<span class="op">(</span>user_data<span class="op">-&gt;</span>data<span class="op">,</span> <span class="st">&quot;World from GDNative!&quot;</span><span class="op">);</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> user_data<span class="op">;</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Our destructor is called when Godot is done with our object and we free our instances' member data.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode C"><code class="sourceCode c"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> simple_destructor<span class="op">(</span>godot_object <span class="op">*</span>p_instance<span class="op">,</span> <span class="dt">void</span> <span class="op">*</span>p_method_data<span class="op">,</span> <span class="dt">void</span> <span class="op">*</span>p_user_data<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    api<span class="op">-&gt;</span>godot_free<span class="op">(</span>p_user_data<span class="op">);</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>And finally, we implement our <code>get_data</code> function. Data is always sent and returned as variants so in order to return our data, which is a string, we first need to convert our C string to a Godot string object, and then copy that string object into the variant we are returning.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode C"><code class="sourceCode c"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>godot_variant simple_get_data<span class="op">(</span>godot_object <span class="op">*</span>p_instance<span class="op">,</span> <span class="dt">void</span> <span class="op">*</span>p_method_data<span class="op">,</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>        <span class="dt">void</span> <span class="op">*</span>p_user_data<span class="op">,</span> <span class="dt">int</span> p_num_args<span class="op">,</span> godot_variant <span class="op">**</span>p_args<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    godot_string data<span class="op">;</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    godot_variant ret<span class="op">;</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    user_data_struct <span class="op">*</span>user_data <span class="op">=</span> <span class="op">(</span>user_data_struct <span class="op">*)</span>p_user_data<span class="op">;</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    api<span class="op">-&gt;</span>godot_string_new<span class="op">(&amp;</span>data<span class="op">);</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    api<span class="op">-&gt;</span>godot_string_parse_utf8<span class="op">(&amp;</span>data<span class="op">,</span> user_data<span class="op">-&gt;</span>data<span class="op">);</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    api<span class="op">-&gt;</span>godot_variant_new_string<span class="op">(&amp;</span>ret<span class="op">,</span> <span class="op">&amp;</span>data<span class="op">);</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    api<span class="op">-&gt;</span>godot_string_destroy<span class="op">(&amp;</span>data<span class="op">);</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ret<span class="op">;</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Strings are heap-allocated in Godot, so they have a destructor which frees the memory. Destructors are named <code>godot_TYPENAME_destroy</code>. When a Variant gets created with a String, it references the String. That means that the original String can be "destroyed" to decrease the ref-count. If that does not happen the String memory will leak since the ref-count will never be zero and the memory never deallocated. The returned variant gets automatically destroyed by Godot.</p>
+<blockquote>
+<p><strong>Note:</strong> In more complex operations it can be confusing the keep track of which value needs to be deallocated and which does not. As a general rule: call <code>godot_TYPENAME_destroy</code> when a C++ destructor would be called instead. The String destructor would be called in C++ after the Variant was created, so the same is necessary in C.</p>
+</blockquote>
+<p>The variant we return is destroyed automatically by Godot.</p>
+<p>And that is the whole source code of our module.</p>
+<h2 id="compiling">Compiling</h2>
+<p>We now need to compile our source code. As mentioned our example project on GitHub contains a SCons configuration that does all the hard work for you, but for our tutorial here we are going to call the compilers directly.</p>
+<p>Assuming you are sticking to the folder structure suggested above, it is best to open a terminal session in the <code>src</code> folder and execute the commands from there. Make sure to create the <code>bin</code> folder before you proceed.</p>
+<p>On Linux:</p>
+<pre class="none"><code>gcc -std=c11 -fPIC -c -I../godot-headers simple.c -o simple.o
+gcc -rdynamic -shared simple.o -o ../simple/bin/libsimple.so</code></pre>
+<p>On macOS:</p>
+<pre class="none"><code>clang -std=c11 -fPIC -c -I../godot-headers simple.c -o simple.os
+clang -dynamiclib simple.os -o ../simple/bin/libsimple.dylib</code></pre>
+<p>On Windows:</p>
+<pre class="none"><code>cl /Fosimple.obj /c simple.c /nologo -EHsc -DNDEBUG /MD /I. /I..\godot-headers
+link /nologo /dll /out:..\simple\bin\libsimple.dll /implib:..\simple\bin\libsimple.lib simple.obj</code></pre>
+<blockquote>
+<p><strong>Note:</strong> On the Windows build you also end up with a <code>libsimple.lib</code> library. This is a library that you can compile into a project to provide access to the DLL. We get it as a byproduct and we do not need it :) When exporting your game for release this file will be ignored.</p>
+</blockquote>
+<h2 id="creating-the-gdnativelibrary-gdnlib-file">Creating the GDNativeLibrary (<code>.gdnlib</code>) file</h2>
+<p>With our module compiled, we now need to create a corresponding ref resource with <code>.gdnlib</code> extension which we place alongside our dynamic libraries. This file tells Godot what dynamic libraries are part of our module and need to be loaded per platform.</p>
+<p>We can use Godot to generate this file, so open the "simple" project in the editor.</p>
+<p>Start by clicking the create resource button in the Inspector:</p>
+<p>And select <code>GDNativeLibrary</code>:</p>
+<p>You should see a contextual editor appear in the bottom panel. Use the "Expand Bottom Panel" button in the bottom right to expand it to full height:</p>
+<h3 id="general-properties">General properties</h3>
+<p>In the Inspector, you have various properties to control loading the library.</p>
+<p>If <em>Load Once</em> is enabled, our library is loaded only once and each individual script that uses our library will use the same data. Any variable you define globally will be accessible from any instance of your object you create. If <em>Load Once</em> is disabled, a new copy of the library is loaded into memory each time a script accesses the library.</p>
+<p>If <em>Singleton</em> is enabled, our library is automatically loaded and a function called <code>godot_gdnative_singleton</code> is called. We'll leave that for another tutorial.</p>
+<p>The <em>Symbol Prefix</em> is a prefix for our core functions, such as <code>godot_</code> in <code>godot_nativescript_init</code> seen earlier. If you use multiple GDNative libraries that you wish to statically link, you will have to use different prefixes. This again is a subject to dive into deeper in a separate tutorial, it is only needed at this time for deployment to iOS as this platform does not like dynamic libraries.</p>
+<p><em>Reloadable</em> defines whether the library should be reloaded when the editor loses and gains focus, typically to pick up new or modified symbols from any change made to the library externally.</p>
+<h3 id="platform-libraries">Platform libraries</h3>
+<p>The GDNativeLibrary editor plugin lets you configure two things for each platform and architecture that you aim to support.</p>
+<p>The <em>Dynamic Library</em> column (<code>entry</code> section in the saved file) tells us for each platform and feature combination which dynamic library has to be loaded. This also informs the exporter which files need to be exported when exporting to a specific platform.</p>
+<p>The <em>Dependencies</em> column (also <code>dependencies</code> section) tells Godot what other files need to be exported for each platform in order for our library to work. Say that your GDNative module uses another DLL to implement functionality from a 3rd party library, this is where you list that DLL.</p>
+<p>For our example, we only built libraries for Linux, macOS and/or Windows, so you can link them in the relevant fields by clicking the folder button. If you built all three libraries, you should have something like this:</p>
+<h3 id="saving-the-resource">Saving the resource</h3>
+<p>We can then save our GDNativeLibrary resource as <code>bin/libsimple.gdnlib</code> with the Save button in the Inspector:</p>
+<p>The file is saved in a text-based format and should have contents similar to this:</p>
+<pre class="none"><code>[general]
+
+singleton=false
+load_once=true
+symbol_prefix=&quot;godot_&quot;
+reloadable=true
+
+[entry]
+
+OSX.64=&quot;res://bin/libsimple.dylib&quot;
+OSX.32=&quot;res://bin/libsimple.dylib&quot;
+Windows.64=&quot;res://bin/libsimple.dll&quot;
+X11.64=&quot;res://bin/libsimple.so&quot;
+
+[dependencies]
+
+OSX.64=[  ]
+OSX.32=[  ]
+Windows.64=[  ]
+X11.64=[  ]</code></pre>
+<h2 id="creating-the-nativescript-gdns-file">Creating the NativeScript (<code>.gdns</code>) file</h2>
+<p>With our <code>.gdnlib</code> file we've told Godot how to load our library, now we need to tell it about our "SIMPLE" object class. We do this by creating a ref resource file with <code>.gdns</code> extension.</p>
+<p>Like done for the GDNativeLibrary resource, click the button to create a new resource in the Inspector and select <code>NativeScript</code>:</p>
+<p>The inspector will show a few properties that we need to fill. As <em>Class Name</em> we enter "SIMPLE" which is the object class name that we declared in our C source when calling <code>godot_nativescript_register_class</code>. We also need to select our <code>.gdnlib</code> file by clicking on <em>Library</em> and selecting <em>Load</em>:</p>
+<blockquote>
+<p><strong>Note:</strong> The <em>Class Name</em> must have the same spelling as the one given in <code>godot_nativescript_init</code> when registering the class.</p>
+</blockquote>
+<p>Finally, click on the save icon and save this as <code>bin/simple.gdns</code>:</p>
+<p>Now it's time to build our scene. Add a Control node to your scene as your root and call it <code>main</code>. Then add a Button and a Label as child nodes. Place them somewhere nice on screen and give your button a name.</p>
+<p>Select the control node and attach a script to it:</p>
+<p>Next link up the <code>pressed</code> signal on the button to your script:</p>
+<p>Don't forget to save your scene, call it <code>main.tscn</code>.</p>
+<p>Now we can implement our <code>main.gd</code> code:</p>
+<pre><code>extends Control
+
+# load the Simple library
+onready var data = preload(&quot;res://bin/simple.gdns&quot;).new()
+
+func _on_Button_pressed():
+    $Label.text = &quot;Data = &quot; + data.get_data()</code></pre>
+<p>After all that, our project should work. The first time you run it Godot will ask you what your main scene is and you select your <code>main.tscn</code> file and presto:</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

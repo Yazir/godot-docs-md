@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resources — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="resources">Resources</h1>
+<h2 id="nodes-and-resources">Nodes and resources</h2>
+<p>Up to this tutorial, we focused on the ref class in Godot as that's the one you use to code behavior and most of the engine's features rely on it. There is another datatype that is just as important: ref.</p>
+<p><em>Nodes</em> give you functionality: they draw sprites, 3D models, simulate physics, arrange user interfaces, etc. <strong>Resources</strong> are <strong>data containers</strong>. They don't do anything on their own: instead, nodes use the data contained in resources.</p>
+<p>Anything Godot saves or loads from disk is a resource. Be it a scene (a <code>.tscn</code> or an <code>.scn</code> file), an image, a script... Here are some <code>Resource</code> examples: ref, ref, ref, ref, ref, ref, ref.</p>
+<p>When the engine loads a resource from disk, <strong>it only loads it once</strong>. If a copy of that resource is already in memory, trying to load the resource again will return the same copy every time. As resources only contain data, there is no need to duplicate them.</p>
+<p>Every object, be it a Node or a Resource, can export properties. There are many types of Properties, like String, integer, Vector2, etc., and any of these types can become a resource. This means that both nodes and resources can contain resources as properties:</p>
+<h2 id="external-vs-built-in">External vs built-in</h2>
+<p>There are two ways to save resources. They can be:</p>
+<ol type="1">
+<li><strong>External</strong> to a scene, saved on the disk as individual files.</li>
+<li><strong>Built-in</strong>, saved inside the <code>.tscn</code> or the <code>.scn</code> file they're attached to.</li>
+</ol>
+<p>To be more specific, here's a ref in a ref node:</p>
+<p>Clicking the resource preview allows us to view and edit the resource's properties.</p>
+<p>The path property tells us where the resource comes from. In this case, it comes from a PNG image called <code>robi.png</code>. When the resource comes from a file like this, it is an external resource. If you erase the path or this path is empty, it becomes a built-in resource.</p>
+<p>The switch between built-in and external resources happens when you save the scene. In the example above, if you erase the path <code>"res://robi.png"</code> and save, Godot will save the image inside the <code>.tscn</code> scene file.</p>
+<blockquote>
+<p><strong>Note:</strong> Even if you save a built-in resource, when you instance a scene multiple times, the engine will only load one copy of it.</p>
+</blockquote>
+<h2 id="loading-resources-from-code">Loading resources from code</h2>
+<p>There are two ways to load resources from code. First, you can use the <code>load()</code> function anytime:</p>
+<pre class="gdscript"><code>func _ready():
+        var res = load(&quot;res://robi.png&quot;) # Godot loads the Resource when it reads the line.
+        get_node(&quot;sprite&quot;).texture = res</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> texture <span class="op">=</span> <span class="op">(</span>Texture<span class="op">)</span>GD<span class="op">.</span><span class="fu">Load</span><span class="op">(</span><span class="st">&quot;res://robi.png&quot;</span><span class="op">);</span> <span class="co">// Godot loads the Resource when it reads the line.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> sprite <span class="op">=</span> GetNode<span class="op">&lt;</span>Sprite<span class="op">&gt;(</span><span class="st">&quot;sprite&quot;</span><span class="op">);</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    sprite<span class="op">.</span><span class="fu">Texture</span> <span class="op">=</span> texture<span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>You can also <code>preload</code> resources. Unlike <code>load</code>, this function will read the file from disk and load it at compile-time. As a result, you cannot call preload with a variable path: you need to use a constant string.</p>
+<pre class="gdscript"><code>func _ready():
+        var res = preload(&quot;res://robi.png&quot;) # Godot loads the resource at compile-time
+        get_node(&quot;sprite&quot;).texture = res</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// &#39;preload()&#39; is unavailable in C Sharp.</span></span></code></pre></div>
+<h2 id="loading-scenes">Loading scenes</h2>
+<p>Scenes are also resources, but there is a catch. Scenes saved to disk are resources of type ref. The scene is packed inside a resource.</p>
+<p>To get an instance of the scene, you have to use the ref method.</p>
+<pre class="gdscript"><code>func _on_shoot():
+        var bullet = preload(&quot;res://bullet.tscn&quot;).instance()
+        add_child(bullet)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> PackedScene _bulletScene <span class="op">=</span> <span class="op">(</span>PackedScene<span class="op">)</span>GD<span class="op">.</span><span class="fu">Load</span><span class="op">(</span><span class="st">&quot;res://bullet.tscn&quot;</span><span class="op">);</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnShoot</span><span class="op">()</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    Node bullet <span class="op">=</span> _bulletScene<span class="op">.</span><span class="fu">Instance</span><span class="op">();</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">AddChild</span><span class="op">(</span>bullet<span class="op">);</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This method creates the nodes in the scene's hierarchy, configures them, and returns the root node of the scene. You can then add it as a child of any other node.</p>
+<p>The approach has several advantages. As the ref function is fast, you can create new enemies, bullets, effects, etc. without having to load them again from disk each time. Remember that, as always, images, meshes, etc. are all shared between the scene instances.</p>
+<h2 id="freeing-resources">Freeing resources</h2>
+<p>When a <code>Resource</code> is no longer in use, it will automatically free itself. Since, in most cases, Resources are contained in Nodes, when you free a node, the engine frees all the resources it owns as well if no other node uses them.</p>
+<h2 id="creating-your-own-resources">Creating your own resources</h2>
+<p>Like any Object in Godot, users can also script Resources. Resource scripts inherit the ability to freely translate between object properties and serialized text or binary data (*.tres, *.res). They also inherit the reference-counting memory management from the Reference type.</p>
+<p>This comes with many distinct advantages over alternative data structures, such as JSON, CSV, or custom TXT files. Users can only import these assets as a ref (JSON) or as a ref to parse. What sets Resources apart is their inheritance of ref, ref, and ref features:</p>
+<ul>
+<li>They can define constants, so constants from other data fields or objects are not needed.</li>
+<li>They can define methods, including setter/getter methods for properties. This allows for abstraction and encapsulation of the underlying data. If the Resource script's structure needs to change, the game using the Resource need not also change.</li>
+<li>They can define signals, so Resources can trigger responses to changes in the data they manage.</li>
+<li>They have defined properties, so users know 100% that their data will exist.</li>
+<li>Resource auto-serialization and deserialization is a built-in Godot Engine feature. Users do not need to implement custom logic to import/export a resource file's data.</li>
+<li>Resources can even serialize sub-Resources recursively, meaning users can design even more sophisticated data structures.</li>
+<li>Users can save Resources as version-control-friendly text files (*.tres). Upon exporting a game, Godot serializes resource files as binary files (*.res) for increased speed and compression.</li>
+<li>Godot Engine's Inspector renders and edits Resource files out-of-the-box. As such, users often do not need to implement custom logic to visualize or edit their data. To do so, double-click the resource file in the FileSystem dock or click the folder icon in the Inspector and open the file in the dialog.</li>
+<li>They can extend <strong>other</strong> resource types besides just the base Resource.</li>
+</ul>
+<p>Godot makes it easy to create custom Resources in the Inspector.</p>
+<ol type="1">
+<li>Create a plain Resource object in the Inspector. This can even be a type that derives Resource, so long as your script is extending that type.</li>
+<li>Set the <code>script</code> property in the Inspector to be your script.</li>
+</ol>
+<p>The Inspector will now display your Resource script's custom properties. If one edits those values and saves the resource, the Inspector serializes the custom properties too! To save a resource from the Inspector, click the Inspector's tools menu (top right), and select "Save" or "Save As...".</p>
+<p>If the script's language supports ref, then it streamlines the process. Defining a name for your script alone will add it to the Inspector's creation dialog. This will auto-add your script to the Resource object you create.</p>
+<p>Let's see some examples.</p>
+<pre class="gdscript"><code># bot_stats.gd
+extends Resource
+export(int) var health
+export(Resource) var sub_resource
+export(Array, String) var strings
+
+# Make sure that every parameter has a default value.
+# Otherwise, there will be problems with creating and editing
+# your resource via the inspector.
+func _init(p_health = 0, p_sub_resource = null, p_strings = []):
+    health = p_health
+    sub_resource = p_sub_resource
+    strings = p_strings
+
+# bot.gd
+extends KinematicBody
+
+export(Resource) var stats
+
+func _ready():
+    # Uses an implicit, duck-typed interface for any &#39;health&#39;-compatible resources.
+    if stats:
+        print(stats.health) # Prints &#39;10&#39;.</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// BotStats.cs</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> ExampleProject <span class="op">{</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> BotStats <span class="op">:</span> Resource</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">public</span> <span class="dt">int</span> Health <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">public</span> Resource SubResource <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        <span class="kw">public</span> <span class="dt">string</span><span class="op">[]</span> Strings <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Make sure you provide a parameterless constructor.</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// In C#, a parameterless constructor is different from a</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// constructor with all default values.</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Without a parameterless constructor, Godot will have problems</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        <span class="co">// creating and editing your resource via the inspector.</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>        <span class="kw">public</span> <span class="fu">BotStats</span><span class="op">()</span> <span class="op">:</span> <span class="kw">this</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="kw">null</span><span class="op">,</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{}</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>        <span class="kw">public</span> <span class="fu">BotStats</span><span class="op">(</span><span class="dt">int</span> health<span class="op">,</span> Resource subResource<span class="op">,</span> <span class="dt">string</span><span class="op">[]</span> strings<span class="op">)</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>            Health <span class="op">=</span> health<span class="op">;</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>            SubResource <span class="op">=</span> subResource<span class="op">;</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>            Strings <span class="op">=</span> strings <span class="op">??</span> Array<span class="op">.</span><span class="fu">Empty</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">&gt;();</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a><span class="co">// Bot.cs</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> ExampleProject <span class="op">{</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">class</span> Bot <span class="op">:</span> KinematicBody</span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>        <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>        <span class="kw">public</span> Resource Stats<span class="op">;</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>        <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>Stats <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span> Stats <span class="kw">is</span> BotStats botStats<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>                GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>botStats<span class="op">.</span><span class="fu">Health</span><span class="op">);</span> <span class="co">// Prints &#39;10&#39;.</span></span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> Resource scripts are similar to Unity's ScriptableObjects. The Inspector provides built-in support for custom resources. If desired though, users can even design their own Control-based tool scripts and combine them with an ref to create custom visualizations and editors for their data.</p>
+<p>Unreal Engine 4's DataTables and CurveTables are also easy to recreate with Resource scripts. DataTables are a String mapped to a custom struct, similar to a Dictionary mapping a String to a secondary custom Resource script.</p>
+</blockquote>
+<pre class="gdscript"><code># bot_stats_table.gd
+extends Resource
+
+const BotStats = preload(&quot;bot_stats.gd&quot;)
+
+var data = {
+    &quot;GodotBot&quot;: BotStats.new(10), # Creates instance with 10 health.
+    &quot;DifferentBot&quot;: BotStats.new(20) # A different one with 20 health.
+}
+
+func _init():
+    print(data)</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> BotStatsTable <span class="op">:</span> Resource</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Godot<span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span>String<span class="op">,</span> BotStats<span class="op">&gt;</span> _stats <span class="op">=</span> <span class="kw">new</span> Godot<span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span>String<span class="op">,</span> BotStats<span class="op">&gt;();</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="fu">BotStatsTable</span><span class="op">()</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        _stats<span class="op">[</span><span class="st">&quot;GodotBot&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">BotStats</span><span class="op">(</span><span class="dv">10</span><span class="op">);</span> <span class="co">// Creates instance with 10 health.</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        _stats<span class="op">[</span><span class="st">&quot;DifferentBot&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">BotStats</span><span class="op">(</span><span class="dv">20</span><span class="op">);</span> <span class="co">// A different one with 20 health.</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>_stats<span class="op">);</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>Instead of just inlining the Dictionary values<span class="op">,</span> one could also<span class="op">,</span> alternatively<span class="op">...</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="fl">1.</span> Import a table of values from a spreadsheet and generate these key<span class="op">-</span>value pairs<span class="op">,</span> or<span class="op">...</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="fl">2.</span> Design a visualization within the editor and create a simple plugin that adds it</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>   to the Inspector when you open these types of Resources<span class="op">.</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>CurveTables are the same thing<span class="op">,</span> except mapped to an Array of <span class="dt">float</span> values</span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>or a <span class="kw">ref</span><span class="op">/</span><span class="kw">ref</span> resource <span class="dt">object</span><span class="op">.</span></span></code></pre></div>
+<blockquote>
+<p><strong>Warning:</strong> Beware that resource files (*.tres/*.res) will store the path of the script they use in the file. When loaded, they will fetch and load this script as an extension of their type. This means that trying to assign a subclass, i.e. an inner class of a script (such as using the <code>class</code> keyword in GDScript) won't work. Godot will not serialize the custom properties on the script subclass properly.</p>
+<p>In the example below, Godot would load the <code>Node</code> script, see that it doesn't extend <code>Resource</code>, and then determine that the script failed to load for the Resource object since the types are incompatible.</p>
+</blockquote>
+<pre class="gdscript"><code>extends Node
+
+class MyResource:
+    extends Resource
+    export var value = 5
+
+func _ready():
+    var my_res = MyResource.new()
+
+    # This will NOT serialize the &#39;value&#39; property.
+    ResourceSaver.save(&quot;res://my_res.tres&quot;, my_res)</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode <span class="op">:</span> Node</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyResource <span class="op">:</span> Resource</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">public</span> <span class="dt">int</span> Value <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> <span class="dv">5</span><span class="op">;</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> res <span class="op">=</span> <span class="kw">new</span> <span class="fu">MyResource</span><span class="op">();</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">// This will NOT serialize the &#39;Value&#39; property.</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        ResourceSaver<span class="op">.</span><span class="fu">Save</span><span class="op">(</span><span class="st">&quot;res://MyRes.tres&quot;</span><span class="op">,</span> res<span class="op">);</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UDPServer — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="udpserver">UDPServer</h1>
+<p><em>Inherits: <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Helper class to implement a UDP server.</p>
+<h2 id="description">Description</h2>
+<p>A simple server that opens a UDP socket and returns connected <a href="PacketPeerUDP.html">PacketPeerUDP</a> upon receiving new packets. See also <code>PacketPeerUDP.connect_to_host()</code>.</p>
+<p>After starting the server (<code>listen()</code>), you will need to <code>poll()</code> it at regular intervals (e.g. inside <code>Node._process()</code>) for it to process new packets, delivering them to the appropriate <a href="PacketPeerUDP.html">PacketPeerUDP</a>, and taking new connections.</p>
+<p>Below a small example of how it can be used:</p>
+<pre class="gdscript"><code># server_node.gd
+class_name ServerNode
+extends Node
+
+var server = UDPServer.new()
+var peers = []
+
+func _ready():
+    server.listen(4242)
+
+func _process(delta):
+    server.poll() # Important!
+    if server.is_connection_available():
+        var peer = server.take_connection()
+        var packet = peer.get_packet()
+        print(&quot;Accepted peer: %s:%s&quot; % [peer.get_packet_ip(), peer.get_packet_port()])
+        print(&quot;Received data: %s&quot; % [packet.get_string_from_utf8()])
+        # Reply so it knows we received the message.
+        peer.put_packet(packet)
+        # Keep a reference so we can keep contacting the remote peer.
+        peers.append(peer)
+
+    for i in range(0, peers.size()):
+        pass # Do something with the connected peers.</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ServerNode.cs</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Generic</span><span class="op">;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> ServerNode <span class="op">:</span> Node</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> UdpServer _server <span class="op">=</span> <span class="kw">new</span> <span class="fu">UdpServer</span><span class="op">();</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> List<span class="op">&lt;</span>PacketPeerUdp<span class="op">&gt;</span> _peers  <span class="op">=</span> <span class="kw">new</span> List<span class="op">&lt;</span>PacketPeerUdp<span class="op">&gt;();</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        _server<span class="op">.</span><span class="fu">Listen</span><span class="op">(</span><span class="dv">4242</span><span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        _server<span class="op">.</span><span class="fu">Poll</span><span class="op">();</span> <span class="co">// Important!</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>_server<span class="op">.</span><span class="fu">IsConnectionAvailable</span><span class="op">())</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>            PacketPeerUdp peer <span class="op">=</span> _server<span class="op">.</span><span class="fu">TakeConnection</span><span class="op">();</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>            <span class="dt">byte</span><span class="op">[]</span> packet <span class="op">=</span> peer<span class="op">.</span><span class="fu">GetPacket</span><span class="op">();</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>$<span class="st">&quot;Accepted Peer: {peer.GetPacketIP()}:{peer.GetPacketPort()}&quot;</span><span class="op">);</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>$<span class="st">&quot;Received Data: {packet.GetStringFromUtf8()}&quot;</span><span class="op">);</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Reply so it knows we received the message.</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>            peer<span class="op">.</span><span class="fu">PutPacket</span><span class="op">(</span>packet<span class="op">);</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Keep a reference so we can keep contacting the remote peer.</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>            _peers<span class="op">.</span><span class="fu">Add</span><span class="op">(</span>peer<span class="op">);</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>        <span class="kw">foreach</span> <span class="op">(</span><span class="dt">var</span> peer <span class="kw">in</span> _peers<span class="op">)</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Do something with the peers.</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="gdscript"><code># client_node.gd
+class_name ClientNode
+extends Node
+
+var udp = PacketPeerUDP.new()
+var connected = false
+
+func _ready():
+    udp.connect_to_host(&quot;127.0.0.1&quot;, 4242)
+
+func _process(delta):
+    if !connected:
+        # Try to contact server
+        udp.put_packet(&quot;The answer is... 42!&quot;.to_utf8_buffer())
+    if udp.get_available_packet_count() &gt; 0:
+        print(&quot;Connected: %s&quot; % udp.get_packet().get_string_from_utf8())
+        connected = true</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ClientNode.cs</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> ClientNode <span class="op">:</span> Node</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> PacketPeerUdp _udp <span class="op">=</span> <span class="kw">new</span> <span class="fu">PacketPeerUdp</span><span class="op">();</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">bool</span> _connected <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        _udp<span class="op">.</span><span class="fu">ConnectToHost</span><span class="op">(</span><span class="st">&quot;127.0.0.1&quot;</span><span class="op">,</span> <span class="dv">4242</span><span class="op">);</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(!</span>_connected<span class="op">)</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Try to contact server</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>            _udp<span class="op">.</span><span class="fu">PutPacket</span><span class="op">(</span><span class="st">&quot;The Answer Is..42!&quot;</span><span class="op">.</span><span class="fu">ToUtf8Buffer</span><span class="op">());</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>_udp<span class="op">.</span><span class="fu">GetAvailablePacketCount</span><span class="op">()</span> <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>$<span class="st">&quot;Connected: {_udp.GetPacket().GetStringFromUtf8()}&quot;</span><span class="op">);</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>            _connected <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="properties">Properties</h2>
+<h3 id="int-max_pending_connections--16"><code>int max_pending_connections = 16</code></h3>
+<ul>
+<li>Setter: <code>set_max_pending_connections(value: int)</code></li>
+<li>Getter: <code>get_max_pending_connections()</code></li>
+</ul>
+<p>Define the maximum number of pending connections, during <code>poll()</code>, any new pending connection exceeding that value will be automatically dropped. Setting this value to <code>0</code> effectively prevents any new pending connection to be accepted (e.g. when all your players have connected).</p>
+<h2 id="methods">Methods</h2>
+<h3 id="int-get_local_port-const"><code>int get_local_port() const</code></h3>
+<p>Returns the local port this server is listening to.</p>
+<h3 id="bool-is_connection_available-const"><code>bool is_connection_available() const</code></h3>
+<p>Returns <code>true</code> if a packet with a new address/port combination was received on the socket.</p>
+<h3 id="bool-is_listening-const"><code>bool is_listening() const</code></h3>
+<p>Returns <code>true</code> if the socket is open and listening on a port.</p>
+<h3 id="globalscopeerror-listenport-int-bind_address-string--">``@GlobalScope.Error<code> listen(port: int, bind_address: String = "*")</code></h3>
+<p>Starts the server by opening a UDP socket listening on the given <code>port</code>. You can optionally specify a <code>bind_address</code> to only listen for packets sent to that address. See also <code>PacketPeerUDP.bind()</code>.</p>
+<h3 id="globalscopeerror-poll">``@GlobalScope.Error<code> poll()</code></h3>
+<p>Call this method at regular intervals (e.g. inside <code>Node._process()</code>) to process new packets. Any packet from a known address/port pair will be delivered to the appropriate <a href="PacketPeerUDP.html">PacketPeerUDP</a>, while any packet received from an unknown address/port pair will be added as a pending connection (see <code>is_connection_available()</code> and <code>take_connection()</code>). The maximum number of pending connections is defined via <code>max_pending_connections</code>.</p>
+<h3 id="void-stop"><code>void stop()</code></h3>
+<p>Stops the server, closing the UDP socket if open. Will close all connected <a href="PacketPeerUDP.html">PacketPeerUDP</a> accepted via <code>take_connection()</code> (remote peers will not be notified).</p>
+<h3 id="packetpeerudp-take_connection"><code>PacketPeerUDP take_connection()</code></h3>
+<p>Returns the first pending connection (connected to the appropriate address/port). Will return <code>null</code> if no new connection is available. See also <code>is_connection_available()</code>, <code>PacketPeerUDP.connect_to_host()</code>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

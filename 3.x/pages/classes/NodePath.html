@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NodePath — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="nodepath">NodePath</h1>
+<p>Pre-parsed scene tree path.</p>
+<h2 id="description">Description</h2>
+<p>A pre-parsed relative or absolute path in a scene tree, for use with <code>Node.get_node</code> and similar functions. It can reference a node, a resource within a node, or a property of a node or resource. For instance, <code>"Path2D/PathFollow2D/Sprite:texture:size"</code> would refer to the <code>size</code> property of the <code>texture</code> resource on the node named <code>"Sprite"</code> which is a child of the other named nodes in the path.</p>
+<p>You will usually just pass a string to <code>Node.get_node</code> and it will be automatically converted, but you may occasionally want to parse a path ahead of time with <strong>NodePath</strong> or the literal syntax <code>@"path"</code>. Exporting a <strong>NodePath</strong> variable will give you a node selection widget in the properties panel of the editor, which can often be useful.</p>
+<p>A <strong>NodePath</strong> is composed of a list of slash-separated node names (like a filesystem path) and an optional colon-separated list of "subnames" which can be resources or properties.</p>
+<p>Some examples of NodePaths include the following:</p>
+<pre class="gdscript"><code># No leading slash means it is relative to the current node.
+@&quot;A&quot; # Immediate child A
+@&quot;A/B&quot; # A&#39;s child B
+@&quot;.&quot; # The current node.
+@&quot;..&quot; # The parent node.
+@&quot;../C&quot; # A sibling node C.
+@&quot;../..&quot; # The grandparent node.
+# A leading slash means it is absolute from the SceneTree.
+@&quot;/root&quot; # Equivalent to get_tree().get_root().
+@&quot;/root/Main&quot; # If your main scene&#39;s root node were named &quot;Main&quot;.
+@&quot;/root/MyAutoload&quot; # If you have an autoloaded node or scene.</code></pre>
+<p><strong>Note:</strong> In the editor, <strong>NodePath</strong> properties are automatically updated when moving, renaming or deleting a node in the scene tree, but they are never updated at runtime.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="https://godotengine.org/asset-library/asset/520">2D Role Playing Game Demo</a></li>
+</ul>
+<h2 id="methods">Methods</h2>
+<h3 id="nodepath-nodepathfrom-string"><code>NodePath NodePath(from: String)</code></h3>
+<p>Creates a NodePath from a string, e.g. <code>"Path2D/PathFollow2D/Sprite:texture:size"</code>. A path is absolute if it starts with a slash. Absolute paths are only valid in the global scene tree, not within individual scenes. In a relative path, <code>"."</code> and <code>".."</code> indicate the current node and its parent.</p>
+<p>The "subnames" optionally included after the path to the target node can point to resources or properties, and can also be nested.</p>
+<p>Examples of valid NodePaths (assuming that those nodes exist and have the referenced resources or properties):</p>
+<pre class="gdscript"><code># Points to the Sprite node
+&quot;Path2D/PathFollow2D/Sprite&quot;
+# Points to the Sprite node and its &quot;texture&quot; resource.
+# get_node() would retrieve &quot;Sprite&quot;, while get_node_and_resource()
+# would retrieve both the Sprite node and the &quot;texture&quot; resource.
+&quot;Path2D/PathFollow2D/Sprite:texture&quot;
+# Points to the Sprite node and its &quot;position&quot; property.
+&quot;Path2D/PathFollow2D/Sprite:position&quot;
+# Points to the Sprite node and the &quot;x&quot; component of its &quot;position&quot; property.
+&quot;Path2D/PathFollow2D/Sprite:position:x&quot;
+# Absolute path (from &quot;root&quot;)
+&quot;/root/Level/Path2D&quot;</code></pre>
+<h3 id="nodepath-get_as_property_path"><code>NodePath get_as_property_path()</code></h3>
+<p>Returns a node path with a colon character (<code>:</code>) prepended, transforming it to a pure property path with no node name (defaults to resolving from the current node).</p>
+<pre class="gdscript"><code># This will be parsed as a node path to the &quot;x&quot; property in the &quot;position&quot; node
+var node_path = NodePath(&quot;position:x&quot;)
+# This will be parsed as a node path to the &quot;x&quot; component of the &quot;position&quot; property in the current node
+var property_path = node_path.get_as_property_path()
+print(property_path) # :position:x</code></pre>
+<h3 id="string-get_concatenated_subnames"><code>String get_concatenated_subnames()</code></h3>
+<p>Returns all subnames concatenated with a colon character (<code>:</code>) as separator, i.e. the right side of the first colon in a node path.</p>
+<pre class="gdscript"><code>var nodepath = NodePath(&quot;Path2D/PathFollow2D/Sprite:texture:load_path&quot;)
+print(nodepath.get_concatenated_subnames()) # texture:load_path</code></pre>
+<h3 id="string-get_nameidx-int"><code>String get_name(idx: int)</code></h3>
+<p>Gets the node name indicated by <code>idx</code> (0 to <code>get_name_count</code> - 1).</p>
+<pre class="gdscript"><code>var node_path = NodePath(&quot;Path2D/PathFollow2D/Sprite&quot;)
+print(node_path.get_name(0)) # Path2D
+print(node_path.get_name(1)) # PathFollow2D
+print(node_path.get_name(2)) # Sprite</code></pre>
+<h3 id="int-get_name_count"><code>int get_name_count()</code></h3>
+<p>Gets the number of node names which make up the path. Subnames (see <code>get_subname_count</code>) are not included.</p>
+<p>For example, <code>"Path2D/PathFollow2D/Sprite"</code> has 3 names.</p>
+<h3 id="string-get_subnameidx-int"><code>String get_subname(idx: int)</code></h3>
+<p>Gets the resource or property name indicated by <code>idx</code> (0 to <code>get_subname_count</code> - 1).</p>
+<pre class="gdscript"><code>var node_path = NodePath(&quot;Path2D/PathFollow2D/Sprite:texture:load_path&quot;)
+print(node_path.get_subname(0)) # texture
+print(node_path.get_subname(1)) # load_path</code></pre>
+<h3 id="int-get_subname_count"><code>int get_subname_count()</code></h3>
+<p>Gets the number of resource or property names ("subnames") in the path. Each subname is listed after a colon character (<code>:</code>) in the node path.</p>
+<p>For example, <code>"Path2D/PathFollow2D/Sprite:texture:load_path"</code> has 2 subnames.</p>
+<h3 id="bool-is_absolute"><code>bool is_absolute()</code></h3>
+<p>Returns <code>true</code> if the node path is absolute (as opposed to relative), which means that it starts with a slash character (<code>/</code>). Absolute node paths can be used to access the root node (<code>"/root"</code>) or autoloads (e.g. <code>"/global"</code> if a "global" autoload was registered).</p>
+<h3 id="bool-is_empty"><code>bool is_empty()</code></h3>
+<p>Returns <code>true</code> if the node path is empty.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

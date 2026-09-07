@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Optimizing a build for size — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="optimizing-a-build-for-size">Optimizing a build for size</h1>
+<h2 id="rationale">Rationale</h2>
+<p>Sometimes, it is desired to optimize a build for size rather than speed. This means not compiling unused functions from the engine, as well as using specific compiler flags to aid on decreasing build size. Common situations include creating builds for mobile and Web platforms.</p>
+<p>This tutorial aims to give an overview on different methods to create a smaller binary. Before continuing, it is recommended to read the previous tutorials on compiling Godot for each platform.</p>
+<p>The options below are listed from the most important (greatest size savings) to the least important (lowest size savings).</p>
+<h2 id="stripping-binaries">Stripping binaries</h2>
+<ul>
+<li><strong>Space savings:</strong> Very high</li>
+<li><strong>Difficulty:</strong> Easy</li>
+<li><strong>Performed in official builds:</strong> Yes</li>
+</ul>
+<p>If you build Windows (MinGW), Linux or macOS binaries from source, remember to strip debug symbols from binaries by installing the <code>strip</code> package from your distribution then running:</p>
+<pre><code>strip path/to/godot.binary</code></pre>
+<p>On Windows, <code>strip.exe</code> is included in most MinGW toolchain setups.</p>
+<p>This will reduce the size of compiled binaries by a factor between 5× and 10×. The downside is that crash backtraces will no longer provide accurate information (which is useful for troubleshooting the cause of a crash). ref will also no longer be able to display function names (this does not affect the built-in GDScript profiler).</p>
+<blockquote>
+<p><strong>Note:</strong> The above command will not work on Windows binaries compiled with MSVC and platforms such as Android and Web. Instead, pass <code>debug_symbols=no</code> on the SCons command line when compiling.</p>
+</blockquote>
+<h2 id="compiling-with-link-time-optimization">Compiling with link-time optimization</h2>
+<ul>
+<li><strong>Space savings:</strong> High</li>
+<li><strong>Difficulty:</strong> Easy</li>
+<li><strong>Performed in official builds:</strong> Yes</li>
+</ul>
+<p>Enabling link-time optimization produces more efficient binaries, both in terms of performance and file size. It works by eliminating duplicate template functions and unused code. It can currently be used with the GCC and MSVC compilers:</p>
+<pre><code>scons target=template_release lto=full</code></pre>
+<p>Linking becomes much slower and more RAM-consuming with this option, so it should be used only for release builds. You need to have at least 8 GB of RAM available for successful linking with LTO enabled. Since the operating system and programs will take up some RAM, in practice, you need 12 GB of RAM installed in your system (preferably 16 GB) to compile Godot with LTO enabled.</p>
+<h2 id="optimizing-for-size-instead-of-speed">Optimizing for size instead of speed</h2>
+<ul>
+<li><strong>Space savings:</strong> High</li>
+<li><strong>Difficulty:</strong> Easy</li>
+<li><strong>Performed in official builds:</strong> Yes, but only for web builds</li>
+</ul>
+<p>It is possible to compile Godot using size optimizations (instead of speed). To enable this, set the <code>optimize</code> flag to <code>size</code>:</p>
+<pre><code>scons target=template_release optimize=size</code></pre>
+<p>Some platforms such as WebAssembly already use this mode by default.</p>
+<p>Godot 4.5 introduced the <code>size_extra</code> option, which can further reduce size.</p>
+<pre><code>scons target=template_release optimize=size_extra</code></pre>
+<h2 id="detecting-used-features-from-the-current-project-and-disabling-unused-features">Detecting used features from the current project and disabling unused features</h2>
+<ul>
+<li><strong>Space savings:</strong> Moderate to high depending on project</li>
+<li><strong>Difficulty:</strong> Easy to medium depending on project</li>
+<li><strong>Performed in official builds:</strong> No</li>
+</ul>
+<p>Godot features an <code>doc_engine_compilation_configuration_editor</code> tool that can detect the features used in the current project and create a build profile. Once saved, this build profile can then be passed to SCons when compiling custom export templates:</p>
+<pre><code>scons target=template_release build_profile=/path/to/profile.gdbuild</code></pre>
+<p>Note that for certain projects, the feature detection may be too aggressive and disable features that are actually needed at runtime. This can occur if certain features are used in a way that their usage cannot be detected statically (such as a script being procedurally created and run at runtime).</p>
+<p>More specific features can be disabled by following the sections below, but remember that many of them are automatically detected by the engine compilation configuration detector.</p>
+<h2 id="disabling-advanced-text-server">Disabling advanced text server</h2>
+<ul>
+<li><strong>Space savings:</strong> High</li>
+<li><strong>Difficulty:</strong> Easy</li>
+<li><strong>Performed in official builds:</strong> No</li>
+</ul>
+<p>By default, Godot uses an advanced text server with the support for the following features:</p>
+<ul>
+<li>Right-to-left typesetting and complex scripts, required to write languages such as Arabic and Hebrew.</li>
+<li>Font ligatures and OpenType features (such as small capitals, fractions and slashed zero).</li>
+</ul>
+<p>Godot provides a fallback text server that isn't compiled by default. This text server can be used as a lightweight alternative to the default advanced text server:</p>
+<pre><code>scons target=template_release module_text_server_adv_enabled=no module_text_server_fb_enabled=yes</code></pre>
+<p>If you only intend on supporting Latin, Greek and Cyrillic-based languages in your project, the fallback text server should suffice.</p>
+<p>This fallback text server can also process large amounts of text more quickly than the advanced text server. This makes the fallback text server a good fit for mobile/web projects.</p>
+<blockquote>
+<p><strong>Note:</strong> Remember to always pass <code>module_text_server_fb_enabled=yes</code> when using <code>module_text_server_adv_enabled=no</code>. Otherwise, the compiled binary won't contain any text server, which means no text will be displayed at all when running the project.</p>
+</blockquote>
+<h2 id="disabling-3d">Disabling 3D</h2>
+<ul>
+<li><strong>Space savings:</strong> Moderate</li>
+<li><strong>Difficulty:</strong> Easy</li>
+<li><strong>Performed in official builds:</strong> No</li>
+</ul>
+<p>For 2D games, having the whole 3D engine available usually makes no sense. Because of this, there is a build flag to disable it:</p>
+<pre><code>scons target=template_release disable_3d=yes</code></pre>
+<p>Tools must be disabled in order to use this flag, as the editor is not designed to operate without 3D support. Without it, the binary size can be reduced by about 15%.</p>
+<h2 id="disabling-advanced-gui-objects">Disabling advanced GUI objects</h2>
+<ul>
+<li><strong>Space savings:</strong> Moderate</li>
+<li><strong>Difficulty:</strong> Easy</li>
+<li><strong>Performed in official builds:</strong> No</li>
+</ul>
+<p>Most small games don't require complex GUI controls such as Tree, ItemList, TextEdit or GraphEdit. They can be disabled using a build flag:</p>
+<pre><code>scons target=template_release disable_advanced_gui=yes</code></pre>
+<p>This is everything that will be disabled:</p>
+<ul>
+<li><code>class_AcceptDialog</code></li>
+<li><code>class_CharFXTransform</code></li>
+<li><code>class_CodeEdit</code></li>
+<li><code>class_CodeHighlighter</code></li>
+<li><code>class_ColorPicker</code></li>
+<li><code>class_ColorPickerButton</code></li>
+<li><code>class_ConfirmationDialog</code></li>
+<li><code>class_FileDialog</code></li>
+<li><code>class_FoldableContainer</code></li>
+<li><code>class_FoldableGroup</code></li>
+<li><code>class_GraphEdit</code></li>
+<li><code>class_GraphElement</code></li>
+<li><code>class_GraphFrame</code></li>
+<li><code>class_GraphNode</code></li>
+<li><code>class_HSplitContainer</code></li>
+<li><code>class_MenuBar</code></li>
+<li><code>class_MenuButton</code></li>
+<li><code>class_OptionButton</code></li>
+<li><code>class_PopupMenu</code> (will make all popup menus unavailable in code for classes that use them, like <code>class_LineEdit</code>, even though those classes are still available)</li>
+<li><code>class_RichTextEffect</code></li>
+<li><code>class_RichTextLabel</code></li>
+<li><code>class_SpinBox</code></li>
+<li><code>class_SplitContainer</code></li>
+<li><code>class_SubViewportContainer</code></li>
+<li><code>class_SyntaxHighlighter</code></li>
+<li><code>class_TextEdit</code></li>
+<li><code>class_Tree</code></li>
+<li><code>class_TreeItem</code></li>
+<li><code>class_VSplitContainer</code></li>
+</ul>
+<h2 id="disabling-physics-engines">Disabling physics engines</h2>
+<ul>
+<li><strong>Space savings:</strong> Low to moderate</li>
+<li><strong>Difficulty:</strong> Easy</li>
+<li><strong>Performed in official builds:</strong> No</li>
+</ul>
+<p>If your 3D project uses Jolt Physics, you can disable GodotPhysics3D at compile-time as it will never be used:</p>
+<pre><code>scons target=template_release module_godot_physics_3d_enabled=no</code></pre>
+<p>Inversely, if your 3D project uses GodotPhysics3D, you can disable Jolt Physics at compile-time:</p>
+<pre><code>scons target=template_release module_jolt_enabled=no</code></pre>
+<p>If your project uses 3D rendering but not physics (or 2D rendering but not physics), you can also disable 2D or 3D physics entirely. Most 3D projects can take advantage of this, as they don't make use of 2D physics:</p>
+<pre><code>scons target=template_release disable_physics_2d=yes
+
+scons target=template_release disable_physics_3d=yes</code></pre>
+<h2 id="disabling-unwanted-modules">Disabling unwanted modules</h2>
+<ul>
+<li><strong>Space savings:</strong> Very low to moderate depending on modules</li>
+<li><strong>Difficulty:</strong> Medium to hard depending on modules</li>
+<li><strong>Performed in official builds:</strong> No</li>
+</ul>
+<p>A lot of Godot's functions are offered as modules. You can see a list of modules with the following command:</p>
+<pre><code>scons --help</code></pre>
+<p>The list of modules that can be disabled will appear, together with all build options. If you are working on a simple 2D game, you could disable a lot of them:</p>
+<pre><code>scons target=template_release module_astcenc_enabled=no module_basis_universal_enabled=no module_bcdec_enabled=no module_bmp_enabled=no module_camera_enabled=no module_csg_enabled=no module_dds_enabled=no module_enet_enabled=no module_etcpak_enabled=no module_fbx_enabled=no module_gltf_enabled=no module_gridmap_enabled=no module_hdr_enabled=no module_interactive_music_enabled=no module_jsonrpc_enabled=no module_ktx_enabled=no module_mbedtls_enabled=no module_meshoptimizer_enabled=no module_mp3_enabled=no module_mobile_vr_enabled=no module_msdfgen_enabled=no module_multiplayer_enabled=no module_noise_enabled=no module_navigation_2d_enabled=no module_navigation_3d_enabled=no module_ogg_enabled=no module_openxr_enabled=no module_raycast_enabled=no module_regex_enabled=no module_svg_enabled=no module_tga_enabled=no module_theora_enabled=no module_tinyexr_enabled=no module_upnp_enabled=no module_vhacd_enabled=no module_vorbis_enabled=no module_webrtc_enabled=no module_websocket_enabled=no module_webxr_enabled=no module_zip_enabled=no</code></pre>
+<p>If this proves not to work for your use case, you should review the list of modules and see which ones you actually still need for your game (e.g. you might want to keep networking-related modules, regex support, <code>mp3</code>/<code>ogg</code>/<code>vorbis</code> to play music, or <code>theora</code> to play videos).</p>
+<p>Alternatively, you can supply a list of disabled modules by creating <code>custom.py</code> at the root of the source, with the contents similar to the following:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>module_astcenc_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>module_basis_universal_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>module_bcdec_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>module_bmp_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>module_camera_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>module_csg_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>module_dds_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>module_enet_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>module_etcpak_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>module_fbx_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>module_gltf_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>module_gridmap_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>module_hdr_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>module_interactive_music_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>module_jsonrpc_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>module_ktx_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>module_mbedtls_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>module_meshoptimizer_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>module_mp3_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>module_mobile_vr_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>module_msdfgen_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>module_multiplayer_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>module_noise_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>module_navigation_2d_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>module_navigation_3d_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>module_ogg_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>module_openxr_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>module_raycast_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>module_regex_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>module_svg_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>module_tga_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>module_theora_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>module_tinyexr_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>module_upnp_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>module_vhacd_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>module_vorbis_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a>module_webrtc_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a>module_websocket_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>module_webxr_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>module_zip_enabled <span class="op">=</span> <span class="st">&quot;no&quot;</span></span></code></pre></div>
+<blockquote>
+<p><strong>See also:</strong> <code>doc_overriding_build_options</code>.</p>
+</blockquote>
+<h2 id="optimizing-the-distribution-of-your-project">Optimizing the distribution of your project</h2>
+<h3 id="desktop">Desktop</h3>
+<blockquote>
+<p><strong>Note:</strong> This section is only relevant when distributing the files on a desktop platform that doesn't perform its own compression or packing. As such, this advice is relevant when you distribute ZIP archives on itch.io or GitHub Releases.</p>
+<p>Platforms like Steam already apply their own compression scheme, so you don't need to create a ZIP archive to distribute files in the first place.</p>
+</blockquote>
+<p>As an aside, you can look into optimizing the distribution of your project itself. This can be done even without recompiling the export template.</p>
+<p><a href="https://7-zip.org/">7-Zip</a> can be used to create ZIP archives that are more efficient than usual, while remaining compatible with every ZIP extractor (including Windows' own built-in extractor). ZIP size reduction in a large project can reach dozens of megabytes compared to a typical ZIP compressor, although average savings are in the 1-5 MB range. Creating this ZIP archive will take longer than usual, but it will extract just as fast as any other ZIP archive.</p>
+<p>When using the 7-Zip GUI, this is done by creating a ZIP archive with the Ultra compression mode. When using the command line, this is done using the following command:</p>
+<pre><code>7z a -mx9 my_project.zip folder_containing_executable_and_pck</code></pre>
+<h3 id="web">Web</h3>
+<p>Enabling gzip or Brotli compression for all file types from the web export (especially the <code>.wasm</code> and <code>.pck</code>) can reduce the download size significantly, leading to faster loading times, especially on slow connections.</p>
+<p>Creating precompressed gzip or Brotli files with a high compression level can be even more efficient, as long as the web server is configured to serve those files when they exist. When supported, Brotli should be preferred over gzip as it has a greater potential for file size reduction.</p>
+<p>See <code>doc_exporting_for_web_serving_the_files</code> for instructions.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

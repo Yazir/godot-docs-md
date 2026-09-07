@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="json">JSON</h1>
+<p><em>Inherits: <a href="Resource.html">Resource</a> &lt; <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Helper class for creating and parsing JSON data.</p>
+<h2 id="description">Description</h2>
+<p>The <strong>JSON</strong> class enables all data types to be converted to and from a JSON string. This is useful for serializing data, e.g. to save to a file or send over the network.</p>
+<p><code>stringify()</code> is used to convert any data type into a JSON string.</p>
+<p><code>parse()</code> is used to convert any existing JSON data into a <a href="Variant.html">Variant</a> that can be used within Godot. If successfully parsed, use <code>data</code> to retrieve the <a href="Variant.html">Variant</a>, and use <code>@GlobalScope.typeof()</code> to check if the Variant's type is what you expect. JSON Objects are converted into a <a href="Dictionary.html">Dictionary</a>, but JSON data can be used to store <a href="Array.html">Array</a> s, numbers, <a href="String.html">String</a> s and even just a boolean.</p>
+<pre class="gdscript"><code>var data_to_send = [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;]
+var json_string = JSON.stringify(data_to_send)
+# Save data
+# ...
+# Retrieve data
+var json = JSON.new()
+var error = json.parse(json_string)
+if error == OK:
+    var data_received = json.data
+    if typeof(data_received) == TYPE_ARRAY:
+        print(data_received) # Prints the array.
+    else:
+        print(&quot;Unexpected data&quot;)
+else:
+    print(&quot;JSON Parse Error: &quot;, json.get_error_message(), &quot; in &quot;, json_string, &quot; at line &quot;, json.get_error_line())</code></pre>
+<p>Alternatively, you can parse strings using the static <code>parse_string()</code> method, but it doesn't handle errors.</p>
+<pre class="gdscript"><code>var data = JSON.parse_string(json_string) # Returns null if parsing failed.</code></pre>
+<p><strong>Note:</strong> Both parse methods do not fully comply with the JSON specification:</p>
+<ul>
+<li><p>Trailing commas in arrays or objects are ignored, instead of causing a parser error.</p></li>
+<li><p>New line and tab characters are accepted in string literals, and are treated like their corresponding escape sequences <code>\n</code> and <code>\t</code>.</p></li>
+<li><p>Numbers are parsed using <code>String.to_float()</code> which is generally more lax than the JSON specification.</p></li>
+<li><p>Certain errors, such as invalid Unicode sequences, do not cause a parser error. Instead, the string is cleaned up and an error is logged to the console.</p></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="variant-data--null"><code>Variant data = null</code></h3>
+<ul>
+<li>Setter: <code>set_data(value: Variant)</code></li>
+<li>Getter: <code>get_data()</code></li>
+</ul>
+<p>Contains the parsed JSON data in <a href="Variant.html">Variant</a> form.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="variant-from_nativevariant-variant-full_objects-bool--false-static"><code>Variant from_native(variant: Variant, full_objects: bool = false) static</code></h3>
+<p>Converts a native engine type to a JSON-compliant value.</p>
+<p>By default, objects are ignored for security reasons, unless <code>full_objects</code> is <code>true</code>.</p>
+<p>You can convert a native value to a JSON string like this:</p>
+<pre class="gdscript"><code>func encode_data(value, full_objects = false):
+    return JSON.stringify(JSON.from_native(value, full_objects))</code></pre>
+<h3 id="int-get_error_line-const"><code>int get_error_line() const</code></h3>
+<p>Returns <code>0</code> if the last call to <code>parse()</code> was successful, or the line number where the parse failed.</p>
+<h3 id="string-get_error_message-const"><code>String get_error_message() const</code></h3>
+<p>Returns an empty string if the last call to <code>parse()</code> was successful, or the error message if it failed.</p>
+<h3 id="string-get_parsed_text-const"><code>String get_parsed_text() const</code></h3>
+<p>Return the text parsed by <code>parse()</code> (requires passing <code>keep_text</code> to <code>parse()</code>).</p>
+<h3 id="globalscopeerror-parsejson_text-string-keep_text-bool--false">``@GlobalScope.Error<code> parse(json_text: String, keep_text: bool = false)</code></h3>
+<p>Attempts to parse the <code>json_text</code> provided.</p>
+<p>Returns an <code>@GlobalScope.Error</code>. If the parse was successful, it returns <code>@GlobalScope.OK</code> and the result can be retrieved using <code>data</code>. If unsuccessful, use <code>get_error_line()</code> and <code>get_error_message()</code> to identify the source of the failure.</p>
+<p>Non-static variant of <code>parse_string()</code>, if you want custom error handling.</p>
+<p>The optional <code>keep_text</code> argument instructs the parser to keep a copy of the original text. This text can be obtained later by using the <code>get_parsed_text()</code> function and is used when saving the resource (instead of generating new text from <code>data</code>).</p>
+<h3 id="variant-parse_stringjson_string-string-static"><code>Variant parse_string(json_string: String) static</code></h3>
+<p>Attempts to parse the <code>json_string</code> provided and returns the parsed data. Returns <code>null</code> if parse failed.</p>
+<h3 id="string-stringifydata-variant-indent-string---sort_keys-bool--true-full_precision-bool--false-static"><code>String stringify(data: Variant, indent: String = "", sort_keys: bool = true, full_precision: bool = false) static</code></h3>
+<p>Converts a <a href="Variant.html">Variant</a> var to JSON text and returns the result. Useful for serializing data to store or send over the network.</p>
+<p><strong>Note:</strong> The JSON specification does not define integer or float types, but only a <em>number</em> type. Therefore, converting a Variant to JSON text will convert all numerical values to <a href="float.html">float</a> types.</p>
+<p><strong>Note:</strong> If <code>full_precision</code> is <code>true</code>, when stringifying floats, the unreliable digits are stringified in addition to the reliable digits to guarantee exact decoding.</p>
+<p>The <code>indent</code> parameter controls if and how something is indented; its contents will be used where there should be an indent in the output. Even spaces like <code>"   "</code> will work. <code>\t</code> and <code>\n</code> can also be used for a tab indent, or to make a newline for each indent respectively.</p>
+<p><strong>Warning:</strong> Non-finite numbers are not supported in JSON. Any occurrences of <code>@GDScript.INF</code> will be replaced with <code>1e99999</code>, and negative <code>@GDScript.INF</code> will be replaced with <code>-1e99999</code>, but they will be interpreted correctly as infinity by most JSON parsers. <code>@GDScript.NAN</code> will be replaced with <code>null</code>, and it will not be interpreted as NaN in JSON parsers. If you expect non-finite numbers, consider passing your data through <code>from_native()</code> first.</p>
+<p><strong>Example output:</strong></p>
+<pre class="gdscript"><code>## JSON.stringify(my_dictionary)
+{&quot;name&quot;:&quot;my_dictionary&quot;,&quot;version&quot;:&quot;1.0.0&quot;,&quot;entities&quot;:[{&quot;name&quot;:&quot;entity_0&quot;,&quot;value&quot;:&quot;value_0&quot;},{&quot;name&quot;:&quot;entity_1&quot;,&quot;value&quot;:&quot;value_1&quot;}]}
+
+## JSON.stringify(my_dictionary, &quot;\t&quot;)
+{
+    &quot;name&quot;: &quot;my_dictionary&quot;,
+    &quot;version&quot;: &quot;1.0.0&quot;,
+    &quot;entities&quot;: [
+        {
+            &quot;name&quot;: &quot;entity_0&quot;,
+            &quot;value&quot;: &quot;value_0&quot;
+        },
+        {
+            &quot;name&quot;: &quot;entity_1&quot;,
+            &quot;value&quot;: &quot;value_1&quot;
+        }
+    ]
+}
+
+## JSON.stringify(my_dictionary, &quot;...&quot;)
+{
+...&quot;name&quot;: &quot;my_dictionary&quot;,
+...&quot;version&quot;: &quot;1.0.0&quot;,
+...&quot;entities&quot;: [
+......{
+.........&quot;name&quot;: &quot;entity_0&quot;,
+.........&quot;value&quot;: &quot;value_0&quot;
+......},
+......{
+.........&quot;name&quot;: &quot;entity_1&quot;,
+.........&quot;value&quot;: &quot;value_1&quot;
+......}
+...]
+}</code></pre>
+<h3 id="variant-to_nativejson-variant-allow_objects-bool--false-static"><code>Variant to_native(json: Variant, allow_objects: bool = false) static</code></h3>
+<p>Converts a JSON-compliant value that was created with <code>from_native()</code> back to native engine types.</p>
+<p>By default, objects are ignored for security reasons, unless <code>allow_objects</code> is <code>true</code>.</p>
+<p>You can convert a JSON string back to a native value like this:</p>
+<pre class="gdscript"><code>func decode_data(string, allow_objects = false):
+    return JSON.to_native(JSON.parse_string(string), allow_objects)</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

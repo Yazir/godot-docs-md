@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The JavaScriptBridge singleton — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="the-javascriptbridge-singleton">The JavaScriptBridge singleton</h1>
+<p>In web builds, the ref singleton allows interaction with JavaScript and web browsers, and can be used to implement some functionalities unique to the web platform.</p>
+<h2 id="interacting-with-javascript">Interacting with JavaScript</h2>
+<p>Sometimes, when exporting Godot for the Web, it might be necessary to interface with external JavaScript code like third-party SDKs, libraries, or simply to access browser features that are not directly exposed by Godot.</p>
+<p>The <code>JavaScriptBridge</code> singleton provides methods to wrap a native JavaScript object into a Godot ref that tries to feel natural in the context of Godot scripting (e.g. GDScript and C#).</p>
+<p>The ref method retrieves an object in the global scope.</p>
+<pre class="gdscript"><code>extends Node
+
+func _ready():
+    # Retrieve the `window.console` object.
+    var console = JavaScriptBridge.get_interface(&quot;console&quot;)
+    # Call the `window.console.log()` method.
+    console.log(&quot;test&quot;)</code></pre>
+<p>The ref creates a new object via the JavaScript <code>new</code> constructor.</p>
+<pre class="gdscript"><code>extends Node
+
+func _ready():
+    # Call the JavaScript `new` operator on the `window.Array` object.
+    # Passing 10 as argument to the constructor:
+    # JS: `new Array(10);`
+    var arr = JavaScriptBridge.create_object(&quot;Array&quot;, 10)
+    # Set the first element of the JavaScript array to the number 42.
+    arr[0] = 42
+    # Call the `pop` function on the JavaScript array.
+    arr.pop()
+    # Print the value of the `length` property of the array (9 after the pop).
+    print(arr.length)</code></pre>
+<p>As you can see, by wrapping JavaScript objects into <code>JavaScriptObject</code> you can interact with them like they were native Godot objects, calling their methods, and retrieving (or even setting) their properties.</p>
+<p>Base types (int, floats, strings, booleans) are automatically converted (floats might lose precision when converted from Godot to JavaScript). Anything else (i.e. objects, arrays, functions) are seen as <code>JavaScriptObjects</code> themselves.</p>
+<h2 id="callbacks">Callbacks</h2>
+<p>Calling JavaScript code from Godot is nice, but sometimes you need to call a Godot function from JavaScript instead.</p>
+<p>This case is a bit more complicated. JavaScript relies on garbage collection, while Godot uses reference counting for memory management. This means you have to explicitly create callbacks (which are returned as <code>JavaScriptObjects</code> themselves) and you have to keep their reference.</p>
+<p>Arguments passed by JavaScript to the callback will be passed as a single Godot <code>Array</code>.</p>
+<pre class="gdscript"><code>extends Node
+
+# Here we create a reference to the `_my_callback` function (below).
+# This reference will be kept until the node is freed.
+var _callback_ref = JavaScriptBridge.create_callback(_my_callback)
+
+func _ready():
+    # Get the JavaScript `window` object.
+    var window = JavaScriptBridge.get_interface(&quot;window&quot;)
+    # Set the `window.onbeforeunload` DOM event listener.
+    window.onbeforeunload = _callback_ref
+
+func _my_callback(args):
+    # Get the first argument (the DOM event in our case).
+    var js_event = args[0]
+    # Call preventDefault and set the `returnValue` property of the DOM event.
+    js_event.preventDefault()
+    js_event.returnValue = &#39;&#39;</code></pre>
+<blockquote>
+<p><strong>Warning:</strong> Callback methods created via ref (<code>_my_callback</code> in the above example) <strong>must</strong> take exactly one ref argument, which is going to be the JavaScript <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/arguments">arguments object</a> converted to an array. Otherwise, the callback method will not be called.</p>
+</blockquote>
+<p>Here is another example that asks the user for the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API">Notification permission</a> and waits asynchronously to deliver a notification if the permission is granted:</p>
+<pre class="gdscript"><code>extends Node
+
+# Here we create a reference to the `_on_permissions` function (below).
+# This reference will be kept until the node is freed.
+var _permission_callback = JavaScriptBridge.create_callback(_on_permissions)
+
+func _ready():
+    # NOTE: This is done in `_ready` for simplicity, but SHOULD BE done in response
+    # to user input instead (e.g. during `_input`, or `button_pressed` event, etc.),
+    # otherwise it might not work.
+
+    # Get the `window.Notification` JavaScript object.
+    var notification = JavaScriptBridge.get_interface(&quot;Notification&quot;)
+    # Call the `window.Notification.requestPermission` method which returns a JavaScript
+    # Promise, and bind our callback to it.
+    notification.requestPermission().then(_permission_callback)
+
+func _on_permissions(args):
+    # The first argument of this callback is the string &quot;granted&quot; if the permission is granted.
+    var permission = args[0]
+    if permission == &quot;granted&quot;:
+        print(&quot;Permission granted, sending notification.&quot;)
+        # Create the notification: `new Notification(&quot;Hi there!&quot;)`
+        JavaScriptBridge.create_object(&quot;Notification&quot;, &quot;Hi there!&quot;)
+    else:
+        print(&quot;No notification permission.&quot;)</code></pre>
+<h2 id="can-i-use-my-favorite-library">Can I use my favorite library?</h2>
+<p>You most likely can. First, you have to include your library in the page. You can customize the ref during export (see below), or even ref.</p>
+<p>In the example below, we customize the <code>Head Include</code> to add an external library (<a href="https://axios-http.com/">axios</a>) from a content delivery network, and a second <code>&lt;script&gt;</code> tag to define our own custom function:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode html"><code class="sourceCode html"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">&lt;!-- Axios --&gt;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">script</span> <span class="er">src</span><span class="ot">=</span><span class="st">&quot;https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js&quot;</span><span class="dt">&gt;&lt;/</span><span class="kw">script</span><span class="dt">&gt;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">&lt;!-- Custom function --&gt;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">script</span><span class="dt">&gt;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">myFunc</span>() {</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">alert</span>(<span class="st">&quot;My func!&quot;</span>)<span class="op">;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">script</span><span class="dt">&gt;</span></span></code></pre></div>
+<p>We can then access both the library and the function from Godot, like we did in previous examples:</p>
+<pre class="gdscript"><code>extends Node
+
+# Here create a reference to the `_on_get` function (below).
+# This reference will be kept until the node is freed.
+var _callback = JavaScriptBridge.create_callback(_on_get)
+
+func _ready():
+    # Get the `window` object, where globally defined functions are.
+    var window = JavaScriptBridge.get_interface(&quot;window&quot;)
+    # Call the JavaScript `myFunc` function defined in the custom HTML head.
+    window.myFunc()
+    # Get the `axios` library (loaded from a CDN in the custom HTML head).
+    var axios = JavaScriptBridge.get_interface(&quot;axios&quot;)
+    # Make a GET request to the current location, and receive the callback when done.
+    axios.get(window.location.toString()).then(_callback)
+
+func _on_get(args):
+    OS.alert(&quot;On Get&quot;)</code></pre>
+<h2 id="the-eval-interface">The eval interface</h2>
+<p>The <code>eval</code> method works similarly to the JavaScript function of the same name. It takes a string as an argument and executes it as JavaScript code. This allows interacting with the browser in ways not possible with script languages integrated into Godot.</p>
+<pre class="gdscript"><code>func my_func():
+    JavaScriptBridge.eval(&quot;alert(&#39;Calling JavaScript per GDScript!&#39;);&quot;)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">MyFunc</span><span class="op">()</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    JavaScriptBridge<span class="op">.</span><span class="fu">Eval</span><span class="op">(</span><span class="st">&quot;alert(&#39;Calling JavaScript per C#!&#39;);&quot;</span><span class="op">)</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The value of the last JavaScript statement is converted to a GDScript value and returned by <code>eval()</code> under certain circumstances:</p>
+<blockquote>
+<ul>
+<li>JavaScript <code>number</code> is returned as <code>class_float</code></li>
+<li>JavaScript <code>boolean</code> is returned as <code>class_bool</code></li>
+<li>JavaScript <code>string</code> is returned as <code>class_String</code></li>
+<li>JavaScript <code>ArrayBuffer</code>, <code>TypedArray</code>, and <code>DataView</code> are returned as ref</li>
+</ul>
+</blockquote>
+<pre class="gdscript"><code>func my_func2():
+    var js_return = JavaScriptBridge.eval(&quot;var myNumber = 1; myNumber + 2;&quot;)
+    print(js_return) # prints &#39;3.0&#39;</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">MyFunc2</span><span class="op">()</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> jsReturn <span class="op">=</span> JavaScriptBridge<span class="op">.</span><span class="fu">Eval</span><span class="op">(</span><span class="st">&quot;var myNumber = 1; myNumber + 2;&quot;</span><span class="op">);</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>jsReturn<span class="op">);</span> <span class="co">// prints &#39;3.0&#39;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Any other JavaScript value is returned as <code>null</code>.</p>
+<p>HTML5 export templates may be ref without support for the singleton to improve security. With such templates, and on platforms other than HTML5, calling <code>JavaScriptBridge.eval</code> will also return <code>null</code>. The availability of the singleton can be checked with the <code>web</code> ref:</p>
+<pre class="gdscript"><code>func my_func3():
+    if OS.has_feature(&#39;web&#39;):
+        JavaScriptBridge.eval(&quot;&quot;&quot;
+            console.log(&#39;The JavaScriptBridge singleton is available&#39;)
+        &quot;&quot;&quot;)
+    else:
+        print(&quot;The JavaScriptBridge singleton is NOT available&quot;)</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">MyFunc3</span><span class="op">()</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>OS<span class="op">.</span><span class="fu">HasFeature</span><span class="op">(</span><span class="st">&quot;web&quot;</span><span class="op">))</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        JavaScriptBridge<span class="op">.</span><span class="fu">Eval</span><span class="op">(</span><span class="st">&quot;console.log(&#39;The JavaScriptBridge singleton is available&#39;)&quot;</span><span class="op">);</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;The JavaScriptBridge singleton is NOT available&quot;</span><span class="op">);</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Tip:</strong> GDScript's multi-line strings, surrounded by 3 quotes <code>"""</code> as in <code>my_func3()</code> above, are useful to keep JavaScript code readable.</p>
+</blockquote>
+<p>The <code>eval</code> method also accepts a second, optional Boolean argument, which specifies whether to execute the code in the global execution context, defaulting to <code>false</code> to prevent polluting the global namespace:</p>
+<pre class="gdscript"><code>func my_func4():
+    # execute in global execution context,
+    # thus adding a new JavaScript global variable `SomeGlobal`
+    JavaScriptBridge.eval(&quot;var SomeGlobal = {};&quot;, true)</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">MyFunc4</span><span class="op">()</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// execute in global execution context,</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// thus adding a new JavaScript global variable `SomeGlobal`</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    JavaScriptBridge<span class="op">.</span><span class="fu">Eval</span><span class="op">(</span><span class="st">&quot;var SomeGlobal = {};&quot;</span><span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="downloading-files">Downloading files</h2>
+<p>Downloading files (e.g. a save game) from the Godot Web export to the user's computer can be done by directly interacting with JavaScript, but given it is a very common use case, Godot exposes this functionality to scripting via a dedicated ref function which lets you download any generated buffer.</p>
+<p>Here is a minimal example on how to use it:</p>
+<p>extends Node</p>
+<pre class="gdscript"><code>func _ready():
+    # Asks the user download a file called &quot;hello.txt&quot; whose content will be the string &quot;Hello&quot;.
+    JavaScriptBridge.download_buffer(&quot;Hello&quot;.to_utf8_buffer(), &quot;hello.txt&quot;)</code></pre>
+<p>And here is a more complete example on how to download a previously saved file:</p>
+<pre class="gdscript"><code>extends Node
+
+# Open a file for reading and download it via the JavaScript singleton.
+func _download_file(path):
+    var file = FileAccess.open(path, FileAccess.READ)
+    if file == null:
+        push_error(&quot;Failed to load file&quot;)
+        return
+    # Get the file name.
+    var fname = path.get_file()
+    # Read the whole file to memory.
+    var buffer = file.get_buffer(file.get_len())
+    # Prompt the user to download the file (will have the same name as the input file).
+    JavaScriptBridge.download_buffer(buffer, fname)
+
+func _ready():
+    # Create a temporary file.
+    var config = ConfigFile.new()
+    config.set_value(&quot;option&quot;, &quot;one&quot;, false)
+    config.save(&quot;/tmp/test.cfg&quot;)
+
+    # Download it
+    _download_file(&quot;/tmp/test.cfg&quot;)</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

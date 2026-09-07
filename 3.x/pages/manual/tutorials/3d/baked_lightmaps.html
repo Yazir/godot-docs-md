@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Baked lightmaps — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="baked-lightmaps">Baked lightmaps</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Baked lightmaps are an alternative workflow for adding indirect (or fully baked) lighting to a scene. Unlike the <code>doc_gi_probes</code> approach, baked lightmaps work fine on low-end PCs and mobile devices, as they consume almost no resources at run-time. Also unlike GIProbe, baked lightmaps can optionally be used to store direct lighting, which provides even further performance gains.</p>
+<p>Unlike GIProbes, Baked Lightmaps are completely static. Once baked, they can't be modified at all. They also don't provide the scene with reflections, so using <code>doc_reflection_probes</code> together with it on interiors (or using a Sky on exteriors) is a requirement to get good quality.</p>
+<p>As they are baked, they have fewer problems than <code>GIProbe</code> regarding light bleeding, and indirect light will often look better. The downside is that baking lightmaps takes much longer than baking a GIProbe. While baking a GIProbe can be done in a matter of seconds, baking lightmaps will take several minutes if not more. This can slow down iteration speed significantly, so it is recommended to bake lightmaps only when you actually need to see changes in lighting.</p>
+<p>Baking lightmaps will also reserve baked materials' UV2 slot, which means you can no longer use it for other purposes in materials (either in the built-in <code>doc_spatial_material</code> or in custom shaders).</p>
+<p>In the end, deciding which indirect lighting approach is better depends on your use case. In general, GIProbe is easier to set up and works better with dynamic objects. For mobile or low-end compatibility, though, baked lightmaps are your only choice.</p>
+<h2 id="visual-comparison">Visual comparison</h2>
+<p>Here are some comparisons of how BakedLightmap vs. GIProbe look. Notice that lightmaps are more accurate, but also suffer from the fact that lighting is on an unwrapped texture, so transitions and resolution may not be that good. GIProbe looks less accurate (as it's an approximation), but smoother overall.</p>
+<h2 id="setting-up">Setting up</h2>
+<p>First of all, before the lightmapper can do anything, the objects to be baked need an UV2 layer and a texture size. An UV2 layer is a set of secondary texture coordinates that ensures any face in the object has its own place in the UV map. Faces must not share pixels in the texture.</p>
+<p>There are a few ways to ensure your object has a unique UV2 layer and texture size:</p>
+<h3 id="unwrap-on-scene-import">Unwrap on scene import</h3>
+<p>This is probably the best approach overall. The only downside is that, on large models, unwrapping can take a while on import. Nonetheless, Godot will cache the UV2 across reimports, so it will only be regenerated when needed.</p>
+<p>Select the imported scene in the filesystem dock, then go to the <strong>Import</strong> dock. There, the following option can be modified:</p>
+<p>The <strong>Light Baking</strong> mode needs to be set to <strong>Gen Lightmaps</strong>. A texel size in world units must also be provided, as this will determine the final size of the lightmap texture (and, in consequence, the UV padding in the map).</p>
+<p>The effect of setting this option is that all meshes within the scene will have their UV2 maps properly generated.</p>
+<blockquote>
+<p><strong>Warning:</strong> When reusing a mesh within a scene, keep in mind that UVs will be generated for the first instance found. If the mesh is reused with different scales (and the scales are wildly different, more than half or twice), this will result in inefficient lightmaps. Don't reuse a source mesh at significantly different scales if you are planning to use lightmapping.</p>
+<p>Also, the <code>*.unwrap_cache</code> files should <em>not</em> be ignored in version control as these files guarantee that UV2 reimports are consistent across platforms and engine versions.</p>
+</blockquote>
+<h3 id="unwrap-from-within-godot">Unwrap from within Godot</h3>
+<p>Godot has an option to unwrap meshes and visualize the UV channels. It can be found in the Mesh menu:</p>
+<p>This will generate a second set of UV2 coordinates which can be used for baking, and it will also set the texture size automatically.</p>
+<h3 id="unwrap-from-your-3d-dcc">Unwrap from your 3D DCC</h3>
+<p>The last option is to do it from your favorite 3D app. This approach is generally not recommended, but it's explained first so that you know it exists. The main advantage is that, on complex objects that you may want to re-import a lot, the texture generation process can be quite costly within Godot, so having it unwrapped before import can be faster.</p>
+<p>Simply do an unwrap on the second UV2 layer.</p>
+<p>Then import the 3D scene normally. Remember you will need to set the texture size on the mesh after import.</p>
+<p>If you use external meshes on import, the size will be kept. Be wary that most unwrappers in 3D DCCs are not quality oriented, as they are meant to work quickly. You will mostly need to use seams or other techniques to create better unwrapping.</p>
+<h3 id="checking-uv2">Checking UV2</h3>
+<p>In the mesh menu mentioned before, the UV2 texture coordinates can be visualized. Make sure, if something is failing, to check that the meshes have these UV2 coordinates:</p>
+<h2 id="setting-up-the-scene">Setting up the scene</h2>
+<p>Before anything is done, a <strong>BakedLightmap</strong> node needs to be added to a scene. This will enable light baking on all nodes (and sub-nodes) in that scene, even on instanced scenes.</p>
+<p>A sub-scene can be instanced several times, as this is supported by the baker, and each will be assigned a lightmap of its own (just make sure to respect the rule about scaling mentioned before):</p>
+<h3 id="configure-bounds">Configure bounds</h3>
+<p>Lightmap needs an approximate volume of the area affected because it uses it to transfer light to dynamic objects inside it (more on that later). Just cover the scene with the volume as you do with <code>GIProbe</code>:</p>
+<h3 id="setting-up-meshes">Setting up meshes</h3>
+<p>For a <strong>MeshInstance</strong> node to take part in the baking process, it needs to have the <strong>Use in Baked Light</strong> property enabled.</p>
+<p>When auto-generating lightmaps on scene import, this is enabled automatically.</p>
+<h3 id="setting-up-lights">Setting up lights</h3>
+<p>Lights are baked with indirect light by default. This means that shadowmapping and lighting are still dynamic and affect moving objects, but light bounces from that light will be baked.</p>
+<p>Lights can be disabled (no bake) or be fully baked (direct and indirect). This can be controlled from the <strong>Bake Mode</strong> menu in lights:</p>
+<p>The modes are:</p>
+<h4 id="disabled">Disabled</h4>
+<p>The light is ignored when baking lightmaps. Keep in mind hiding a light will have no effect for baking, so this must be used instead of hiding the Light node.</p>
+<p>This is the mode to use for dynamic lighting effects such as explosions and weapon effects.</p>
+<h4 id="indirect">Indirect</h4>
+<p>This is the default mode, and is a compromise between performance and real-time friendliness. Only indirect lighting will be baked. Direct light and shadows are still real-time, as they would be without BakedLightmap.</p>
+<p>This mode allows performing <em>subtle</em> changes to a light's color, energy and position while still looking fairly correct. For example, you can use this to create flickering static torches that have their indirect light baked.</p>
+<h4 id="all">All</h4>
+<p>Both indirect and direct lighting will be baked. Since static surfaces can skip lighting and shadow computations entirely, this mode provides the best performance along with smooth shadows that never fade based on distance. The real-time light will not affect baked surfaces anymore, but it will still affect dynamic objects. When using the <strong>All</strong> bake mode on a light, dynamic objects will not cast real-time shadows onto baked surfaces, so you need to use a different approach such as blob shadows instead. Blob shadows can be implemented with a Sprite3D + RayCast setup, or a negative SpotLight pointing down with its bake mode set to <strong>Disabled</strong>.</p>
+<p>The light will not be adjustable at all during gameplay. Moving the light and changing its color or energy will not have any effect on static surfaces.</p>
+<p>Since bake modes can be adjusted on a per-light basis, it is possible to create hybrid baked light setups. One popular option is to use a real-time DirectionalLight with its bake mode set to <strong>Indirect</strong>, and use the <strong>All</strong> bake mode for OmniLights and SpotLights. This provides good performance while still allowing dynamic objects to cast real-time shadows in outdoor areas.</p>
+<p>After selecting the <strong>All</strong> bake mode on a light, you can optionally specify a <strong>Size</strong> greater than 0 for the light in the inspector. This size is used to provide softer shadows depending on the distance between the shadow caster and the object receiving the shadow. This mimics real life shadow appearance:</p>
+<p>The light's <strong>Size</strong> property is ignored for real-time shadows; it will only affect baked shadows. When the <strong>Size</strong> property is changed, lightmaps must be baked again to make changes visible.</p>
+<h2 id="baking">Baking</h2>
+<p>To begin the bake process, just push the <strong>Bake Lightmaps</strong> button on top when selecting the BakedLightmap node:</p>
+<p>This can take from seconds to minutes (or hours) depending on scene size, bake method and quality selected.</p>
+<h3 id="balancing-bake-times-with-quality">Balancing bake times with quality</h3>
+<p>Since high-quality bakes can take very long (up to several hours for large complex scenes), it is recommended to use lower quality settings at first. Then, once you are confident with your scene's lighting setup, raise the quality settings and perform a "final" bake before exporting your project.</p>
+<blockquote>
+<p><strong>Note:</strong> By default, the lightmap baker will use all the system's logical CPU cores to speed up baking. This can reduce system responsiveness. To preserve system responsiveness while lightmaps are baking, you can reduce the number of CPU threads used to bake lightmaps. Keeping 1 or 2 CPU threads free will help improve system responsiveness, which is useful when multi-tasking while lightmaps are baking at the cost of slowing down lightmap baking slightly.</p>
+<p>To do so, open <strong>Editor &gt; Editor Settings</strong> and adjust <strong>Editors &gt; 3d &gt; Lightmap Baking Number Of Cpu Threads</strong>. The default value (<code>0</code>) uses all of the system's logical CPU cores. Positive values will specify a number of threads to use, while negative values will subtract from the total number of logical CPU cores in the system. For example, on a system with 8 logical CPU cores, adjusting the setting to <code>-1</code> will use 7 CPU threads for lightmap baking.</p>
+</blockquote>
+<h3 id="configuring-bake">Configuring bake</h3>
+<p>Several more options are present for baking:</p>
+<ul>
+<li><strong>Bake Extents</strong>: The size of the area affected. This can be edited in the 3D editor viewport using the handles. Any object that can have lightmaps baked and is <em>touching</em> the bake extents will have lightmaps baked for it, but dynamic object capture will only work within the extents.</li>
+</ul>
+<h4 id="tweaks">Tweaks</h4>
+<ul>
+<li><strong>Quality:</strong> Four bake quality modes are provided: Low, Medium, High, and Ultra. Higher quality takes more time, but result in a better-looking lightmap with less noise. The difference is especially noticeable with emissive materials or areas that get little to no direct lighting.</li>
+<li><strong>Bounces:</strong> The number of bounces to use for indirect lighting. The default value (3) is a good compromise between bake times and quality. Higher values will make light bounce around more times before it stops, which makes indirect lighting look smoother (but also brighter). During the initial lighting iteration work, it is recommended to decrease the number of bounces to 1 to speed up baking. Remember that your scene will be darker when decreasing the number of bounces.</li>
+<li><strong>Use Denoiser:</strong> If enabled, uses OpenImageDenoise to make the lightmap significantly less noisy. This increases bake times and can occasionally introduce artifacts, but the result is often worth it.</li>
+<li><strong>Use Hdr:</strong> If disabled, lightmaps are smaller on disk, but they won't be able to capture any light over white (1.0). This will result in visible clipping if you have bright lights in your scene. When HDR is disabled, banding may also be visible in the lightmap.</li>
+<li><strong>Use Color:</strong> If disabled, lightmaps are smaller on disk, but the lightmap won't be able to store colored lighting. When baking indirect light only, the difference may be barely visible since indirect light is generally not highly saturated. However, when baking both direct and indirect lighting using the <strong>All</strong> bake mode on a light, this will turn colored lighting into grayscale lighting. This can be disabled together with HDR to get the smallest possible lightmap file at a given resolution.</li>
+<li><strong>Bias:</strong> The offset value to use for shadows in 3D units. You generally don't need to change this value, except if you run into issues with light bleeding or dark spots in your lightmap after baking. This setting does not affect real-time shadows casted on baked surfaces.</li>
+<li><strong>Default Texels Per Unit:</strong> For meshes that do not specify their own lightmap texel density, this will be used as the value. Higher values result in <em>lower-resolution</em> lightmaps, which result in faster bake times and lower file sizes at the cost of blurrier indirect lighting and shadows.</li>
+</ul>
+<h4 id="atlas">Atlas</h4>
+<ul>
+<li><strong>Generate:</strong> If enabled, a texture atlas will be generated for the lightmap. This results in more efficient rendering, but is only compatible with the GLES3 rendering backend. Disable this setting if your project is allowed to fall back to GLES2. (This is not the case by default and must be enabled in the Project Settings.) <em>This setting is ignored when the project is configured to use GLES2 by default.</em></li>
+<li><strong>Max Size:</strong> The maximum size of the atlas in pixels. Higher values result in a more efficient atlas, but are less compatible with old/low-end hardware. If in doubt, leave this setting on its default value (4096).</li>
+</ul>
+<h4 id="capture">Capture</h4>
+<ul>
+<li><strong>Enabled:</strong> This enables probe capture so that dynamic objects can <em>receive</em> indirect lighting. Regardless of this setting's value, dynamic objects will not be able to <em>contribute</em> indirect lighting to the scene. This is a limitation of lightmaps.</li>
+<li><strong>Cell Size:</strong> The distance between lightmap probes in 3D units. Higher values result in more sparse probe placement, which decreases bake times and file size at the cost of lower lighting accuracy for dynamic objects.</li>
+<li><strong>Quality:</strong> The lightmap probe generation quality. Higher values result in more accurate lighting, but take longer to bake. This setting does not affect the <em>density</em> of the lightmap probes, only their quality.</li>
+<li><strong>Propagation:</strong> Similar to ref's Propagation property. Higher values result in brighter and more diffuse indirect lighting for dynamic objects. Adjust this value depending on your scene to make dynamic objects better fit with static baked lighting.</li>
+</ul>
+<h4 id="data">Data</h4>
+<ul>
+<li><strong>Light Data</strong>: Contains the light baked data after baking. Textures are saved to disk, but this also contains the capture data for dynamic objects, which can be heavy. If you are using a scene in <code>.tscn</code> format, you should save this resource to an external binary <code>.lmbake</code> file to avoid bloating the <code>.tscn</code> scene with binary data encoded in Base64.</li>
+</ul>
+<p>The Light Data resource can be edited to adjust two additional properties:</p>
+<ul>
+<li><strong>Energy:</strong> Adjusts the lightmap's brightness. Higher values result in brighter lightmaps. This can be adjusted at run-time for short-lived dynamic effects such as thunderstorms. However, keep in mind that it will affect <em>all</em> baked lights.</li>
+<li><strong>Interior:</strong> If enabled, dynamic objects will not make use of environment lighting and will use light probes for ambient lighting exclusively. If disabled, both environment lighting and light probes are used to light up dynamic objects.</li>
+</ul>
+<blockquote>
+<p><strong>Tip:</strong> The generated EXR file can be viewed and even edited using an image editor to perform post-processing if needed. However, keep in mind that changes to the EXR file will be lost when baking lightmaps again.</p>
+</blockquote>
+<h2 id="dynamic-objects">Dynamic objects</h2>
+<p>In other engines or lightmapper implementations, you are generally required to manually place small objects called "lightprobes" all around the level to generate <em>capture</em> data. This is then used to transfer the light to dynamic objects that move around the scene.</p>
+<p>However, this implementation of lightmapping uses a different method. The process is automatic, so you don't have to do anything. Just move your objects around, and they will be lit accordingly. Of course, you have to make sure you set up your scene bounds accordingly or it won't work.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

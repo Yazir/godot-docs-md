@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using NavigationPathQueryObjects — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-navigationpathqueryobjects">Using NavigationPathQueryObjects</h1>
+<blockquote>
+<p><strong>Tip:</strong> Path query parameters expose various options to improve pathfinding performance or lower memory consumption.</p>
+<p>They cater to more advanced pathfinding needs that the high-level nodes can not always cover.</p>
+<p>See the respective option sections below.</p>
+</blockquote>
+<p><code>NavigationPathQueryObjects</code> can be used together with <code>NavigationServer.query_path()</code> to obtain a heavily <strong>customized</strong> navigation path including optional <strong>metadata</strong> about the path.</p>
+<p>This requires more setup compared to obtaining a normal NavigationPath but lets you tailor the pathfinding and provided path data to the different needs of a project.</p>
+<p>NavigationPathQueryObjects consist of a pair of objects, a <code>NavigationPathQueryParameters</code> object holding the customization options for the query and a <code>NavigationPathQueryResult</code> that receives (regular) updates with the resulting path and metadata from the query.</p>
+<p>2D and 3D versions of <code>NavigationPathQueryParameters</code> are available as ref and ref respectively.</p>
+<p>2D and 3D versions of <code>NavigationPathQueryResult</code> are available as ref and ref respectively.</p>
+<h2 id="creating-a-basic-path-query">Creating a basic path query</h2>
+<p>Both parameters and result are used as a pair with the <code>NavigationServer.query_path()</code> function.</p>
+<p>For the available customization options, see further below. See also the descriptions for each parameter in the class reference.</p>
+<p>While not a strict requirement, both objects are intended to be created once in advance, stored in a persistent variable for the agent and reused for every followup path query with updated parameters.</p>
+<p>Reusing the same objects improves performance when frequently creating objects or allocating memory.</p>
+<p>The following script creates the objects and provides a <code>query_path()</code> function to create new navigation paths. The resulting path is identical to using <code>NavigationServer.map_get_path()</code> while reusing the objects.</p>
+<pre class="gdscript"><code>extends Node2D
+
+# Prepare query objects.
+var query_parameters := NavigationPathQueryParameters2D.new()
+var query_result := NavigationPathQueryResult2D.new()
+
+func query_path(p_start_position: Vector2, p_target_position: Vector2, p_navigation_layers: int = 1) -&gt; PackedVector2Array:
+    if not is_inside_tree():
+        return PackedVector2Array()
+
+    var map: RID = get_world_2d().get_navigation_map()
+
+    if NavigationServer2D.map_get_iteration_id(map) == 0:
+        # This map has never synced and is empty, no point in querying it.
+        return PackedVector2Array()
+
+    query_parameters.map = map
+    query_parameters.start_position = p_start_position
+    query_parameters.target_position = p_target_position
+    query_parameters.navigation_layers = p_navigation_layers
+
+    NavigationServer2D.query_path(query_parameters, query_result)
+    var path: PackedVector2Array = query_result.get_path()
+
+    return path</code></pre>
+<pre class="gdscript"><code>extends Node3D
+
+# Prepare query objects.
+var query_parameters := NavigationPathQueryParameters3D.new()
+var query_result := NavigationPathQueryResult3D.new()
+
+func query_path(p_start_position: Vector3, p_target_position: Vector3, p_navigation_layers: int = 1) -&gt; PackedVector3Array:
+    if not is_inside_tree():
+        return PackedVector3Array()
+
+    var map: RID = get_world_3d().get_navigation_map()
+
+    if NavigationServer3D.map_get_iteration_id(map) == 0:
+        # This map has never synced and is empty, no point in querying it.
+        return PackedVector3Array()
+
+    query_parameters.map = map
+    query_parameters.start_position = p_start_position
+    query_parameters.target_position = p_target_position
+    query_parameters.navigation_layers = p_navigation_layers
+
+    NavigationServer3D.query_path(query_parameters, query_result)
+    var path: PackedVector3Array = query_result.get_path()
+
+    return path</code></pre>
+<h2 id="path-postprocessing-options">Path postprocessing options</h2>
+<p><em>Image: Path post-processing differences depending on navigation mesh polygon layout</em></p>
+<p>Path post-processing differences depending on navigation mesh polygon layout.</p>
+<p>A path query search travels from the closest navigation mesh polygon edge to the closest edge along the available polygons. If possible it builds a polygon corridor towards the target position polygon.</p>
+<p>This raw "search" polygon corridor path is not very optimized and usually a bad fit for agents to travel along. E.g. the closest edge point on a navigation mesh polygon might cause a huge detour for agents on larger polygons. In order to improve the quality of paths returned by the query various <code>path_postprocessing</code> options exist.</p>
+<ul>
+<li><p>The <code>PATH_POSTPROCESSING_CORRIDORFUNNEL</code> post-processing shortens paths by funneling paths around corners <strong>inside the available polygon corridor</strong>.</p>
+<p>This is the default post-processing and usually also the most useful as it gives the shortest path result <strong>inside the available polygon corridor</strong>. If the polygon corridor is already suboptimal, e.g. due to a suboptimal navigation mesh layout, the funnel can snap to unexpected polygon corners causing detours.</p></li>
+<li><p>The <code>PATH_POSTPROCESSING_EDGECENTERED</code> post-processing forces all path points to be placed in the middle of the crossed polygon edges <strong>inside the available polygon corridor</strong>.</p>
+<p>This post-processing is usually only useful when used with strictly tile-like navigation mesh polygons that are all evenly sized and where the expected path following is also constrained to cell centers, e.g. typical grid game with movement constrained to grid cell centers.</p></li>
+<li><p>The <code>PATH_POSTPROCESSING_NONE</code> post-processing returns the path as is how the pathfinding traveled <strong>inside the available polygon corridor</strong>.</p>
+<p>This post-processing is very useful for debug as it shows how the path search traveled from closest edge point to closet edge point and what polygons it picked. A lot of unexpected or suboptimal path results can be immediately explained by looking at this raw path and polygon corridor.</p></li>
+</ul>
+<h2 id="path-simplification">Path simplification</h2>
+<blockquote>
+<p><strong>Tip:</strong> Path simplification can help steering agents or agents that jitter on thin polygon edges.</p>
+</blockquote>
+<p><em>Image: Path point difference with or without path simplification</em></p>
+<p>Path point difference with or without path simplification.</p>
+<p>If <code>simplify_path</code> is enabled a variant of the Ramer-Douglas-Peucker path simplification algorithm is applied to the path. This algorithm straightens paths by removing less relevant path points depending on the <code>simplify_epsilon</code> used.</p>
+<p>Path simplification helps with all kinds of agent movement problems in "open fields" that are caused by having many unnecessary polygon edges. E.g. a terrain mesh when baked to a navigation mesh can cause an excessive polygon count due to all the small (but for pathfinding almost meaningless) height variations in the terrain.</p>
+<p>Path simplification also helps with "steering" agents because they only have more critical corner path points to aim for.</p>
+<blockquote>
+<p><strong>Warning:</strong> Path simplification is an additional final post-processing of the path. It adds extra performance costs to the query so only enable when actually needed.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> Path simplification is exposed on the NavigationServer as a generic function. It can be used outside of navigation queries for all kinds of position arrays as well.</p>
+</blockquote>
+<h2 id="path-metadata">Path metadata</h2>
+<blockquote>
+<p><strong>Tip:</strong> Disabling unneeded path metadata options can improve performance and lower memory consumption.</p>
+</blockquote>
+<p>A path query can return additional metadata for every path point.</p>
+<ul>
+<li>The <code>PATH_METADATA_INCLUDE_TYPES</code> flag collects an array with the primitive information about the point owners, e.g. if a point belongs to a region or link.</li>
+<li>The <code>PATH_METADATA_INCLUDE_RIDS</code> flag collects an array with the ref of the point owners. Depending on point owner primitive, these RIDs can be used with the various NavigationServer functions related to regions or links.</li>
+<li>The <code>PATH_METADATA_INCLUDE_OWNERS</code> flag collects an array with the <code>ObjectIDs</code> of the point owners. These object IDs can be used with ref to retrieve the node behind that object instance, e.g. a NavigationRegion or NavigationLink node.</li>
+</ul>
+<p>By default all path metadata is collected as this metadata can be essential for more advanced navigation gameplay.</p>
+<ul>
+<li>E.g. to know what path point maps to what object or node owner inside the SceneTree.</li>
+<li>E.g. to know if a path point is the start or end of a navigation link that requires scripted takeover.</li>
+</ul>
+<p>For the most basic path uses metadata is not always needed. Path metadata collection can be selectively disabled to gain some performance and reduce memory consumption.</p>
+<h2 id="excluding-or-including-regions">Excluding or including regions</h2>
+<blockquote>
+<p><strong>Tip:</strong> Region filters can greatly help with performance on large navigation maps that are region partitioned.</p>
+</blockquote>
+<p>Query parameters allow limiting the pathfinding to specific region navigation meshes.</p>
+<p>If a large navigation map is well partitioned into smaller regions this can greatly help with performance as the query can skip a large number of polygons at one of the earliest checks in the path search.</p>
+<ul>
+<li>By default and if left empty all regions of the queried navigation map are included.</li>
+<li>If a region ref is added to the <code>excluded_regions</code> array the region's navigation mesh will be ignored in the path search.</li>
+<li>If a region ref is added to the <code>included_regions</code> array the region's navigation mesh will be considered in the path search and also all other regions not included will be ignored as well.</li>
+<li>If a region ends up both included and excluded it is considered excluded.</li>
+</ul>
+<p>Region filters are very effective for performance when paired with navigation region chunks that are aligned on a grid. This way the filter can be set to only include the start position chunk and surrounding chunks instead of the entire navigation map.</p>
+<p>Even if the target might be outside these surrounding chunks (can always add more "rings") the pathfinding will try to create a path to the polygon closest to the target. This usually creates half-paths heading in the general direction that are good enough, all for a fraction of the performance cost of a full map search.</p>
+<p>The following addition to the basic path query script showcases the idea how to integrate a region chunk mapping with the region filters. This is not a full working example.</p>
+<pre class="gdscript"><code>extends Node2D
+
+# ...
+
+var chunk_id_to_region_rid: Dictionary[Vector2i, RID] = {}
+
+func query_path(p_start_position: Vector2, p_target_position: Vector2, p_navigation_layers: int = 1) -&gt; PackedVector2Array:
+
+    # ...
+
+    var regions_around_start_position: Array[RID] = []
+
+    var chunk_rings: int = 1 # Increase for very small regions or more quality.
+    var start_chunk_id: Vector2i = floor(p_start_position / float(chunk_size))
+
+    for y: int in range(start_chunk_id.y - chunk_rings, start_chunk_id.y + chunk_rings):
+        for x: int in range(start_chunk_id.x - chunk_rings, start_chunk_id.x + chunk_rings):
+            var chunk_id: Vector2i = Vector2i(x, y)
+            if chunk_id_to_region_rid.has(chunk_id):
+                var region: RID = chunk_id_to_region_rid[chunk_id]
+                regions_around_start_position.push_back(region)
+
+    query_parameters.included_regions = regions_around_start_position
+
+    # ...</code></pre>
+<pre class="gdscript"><code>extends Node3D
+
+# ...
+
+var chunk_id_to_region_rid: Dictionary[Vector3i, RID] = {}
+
+func query_path(p_start_position: Vector3, p_target_position: Vector3, p_navigation_layers: int = 1) -&gt; PackedVector3Array:
+
+    # ...
+
+    var regions_around_start_position: Array[RID] = []
+
+    var chunk_rings: int = 1 # Increase for very small regions or more quality.
+    var start_chunk_id: Vector3i = floor(p_start_position / float(chunk_size))
+    var y: int = 0 # Assume a planar navigation map for simplicity.
+
+    for z: int in range(start_chunk_id.z - chunk_rings, start_chunk_id.z + chunk_rings):
+        for x: int in range(start_chunk_id.x - chunk_rings, start_chunk_id.x + chunk_rings):
+            var chunk_id: Vector3i = Vector3i(x, y, z)
+            if chunk_id_to_region_rid.has(chunk_id):
+                var region: RID = chunk_id_to_region_rid[chunk_id]
+                regions_around_start_position.push_back(region)
+
+    query_parameters.included_regions = regions_around_start_position
+
+    # ...</code></pre>
+<h2 id="path-clipping-and-limits">Path clipping and limits</h2>
+<blockquote>
+<p><strong>Tip:</strong> Sensibly set limits can greatly help with performance on large navigation maps, especially when targets end up being unreachable.</p>
+</blockquote>
+<p><em>Image: Clipping returned paths to specific distances</em></p>
+<p>Clipping returned paths to specific distances.</p>
+<p>Query parameters allow clipping returned paths to specific lengths. These options clip the path as a part of post-processing. The path is still searched as if at full length, so it will have the same quality. Path length clipping can be helpful in creating paths that better fit constrained gameplay, e.g. tactical games with limited movement ranges.</p>
+<ul>
+<li>The <code>path_return_max_length</code> property can be used to clip the returned path to a specific max length.</li>
+<li>The <code>path_return_max_radius</code> property can be used to clip the returned path inside a circle (2D) or sphere (3D) radius around the start position.</li>
+</ul>
+<p>Query parameters allow limiting the path search to only search up to a specific distance or a specific number of searched polygons. These options are for performance and affect the path search directly.</p>
+<ul>
+<li>The <code>path_search_max_distance</code> property can be used to stop the path search when going over this distance from the start position.</li>
+<li>The <code>path_search_max_polygons</code> property can be used to stop the path search when going over this searched polygon number.</li>
+</ul>
+<p>When the path search is stopped by reaching a limit the path resets and creates a path from the start position polygon to the polygon found so far that is closest to the target position.</p>
+<blockquote>
+<p><strong>Warning:</strong> While good for performance, if path search limit values are set too low they can affect the path quality very negatively. Depending on polygon layout and search pattern the returned paths might go into completely wrong directions instead of the direction of the target.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

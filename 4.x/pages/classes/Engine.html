@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engine — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="engine">Engine</h1>
+<p><em>Inherits: <a href="Object.html">Object</a></em></p>
+<p>Provides access to engine properties.</p>
+<h2 id="description">Description</h2>
+<p>The <strong>Engine</strong> singleton allows you to query and modify the project's run-time parameters, such as frames per second, time scale, and others. It also stores information about the current build of Godot, such as the current version.</p>
+<h2 id="properties">Properties</h2>
+<h3 id="int-max_fps--0"><code>int max_fps = 0</code></h3>
+<ul>
+<li>Setter: <code>set_max_fps(value: int)</code></li>
+<li>Getter: <code>get_max_fps()</code></li>
+</ul>
+<p>The maximum number of frames that can be rendered every second (FPS). A value of <code>0</code> means the framerate is uncapped.</p>
+<p>Limiting the FPS can be useful to reduce the host machine's power consumption, which reduces heat, noise emissions, and improves battery life.</p>
+<p>If <code>ProjectSettings.display/window/vsync/vsync_mode</code> is <strong>Enabled</strong> or <strong>Adaptive</strong>, the setting takes precedence and the max FPS number cannot exceed the monitor's refresh rate. See also <code>DisplayServer.screen_get_refresh_rate()</code>.</p>
+<p>If <code>ProjectSettings.display/window/vsync/vsync_mode</code> is <strong>Enabled</strong>, on monitors with variable refresh rate enabled (G-Sync/FreeSync), using an FPS limit a few frames lower than the monitor's refresh rate will <a href="https://blurbusters.com/howto-low-lag-vsync-on/">reduce input lag while avoiding tearing</a>. At higher refresh rates, the difference between the FPS limit and the monitor refresh rate should be increased to ensure frames to account for timing inaccuracies. The optimal formula for the FPS limit value in this scenario is <code>r - (r * r) / 3600.0</code>, where <code>r</code> is the monitor's refresh rate.</p>
+<p><strong>Note:</strong> The actual number of frames per second may still be below this value if the CPU or GPU cannot keep up with the project's logic and rendering.</p>
+<p><strong>Note:</strong> If <code>ProjectSettings.display/window/vsync/vsync_mode</code> is <strong>Disabled</strong>, limiting the FPS to a high value that can be consistently reached on the system can reduce input lag compared to an uncapped framerate. Since this works by ensuring the GPU load is lower than 100%, this latency reduction is only effective in GPU-bottlenecked scenarios, not CPU-bottlenecked scenarios.</p>
+<h3 id="int-max_physics_steps_per_frame--8"><code>int max_physics_steps_per_frame = 8</code></h3>
+<ul>
+<li>Setter: <code>set_max_physics_steps_per_frame(value: int)</code></li>
+<li>Getter: <code>get_max_physics_steps_per_frame()</code></li>
+</ul>
+<p>The maximum number of physics steps that can be simulated each rendered frame.</p>
+<p><strong>Note:</strong> The default value is tuned to prevent expensive physics simulations from triggering even more expensive simulations indefinitely. However, the game will appear to slow down if the rendering FPS is less than <code>1 / max_physics_steps_per_frame</code> of <code>physics_ticks_per_second</code>. This occurs even if <code>delta</code> is consistently used in physics calculations. To avoid this, increase <code>max_physics_steps_per_frame</code> if you have increased <code>physics_ticks_per_second</code> significantly above its default value.</p>
+<h3 id="float-physics_jitter_fix--05"><code>float physics_jitter_fix = 0.5</code></h3>
+<ul>
+<li>Setter: <code>set_physics_jitter_fix(value: float)</code></li>
+<li>Getter: <code>get_physics_jitter_fix()</code></li>
+</ul>
+<p>How much physics ticks are synchronized with real time. If <code>0</code> or less, the ticks are fully synchronized. Higher values cause the in-game clock to deviate more from the real clock, but they smooth out framerate jitters.</p>
+<p><strong>Note:</strong> The default value of <code>0.5</code> should be good enough for most cases; values above <code>2</code> could cause the game to react to dropped frames with a noticeable delay and are not recommended.</p>
+<p><strong>Note:</strong> When using a custom physics interpolation solution, or within a network game, it's recommended to disable the physics jitter fix by setting this property to <code>0</code>.</p>
+<h3 id="int-physics_ticks_per_second--60"><code>int physics_ticks_per_second = 60</code></h3>
+<ul>
+<li>Setter: <code>set_physics_ticks_per_second(value: int)</code></li>
+<li>Getter: <code>get_physics_ticks_per_second()</code></li>
+</ul>
+<p>The number of fixed iterations per second. This controls how often physics simulation and the <code>Node._physics_process()</code> method are run.</p>
+<p>CPU usage scales approximately with the physics tick rate. However, at very low tick rates (usually below 30), physics behavior can break down. Input can also become less responsive at low tick rates as there can be a gap between input being registered, and the response on the next physics tick. High tick rates give more accurate physics simulation, particularly for fast moving objects. For example, racing games may benefit from increasing the tick rate above the default 60.</p>
+<p>See also <code>max_fps</code> and <code>ProjectSettings.physics/common/physics_ticks_per_second</code>.</p>
+<p><strong>Note:</strong> Only <code>max_physics_steps_per_frame</code> physics ticks may be simulated per rendered frame at most. If more physics ticks have to be simulated per rendered frame to keep up with rendering, the project will appear to slow down (even if <code>delta</code> is used consistently in physics calculations). Therefore, it is recommended to also increase <code>max_physics_steps_per_frame</code> if increasing <code>physics_ticks_per_second</code> significantly above its default value.</p>
+<p><strong>Note:</strong> Consider enabling <a href="../manual/tutorials/physics/interpolation/index.html">physics interpolation</a> if you change <code>physics_ticks_per_second</code> to a value that is not a multiple of <code>60</code>. Using physics interpolation will avoid jittering when the monitor refresh rate and physics update rate don't exactly match.</p>
+<h3 id="bool-print_error_messages--true"><code>bool print_error_messages = true</code></h3>
+<ul>
+<li>Setter: <code>set_print_error_messages(value: bool)</code></li>
+<li>Getter: <code>is_printing_error_messages()</code></li>
+</ul>
+<p>If <code>false</code>, stops printing error and warning messages to the console and editor Output log. This can be used to hide error and warning messages during unit test suite runs. This property is equivalent to the <code>ProjectSettings.application/run/disable_stderr</code> project setting.</p>
+<p><strong>Note:</strong> This property does not impact the editor's Errors tab when running a project from the editor.</p>
+<p><strong>Warning:</strong> If set to <code>false</code> anywhere in the project, important error messages may be hidden even if they are emitted from other scripts. In a <code>@tool</code> script, this will also impact the editor itself. Do <em>not</em> report bugs before ensuring error messages are enabled (as they are by default).</p>
+<h3 id="bool-print_to_stdout--true"><code>bool print_to_stdout = true</code></h3>
+<ul>
+<li>Setter: <code>set_print_to_stdout(value: bool)</code></li>
+<li>Getter: <code>is_printing_to_stdout()</code></li>
+</ul>
+<p>If <code>false</code>, stops printing messages (for example using <code>@GlobalScope.print()</code>) to the console, log files, and editor Output log. This property is equivalent to the <code>ProjectSettings.application/run/disable_stdout</code> project setting.</p>
+<p><strong>Note:</strong> This does not stop printing errors or warnings produced by scripts to the console or log files, for more details see <code>print_error_messages</code>.</p>
+<h3 id="float-time_scale--10"><code>float time_scale = 1.0</code></h3>
+<ul>
+<li>Setter: <code>set_time_scale(value: float)</code></li>
+<li>Getter: <code>get_time_scale()</code></li>
+</ul>
+<p>The speed multiplier at which the in-game clock updates, compared to real time. For example, if set to <code>2.0</code> the game runs twice as fast, and if set to <code>0.5</code> the game runs half as fast.</p>
+<p>This value affects <a href="Timer.html">Timer</a>, <a href="SceneTreeTimer.html">SceneTreeTimer</a>, and all other simulations that make use of <code>delta</code> time (such as <code>Node._process()</code> and <code>Node._physics_process()</code>).</p>
+<p><strong>Note:</strong> It's recommended to keep this property above <code>0.0</code>, as the game may behave unexpectedly otherwise.</p>
+<p><strong>Note:</strong> This does not affect audio playback speed. Use <code>AudioServer.playback_speed_scale</code> to adjust audio playback speed independently of <code>time_scale</code>.</p>
+<p><strong>Note:</strong> This does not automatically adjust <code>physics_ticks_per_second</code>. With values above <code>1.0</code> physics simulation may become less precise, as each physics tick will stretch over a larger period of engine time. If you're modifying <code>time_scale</code> to speed up simulation by a large factor, consider also increasing <code>physics_ticks_per_second</code> to make the simulation more reliable.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="arrayscriptbacktrace-capture_script_backtracesinclude_variables-bool--false-const"><code>Array\[ScriptBacktrace\] capture_script_backtraces(include_variables: bool = false) const</code></h3>
+<p>Captures and returns backtraces from all registered script languages.</p>
+<p>By default, the returned <a href="ScriptBacktrace.html">ScriptBacktrace</a> will only contain stack frames in editor builds and debug builds. To enable them for release builds as well, you need to enable <code>ProjectSettings.debug/settings/gdscript/always_track_call_stacks</code>.</p>
+<p>If <code>include_variables</code> is <code>true</code>, the backtrace will also include the names and values of any global variables (e.g. autoload singletons) at the point of the capture, as well as local variables and class member variables at each stack frame. This will however will only be respected when running the game with a debugger attached, like when running the game from the editor. To enable it for export builds as well, you need to enable <code>ProjectSettings.debug/settings/gdscript/always_track_local_variables</code>.</p>
+<p><strong>Warning:</strong> When <code>include_variables</code> is <code>true</code>, any captured variables can potentially (e.g. with GDScript backtraces) be their actual values, including any object references. This means that storing such a <a href="ScriptBacktrace.html">ScriptBacktrace</a> will prevent those objects from being deallocated, so it's generally recommended not to do so.</p>
+<h3 id="string-get_architecture_name-const"><code>String get_architecture_name() const</code></h3>
+<p>Returns the name of the CPU architecture the Godot binary was built for. Possible return values include <code>"x86_64"</code>, <code>"x86_32"</code>, <code>"arm64"</code>, <code>"arm32"</code>, <code>"rv64"</code>, <code>"ppc64"</code>, <code>"loongarch64"</code>, <code>"wasm64"</code>, and <code>"wasm32"</code>.</p>
+<p>To detect whether the current build is 64-bit, or the type of architecture, don't use the architecture name. Instead, use <code>OS.has_feature()</code> to check for the <code>"64"</code> feature tag, or tags such as <code>"x86"</code> or <code>"arm"</code>. See the <a href="../manual/tutorials/export/feature_tags.html">Feature Tags</a> documentation for more details.</p>
+<p><strong>Note:</strong> This method does <em>not</em> return the name of the system's CPU architecture (like <code>OS.get_processor_name()</code>). For example, when running an <code>x86_32</code> Godot binary on an <code>x86_64</code> system, the returned value will still be <code>"x86_32"</code>.</p>
+<h3 id="dictionary-get_author_info-const"><code>Dictionary get_author_info() const</code></h3>
+<p>Returns the engine author information as a <a href="Dictionary.html">Dictionary</a>, where each entry is an <a href="Array.html">Array</a> of strings with the names of notable contributors to the Godot Engine: <code>lead_developers</code>, <code>founders</code>, <code>project_managers</code>, and <code>developers</code>.</p>
+<h3 id="arraydictionary-get_copyright_info-const"><code>Array\[Dictionary\] get_copyright_info() const</code></h3>
+<p>Returns an <a href="Array.html">Array</a> of dictionaries with copyright information for every component of Godot's source code.</p>
+<p>Every <a href="Dictionary.html">Dictionary</a> contains a <code>name</code> identifier, and a <code>parts</code> array of dictionaries. It describes the component in detail with the following entries:</p>
+<ul>
+<li><p><code>files</code> - <a href="Array.html">Array</a> of file paths from the source code affected by this component;</p></li>
+<li><p><code>copyright</code> - <a href="Array.html">Array</a> of owners of this component;</p></li>
+<li><p><code>license</code> - The license applied to this component (such as "<a href="https://en.wikipedia.org/wiki/MIT_License#Ambiguity_and_variants">Expat</a>" or "<a href="https://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a>").</p></li>
+</ul>
+<h3 id="dictionary-get_donor_info-const"><code>Dictionary get_donor_info() const</code></h3>
+<p>Returns a <a href="Dictionary.html">Dictionary</a> of categorized donor names. Each entry is an <a href="Array.html">Array</a> of strings:</p>
+<p>{<code>platinum_sponsors</code>, <code>gold_sponsors</code>, <code>silver_sponsors</code>, <code>bronze_sponsors</code>, <code>mini_sponsors</code>, <code>gold_donors</code>, <code>silver_donors</code>, <code>bronze_donors</code>}</p>
+<h3 id="int-get_frames_drawn"><code>int get_frames_drawn()</code></h3>
+<p>Returns the total number of frames drawn since the engine started.</p>
+<p><strong>Note:</strong> On headless platforms, or if rendering is disabled with <code>--disable-render-loop</code> via command line, this method always returns <code>0</code>. See also <code>get_process_frames()</code>.</p>
+<h3 id="float-get_frames_per_second-const"><code>float get_frames_per_second() const</code></h3>
+<p>Returns the average frames rendered every second (FPS), also known as the framerate.</p>
+<h3 id="dictionary-get_license_info-const"><code>Dictionary get_license_info() const</code></h3>
+<p>Returns a <a href="Dictionary.html">Dictionary</a> of licenses used by Godot and included third party components. Each entry is a license name (such as "<a href="https://en.wikipedia.org/wiki/MIT_License#Ambiguity_and_variants">Expat</a>") and its associated text.</p>
+<h3 id="string-get_license_text-const"><code>String get_license_text() const</code></h3>
+<p>Returns the full Godot license text.</p>
+<h3 id="mainloop-get_main_loop-const"><code>MainLoop get_main_loop() const</code></h3>
+<p>Returns the instance of the <a href="MainLoop.html">MainLoop</a>. This is usually the main <a href="SceneTree.html">SceneTree</a> and is the same as <code>Node.get_tree()</code>.</p>
+<p><strong>Note:</strong> The type instantiated as the main loop can changed with <code>ProjectSettings.application/run/main_loop_type</code>.</p>
+<h3 id="int-get_physics_frames-const"><code>int get_physics_frames() const</code></h3>
+<p>Returns the total number of frames passed since the engine started. This number is increased every <strong>physics frame</strong>. See also <code>get_process_frames()</code>.</p>
+<p>This method can be used to run expensive logic less often without relying on a <a href="Timer.html">Timer</a>:</p>
+<pre class="gdscript"><code>func _physics_process(_delta):
+    if Engine.get_physics_frames() % 2 == 0:
+        pass # Run expensive logic only once every 2 physics frames here.</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_PhysicsProcess</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">base</span><span class="op">.</span><span class="fu">_PhysicsProcess</span><span class="op">(</span>delta<span class="op">);</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>Engine<span class="op">.</span><span class="fu">GetPhysicsFrames</span><span class="op">()</span> <span class="op">%</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Run expensive logic only once every 2 physics frames here.</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="float-get_physics_interpolation_fraction-const"><code>float get_physics_interpolation_fraction() const</code></h3>
+<p>Returns the fraction through the current physics tick we are at the time of rendering the frame. This can be used to implement fixed timestep interpolation.</p>
+<h3 id="int-get_process_frames-const"><code>int get_process_frames() const</code></h3>
+<p>Returns the total number of frames passed since the engine started. This number is increased every <strong>process frame</strong>, regardless of whether the render loop is enabled. See also <code>get_frames_drawn()</code> and <code>get_physics_frames()</code>.</p>
+<p>This method can be used to run expensive logic less often without relying on a <a href="Timer.html">Timer</a>:</p>
+<pre class="gdscript"><code>func _process(_delta):
+    if Engine.get_process_frames() % 5 == 0:
+        pass # Run expensive logic only once every 5 process (render) frames here.</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">base</span><span class="op">.</span><span class="fu">_Process</span><span class="op">(</span>delta<span class="op">);</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>Engine<span class="op">.</span><span class="fu">GetProcessFrames</span><span class="op">()</span> <span class="op">%</span> <span class="dv">5</span> <span class="op">==</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Run expensive logic only once every 5 process (render) frames here.</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="scriptlanguage-get_script_languageindex-int-const"><code>ScriptLanguage get_script_language(index: int) const</code></h3>
+<p>Returns an instance of a <a href="ScriptLanguage.html">ScriptLanguage</a> with the given <code>index</code>.</p>
+<h3 id="int-get_script_language_count"><code>int get_script_language_count()</code></h3>
+<p>Returns the number of available script languages. Use with <code>get_script_language()</code>.</p>
+<h3 id="object-get_singletonname-stringname-const"><code>Object get_singleton(name: StringName) const</code></h3>
+<p>Returns the global singleton with the given <code>name</code>, or <code>null</code> if it does not exist. Often used for plugins. See also <code>has_singleton()</code> and <code>get_singleton_list()</code>.</p>
+<p><strong>Note:</strong> Global singletons are not the same as autoloaded nodes, which are configurable in the project settings.</p>
+<h3 id="packedstringarray-get_singleton_list-const"><code>PackedStringArray get_singleton_list() const</code></h3>
+<p>Returns a list of names of all available global singletons. See also <code>get_singleton()</code>.</p>
+<h3 id="dictionary-get_version_info-const"><code>Dictionary get_version_info() const</code></h3>
+<p>Returns the current engine version information as a <a href="Dictionary.html">Dictionary</a> containing the following entries:</p>
+<ul>
+<li><p><code>major</code> - Major version number as an int;</p></li>
+<li><p><code>minor</code> - Minor version number as an int;</p></li>
+<li><p><code>patch</code> - Patch version number as an int;</p></li>
+<li><p><code>hex</code> - Full version encoded as a hexadecimal int with one byte (2 hex digits) per number (see example below);</p></li>
+<li><p><code>status</code> - Status (such as "beta", "rc1", "rc2", "stable", etc.) as a String;</p></li>
+<li><p><code>build</code> - Build name (e.g. "custom_build") as a String;</p></li>
+<li><p><code>hash</code> - Full Git commit hash as a String;</p></li>
+<li><p><code>timestamp</code> - Holds the Git commit date UNIX timestamp in seconds as an int, or <code>0</code> if unavailable;</p></li>
+<li><p><code>string</code> - <code>major</code>, <code>minor</code>, <code>patch</code>, <code>status</code>, and <code>build</code> in a single String.</p></li>
+</ul>
+<p>The <code>hex</code> value is encoded as follows, from left to right: one byte for the major, one byte for the minor, one byte for the patch version. For example, "3.1.12" would be <code>0x03010C</code>.</p>
+<p><strong>Note:</strong> The <code>hex</code> value is still an <a href="int.html">int</a> internally, and printing it will give you its decimal representation, which is not particularly meaningful. Use hexadecimal literals for quick version comparisons from code:</p>
+<pre class="gdscript"><code>if Engine.get_version_info().hex &gt;= 0x040100:
+    pass # Do things specific to version 4.1 or later.
+else:
+    pass # Do things specific to versions before 4.1.</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">((</span><span class="dt">int</span><span class="op">)</span>Engine<span class="op">.</span><span class="fu">GetVersionInfo</span><span class="op">()[</span><span class="st">&quot;hex&quot;</span><span class="op">]</span> <span class="op">&gt;=</span> <span class="bn">0x040100</span><span class="op">)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Do things specific to version 4.1 or later.</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="kw">else</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Do things specific to versions before 4.1.</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="string-get_write_movie_path-const"><code>String get_write_movie_path() const</code></h3>
+<p>Returns the path to the <a href="MovieWriter.html">MovieWriter</a>'s output file, or an empty string if the engine wasn't started in Movie Maker mode. The default path can be changed in <code>ProjectSettings.editor/movie_writer/movie_file</code>.</p>
+<h3 id="bool-has_singletonname-stringname-const"><code>bool has_singleton(name: StringName) const</code></h3>
+<p>Returns <code>true</code> if a singleton with the given <code>name</code> exists in the global scope. See also <code>get_singleton()</code>.</p>
+<pre class="gdscript"><code>print(Engine.has_singleton(&quot;OS&quot;))          # Prints true
+print(Engine.has_singleton(&quot;Engine&quot;))      # Prints true
+print(Engine.has_singleton(&quot;AudioServer&quot;)) # Prints true
+print(Engine.has_singleton(&quot;Unknown&quot;))     # Prints false</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>Engine<span class="op">.</span><span class="fu">HasSingleton</span><span class="op">(</span><span class="st">&quot;OS&quot;</span><span class="op">));</span>          <span class="co">// Prints True</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>Engine<span class="op">.</span><span class="fu">HasSingleton</span><span class="op">(</span><span class="st">&quot;Engine&quot;</span><span class="op">));</span>      <span class="co">// Prints True</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>Engine<span class="op">.</span><span class="fu">HasSingleton</span><span class="op">(</span><span class="st">&quot;AudioServer&quot;</span><span class="op">));</span> <span class="co">// Prints True</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>Engine<span class="op">.</span><span class="fu">HasSingleton</span><span class="op">(</span><span class="st">&quot;Unknown&quot;</span><span class="op">));</span>     <span class="co">// Prints False</span></span></code></pre></div>
+<p><strong>Note:</strong> Global singletons are not the same as autoloaded nodes, which are configurable in the project settings.</p>
+<h3 id="bool-is_editor_hint-const"><code>bool is_editor_hint() const</code></h3>
+<p>Returns <code>true</code> if the script is currently running inside the editor, otherwise returns <code>false</code>. This is useful for <code>@tool</code> scripts to conditionally draw editor helpers, or prevent accidentally running "game" code that would affect the scene state while in the editor:</p>
+<pre class="gdscript"><code>if Engine.is_editor_hint():
+    draw_gizmos()
+else:
+    simulate_physics()</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>Engine<span class="op">.</span><span class="fu">IsEditorHint</span><span class="op">())</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawGizmos</span><span class="op">();</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">else</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SimulatePhysics</span><span class="op">();</span></span></code></pre></div>
+<p>See <a href="../manual/tutorials/plugins/running_code_in_the_editor.html">Running code in the editor</a> in the documentation for more information.</p>
+<p><strong>Note:</strong> To detect whether the script is running on an editor <em>build</em> (such as when pressing :kbd:<code>F5</code>), use <code>OS.has_feature()</code> with the <code>"editor"</code> argument instead. <code>OS.has_feature("editor")</code> evaluate to <code>true</code> both when the script is running in the editor and when running the project from the editor, but returns <code>false</code> when run from an exported project.</p>
+<h3 id="bool-is_embedded_in_editor-const"><code>bool is_embedded_in_editor() const</code></h3>
+<p>Returns <code>true</code> if the engine is running embedded in the editor. This is useful to prevent attempting to update window mode or window flags that are not supported when running the project embedded in the editor.</p>
+<h3 id="bool-is_in_physics_frame-const"><code>bool is_in_physics_frame() const</code></h3>
+<p>Returns <code>true</code> if the engine is inside the fixed physics process step of the main loop.</p>
+<pre class="gdscript"><code>func _enter_tree():
+    # Depending on when the node is added to the tree,
+    # prints either &quot;true&quot; or &quot;false&quot;.
+    print(Engine.is_in_physics_frame())
+
+func _process(delta):
+    print(Engine.is_in_physics_frame()) # Prints false
+
+func _physics_process(delta):
+    print(Engine.is_in_physics_frame()) # Prints true</code></pre>
+<h3 id="globalscopeerror-register_script_languagelanguage-scriptlanguage">``@GlobalScope.Error<code> register_script_language(language: ScriptLanguage)</code></h3>
+<p>Registers a <a href="ScriptLanguage.html">ScriptLanguage</a> instance to be available with <code>ScriptServer</code>.</p>
+<p>Returns:</p>
+<ul>
+<li><p><code>@GlobalScope.OK</code> on success;</p></li>
+<li><p><code>@GlobalScope.ERR_UNAVAILABLE</code> if <code>ScriptServer</code> has reached the limit and cannot register any new language;</p></li>
+<li><p><code>@GlobalScope.ERR_ALREADY_EXISTS</code> if <code>ScriptServer</code> already contains a language with similar extension/name/type.</p></li>
+</ul>
+<h3 id="void-register_singletonname-stringname-instance-object"><code>void register_singleton(name: StringName, instance: Object)</code></h3>
+<p>Registers the given <a href="Object.html">Object</a> <code>instance</code> as a singleton, available globally under <code>name</code>. Useful for plugins.</p>
+<h3 id="globalscopeerror-unregister_script_languagelanguage-scriptlanguage">``@GlobalScope.Error<code> unregister_script_language(language: ScriptLanguage)</code></h3>
+<p>Unregisters the <a href="ScriptLanguage.html">ScriptLanguage</a> instance from <code>ScriptServer</code>.</p>
+<p>Returns:</p>
+<ul>
+<li><p><code>@GlobalScope.OK</code> on success;</p></li>
+<li><p><code>@GlobalScope.ERR_DOES_NOT_EXIST</code> if the language is not registered in <code>ScriptServer</code>.</p></li>
+</ul>
+<h3 id="void-unregister_singletonname-stringname"><code>void unregister_singleton(name: StringName)</code></h3>
+<p>Removes the singleton registered under <code>name</code>. The singleton object is <em>not</em> freed. Only works with user-defined singletons registered with <code>register_singleton()</code>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

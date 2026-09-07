@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Secondary build system: Working with CMake — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="secondary-build-system-working-with-cmake">Secondary build system: Working with CMake</h1>
+<blockquote>
+<p><strong>See also:</strong> This page documents how to compile godot-cpp. If you're looking to compile Godot instead, see <code>doc_introduction_to_the_buildsystem</code>.</p>
+</blockquote>
+<p>Beside the <a href="http://scons.org">SCons</a> based build system, godot-cpp also provides a <a href="https://github.com/godotengine/godot-cpp/blob/master/CMakeLists.txt">CMakeLists.txt</a> file to support users that prefer using <a href="http://cmake.org">CMake</a> over SCons for their build system.</p>
+<p>While actively supported, the CMake system is considered secondary to the SCons build system. This means it may lack some features that are available to projects using SCons.</p>
+<h2 id="introduction">Introduction</h2>
+<p>Compiling godot-cpp independently of an extension project is mainly for godot-cpp developers, package maintainers, and CI/CD.</p>
+<p>Examples of how to use CMake to consume the godot-cpp library as part of an extension project:</p>
+<ul>
+<li><a href="https://github.com/godotengine/godot-cpp-template/">godot-cpp-template</a></li>
+<li><a href="https://github.com/vorlac/godot-roguelite/">godot_roguelite</a></li>
+<li><a href="https://github.com/CraterCrash/godot-orchestrator/">godot-orchestrator</a></li>
+</ul>
+<p>Examples for configuring godot-cpp are listed at the bottom of the page, many of which may help with configuring your project.</p>
+<h2 id="cmakes-debug-vs-godots-template_debug">CMake's <code>Debug</code> vs Godot's <code>template_debug</code></h2>
+<p>Something that has come up during many discussions is the conflation of a compilation of C++ source code with debug symbols enabled, and compiling a Godot extension with debug features enabled. The two concepts are not mutually exclusive.</p>
+<h3 id="debug-features">Debug Features</h3>
+<p>Enables a pre-processor definition to selectively compile code to help users of a Godot extension with their own project.</p>
+<p>Debug features are enabled in <code>editor</code> and <code>template_debug</code> builds, which can be specified during the configure phase like so:</p>
+<pre class="shell"><code>cmake -S godot-cpp -B cmake-build -DGODOTCPP_TARGET=&lt;target choice&gt;</code></pre>
+<h3 id="debug">Debug</h3>
+<p>Sets compiler flags so that debug symbols are generated to help godot extension developers debug their extension.</p>
+<p><code>Debug</code> is the default build type for CMake projects, the way to select another depends on the generator used:</p>
+<ul>
+<li>For single configuration generators, add <code>-DCMAKE_BUILD_TYPE=&lt;type&gt;</code> to the configure command.</li>
+<li>For multi-config generators, add --config to the build command.</li>
+</ul>
+<p>Where <code>&lt;type&gt;</code> is one of <code>Debug</code>, <code>Release</code>, <code>RelWithDebInfo</code>, and <code>MinSizeRel</code>.</p>
+<h2 id="scons-deviations">SCons Deviations</h2>
+<p>Not all code from the SCons system can be perfectly represented in CMake, here are the notable differences:</p>
+<ul>
+<li><p><code>debug_symbols</code></p>
+<blockquote>
+<p>Is no longer an explicit option, and is enabled when using CMake build configurations; <code>Debug</code>, <code>RelWithDebInfo</code>.</p>
+</blockquote></li>
+<li><p><code>dev_build</code></p>
+<blockquote>
+<p>Does not define <code>NDEBUG</code> when disabled, <code>NDEBUG</code> is set when using CMake build configurations; <code>Release</code>, <code>MinSizeRel</code>.</p>
+</blockquote></li>
+<li><p><code>arch</code></p>
+<blockquote>
+<p>CMake sets the architecture via the toolchain files, macOS universal is controlled via the <code>CMAKE_OSX_ARCHITECTURES</code> property which is copied to targets when they are defined.</p>
+</blockquote></li>
+<li><p><code>debug_crt</code></p>
+<blockquote>
+<p>CMake controls linking to Windows runtime libraries by copying the value of <code>CMAKE_MSVC_RUNTIME_LIBRARIES</code> to targets as they are defined. godot-cpp will set this variable if it isn't already set. So, include it before other dependencies to have the value propagate across the projects.</p>
+</blockquote></li>
+</ul>
+<h2 id="basic-walk-through">Basic Walk-Through</h2>
+<h3 id="clone-the-git-repository">Clone the git repository</h3>
+<pre class="shell"><code>git clone https://github.com/godotengine/godot-cpp.git
+Cloning into &#39;godot-cpp&#39;...
+...</code></pre>
+<h3 id="configure-the-build">Configure the build</h3>
+<pre class="shell"><code>cmake -S godot-cpp -B cmake-build -G Ninja</code></pre>
+<ul>
+<li><code>-S</code> Specifies the source directory as <code>godot-cpp</code></li>
+<li><code>-B</code> Specifies the build directory as <code>cmake-build</code></li>
+<li><code>-G</code> Specifies the Generator as <code>Ninja</code></li>
+</ul>
+<p>The source directory in this example is the source root for the freshly cloned godot-cpp. CMake will also interpret the first path in the command as the source path, or if an existing build path is specified it will deduce the source path from the build cache.</p>
+<p>The following three commands are equivalent:</p>
+<pre class="shell"><code># Current working directory is the godot-cpp source root.
+cmake . -B build-dir
+
+# Current working directory is an empty godot-cpp/build-dir.
+cmake ../
+
+# Current working directory is an existing build path.
+cmake .</code></pre>
+<p>The build directory is specified so that generated files do not clutter the source tree with build artifacts.</p>
+<p>CMake doesn't build the code, it generates the files that a build tool uses, in this case the <code>Ninja</code> generator creates <a href="https://ninja-build.org/">Ninja</a> build files.</p>
+<p>To see the list of generators run <code>cmake --help</code>.</p>
+<h3 id="build-options">Build Options</h3>
+<p>To list the available options use the <code>-L[AH]</code> command flags. <code>A</code> is for advanced, and <code>H</code> is for help strings:</p>
+<pre class="shell"><code>cmake -S godot-cpp -LH</code></pre>
+<p>Options are specified on the command line when configuring, for example:</p>
+<pre class="shell"><code>cmake -S godot-cpp -DGODOTCPP_USE_HOT_RELOAD:BOOL=ON \
+    -DGODOTCPP_PRECISION:STRING=double \
+    -DCMAKE_BUILD_TYPE:STRING=Debug</code></pre>
+<p>See <a href="https://cmake.org/cmake/help/latest/guide/user-interaction/index.html#setting-build-variables">setting-build-variables</a> and <a href="https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#build-configurations">build-configurations</a> for more information.</p>
+<h4 id="a-non-exhaustive-list-of-options">A non-exhaustive list of options:</h4>
+<pre class="text"><code>// Path to a custom GDExtension API JSON file.
+// (takes precedence over GODOTCPP_GDEXTENSION_DIR)
+// ( /path/to/custom_api_file )
+GODOTCPP_CUSTOM_API_FILE:FILEPATH=
+
+// Force disabling exception handling code. (ON|OFF)
+GODOTCPP_DISABLE_EXCEPTIONS:BOOL=ON
+
+// Path to a custom directory containing the GDExtension interface
+// header and API JSON file. ( /path/to/gdextension_dir )
+GODOTCPP_GDEXTENSION_DIR:PATH=gdextension
+
+// Set the floating-point precision level. (single|double)
+GODOTCPP_PRECISION:STRING=single
+
+// Enable the extra accounting required to support hot reload. (ON|OFF)
+GODOTCPP_USE_HOT_RELOAD:BOOL=</code></pre>
+<h3 id="compiling">Compiling</h3>
+<p>Tell CMake to invoke the build system it generated in the specified directory. The default target is <code>template_debug</code> and the default build configuration is Debug.</p>
+<pre class="shell"><code>cmake --build cmake-build</code></pre>
+<h2 id="examples">Examples</h2>
+<p>These examples, while intended for godot-cpp developers, package maintainers, and CI/CD may help you configure your own extension project.</p>
+<p>Practical examples for how to consume the godot-cpp library as part of an extension project are listed in the <a href="#introduction">Introduction</a>.</p>
+<h3 id="enabling-integration-testing">Enabling Integration Testing</h3>
+<p>The testing target <code>godot-cpp-test</code> is guarded by <code>GODOTCPP_ENABLE_TESTING</code> which is off by default.</p>
+<p>To configure and build the godot-cpp project to enable the integration testing targets the command will look something like:</p>
+<pre class="shell"><code>cmake -S godot-cpp -B cmake-build -DGODOTCPP_ENABLE_TESTING=YES
+cmake --build cmake-build --target godot-cpp-test</code></pre>
+<h3 id="windows-and-msvc---release">Windows and MSVC - Release</h3>
+<p>So long as CMake is installed from the <a href="https://cmake.org/download/">CMake Downloads</a> page and in the PATH, and Microsoft Visual Studio is installed with C++ support, CMake will detect the MSVC compiler.</p>
+<p>Note that Visual Studio is a Multi-Config Generator so the build configuration needs to be specified at build time, for example, <code>--config Release</code>.</p>
+<pre class="shell"><code>cmake -S godot-cpp -B cmake-build -DGODOTCPP_ENABLE_TESTING=YES
+cmake --build cmake-build -t godot-cpp-test --config Release</code></pre>
+<h3 id="msys2clang64-ninja---debug">MSys2/clang64, "Ninja" - Debug</h3>
+<p>Assumes the <code>ming-w64-clang-x86_64</code>-toolchain is installed.</p>
+<p>Note that Ninja is a Single-Config Generator so the build type needs to be specified at configuration time.</p>
+<p>Using the <code>msys2/clang64</code> shell:</p>
+<pre class="shell"><code>cmake -S godot-cpp -B cmake-build -G&quot;Ninja&quot; \
+    -DGODOTCPP_ENABLE_TESTING=YES -DCMAKE_BUILD_TYPE=Release
+cmake --build cmake-build -t godot-cpp-test</code></pre>
+<h3 id="msys2clang64-ninja-multi-config---dev_build-debug-symbols">MSys2/clang64, "Ninja Multi-Config" - dev_build, Debug Symbols</h3>
+<p>Assumes the <code>ming-w64-clang-x86_64</code>-toolchain is installed.</p>
+<p>This time we are choosing the 'Ninja Multi-Config' generator, so the build type is specified at build time.</p>
+<p>Using the <code>msys2/clang64</code> shell:</p>
+<pre class="shell"><code>cmake -S godot-cpp -B cmake-build -G&quot;Ninja Multi-Config&quot; \
+    -DGODOTCPP_ENABLE_TESTING=YES -DGODOTCPP_DEV_BUILD:BOOL=ON
+cmake --build cmake-build -t godot-cpp-test --config Debug</code></pre>
+<h3 id="emscripten-for-web-platform">Emscripten for web platform</h3>
+<p>This has only been tested on Windows so far. You can use this example workflow:</p>
+<ul>
+<li>Clone and install the latest Emscripten tools to <code>c:\emsdk</code>.</li>
+<li>Use <code>C:\emsdk\emsdk.ps1 activate latest</code> to enable the environment from powershell in the current shell.</li>
+<li>The <code>emcmake.bat</code> utility adds the emscripten toolchain to the CMake command. It can also be added manually; the location is listed inside the <code>emcmake.bat</code> file</li>
+</ul>
+<div class="sourceCode" id="cb13"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>C<span class="op">:</span>\emsdk\emsdk<span class="op">.</span><span class="fu">ps1</span> activate latest</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>emcmake<span class="op">.</span><span class="fu">bat</span> cmake <span class="op">-</span>S godot<span class="op">-</span>cpp <span class="op">-</span>B cmake<span class="op">-</span>build<span class="op">-</span>web <span class="op">-</span>DCMAKE_BUILD_TYPE<span class="op">=</span>Release</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>cmake <span class="op">--</span>build cmake<span class="op">-</span>build<span class="op">-</span>web</span></code></pre></div>
+<h3 id="android-cross-compile-from-windows">Android Cross Compile from Windows</h3>
+<p>There are two separate paths you can choose when configuring for android.</p>
+<p>Use the <code>CMAKE_ANDROID_*</code> variables specified on the command line or in your own toolchain file as listed in the <a href="https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html#cross-compiling-for-android-with-the-ndk">cmake-toolchains</a> documentation.</p>
+<p>Or use the toolchain and scripts provided by the Android SDK and make changes using the <code>ANDROID_*</code> variables listed there. Where <code>&lt;version&gt;</code> is whatever NDK version you have installed (tested with 28.1.13356709) and <code>&lt;platform&gt;</code> is for the Android sdk platform, (tested with <code>android-29</code>).</p>
+<blockquote>
+<p><strong>Warning:</strong> The Android SDK <a href="">website</a> explicitly states that they do not support using the CMake built-in method, and recommends you stick with their toolchain files.</p>
+</blockquote>
+<h4 id="using-your-own-toolchain-file">Using your own toolchain file</h4>
+<p>As described in the CMake documentation:</p>
+<pre class="shell"><code>cmake -S godot-cpp -B cmake-build --toolchain my_toolchain.cmake
+cmake --build cmake-build -t template_release</code></pre>
+<p>Doing the equivalent just using the command line:</p>
+<pre class="shell"><code>cmake -S godot-cpp -B cmake-build \
+    -DCMAKE_SYSTEM_NAME=Android \
+    -DCMAKE_SYSTEM_VERSION=&lt;platform&gt; \
+    -DCMAKE_ANDROID_ARCH_ABI=&lt;arch&gt; \
+    -DCMAKE_ANDROID_NDK=/path/to/android-ndk
+cmake --build cmake-build</code></pre>
+<h4 id="using-the-android-sdk-toolchain-file">Using the Android SDK toolchain file</h4>
+<p>This defaults to the minimum supported version and armv7-a:</p>
+<pre class="shell"><code>cmake -S godot-cpp -B cmake-build \
+    --toolchain $ANDROID_HOME/ndk/&lt;version&gt;/build/cmake/android.toolchain.cmake
+cmake --build cmake-build</code></pre>
+<p>Specifying the Android platform and ABI:</p>
+<pre class="shell"><code>cmake -S godot-cpp -B cmake-build \
+    --toolchain $ANDROID_HOME/ndk/&lt;version&gt;/build/cmake/android.toolchain.cmake \
+    -DANDROID_PLATFORM:STRING=android-29 \
+    -DANDROID_ABI:STRING=armeabi-v7a
+cmake --build cmake-build</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../../../";</script>
+<script src="../../../../../assets/app.js" defer></script>
+</body>
+</html>

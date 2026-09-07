@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WorkerThreadPool — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="workerthreadpool">WorkerThreadPool</h1>
+<p><em>Inherits: <a href="Object.html">Object</a></em></p>
+<p>A singleton that allocates some <a href="Thread.html">Thread</a> s on startup, used to offload tasks to these threads.</p>
+<h2 id="description">Description</h2>
+<p>The <strong>WorkerThreadPool</strong> singleton allocates a set of <a href="Thread.html">Thread</a> s (called worker threads) on project startup and provides methods for offloading tasks to them. This can be used for simple multithreading without having to create <a href="Thread.html">Thread</a> s.</p>
+<p>Tasks hold the <a href="Callable.html">Callable</a> to be run by the threads. <strong>WorkerThreadPool</strong> can be used to create regular tasks, which will be taken by one worker thread, or group tasks, which can be distributed between multiple worker threads. Group tasks execute the <a href="Callable.html">Callable</a> multiple times, which makes them useful for iterating over a lot of elements, such as the enemies in an arena.</p>
+<p>Here's a sample on how to offload an expensive function to worker threads:</p>
+<pre class="gdscript"><code>var enemies = [] # An array to be filled with enemies.
+
+func process_enemy_ai(enemy_index):
+    var processed_enemy = enemies[enemy_index]
+    # Expensive logic...
+
+func _process(delta):
+    var task_id = WorkerThreadPool.add_group_task(process_enemy_ai, enemies.size())
+    # Other code...
+    WorkerThreadPool.wait_for_group_task_completion(task_id)
+    # Other code that depends on the enemy AI already being processed.</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> List<span class="op">&lt;</span>Node<span class="op">&gt;</span> _enemies <span class="op">=</span> <span class="kw">new</span> List<span class="op">&lt;</span>Node<span class="op">&gt;();</span> <span class="co">// A list to be filled with enemies.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">ProcessEnemyAI</span><span class="op">(</span><span class="dt">int</span> enemyIndex<span class="op">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    Node processedEnemy <span class="op">=</span> _enemies<span class="op">[</span>enemyIndex<span class="op">];</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Expensive logic here.</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">long</span> taskId <span class="op">=</span> WorkerThreadPool<span class="op">.</span><span class="fu">AddGroupTask</span><span class="op">(</span>Callable<span class="op">.</span><span class="fu">From</span><span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;(</span>ProcessEnemyAI<span class="op">),</span> _enemies<span class="op">.</span><span class="fu">Count</span><span class="op">);</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Other code...</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    WorkerThreadPool<span class="op">.</span><span class="fu">WaitForGroupTaskCompletion</span><span class="op">(</span>taskId<span class="op">);</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Other code that depends on the enemy AI already being processed.</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The above code relies on the number of elements in the <code>enemies</code> array remaining constant during the multithreaded part.</p>
+<p><strong>Note:</strong> Using this singleton could affect performance negatively if the task being distributed between threads is not computationally expensive.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/tutorials/performance/using_multiple_threads.html">Using multiple threads</a></li>
+<li><a href="../manual/tutorials/performance/thread_safe_apis.html">Thread-safe APIs</a></li>
+</ul>
+<h2 id="methods">Methods</h2>
+<h3 id="int-add_group_taskaction-callable-elements-int-tasks_needed-int---1-high_priority-bool--false-description-string--"><code>int add_group_task(action: Callable, elements: int, tasks_needed: int = -1, high_priority: bool = false, description: String = "")</code></h3>
+<p>Adds <code>action</code> as a group task to be executed by the worker threads. The <a href="Callable.html">Callable</a> will be called a number of times based on <code>elements</code>, with the first thread calling it with the value <code>0</code> as a parameter, and each consecutive execution incrementing this value by 1 until it reaches <code>element - 1</code>.</p>
+<p>The number of threads the task is distributed to is defined by <code>tasks_needed</code>, where the default value <code>-1</code> means it is distributed to all worker threads. <code>high_priority</code> determines if the task has a high priority or a low priority (default). You can optionally provide a <code>description</code> to help with debugging.</p>
+<p>Returns a group task ID that can be used by other methods.</p>
+<p><strong>Warning:</strong> Every task must be waited for completion using <code>wait_for_task_completion()</code> or <code>wait_for_group_task_completion()</code> at some point so that any allocated resources inside the task can be cleaned up.</p>
+<h3 id="int-add_taskaction-callable-high_priority-bool--false-description-string--"><code>int add_task(action: Callable, high_priority: bool = false, description: String = "")</code></h3>
+<p>Adds <code>action</code> as a task to be executed by a worker thread. <code>high_priority</code> determines if the task has a high priority or a low priority (default). You can optionally provide a <code>description</code> to help with debugging.</p>
+<p>Returns a task ID that can be used by other methods.</p>
+<p><strong>Warning:</strong> Every task must be waited for completion using <code>wait_for_task_completion()</code> or <code>wait_for_group_task_completion()</code> at some point so that any allocated resources inside the task can be cleaned up.</p>
+<h3 id="int-get_caller_group_id-const"><code>int get_caller_group_id() const</code></h3>
+<p>Returns the task group ID of the current thread calling this method, or <code>-1</code> if invalid or the current thread is not part of a task group.</p>
+<h3 id="int-get_caller_task_id-const"><code>int get_caller_task_id() const</code></h3>
+<p>Returns the task ID of the current thread calling this method, or <code>-1</code> if the task is a group task, invalid or the current thread is not part of the thread pool (e.g. the main thread).</p>
+<p>Can be used by a task to get its own task ID, or to determine whether the current code is running inside the worker thread pool.</p>
+<p><strong>Note:</strong> Group tasks have their own IDs, so this method will return <code>-1</code> for group tasks.</p>
+<h3 id="int-get_group_processed_element_countgroup_id-int-const"><code>int get_group_processed_element_count(group_id: int) const</code></h3>
+<p>Returns how many times the <a href="Callable.html">Callable</a> of the group task with the given ID has already been executed by the worker threads.</p>
+<p><strong>Note:</strong> If a thread has started executing the <a href="Callable.html">Callable</a> but is yet to finish, it won't be counted.</p>
+<h3 id="bool-is_group_task_completedgroup_id-int-const"><code>bool is_group_task_completed(group_id: int) const</code></h3>
+<p>Returns <code>true</code> if the group task with the given ID is completed.</p>
+<p><strong>Note:</strong> You should only call this method between adding the group task and awaiting its completion.</p>
+<h3 id="bool-is_task_completedtask_id-int-const"><code>bool is_task_completed(task_id: int) const</code></h3>
+<p>Returns <code>true</code> if the task with the given ID is completed.</p>
+<p><strong>Note:</strong> You should only call this method between adding the task and awaiting its completion.</p>
+<h3 id="void-wait_for_group_task_completiongroup_id-int"><code>void wait_for_group_task_completion(group_id: int)</code></h3>
+<p>Pauses the thread that calls this method until the group task with the given ID is completed.</p>
+<h3 id="globalscopeerror-wait_for_task_completiontask_id-int">``@GlobalScope.Error<code> wait_for_task_completion(task_id: int)</code></h3>
+<p>Pauses the thread that calls this method until the task with the given ID is completed.</p>
+<p>Returns <code>@GlobalScope.OK</code> if the task could be successfully awaited.</p>
+<p>Returns <code>@GlobalScope.ERR_INVALID_PARAMETER</code> if a task with the passed ID does not exist (maybe because it was already awaited and disposed of).</p>
+<p>Returns <code>@GlobalScope.ERR_BUSY</code> if the call is made from another running task and, due to task scheduling, there's potential for deadlocking (e.g., the task to await may be at a lower level in the call stack and therefore can't progress). This is an advanced situation that should only matter when some tasks depend on others (in the current implementation, the tricky case is a task trying to wait on an older one).</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

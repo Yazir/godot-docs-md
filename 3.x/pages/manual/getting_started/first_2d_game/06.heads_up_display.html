@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heads up display — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="heads-up-display">Heads up display</h1>
+<p>The final piece our game needs is a User Interface (UI) to display things like score, a "game over" message, and a restart button.</p>
+<p>Create a new scene, and add a ref node named <code>HUD</code>. "HUD" stands for "heads-up display", an informational display that appears as an overlay on top of the game view.</p>
+<p>The ref node lets us draw our UI elements on a layer above the rest of the game, so that the information it displays isn't covered up by any game elements like the player or mobs.</p>
+<p>The HUD needs to display the following information:</p>
+<ul>
+<li>Score, changed by <code>ScoreTimer</code>.</li>
+<li>A message, such as "Game Over" or "Get Ready!"</li>
+<li>A "Start" button to begin the game.</li>
+</ul>
+<p>The basic node for UI elements is ref. To create our UI, we'll use two types of ref nodes: ref and ref.</p>
+<p>Create the following as children of the <code>HUD</code> node:</p>
+<ul>
+<li>ref named <code>ScoreLabel</code>.</li>
+<li>ref named <code>Message</code>.</li>
+<li>ref named <code>StartButton</code>.</li>
+<li>ref named <code>MessageTimer</code>.</li>
+</ul>
+<p>Click on the <code>ScoreLabel</code> and type a number into the <code>Text</code> field in the Inspector. The default font for <code>Control</code> nodes is small and doesn't scale well. There is a font file included in the game assets called "Xolonium-Regular.ttf". To use this font, do the following:</p>
+<ol type="1">
+<li>Under <strong>Theme overrides &gt; Fonts</strong> click on the empty box and select "New DynamicFont"</li>
+<li>Click on the "DynamicFont" you added, and under <strong>Font &gt; FontData</strong>, choose "Load" and select the "Xolonium-Regular.ttf" file.</li>
+</ol>
+<p>Set the "Size" property under <code>Settings</code>, <code>64</code> works well.</p>
+<p>Once you've done this on the <code>ScoreLabel</code>, you can click the down arrow next to the Font property and choose "Copy", then "Paste" it in the same place on the other two Control nodes.</p>
+<blockquote>
+<p><strong>Note:</strong> <strong>Anchors and Margins:</strong> <code>Control</code> nodes have a position and size, but they also have anchors and margins. Anchors define the origin -the reference point for the edges of the node. Margins update automatically when you move or resize a control node. They represent the distance from the control node's edges to its anchor.</p>
+</blockquote>
+<p>Arrange the nodes as shown below. Click the "Layout" button to set a Control node's layout:</p>
+<p>You can drag the nodes to place them manually, or for more precise placement, use the following settings:</p>
+<h2 id="scorelabel">ScoreLabel</h2>
+<ul>
+<li><em>Layout</em> : "Top Wide"</li>
+<li><em>Text</em> : <code>0</code></li>
+<li><em>Align</em> : "Center"</li>
+</ul>
+<h2 id="message">Message</h2>
+<ul>
+<li><em>Layout</em> : "HCenter Wide"</li>
+<li><em>Text</em> : <code>Dodge the Creeps!</code></li>
+<li><em>Align</em> : "Center"</li>
+<li><em>Autowrap</em> : "On"</li>
+</ul>
+<h2 id="startbutton">StartButton</h2>
+<ul>
+<li><em>Text</em> : <code>Start</code></li>
+<li><em>Layout</em> : "Center Bottom"</li>
+<li><em>Margin</em> :
+<ul>
+<li>Top: <code>-200</code></li>
+<li>Bottom: <code>-100</code></li>
+</ul></li>
+</ul>
+<p>On the <code>MessageTimer</code>, set the <code>Wait Time</code> to <code>2</code> and set the <code>One Shot</code> property to "On".</p>
+<p>Now add this script to <code>HUD</code>:</p>
+<pre class="gdscript"><code>extends CanvasLayer
+
+signal start_game</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> HUD <span class="op">:</span> CanvasLayer</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Don&#39;t forget to rebuild the project so the editor knows about the new signal.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">StartGame</span><span class="op">();</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Copy `player.gdns` to `hud.gdns` and replace `Player` with `HUD`.</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Attach the `hud.gdns` file to the HUD node.</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Create two files `hud.cpp` and `hud.hpp` next to `entry.cpp` in `src`.</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `hud.hpp`. We also define the methods we&#39;ll be using here.</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifndef HUD_H</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#define HUD_H</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Button.hpp&gt;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;CanvasLayer.hpp&gt;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Godot.hpp&gt;</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Label.hpp&gt;</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Timer.hpp&gt;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> HUD <span class="op">:</span> <span class="kw">public</span> godot<span class="op">::</span>CanvasLayer <span class="op">{</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    GODOT_CLASS<span class="op">(</span>HUD<span class="op">,</span> godot<span class="op">::</span>CanvasLayer<span class="op">)</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Label <span class="op">*</span>_score_label<span class="op">;</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Label <span class="op">*</span>_message_label<span class="op">;</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Timer <span class="op">*</span>_start_message_timer<span class="op">;</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Timer <span class="op">*</span>_get_ready_message_timer<span class="op">;</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Button <span class="op">*</span>_start_button<span class="op">;</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>Timer <span class="op">*</span>_start_button_timer<span class="op">;</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _init<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _ready<span class="op">();</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> show_get_ready<span class="op">();</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> show_game_over<span class="op">();</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> update_score<span class="op">(</span><span class="at">const</span> <span class="dt">int</span> score<span class="op">);</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _on_StartButton_pressed<span class="op">();</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _on_StartMessageTimer_timeout<span class="op">();</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> _on_GetReadyMessageTimer_timeout<span class="op">();</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> _register_methods<span class="op">();</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif </span><span class="co">// HUD_H</span></span></code></pre></div>
+<p>The <code>start_game</code> signal tells the <code>Main</code> node that the button has been pressed.</p>
+<pre class="gdscript"><code>func show_message(text):
+    $Message.text = text
+    $Message.show()
+    $MessageTimer.start()</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">ShowMessage</span><span class="op">(</span><span class="dt">string</span> text<span class="op">)</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> message <span class="op">=</span> GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;Message&quot;</span><span class="op">);</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    message<span class="op">.</span><span class="fu">Text</span> <span class="op">=</span> text<span class="op">;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    message<span class="op">.</span><span class="fu">Show</span><span class="op">();</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Timer<span class="op">&gt;(</span><span class="st">&quot;MessageTimer&quot;</span><span class="op">).</span><span class="fu">Start</span><span class="op">();</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `hud.cpp`.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;hud.hpp&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> HUD<span class="op">::</span>_ready<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    _score_label <span class="op">=</span> get_node<span class="op">&lt;</span>godot<span class="op">::</span>Label<span class="op">&gt;(</span><span class="st">&quot;ScoreLabel&quot;</span><span class="op">);</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    _message_label <span class="op">=</span> get_node<span class="op">&lt;</span>godot<span class="op">::</span>Label<span class="op">&gt;(</span><span class="st">&quot;MessageLabel&quot;</span><span class="op">);</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    _start_message_timer <span class="op">=</span> get_node<span class="op">&lt;</span>godot<span class="op">::</span>Timer<span class="op">&gt;(</span><span class="st">&quot;StartMessageTimer&quot;</span><span class="op">);</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    _get_ready_message_timer <span class="op">=</span> get_node<span class="op">&lt;</span>godot<span class="op">::</span>Timer<span class="op">&gt;(</span><span class="st">&quot;GetReadyMessageTimer&quot;</span><span class="op">);</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    _start_button <span class="op">=</span> get_node<span class="op">&lt;</span>godot<span class="op">::</span>Button<span class="op">&gt;(</span><span class="st">&quot;StartButton&quot;</span><span class="op">);</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    _start_button_timer <span class="op">=</span> get_node<span class="op">&lt;</span>godot<span class="op">::</span>Timer<span class="op">&gt;(</span><span class="st">&quot;StartButtonTimer&quot;</span><span class="op">);</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> HUD<span class="op">::</span>_register_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;_ready&quot;</span><span class="op">,</span> <span class="op">&amp;</span>HUD<span class="op">::</span>_ready<span class="op">);</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;show_get_ready&quot;</span><span class="op">,</span> <span class="op">&amp;</span>HUD<span class="op">::</span>show_get_ready<span class="op">);</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;show_game_over&quot;</span><span class="op">,</span> <span class="op">&amp;</span>HUD<span class="op">::</span>show_game_over<span class="op">);</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;update_score&quot;</span><span class="op">,</span> <span class="op">&amp;</span>HUD<span class="op">::</span>update_score<span class="op">);</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;_on_StartButton_pressed&quot;</span><span class="op">,</span> <span class="op">&amp;</span>HUD<span class="op">::</span>_on_StartButton_pressed<span class="op">);</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;_on_StartMessageTimer_timeout&quot;</span><span class="op">,</span> <span class="op">&amp;</span>HUD<span class="op">::</span>_on_StartMessageTimer_timeout<span class="op">);</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_method<span class="op">(</span><span class="st">&quot;_on_GetReadyMessageTimer_timeout&quot;</span><span class="op">,</span> <span class="op">&amp;</span>HUD<span class="op">::</span>_on_GetReadyMessageTimer_timeout<span class="op">);</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    godot<span class="op">::</span>register_signal<span class="op">&lt;</span>HUD<span class="op">&gt;(</span><span class="st">&quot;start_game&quot;</span><span class="op">,</span> godot<span class="op">::</span>Dictionary<span class="op">());</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This function is called when we want to display a message temporarily, such as "Get Ready".</p>
+<pre class="gdscript"><code>func show_game_over():
+    show_message(&quot;Game Over&quot;)
+    # Wait until the MessageTimer has counted down.
+    yield($MessageTimer, &quot;timeout&quot;)
+
+    $Message.text = &quot;Dodge the\nCreeps!&quot;
+    $Message.show()
+    # Make a one-shot timer and wait for it to finish.
+    yield(get_tree().create_timer(1), &quot;timeout&quot;)
+    $StartButton.show()</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>async <span class="kw">public</span> <span class="dt">void</span> <span class="fu">ShowGameOver</span><span class="op">()</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ShowMessage</span><span class="op">(</span><span class="st">&quot;Game Over&quot;</span><span class="op">);</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> messageTimer <span class="op">=</span> GetNode<span class="op">&lt;</span>Timer<span class="op">&gt;(</span><span class="st">&quot;MessageTimer&quot;</span><span class="op">);</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    await <span class="fu">ToSignal</span><span class="op">(</span>messageTimer<span class="op">,</span> <span class="st">&quot;timeout&quot;</span><span class="op">);</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> message <span class="op">=</span> GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;Message&quot;</span><span class="op">);</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    message<span class="op">.</span><span class="fu">Text</span> <span class="op">=</span> <span class="st">&quot;Dodge the</span><span class="sc">\n</span><span class="st">Creeps!&quot;</span><span class="op">;</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    message<span class="op">.</span><span class="fu">Show</span><span class="op">();</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    await <span class="fu">ToSignal</span><span class="op">(</span><span class="fu">GetTree</span><span class="op">().</span><span class="fu">CreateTimer</span><span class="op">(</span><span class="dv">1</span><span class="op">),</span> <span class="st">&quot;timeout&quot;</span><span class="op">);</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;StartButton&quot;</span><span class="op">).</span><span class="fu">Show</span><span class="op">();</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `hud.cpp`.</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">// There is no `yield` in GDNative, so we need to have every</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">// step be its own method that is called on timer timeout.</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> HUD<span class="op">::</span>show_get_ready<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    _message_label<span class="op">-&gt;</span>set_text<span class="op">(</span><span class="st">&quot;Get Ready&quot;</span><span class="op">);</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    _message_label<span class="op">-&gt;</span>show<span class="op">();</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    _get_ready_message_timer<span class="op">-&gt;</span>start<span class="op">();</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> HUD<span class="op">::</span>show_game_over<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    _message_label<span class="op">-&gt;</span>set_text<span class="op">(</span><span class="st">&quot;Game Over&quot;</span><span class="op">);</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    _message_label<span class="op">-&gt;</span>show<span class="op">();</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    _start_message_timer<span class="op">-&gt;</span>start<span class="op">();</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This function is called when the player loses. It will show "Game Over" for 2 seconds, then return to the title screen and, after a brief pause, show the "Start" button.</p>
+<blockquote>
+<p><strong>Note:</strong> When you need to pause for a brief time, an alternative to using a Timer node is to use the SceneTree's <code>create_timer()</code> function. This can be very useful to add delays such as in the above code, where we want to wait some time before showing the "Start" button.</p>
+</blockquote>
+<pre class="gdscript"><code>func update_score(score):
+    $ScoreLabel.text = str(score)</code></pre>
+<div class="sourceCode" id="cb11"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">UpdateScore</span><span class="op">(</span><span class="dt">int</span> score<span class="op">)</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;ScoreLabel&quot;</span><span class="op">).</span><span class="fu">Text</span> <span class="op">=</span> score<span class="op">.</span><span class="fu">ToString</span><span class="op">();</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `hud.cpp`.</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> HUD<span class="op">::</span>update_score<span class="op">(</span><span class="at">const</span> <span class="dt">int</span> p_score<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    _score_label<span class="op">-&gt;</span>set_text<span class="op">(</span>godot<span class="op">::</span>Variant<span class="op">(</span>p_score<span class="op">));</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This function is called by <code>Main</code> whenever the score changes.</p>
+<p>Connect the <code>timeout()</code> signal of <code>MessageTimer</code> and the <code>pressed()</code> signal of <code>StartButton</code> and add the following code to the new functions:</p>
+<pre class="gdscript"><code>func _on_StartButton_pressed():
+    $StartButton.hide()
+    emit_signal(&quot;start_game&quot;)
+
+func _on_MessageTimer_timeout():
+    $Message.hide()</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnStartButtonPressed</span><span class="op">()</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;StartButton&quot;</span><span class="op">).</span><span class="fu">Hide</span><span class="op">();</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">EmitSignal</span><span class="op">(</span><span class="st">&quot;StartGame&quot;</span><span class="op">);</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnMessageTimerTimeout</span><span class="op">()</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;Message&quot;</span><span class="op">).</span><span class="fu">Hide</span><span class="op">();</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This code goes in `hud.cpp`.</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> HUD<span class="op">::</span>_on_StartButton_pressed<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    _start_button_timer<span class="op">-&gt;</span>stop<span class="op">();</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    _start_button<span class="op">-&gt;</span>hide<span class="op">();</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    emit_signal<span class="op">(</span><span class="st">&quot;start_game&quot;</span><span class="op">);</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> HUD<span class="op">::</span>_on_StartMessageTimer_timeout<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    _message_label<span class="op">-&gt;</span>set_text<span class="op">(</span><span class="st">&quot;Dodge the</span><span class="sc">\n</span><span class="st">Creeps&quot;</span><span class="op">);</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    _message_label<span class="op">-&gt;</span>show<span class="op">();</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    _start_button_timer<span class="op">-&gt;</span>start<span class="op">();</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> HUD<span class="op">::</span>_on_GetReadyMessageTimer_timeout<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    _message_label<span class="op">-&gt;</span>hide<span class="op">();</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="connecting-hud-to-main">Connecting HUD to Main</h2>
+<p>Now that we're done creating the <code>HUD</code> scene, go back to <code>Main</code>. Instance the <code>HUD</code> scene in <code>Main</code> like you did the <code>Player</code> scene. The scene tree should look like this, so make sure you didn't miss anything:</p>
+<p>Now we need to connect the <code>HUD</code> functionality to our <code>Main</code> script. This requires a few additions to the <code>Main</code> scene:</p>
+<p>In the Node tab, connect the HUD's <code>start_game</code> signal to the <code>new_game()</code> function of the Main node by typing "new_game" in the "Receiver Method" in the "Connect a Signal" window. Verify that the green connection icon now appears next to <code>func new_game()</code> in the script.</p>
+<p>In <code>new_game()</code>, update the score display and show the "Get Ready" message:</p>
+<pre class="gdscript"><code>$HUD.update_score(score)
+$HUD.show_message(&quot;Get Ready&quot;)</code></pre>
+<div class="sourceCode" id="cb17"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> hud <span class="op">=</span> GetNode<span class="op">&lt;</span>HUD<span class="op">&gt;(</span><span class="st">&quot;HUD&quot;</span><span class="op">);</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>hud<span class="op">.</span><span class="fu">UpdateScore</span><span class="op">(</span>Score<span class="op">);</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>hud<span class="op">.</span><span class="fu">ShowMessage</span><span class="op">(</span><span class="st">&quot;Get Ready!&quot;</span><span class="op">);</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>_hud<span class="op">-&gt;</span>update_score<span class="op">(</span>score<span class="op">);</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>_hud<span class="op">-&gt;</span>show_get_ready<span class="op">();</span></span></code></pre></div>
+<p>In <code>game_over()</code> we need to call the corresponding <code>HUD</code> function:</p>
+<pre class="gdscript"><code>$HUD.show_game_over()</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>HUD<span class="op">&gt;(</span><span class="st">&quot;HUD&quot;</span><span class="op">).</span><span class="fu">ShowGameOver</span><span class="op">();</span></span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>_hud<span class="op">-&gt;</span>show_game_over<span class="op">();</span></span></code></pre></div>
+<p>Finally, add this to <code>_on_ScoreTimer_timeout()</code> to keep the display in sync with the changing score:</p>
+<pre class="gdscript"><code>$HUD.update_score(score)</code></pre>
+<div class="sourceCode" id="cb23"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>HUD<span class="op">&gt;(</span><span class="st">&quot;HUD&quot;</span><span class="op">).</span><span class="fu">UpdateScore</span><span class="op">(</span>Score<span class="op">);</span></span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>_hud<span class="op">-&gt;</span>update_score<span class="op">(</span>score<span class="op">);</span></span></code></pre></div>
+<p>Now you're ready to play! Click the "Play the Project" button. You will be asked to select a main scene, so choose <code>Main.tscn</code>.</p>
+<h2 id="removing-old-creeps">Removing old creeps</h2>
+<p>If you play until "Game Over" and then start a new game right away, the creeps from the previous game may still be on the screen. It would be better if they all disappeared at the start of a new game. We just need a way to tell <em>all</em> the mobs to remove themselves. We can do this with the "group" feature.</p>
+<p>In the <code>Mob</code> scene, select the root node and click the "Node" tab next to the Inspector (the same place where you find the node's signals). Next to "Signals", click "Groups" and you can type a new group name and click "Add".</p>
+<p>Now all mobs will be in the "mobs" group. We can then add the following line to the <code>new_game()</code> function in <code>Main</code>:</p>
+<pre class="gdscript"><code>get_tree().call_group(&quot;mobs&quot;, &quot;queue_free&quot;)</code></pre>
+<div class="sourceCode" id="cb26"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Note that for calling Godot-provided methods with strings,</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co">// we have to use the original Godot snake_case name.</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="fu">GetTree</span><span class="op">().</span><span class="fu">CallGroup</span><span class="op">(</span><span class="st">&quot;mobs&quot;</span><span class="op">,</span> <span class="st">&quot;queue_free&quot;</span><span class="op">);</span></span></code></pre></div>
+<div class="sourceCode" id="cb27"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>get_tree<span class="op">()-&gt;</span>call_group<span class="op">(</span><span class="st">&quot;mobs&quot;</span><span class="op">,</span> <span class="st">&quot;queue_free&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>The <code>call_group()</code> function calls the named function on every node in a group - in this case we are telling every mob to delete itself.</p>
+<p>The game's mostly done at this point. In the next and last part, we'll polish it a bit by adding a background, looping music, and some keyboard shortcuts.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

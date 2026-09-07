@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spatial shaders — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="spatial-shaders">Spatial shaders</h1>
+<p>Spatial shaders are used for shading 3D objects. They are the most complex type of shader Godot offers. Spatial shaders are highly configurable with different render modes and different rendering options (e.g. Subsurface Scattering, Transmission, Ambient Occlusion, Rim lighting etc). Users can optionally write vertex, fragment, and light processor functions to affect how objects are drawn.</p>
+<h2 id="render-modes">Render modes</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Render mode</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>blend_mix</strong></td>
+<td>Mix blend mode (alpha is transparency), default.</td>
+</tr>
+<tr class="even">
+<td><strong>blend_add</strong></td>
+<td>Additive blend mode.</td>
+</tr>
+<tr class="odd">
+<td><strong>blend_sub</strong></td>
+<td>Subtractive blend mode.</td>
+</tr>
+<tr class="even">
+<td><strong>blend_mul</strong></td>
+<td>Multiplicative blend mode.</td>
+</tr>
+<tr class="odd">
+<td><strong>depth_draw_opaque</strong></td>
+<td>Only draw depth for opaque geometry (not transparent).</td>
+</tr>
+<tr class="even">
+<td><strong>depth_draw_always</strong></td>
+<td>Always draw depth (opaque and transparent).</td>
+</tr>
+<tr class="odd">
+<td><strong>depth_draw_never</strong></td>
+<td>Never draw depth.</td>
+</tr>
+<tr class="even">
+<td><strong>depth_draw_alpha_prepass</strong></td>
+<td>Do opaque depth pre-pass for transparent geometry.</td>
+</tr>
+<tr class="odd">
+<td><strong>depth_test_disable</strong></td>
+<td>Disable depth testing.</td>
+</tr>
+<tr class="even">
+<td><strong>cull_front</strong></td>
+<td>Cull front-faces.</td>
+</tr>
+<tr class="odd">
+<td><strong>cull_back</strong></td>
+<td>Cull back-faces (default).</td>
+</tr>
+<tr class="even">
+<td><strong>cull_disabled</strong></td>
+<td>Culling disabled (double sided).</td>
+</tr>
+<tr class="odd">
+<td><strong>unshaded</strong></td>
+<td>Result is just albedo. No lighting/shading happens in material.</td>
+</tr>
+<tr class="even">
+<td><strong>diffuse_lambert</strong></td>
+<td>Lambert shading for diffuse (default).</td>
+</tr>
+<tr class="odd">
+<td><strong>diffuse_lambert_wrap</strong></td>
+<td>Lambert wrapping (roughness dependent) for diffuse.</td>
+</tr>
+<tr class="even">
+<td><strong>diffuse_oren_nayar</strong></td>
+<td>Oren Nayar for diffuse.</td>
+</tr>
+<tr class="odd">
+<td><strong>diffuse_burley</strong></td>
+<td>Burley (Disney PBS) for diffuse.</td>
+</tr>
+<tr class="even">
+<td><strong>diffuse_toon</strong></td>
+<td>Toon shading for diffuse.</td>
+</tr>
+<tr class="odd">
+<td><strong>specular_schlick_ggx</strong></td>
+<td>Schlick-GGX for specular (default).</td>
+</tr>
+<tr class="even">
+<td><strong>specular_blinn</strong></td>
+<td>Blinn for specular (compatibility).</td>
+</tr>
+<tr class="odd">
+<td><strong>specular_phong</strong></td>
+<td>Phong for specular (compatibility).</td>
+</tr>
+<tr class="even">
+<td><strong>specular_toon</strong></td>
+<td>Toon for specular.</td>
+</tr>
+<tr class="odd">
+<td><strong>specular_disabled</strong></td>
+<td>Disable specular.</td>
+</tr>
+<tr class="even">
+<td><strong>skip_vertex_transform</strong></td>
+<td>VERTEX/NORMAL/etc. need to be transformed manually in vertex function.</td>
+</tr>
+<tr class="odd">
+<td><strong>world_vertex_coords</strong></td>
+<td>VERTEX/NORMAL/etc. are modified in world coordinates instead of local.</td>
+</tr>
+<tr class="even">
+<td><strong>ensure_correct_normals</strong></td>
+<td>Use when non-uniform scale is applied to mesh.</td>
+</tr>
+<tr class="odd">
+<td><strong>vertex_lighting</strong></td>
+<td>Use vertex-based lighting.</td>
+</tr>
+<tr class="even">
+<td><strong>shadows_disabled</strong></td>
+<td>Disable computing shadows in shader.</td>
+</tr>
+<tr class="odd">
+<td><strong>ambient_light_disabled</strong></td>
+<td>Disable contribution from ambient light and radiance map.</td>
+</tr>
+<tr class="even">
+<td><strong>shadow_to_opacity</strong></td>
+<td>Lighting modifies the alpha so shadowed areas are opaque and non-shadowed areas are transparent. Useful for overlaying shadows onto a camera feed in AR.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="built-ins">Built-ins</h2>
+<p>Values marked as "in" are read-only. Values marked as "out" are for optional writing and will not necessarily contain sensible values. Values marked as "inout" provide a sensible default value, and can optionally be written to. Samplers are not subjects of writing and they are not marked.</p>
+<h2 id="global-built-ins">Global built-ins</h2>
+<p>Global built-ins are available everywhere, including custom functions.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Built-in</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>in float <strong>TIME</strong></td>
+<td>Global time, in seconds.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="vertex-built-ins">Vertex built-ins</h2>
+<p>Vertex data (<code>VERTEX</code>, <code>NORMAL</code>, <code>TANGENT</code>, <code>BITANGENT</code>) are presented in local model space. If not written to, these values will not be modified and be passed through as they came.</p>
+<p>They can optionally be presented in world space by using the <em>world_vertex_coords</em> render mode.</p>
+<p>Users can disable the built-in modelview transform (projection will still happen later) and do it manually with the following code:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>shader_type spatial<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>render_mode skip_vertex_transform<span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">vertex</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    VERTEX <span class="op">=</span> <span class="op">(</span>MODELVIEW_MATRIX <span class="op">*</span> <span class="dt">vec4</span><span class="op">(</span>VERTEX<span class="op">,</span> <span class="fl">1.0</span><span class="op">)).</span><span class="fu">xyz</span><span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    NORMAL <span class="op">=</span> <span class="bu">normalize</span><span class="op">((</span>MODELVIEW_MATRIX <span class="op">*</span> <span class="dt">vec4</span><span class="op">(</span>NORMAL<span class="op">,</span> <span class="fl">0.0</span><span class="op">)).</span><span class="fu">xyz</span><span class="op">);</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// same as above for binormal and tangent, if normal mapping is used</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Other built-ins, such as UV, UV2 and COLOR, are also passed through to the fragment function if not modified.</p>
+<p>Users can override the modelview and projection transforms using the <code>POSITION</code> built-in. When <code>POSITION</code> is used, the value from <code>VERTEX</code> is ignored and projection does not happen. However, the value passed to the fragment shader still comes from <code>VERTEX</code>.</p>
+<p>For instancing, the INSTANCE_CUSTOM variable contains the instance custom data. When using particles, this information is usually:</p>
+<ul>
+<li><strong>x</strong>: Rotation angle in radians.</li>
+<li><strong>y</strong>: Phase during lifetime (0 to 1).</li>
+<li><strong>z</strong>: Animation frame.</li>
+</ul>
+<p>This allows you to easily adjust the shader to a particle system using default particles material. When writing a custom particle shader, this value can be used as desired.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Built-in</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>in vec2 <strong>VIEWPORT_SIZE</strong></td>
+<td>Size of viewport (in pixels).</td>
+</tr>
+<tr class="even">
+<td>inout mat4 <strong>WORLD_MATRIX</strong></td>
+<td>Model space to world space transform.</td>
+</tr>
+<tr class="odd">
+<td>in mat4 <strong>INV_CAMERA_MATRIX</strong></td>
+<td>World space to view space transform.</td>
+</tr>
+<tr class="even">
+<td>inout mat4 <strong>PROJECTION_MATRIX</strong></td>
+<td>View space to clip space transform.</td>
+</tr>
+<tr class="odd">
+<td>in mat4 <strong>CAMERA_MATRIX</strong></td>
+<td>View space to world space transform.</td>
+</tr>
+<tr class="even">
+<td>inout mat4 <strong>MODELVIEW_MATRIX</strong></td>
+<td>Model space to view space transform (use if possible).</td>
+</tr>
+<tr class="odd">
+<td>inout mat4 <strong>INV_PROJECTION_MATRIX</strong></td>
+<td>Clip space to view space transform.</td>
+</tr>
+<tr class="even">
+<td>in vec3 <strong>NODE_POSITION_WORLD</strong></td>
+<td>Node position, in world space.</td>
+</tr>
+<tr class="odd">
+<td>in vec3 <strong>NODE_POSITION_VIEW</strong></td>
+<td>Node position, in view space.</td>
+</tr>
+<tr class="even">
+<td>in vec3 <strong>CAMERA_POSITION_WORLD</strong></td>
+<td>Camera position, in world space.</td>
+</tr>
+<tr class="odd">
+<td>in vec3 <strong>CAMERA_DIRECTION_WORLD</strong></td>
+<td>Camera direction, in world space.</td>
+</tr>
+<tr class="even">
+<td>inout vec3 <strong>VERTEX</strong></td>
+<td>Vertex in local coordinates.</td>
+</tr>
+<tr class="odd">
+<td>in int <strong>VERTEX_ID</strong></td>
+<td>The index of the current vertex in the vertex buffer. Not supported in GLES2 (returns 0).</td>
+</tr>
+<tr class="even">
+<td>out vec4 <strong>POSITION</strong></td>
+<td>If written to, overrides final vertex position.</td>
+</tr>
+<tr class="odd">
+<td>inout vec3 <strong>NORMAL</strong></td>
+<td>Normal in local coordinates.</td>
+</tr>
+<tr class="even">
+<td>inout vec3 <strong>TANGENT</strong></td>
+<td>Tangent in local coordinates.</td>
+</tr>
+<tr class="odd">
+<td>inout vec3 <strong>BINORMAL</strong></td>
+<td>Binormal in local coordinates.</td>
+</tr>
+<tr class="even">
+<td>out float <strong>ROUGHNESS</strong></td>
+<td>Roughness for vertex lighting.</td>
+</tr>
+<tr class="odd">
+<td>inout vec2 <strong>UV</strong></td>
+<td>UV main channel.</td>
+</tr>
+<tr class="even">
+<td>inout vec2 <strong>UV2</strong></td>
+<td>UV secondary channel.</td>
+</tr>
+<tr class="odd">
+<td>in bool <strong>OUTPUT_IS_SRGB</strong></td>
+<td><code>true</code> when calculations happen in sRGB color space (<code>true</code> in GLES2, <code>false</code> in GLES3).</td>
+</tr>
+<tr class="even">
+<td>inout vec4 <strong>COLOR</strong></td>
+<td>Color from vertices.</td>
+</tr>
+<tr class="odd">
+<td>inout float <strong>POINT_SIZE</strong></td>
+<td>Point size for point rendering.</td>
+</tr>
+<tr class="even">
+<td>in int <strong>INSTANCE_ID</strong></td>
+<td>Instance ID for instancing. Not supported in GLES2 (returns 0).</td>
+</tr>
+<tr class="odd">
+<td>in vec4 <strong>INSTANCE_CUSTOM</strong></td>
+<td>Instance custom data (for particles, mostly).</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> <code>MODELVIEW_MATRIX</code> combines both the <code>WORLD_MATRIX</code> and <code>INV_CAMERA_MATRIX</code> and is better suited when floating point issues may arise. For example, if the object is very far away from the world origin, you may run into floating point issues when using the seperated <code>WORLD_MATRIX</code> and <code>INV_CAMERA_MATRIX</code>.</p>
+</blockquote>
+<h2 id="fragment-built-ins">Fragment built-ins</h2>
+<p>The default use of a Godot fragment processor function is to set up the material properties of your object and to let the built-in renderer handle the final shading. However, you are not required to use all these properties, and if you don't write to them, Godot will optimize away the corresponding functionality.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Built-in</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>in vec2 <strong>VIEWPORT_SIZE</strong></td>
+<td>Size of viewport (in pixels).</td>
+</tr>
+<tr class="even">
+<td>in vec4 <strong>FRAGCOORD</strong></td>
+<td>Coordinate of pixel center in screen space. <code>xy</code> specifies position in window, <code>z</code> specifies fragment depth if <code>DEPTH</code> is not used. Origin is lower-left.</td>
+</tr>
+<tr class="odd">
+<td>in mat4 <strong>WORLD_MATRIX</strong></td>
+<td>Model space to world space transform.</td>
+</tr>
+<tr class="even">
+<td>in mat4 <strong>INV_CAMERA_MATRIX</strong></td>
+<td>World space to view space transform.</td>
+</tr>
+<tr class="odd">
+<td>in mat4 <strong>CAMERA_MATRIX</strong></td>
+<td>View space to world space transform.</td>
+</tr>
+<tr class="even">
+<td>in mat4 <strong>PROJECTION_MATRIX</strong></td>
+<td>View space to clip space transform.</td>
+</tr>
+<tr class="odd">
+<td>in mat4 <strong>INV_PROJECTION_MATRIX</strong></td>
+<td>Clip space to view space transform.</td>
+</tr>
+<tr class="even">
+<td>in vec3 <strong>NODE_POSITION_WORLD</strong></td>
+<td>Node world space position.</td>
+</tr>
+<tr class="odd">
+<td>in vec3 <strong>NODE_POSITION_VIEW</strong></td>
+<td>Node view space position.</td>
+</tr>
+<tr class="even">
+<td>in vec3 <strong>CAMERA_POSITION_WORLD</strong></td>
+<td>Camera world space position.</td>
+</tr>
+<tr class="odd">
+<td>in vec3 <strong>CAMERA_DIRECTION_WORLD</strong></td>
+<td>Camera world space direction.</td>
+</tr>
+<tr class="even">
+<td>in vec3 <strong>VERTEX</strong></td>
+<td>Vertex that comes from vertex function (default, in view space).</td>
+</tr>
+<tr class="odd">
+<td>in vec3 <strong>VIEW</strong></td>
+<td>Vector from camera to fragment position (in view space).</td>
+</tr>
+<tr class="even">
+<td>in bool <strong>FRONT_FACING</strong></td>
+<td><code>true</code> if current face is front face.</td>
+</tr>
+<tr class="odd">
+<td>inout vec3 <strong>NORMAL</strong></td>
+<td>Normal that comes from vertex function (default, in view space).</td>
+</tr>
+<tr class="even">
+<td>inout vec3 <strong>TANGENT</strong></td>
+<td>Tangent that comes from vertex function.</td>
+</tr>
+<tr class="odd">
+<td>inout vec3 <strong>BINORMAL</strong></td>
+<td>Binormal that comes from vertex function.</td>
+</tr>
+<tr class="even">
+<td>out vec3 <strong>NORMALMAP</strong></td>
+<td>Set normal here if reading normal from a texture instead of NORMAL.</td>
+</tr>
+<tr class="odd">
+<td>out float <strong>NORMALMAP_DEPTH</strong></td>
+<td>Depth from variable above. Defaults to 1.0.</td>
+</tr>
+<tr class="even">
+<td>in vec2 <strong>UV</strong></td>
+<td>UV that comes from vertex function.</td>
+</tr>
+<tr class="odd">
+<td>in vec2 <strong>UV2</strong></td>
+<td>UV2 that comes from vertex function.</td>
+</tr>
+<tr class="even">
+<td>in bool <strong>OUTPUT_IS_SRGB</strong></td>
+<td><code>true</code> when calculations happen in sRGB color space (<code>true</code> in GLES2, <code>false</code> in GLES3).</td>
+</tr>
+<tr class="odd">
+<td>in vec4 <strong>COLOR</strong></td>
+<td>COLOR that comes from vertex function.</td>
+</tr>
+<tr class="even">
+<td>out vec3 <strong>ALBEDO</strong></td>
+<td>Albedo (default white).</td>
+</tr>
+<tr class="odd">
+<td>out float <strong>ALPHA</strong></td>
+<td>Alpha (0..1); if written to, the material will go to the transparent pipeline.</td>
+</tr>
+<tr class="even">
+<td>out float <strong>ALPHA_SCISSOR</strong></td>
+<td>If written to, values below a certain amount of alpha are discarded.</td>
+</tr>
+<tr class="odd">
+<td>out float <strong>METALLIC</strong></td>
+<td>Metallic (0..1).</td>
+</tr>
+<tr class="even">
+<td>out float <strong>SPECULAR</strong></td>
+<td>Specular. Defaults to 0.5, best not to modify unless you want to change IOR.</td>
+</tr>
+<tr class="odd">
+<td>out float <strong>ROUGHNESS</strong></td>
+<td>Roughness (0..1).</td>
+</tr>
+<tr class="even">
+<td>out float <strong>RIM</strong></td>
+<td>Rim (0..1). If used, Godot calculates rim lighting.</td>
+</tr>
+<tr class="odd">
+<td>out float <strong>RIM_TINT</strong></td>
+<td>Rim Tint, goes from 0 (white) to 1 (albedo). If used, Godot calculates rim lighting.</td>
+</tr>
+<tr class="even">
+<td>out float <strong>CLEARCOAT</strong></td>
+<td>Small added specular blob. If used, Godot calculates Clearcoat.</td>
+</tr>
+<tr class="odd">
+<td>out float <strong>CLEARCOAT_GLOSS</strong></td>
+<td>Gloss of Clearcoat. If used, Godot calculates Clearcoat.</td>
+</tr>
+<tr class="even">
+<td>out float <strong>ANISOTROPY</strong></td>
+<td>For distorting the specular blob according to tangent space.</td>
+</tr>
+<tr class="odd">
+<td>out vec2 <strong>ANISOTROPY_FLOW</strong></td>
+<td>Distortion direction, use with flowmaps.</td>
+</tr>
+<tr class="even">
+<td>out float <strong>SSS_STRENGTH</strong></td>
+<td>Strength of Subsurface Scattering. If used, Subsurface Scattering will be applied to object.</td>
+</tr>
+<tr class="odd">
+<td>out vec3 <strong>TRANSMISSION</strong></td>
+<td>Transmission mask (default 0,0,0). Allows light to pass through object. Only applied if used.</td>
+</tr>
+<tr class="even">
+<td>out vec3 <strong>EMISSION</strong></td>
+<td>Emission color (can go over 1,1,1 for HDR).</td>
+</tr>
+<tr class="odd">
+<td>out float <strong>AO</strong></td>
+<td>Strength of Ambient Occlusion. For use with pre-baked AO.</td>
+</tr>
+<tr class="even">
+<td>out float <strong>AO_LIGHT_AFFECT</strong></td>
+<td>How much AO affects lights (0..1; default 0).</td>
+</tr>
+<tr class="odd">
+<td>sampler2D <strong>SCREEN_TEXTURE</strong></td>
+<td>Built-in Texture for reading from the screen. Mipmaps contain increasingly blurred copies.</td>
+</tr>
+<tr class="even">
+<td>sampler2D <strong>DEPTH_TEXTURE</strong></td>
+<td>Built-in Texture for reading depth from the screen. Must convert to linear using INV_PROJECTION.</td>
+</tr>
+<tr class="odd">
+<td>out float <strong>DEPTH</strong></td>
+<td>Custom depth value (0..1). If <code>DEPTH</code> is being written to in any shader branch, then you are responsible for setting the <code>DEPTH</code> for <strong>all</strong> other branches. Otherwise, the graphics API will leave them uninitialized.</td>
+</tr>
+<tr class="even">
+<td>in vec2 <strong>SCREEN_UV</strong></td>
+<td>Screen UV coordinate for current pixel.</td>
+</tr>
+<tr class="odd">
+<td>in vec2 <strong>POINT_COORD</strong></td>
+<td>Point Coordinate for drawing points with POINT_SIZE.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Shaders going through the transparent pipeline when <code>ALPHA</code> is written to may exhibit transparency sorting issues. Read the ref for more information and ways to avoid issues.</p>
+</blockquote>
+<h2 id="light-built-ins">Light built-ins</h2>
+<p>Writing light processor functions is completely optional. You can skip the light function by setting render_mode to <code>unshaded</code>. If no light function is written, Godot will use the material properties written to in the fragment function to calculate the lighting for you (subject to the render_mode).</p>
+<p>To write a light function, assign something to <code>DIFFUSE_LIGHT</code> or <code>SPECULAR_LIGHT</code>. Assigning nothing means no light is processed.</p>
+<p>The light function is called for every light in every pixel. It is called within a loop for each light type.</p>
+<p>Below is an example of a custom light function using a Lambertian lighting model:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">light</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    DIFFUSE_LIGHT <span class="op">+=</span> <span class="bu">clamp</span><span class="op">(</span><span class="bu">dot</span><span class="op">(</span>NORMAL<span class="op">,</span> LIGHT<span class="op">),</span> <span class="fl">0.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">)</span> <span class="op">*</span> ATTENUATION <span class="op">*</span> ALBEDO<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>If you want the lights to add together, add the light contribution to <code>DIFFUSE_LIGHT</code> using <code>+=</code>, rather than overwriting it.</p>
+<blockquote>
+<p><strong>Warning:</strong> In GLES2, lights will always be added together even if you override <code>DIFFUSE_LIGHT</code> using <code>=</code>. This is due to lighting being computed in multiple passes (one for each light), unlike GLES3.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> The <code>light()</code> function won't be run if the <code>vertex_lighting</code> render mode is enabled, or if <strong>Rendering &gt; Quality &gt; Shading &gt; Force Vertex Shading</strong> is enabled in the Project Settings. (It's enabled by default on mobile platforms.)</p>
+</blockquote>
+<table>
+<thead>
+<tr class="header">
+<th>Built-in</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>in float <strong>TIME</strong></td>
+<td>Elapsed total time in seconds.</td>
+</tr>
+<tr class="even">
+<td>in vec2 <strong>VIEWPORT_SIZE</strong></td>
+<td>Size of viewport (in pixels).</td>
+</tr>
+<tr class="odd">
+<td>in vec4 <strong>FRAGCOORD</strong></td>
+<td>Coordinate of pixel center in screen space. <code>xy</code> specifies position in window, <code>z</code> specifies fragment depth if <code>DEPTH</code> is not used. Origin is lower-left.</td>
+</tr>
+<tr class="even">
+<td>in mat4 <strong>WORLD_MATRIX</strong></td>
+<td>Model space to world space transform.</td>
+</tr>
+<tr class="odd">
+<td>in mat4 <strong>INV_CAMERA_MATRIX</strong></td>
+<td>World space to view space transform.</td>
+</tr>
+<tr class="even">
+<td>in mat4 <strong>CAMERA_MATRIX</strong></td>
+<td>View space to world space transform.</td>
+</tr>
+<tr class="odd">
+<td>in mat4 <strong>PROJECTION_MATRIX</strong></td>
+<td>View space to clip space transform.</td>
+</tr>
+<tr class="even">
+<td>in mat4 <strong>INV_PROJECTION_MATRIX</strong></td>
+<td>Clip space to view space transform.</td>
+</tr>
+<tr class="odd">
+<td>in vec3 <strong>NORMAL</strong></td>
+<td>Normal vector, in view space.</td>
+</tr>
+<tr class="even">
+<td>in vec2 <strong>UV</strong></td>
+<td>UV that comes from vertex function.</td>
+</tr>
+<tr class="odd">
+<td>in vec2 <strong>UV2</strong></td>
+<td>UV2 that comes from vertex function.</td>
+</tr>
+<tr class="even">
+<td>in vec3 <strong>VIEW</strong></td>
+<td>View vector, in view space.</td>
+</tr>
+<tr class="odd">
+<td>in vec3 <strong>LIGHT</strong></td>
+<td>Light Vector, in view space.</td>
+</tr>
+<tr class="even">
+<td>in vec3 <strong>ATTENUATION</strong></td>
+<td>Attenuation based on distance or shadow.</td>
+</tr>
+<tr class="odd">
+<td>in bool <strong>OUTPUT_IS_SRGB</strong></td>
+<td><code>true</code> when calculations happen in sRGB color space (<code>true</code> in GLES2, <code>false</code> in GLES3).</td>
+</tr>
+<tr class="even">
+<td>in vec3 <strong>ALBEDO</strong></td>
+<td>Base albedo.</td>
+</tr>
+<tr class="odd">
+<td>in vec3 <strong>LIGHT_COLOR</strong></td>
+<td>Color of light multiplied by <code>energy * PI</code>. The <code>PI</code> multiplication is present because physically-based lighting models include a division by <code>PI</code>.</td>
+</tr>
+<tr class="even">
+<td>out float <strong>ALPHA</strong></td>
+<td>Alpha (0..1); if written to, the material will go to the transparent pipeline.</td>
+</tr>
+<tr class="odd">
+<td>in float <strong>ROUGHNESS</strong></td>
+<td>Roughness.</td>
+</tr>
+<tr class="even">
+<td>in vec3 <strong>TRANSMISSION</strong></td>
+<td>Transmission mask from fragment function.</td>
+</tr>
+<tr class="odd">
+<td>out vec3 <strong>DIFFUSE_LIGHT</strong></td>
+<td>Diffuse light result.</td>
+</tr>
+<tr class="even">
+<td>out vec3 <strong>SPECULAR_LIGHT</strong></td>
+<td>Specular light result.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Shaders going through the transparent pipeline when <code>ALPHA</code> is written to may exhibit transparency sorting issues. Read the ref for more information and ways to avoid issues.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

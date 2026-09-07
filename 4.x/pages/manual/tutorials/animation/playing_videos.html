@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playing videos — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="playing-videos">Playing videos</h1>
+<p>Godot supports video playback with the <code>class_VideoStreamPlayer</code> node.</p>
+<h2 id="supported-playback-formats">Supported playback formats</h2>
+<p>The only supported format in core is <strong>Ogg Theora</strong> (not to be confused with Ogg Vorbis audio) with optional Ogg Vorbis audio tracks. It's possible for extensions to bring support for additional formats.</p>
+<p>H.264 and H.265 cannot be supported in core Godot, as they are both encumbered by software patents. AV1 is royalty-free, but it remains slow to decode on the CPU and hardware decoding support isn't readily available on all GPUs in use yet.</p>
+<p>WebM was supported in core in Godot 3.x, but support for it was removed in 4.0 as it was too buggy and difficult to maintain.</p>
+<blockquote>
+<p><strong>Note:</strong> You may find videos with a <code>.ogg</code> or <code>.ogx</code> extensions, which are generic extensions for data within an Ogg container.</p>
+<p>Renaming these file extensions to <code>.ogv</code> <em>may</em> allow the videos to be imported in Godot. However, not all files with <code>.ogg</code> or <code>.ogx</code> extensions are videos - some of them may only contain audio.</p>
+</blockquote>
+<h2 id="setting-up-videostreamplayer">Setting up VideoStreamPlayer</h2>
+<ol type="1">
+<li>Create a VideoStreamPlayer node using the Create New Node dialog.</li>
+<li>Select the VideoStreamPlayer node in the scene tree dock, go to the inspector and load a <code>.ogv</code> file in the Stream property.
+<ul>
+<li>If you don't have your video in Ogg Theora format yet, jump to <code>doc_playing_videos_recommended_theora_encoding_settings</code>.</li>
+</ul></li>
+<li>If you want the video to play as soon as the scene is loaded, check <strong>Autoplay</strong> in the inspector. If not, leave <strong>Autoplay</strong> disabled and call <code>play()</code> on the VideoStreamPlayer node in a script to start playback when desired.</li>
+</ol>
+<h3 id="handling-resizing-and-different-aspect-ratios">Handling resizing and different aspect ratios</h3>
+<p>By default, the VideoStreamPlayer will automatically be resized to match the video's resolution. You can make it follow usual <code>class_Control</code> sizing by enabling <strong>Expand</strong> on the VideoStreamPlayer node.</p>
+<p>To adjust how the VideoStreamPlayer node resizes depending on window size, adjust the anchors using the <strong>Layout</strong> menu at the top of the 2D editor viewport. However, this setup may not be powerful enough to handle all use cases, such as playing fullscreen videos without distorting the video (but with empty space on the edges instead). For more control, you can use an <code>class_AspectRatioContainer</code> node, which is designed to handle this kind of use case:</p>
+<p>Add an AspectRatioContainer node. Make sure it is not a child of any other container node. Select the AspectRatioContainer node, then set its <strong>Layout</strong> at the top of the 2D editor to <strong>Full Rect</strong>. Set <strong>Ratio</strong> in the AspectRatioContainer node to match your video's aspect ratio. You can use math formulas in the inspector to help yourself. Remember to make one of the operands a float. Otherwise, the division's result will always be an integer.</p>
+<p><em>Image: AspectRatioContainer's Ratio property being modified in the editor inspector</em></p>
+<p>This will evaluate to (approximately) 1.777778</p>
+<p>Once you've configured the AspectRatioContainer, reparent your VideoStreamPlayer node to be a child of the AspectRatioContainer node. Make sure <strong>Expand</strong> is enabled on the VideoStreamPlayer. Your video should now scale automatically to fit the whole screen while avoiding distortion.</p>
+<blockquote>
+<p><strong>See also:</strong> See <code>doc_multiple_resolutions</code> for more tips on supporting multiple aspect ratios in your project.</p>
+</blockquote>
+<h3 id="displaying-a-video-on-a-3d-surface">Displaying a video on a 3D surface</h3>
+<p>Using a VideoStreamPlayer node as a child of a <code>class_SubViewport</code> node, it's possible to display any 2D node on a 3D surface. For example, this can be used to display animated billboards when frame-by-frame animation would require too much memory.</p>
+<p>This can be done with the following steps:</p>
+<ol type="1">
+<li>Create a <code>class_SubViewport</code> node. Set its size to match your video's size in pixels.</li>
+<li>Create a VideoStreamPlayer node <em>as a child of the SubViewport node</em> and specify a video path in it. Make sure <strong>Expand</strong> is disabled, and enable <strong>Autoplay</strong> if needed.</li>
+<li>Create a MeshInstance3D node with a PlaneMesh or QuadMesh resource in its Mesh property. Resize the mesh to match the video's aspect ratio (otherwise, it will appear distorted).</li>
+<li>Create a new StandardMaterial3D resource in the <strong>Material Override</strong> property in the GeometryInstance3D section.</li>
+<li>Enable <strong>Local To Scene</strong> in the StandardMaterial3D's Resource section (at the bottom). This is <em>required</em> before you can use a ViewportTexture in its Albedo Texture property.</li>
+<li>In the StandardMaterial3D, set the <strong>Albedo &gt; Texture</strong> property to <strong>New ViewportTexture</strong>. Edit the new resource by clicking it, then specify the path to the SubViewport node in the <strong>Viewport Path</strong> property.</li>
+<li>Enable <strong>Albedo Texture Force sRGB</strong> in the StandardMaterial3D to prevent colors from being washed out.</li>
+<li>If the billboard is supposed to emit its own light, set <strong>Shading Mode</strong> to <strong>Unshaded</strong> to improve rendering performance.</li>
+</ol>
+<p>See <code>doc_viewports</code> and the <a href="https://github.com/godotengine/godot-demo-projects/tree/master/viewport/gui_in_3d">GUI in 3D demo</a> for more information on setting this up.</p>
+<h3 id="looping-a-video">Looping a video</h3>
+<p>For looping a video, the <strong>Loop</strong> property can be enabled. This will seamlessly restart the video when it reaches its end.</p>
+<p>Note that setting the project setting <strong>Video Delay Compensation</strong> to a non-zero value might cause your loop to not be seamless, because the synchronization of audio and video takes place at the start of each loop causing occasional missed frames. Set <strong>Video Delay Compensation</strong> in your project settings to <strong>0</strong> to avoid frame drop issues.</p>
+<h2 id="video-decoding-conditions-and-recommended-resolutions">Video decoding conditions and recommended resolutions</h2>
+<p>Video decoding is performed on the CPU, as GPUs don't have hardware acceleration for decoding Theora videos. Modern desktop CPUs can decode Ogg Theora videos at 1440p @ 60 FPS or more, but low-end mobile CPUs will likely struggle with high-resolution videos.</p>
+<p>To ensure your videos decode smoothly on varied hardware:</p>
+<ul>
+<li>When developing games for desktop platforms, it's recommended to encode in 1080p at most (preferably at 30 FPS). Most people are still using 1080p or lower resolution displays, so encoding higher-resolution videos may not be worth the increased file size and CPU requirements.</li>
+<li>When developing games for mobile or web platforms, it's recommended to encode in 720p at most (preferably at 30 FPS or even lower). The visual difference between 720p and 1080p videos on a mobile device is usually not that noticeable.</li>
+</ul>
+<h2 id="playback-limitations">Playback limitations</h2>
+<p>There are some limitations with the current implementation of video playback in Godot:</p>
+<ul>
+<li>Streaming a video from a URL is not supported.</li>
+<li>Only mono and stereo audio output is supported. Videos with 4, 5.1 and 7.1 audio channels are supported but down-mixed to stereo.</li>
+</ul>
+<h2 id="recommended-theora-encoding-settings">Recommended Theora encoding settings</h2>
+<p>A word of advice is to <strong>avoid relying on built-in Ogg Theora exporters</strong> (most of the time). There are 2 reasons you may want to favor using an external program to encode your video:</p>
+<ul>
+<li>Some programs such as Blender can render to Ogg Theora. However, the default quality presets are usually very low by today's standards. You may be able to increase the quality options in the software you're using, but you may find the output quality to remain less than ideal (given the increased file size). This usually means that the software only supports encoding to constant bit rate (CBR), instead of variable bit rate (VBR). VBR encoding should be preferred in most scenarios as it provides a better quality to file size ratio.</li>
+<li>Some other programs can't render to Ogg Theora at all.</li>
+</ul>
+<p>In this case, you can <strong>render the video to an intermediate high-quality format</strong> (such as a high-bitrate H.264 video) then re-encode it to Ogg Theora. Ideally, you should use a lossless or uncompressed format as an intermediate format to maximize the quality of the output Ogg Theora video, but this can require a lot of disk space.</p>
+<p><a href="https://ffmpeg.org/">FFmpeg</a> (CLI) is a popular open source tool for this purpose. FFmpeg has a steep learning curve, but it's a powerful tool.</p>
+<p>Here are example FFmpeg commands to convert an MP4 video to Ogg Theora. Since FFmpeg supports a lot of input formats, you should be able to use the commands below with almost any input video format (AVI, MOV, WebM, …).</p>
+<blockquote>
+<p><strong>Note:</strong> Make sure your copy of FFmpeg is compiled with libtheora and libvorbis support. You can check this by running <code>ffmpeg</code> without any arguments, then looking at the <code>configuration:</code> line in the command output.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Current official FFmpeg releases have some bugs in their Ogg/Theora multiplexer. It's highly recommended to use one of the latest static daily builds, or build from their master branch to get the latest fixes.</p>
+<p>On Windows, make sure to use 32-bit builds of FFmpeg. Windows 64-bit builds have known issues with Theora encoding, which result in artifacts in the output file.</p>
+</blockquote>
+<h3 id="balancing-quality-and-file-size">Balancing quality and file size</h3>
+<p>The <strong>video quality</strong> level (<code>-q:v</code>) must be between <code>1</code> and <code>10</code>. Quality <code>6</code> is a good compromise between quality and file size. If encoding at a high resolution (such as 1440p or 4K), you will probably want to decrease <code>-q:v</code> to <code>5</code> to keep file sizes reasonable. Since pixel density is higher on a 1440p or 4K video, lower quality presets at higher resolutions will look as good or better compared to low-resolution videos.</p>
+<p>The <strong>audio quality</strong> level (<code>-q:a</code>) must be between <code>-1</code> and <code>10</code>. Quality <code>6</code> provides a good compromise between quality and file size. In contrast to video quality, increasing audio quality doesn't increase the output file size nearly as much. Therefore, if you want the cleanest audio possible, you can increase this to <code>9</code> to get <em>perceptually lossless</em> audio. This is especially valuable if your input file already uses lossy audio compression. Higher quality audio does increase the CPU usage of the decoder, so it might lead to audio dropouts in case of high system load. See <a href="https://wiki.hydrogenaud.io/index.php?title=Recommended_Ogg_Vorbis#Recommended_Encoder_Settings">this page</a> for a table listing Ogg Vorbis audio quality presets and their respective variable bitrates.</p>
+<p>The <strong>GOP (Group of Pictures) size</strong> (<code>-g:v</code>) is the max interval between keyframes. Increasing this value can improve compression with almost no impact on quality. The default size (<code>12</code>) is too low for most types of content, it's therefore recommended using higher GOP values before reducing video quality. Compression benefits will fade away as the GOP size increases though. Values between <code>64</code> and <code>512</code> usually give the best compression.</p>
+<blockquote>
+<p><strong>Note:</strong> Higher GOP sizes will increase max seek times with a sudden increase when going beyond powers of two starting at <code>64</code>. Max seek times with GOP size <code>65</code> can be almost twice as long as with GOP size <code>64</code>, depending on decoding speed.</p>
+</blockquote>
+<h3 id="ffmpeg-convert-while-preserving-original-video-resolution">FFmpeg: Convert while preserving original video resolution</h3>
+<p>The following command converts the video while keeping its original resolution. The video and audio's bitrate will be variable to maximize quality while saving space in parts of the video/audio that don't require a high bitrate (such as static scenes).</p>
+<pre><code>ffmpeg -i input.mp4 -q:v 6 -q:a 6 -g:v 64 output.ogv</code></pre>
+<h3 id="ffmpeg-resize-the-video-then-convert-it">FFmpeg: Resize the video then convert it</h3>
+<p>The following command resizes a video to be 720 pixels tall (720p), while preserving its existing aspect ratio. This helps decrease the file size significantly if the source is recorded at a higher resolution than 720p:</p>
+<pre><code>ffmpeg -i input.mp4 -vf &quot;scale=-1:720&quot; -q:v 6 -q:a 6 -g:v 64 output.ogv</code></pre>
+<h2 id="chroma-key-videos">Chroma Key Videos</h2>
+<p>Chroma key, commonly known as the "green screen" or "blue screen" effect, allows you to remove a specific color from an image or video and replace it with another background. This effect is widely used in video production to composite different elements together seamlessly.</p>
+<p>We will achieve the chroma key effect by writing a custom shader in GDScript and using a VideoStreamPlayer node to display the video content.</p>
+<h3 id="scene-setup">Scene Setup</h3>
+<p>Ensure that the scene contains a VideoStreamPlayer node to play the video and a Control node to hold the UI elements for controlling the chroma key effect.</p>
+<h3 id="writing-the-custom-shader">Writing the Custom Shader</h3>
+<p>To implement the chroma key effect, follow these steps:</p>
+<ol type="1">
+<li>Select the VideoStreamPlayer node in the scene and go to its properties. Under CanvasItem &gt; Material, create a new shader named "ChromaKeyShader.gdshader."</li>
+<li>In the "ChromaKeyShader.gdshader" file, write the custom shader code as shown below:</li>
+</ol>
+<div class="sourceCode" id="cb3"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>shader_type canvas_item<span class="op">;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Uniform variables for chroma key effect</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">vec3</span> chroma_key_color <span class="op">:</span> source_color <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">0.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">,</span> <span class="fl">0.0</span><span class="op">);</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> pickup_range <span class="op">:</span> <span class="fu">hint_range</span><span class="op">(</span><span class="fl">0.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">)</span> <span class="op">=</span> <span class="fl">0.1</span><span class="op">;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> fade_amount <span class="op">:</span> <span class="fu">hint_range</span><span class="op">(</span><span class="fl">0.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">)</span> <span class="op">=</span> <span class="fl">0.1</span><span class="op">;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Get the color from the texture at the given UV coordinates</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vec4</span> color <span class="op">=</span> <span class="bu">texture</span><span class="op">(</span>TEXTURE<span class="op">,</span> UV<span class="op">);</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Calculate the distance between the current color and the chroma key color</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> <span class="bu">distance</span> <span class="op">=</span> <span class="bu">length</span><span class="op">(</span>color<span class="op">.</span><span class="fu">rgb</span> <span class="op">-</span> chroma_key_color<span class="op">);</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// If the distance is within the pickup range, discard the pixel</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">// the lesser the distance more likely the colors are</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span><span class="bu">distance</span> <span class="op">&lt;=</span> pickup_range<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>        <span class="kw">discard</span><span class="op">;</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Calculate the fade factor based on the pickup range and fade amount</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> fade_factor <span class="op">=</span> <span class="bu">smoothstep</span><span class="op">(</span>pickup_range<span class="op">,</span> pickup_range <span class="op">+</span> fade_amount<span class="op">,</span> <span class="bu">distance</span><span class="op">);</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Set the output color with the original RGB values and the calculated fade factor</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    COLOR <span class="op">=</span> <span class="dt">vec4</span><span class="op">(</span>color<span class="op">.</span><span class="fu">rgb</span><span class="op">,</span> fade_factor<span class="op">);</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The shader uses the distance calculation to identify pixels close to the chroma key color and discards them, effectively removing the selected color. Pixels that are slightly further away from the chroma key color are faded based on the fade_factor, blending them smoothly with the surrounding colors. This process creates the desired chroma key effect, making it appear as if the background has been replaced with another image or video.</p>
+<p>The code above represents a simple demonstration of the Chroma Key shader, and users can customize it according to their specific requirements.</p>
+<h3 id="ui-controls">UI Controls</h3>
+<p>To allow users to manipulate the chroma key effect in real-time, we created sliders in the Control node. The Control node's script contains the following functions:</p>
+<pre class="gdscript"><code>extends Control
+
+func _on_color_picker_button_color_changed(color):
+    # Update the &quot;chroma_key_color&quot; shader parameter of the VideoStreamPlayer&#39;s material.
+    $VideoStreamPlayer.material.set(&quot;shader_parameter/chroma_key_color&quot;, color)
+
+func _on_h_slider_value_changed(value):
+    # Update the &quot;pickup_range&quot; shader parameter of the VideoStreamPlayer&#39;s material.
+    $VideoStreamPlayer.material.set(&quot;shader_parameter/pickup_range&quot;, value)
+
+func _on_h_slider_2_value_changed(value):
+    # Update the &quot;fade_amount&quot; shader parameter of the VideoStreamPlayer&#39;s material.
+    $VideoStreamPlayer.material.set(&quot;shader_parameter/fade_amount&quot;, value)
+
+func _on_video_stream_player_finished():
+    # Restart the video playback when it&#39;s finished.
+    $VideoStreamPlayer.play()</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyControl <span class="op">:</span> Control</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> VideoStreamPlayer _videoStreamPlayer<span class="op">;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        _videoStreamPlayer <span class="op">=</span> GetNode<span class="op">&lt;</span>VideoStreamPlayer<span class="op">&gt;(</span><span class="st">&quot;VideoStreamPlayer&quot;</span><span class="op">);</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnColorPickerButtonColorChanged</span><span class="op">(</span>Color color<span class="op">)</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Update the &quot;chroma_key_color&quot; shader parameter of the VideoStreamPlayer&#39;s material.</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        _videoStreamPlayer<span class="op">.</span><span class="fu">Material</span><span class="op">.</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;shader_parameter/chroma_key_color&quot;</span><span class="op">,</span> color<span class="op">);</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnHSliderValueChanged</span><span class="op">(</span><span class="dt">double</span> value<span class="op">)</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Update the &quot;pickup_range&quot; shader parameter of the VideoStreamPlayer&#39;s material.</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>        _videoStreamPlayer<span class="op">.</span><span class="fu">Material</span><span class="op">.</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;shader_parameter/pickup_range&quot;</span><span class="op">,</span> value<span class="op">);</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnHSlider2ValueChanged</span><span class="op">(</span><span class="dt">double</span> value<span class="op">)</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Update the &quot;fade_amount&quot; shader parameter of the VideoStreamPlayer&#39;s material.</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>        _videoStreamPlayer<span class="op">.</span><span class="fu">Material</span><span class="op">.</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;shader_parameter/fade_amount&quot;</span><span class="op">,</span> value<span class="op">);</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnVideoStreamPlayerFinished</span><span class="op">()</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Restart the video playback when it&#39;s finished.</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>        _videoStreamPlayer<span class="op">.</span><span class="fu">Play</span><span class="op">();</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>also make sure that the range of the sliders are appropriate, our settings are :</p>
+<h3 id="signal-handling">Signal Handling</h3>
+<p>Connect the appropriate signal from the UI elements to the Control node's script. you created in the Control node's script to control the chroma key effect. These signal handlers will update the shader's uniform variables in response to user input.</p>
+<p>Save and run the scene to see the chroma key effect in action! With the provided UI controls, you can now adjust the chroma key color, pickup range, and fade amount in real-time, achieving the desired chroma key functionality for your video content.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

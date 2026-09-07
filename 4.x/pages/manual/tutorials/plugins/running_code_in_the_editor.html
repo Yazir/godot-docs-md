@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Running code in the editor — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="running-code-in-the-editor">Running code in the editor</h1>
+<h2 id="what-is-tool">What is <code>@tool</code>?</h2>
+<p><code>@tool</code> is a powerful line of code that, when added at the top of your script, makes it execute in the editor. You can also decide which parts of the script execute in the editor, which in game, and which in both.</p>
+<p>You can use it for doing many things, but it is mostly useful in level design for visually presenting things that are hard to predict ourselves. Here are some use cases:</p>
+<ul>
+<li>If you have a cannon that shoots cannonballs affected by physics (gravity), you can draw the cannonball's trajectory in the editor, making level design a lot easier.</li>
+<li>If you have jumppads with varying jump heights, you can draw the maximum jump height a player would reach if it jumped on one, also making level design easier.</li>
+<li>If your player doesn't use a sprite, but draws itself using code, you can make that drawing code execute in the editor to see your player.</li>
+</ul>
+<blockquote>
+<p><strong>Danger:</strong> <code>@tool</code> scripts run inside the editor, and let you access the scene tree of the currently edited scene. This is a powerful feature which also comes with caveats, as the editor does not include protections for potential misuse of <code>@tool</code> scripts. Be <strong>extremely</strong> cautious when manipulating the scene tree, especially via ref, as it can cause crashes if you free a node while the editor runs logic involving it.</p>
+</blockquote>
+<h2 id="how-to-use-tool">How to use <code>@tool</code></h2>
+<p>To turn a script into a tool, add the <code>@tool</code> annotation at the top of your code.</p>
+<p>To check if you are currently in the editor, use: <code>Engine.is_editor_hint()</code>.</p>
+<p>For example, if you want to execute some code only in the editor, use:</p>
+<pre class="gdscript"><code>if Engine.is_editor_hint():
+    # Code to execute when in editor.</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>Engine<span class="op">.</span><span class="fu">IsEditorHint</span><span class="op">())</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Code to execute when in editor.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>On the other hand, if you want to execute code only in game, simply negate the same statement:</p>
+<pre class="gdscript"><code>if not Engine.is_editor_hint():
+    # Code to execute when in game.</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(!</span>Engine<span class="op">.</span><span class="fu">IsEditorHint</span><span class="op">())</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Code to execute when in game.</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Pieces of code that do not have either of the 2 conditions above will run both in-editor and in-game.</p>
+<p>Here is how a <code>_process()</code> function might look for you:</p>
+<pre class="gdscript"><code>func _process(delta):
+    if Engine.is_editor_hint():
+        # Code to execute in editor.
+
+    if not Engine.is_editor_hint():
+        # Code to execute in game.
+
+    # Code to execute both in editor and in game.</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>Engine<span class="op">.</span><span class="fu">IsEditorHint</span><span class="op">())</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Code to execute in editor.</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(!</span>Engine<span class="op">.</span><span class="fu">IsEditorHint</span><span class="op">())</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Code to execute in game.</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Code to execute both in editor and in game.</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="important-information">Important information</h2>
+<p>The general rule is that <strong>any other GDScript that your tool script uses must *also* be a tool</strong>. The editor is not able to construct instances from GDScript files without <code>@tool</code>, which means you cannot call methods or reference member variables from them otherwise. However, since static methods, constants and enums can be used without creating an instance, it is possible to call them or reference them from a <code>@tool</code> script onto other non-tool scripts. One exception to this are ref. If you try to read a static variable's value in a script that does not have <code>@tool</code>, it will always return <code>null</code> but won't print a warning or error when doing so. This restriction does not apply to static methods, which can be called regardless of whether the target script is in tool mode.</p>
+<p>Extending a <code>@tool</code> script does not automatically make the extending script a <code>@tool</code>. Omitting <code>@tool</code> from the extending script will disable tool behavior from the super class. Therefore, the extending script should also specify the <code>@tool</code> annotation.</p>
+<p>Modifications in the editor are permanent, with no undo/redo possible. For example, in the next section when we remove the script, the node will keep its rotation. Be careful to avoid making unwanted modifications. Consider setting up ref to avoid losing work in case you make a mistake.</p>
+<h2 id="debugging">Debugging</h2>
+<p>While the debugger and breakpoints cannot be used directly with tool scripts, it is possible to launch a new instance of the editor and debug from there. To do this, navigate to <strong>Debug &gt; Customize Run Instances...</strong> and specify --editor in <strong>Main Run Args</strong>.</p>
+<p>See <code>doc_overview_of_debugging_tools</code> for more information.</p>
+<p>Additionally, you can use print statements to display the contents of variables instead.</p>
+<h2 id="try-tool-out">Try <code>@tool</code> out</h2>
+<p>Add a <code>Sprite2D</code> node to your scene and set the texture to Godot icon. Attach and open a script, and change it to this:</p>
+<pre class="gdscript"><code>@tool
+extends Sprite2D
+
+func _process(delta):
+    rotation += PI * delta</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MySprite <span class="op">:</span> Sprite2D</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>        Rotation <span class="op">+=</span> Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta<span class="op">;</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Save the script and return to the editor. You should now see your object rotate. If you run the game, it will also rotate.</p>
+<blockquote>
+<p><strong>Warning:</strong> You may need to restart the editor. This is a known bug found in all Godot 4 versions: <a href="https://github.com/godotengine/godot/issues/66381">GH-66381</a>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> If you don't see the changes, reload the scene (close it and open it again).</p>
+</blockquote>
+<p>Now let's choose which code runs when. Modify your <code>_process()</code> function to look like this:</p>
+<pre class="gdscript"><code>func _process(delta):
+    if Engine.is_editor_hint():
+        rotation += PI * delta
+    else:
+        rotation -= PI * delta</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>Engine<span class="op">.</span><span class="fu">IsEditorHint</span><span class="op">())</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        Rotation <span class="op">+=</span> Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta<span class="op">;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        Rotation <span class="op">-=</span> Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta<span class="op">;</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Save the script. Now the object will spin clockwise in the editor, but if you run the game, it will spin counter-clockwise.</p>
+<h2 id="editing-variables">Editing variables</h2>
+<p>Add and export a variable speed to the script. To update the speed and also reset the rotation angle add a setter <code>set(new_speed)</code> which is executed with the input from the inspector. Modify <code>_process()</code> to include the rotation speed.</p>
+<pre class="gdscript"><code>@tool
+extends Sprite2D
+
+
+@export var speed = 1:
+    # Update speed and reset the rotation.
+    set(new_speed):
+        speed = new_speed
+        rotation = 0
+
+
+func _process(delta):
+    rotation += PI * delta * speed</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MySprite <span class="op">:</span> Sprite2D</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> _speed <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">float</span> Speed</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        get <span class="op">=&gt;</span> _speed<span class="op">;</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        set</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Update speed and reset the rotation.</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>            _speed <span class="op">=</span> value<span class="op">;</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>            Rotation <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>        Rotation <span class="op">+=</span> Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta <span class="op">*</span> _speed<span class="op">;</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> Code from other nodes doesn't run in the editor. Your access to other nodes is limited. You can access the tree and nodes, and their default properties, but you can't access user variables. If you want to do so, other nodes have to run in the editor too.</p>
+</blockquote>
+<h2 id="getting-notified-when-arrays-or-dictionaries-change">Getting notified when arrays or dictionaries change</h2>
+<p>You can use an Array or Dictionary as an <code>@export</code> variable. In a <code>@tool</code> script, you can react to any changes to that collection by using a setter. Normally, at runtime, such a setter is only called when you assign to the variable, but when you modify an Array or Dictionary in the inspector, the setter will also be called.</p>
+<pre class="gdscript"><code>@tool
+class_name MyTool
+extends Node
+
+@export var my_array = []:
+    set(new_array):
+        my_array = new_array
+        print(&quot;My array just changed!&quot;)
+
+@export var my_dictionary = {}:
+    set(new_dictionary):
+        my_dictionary = new_dictionary
+        print(&quot;My dictionary just changed!&quot;)</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyTool <span class="op">:</span> Node</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Array _myArray <span class="op">=</span> <span class="kw">new</span><span class="op">();</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Dictionary _myDictionary <span class="op">=</span> <span class="kw">new</span><span class="op">();</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Array MyArray</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>        get <span class="op">=&gt;</span> _myArray<span class="op">;</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>        set</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>            _myArray <span class="op">=</span> value<span class="op">;</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;My array just changed!&quot;</span><span class="op">);</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Dictionary MyDictionary</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>        get <span class="op">=&gt;</span> _myDictionary<span class="op">;</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>        set</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>            _myDictionary <span class="op">=</span> value<span class="op">;</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;My dictionary just changed!&quot;</span><span class="op">);</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="getting-notified-when-resources-change">Getting notified when resources change</h2>
+<p>Sometimes you want your tool to use a resource. However, when you change a property of that resource in the editor, the <code>set()</code> method of your tool will not be called.</p>
+<pre class="gdscript"><code>@tool
+class_name MyTool
+extends Node
+
+@export var resource: MyResource:
+    set(new_resource):
+        resource = new_resource
+        _on_resource_set()
+
+# This will only be called when you create, delete, or paste a resource.
+# You will not get an update when tweaking properties of it.
+func _on_resource_set():
+    print(&quot;My resource was set!&quot;)</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyTool <span class="op">:</span> Node</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> MyResource _resource<span class="op">;</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> MyResource Resource</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        get <span class="op">=&gt;</span> _resource<span class="op">;</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>        set</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>            _resource <span class="op">=</span> value<span class="op">;</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>            <span class="fu">OnResourceSet</span><span class="op">();</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// This will only be called when you create, delete, or paste a resource.</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// You will not get an update when tweaking properties of it.</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnResourceSet</span><span class="op">()</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;My resource was set!&quot;</span><span class="op">);</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>To get around this problem you first have to make your resource a tool and make it emit the <code>changed</code> signal whenever a property is set:</p>
+<pre class="gdscript"><code># Make Your Resource a tool.
+@tool
+class_name MyResource
+extends Resource
+
+@export var property = 1:
+    set(new_setting):
+        property = new_setting
+        # Emit a signal when the property is changed.
+        changed.emit()</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyResource <span class="op">:</span> Resource</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> _property <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">float</span> Property</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>        get <span class="op">=&gt;</span> _property<span class="op">;</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>        set</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>            _property <span class="op">=</span> value<span class="op">;</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Emit a signal when the property is changed.</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>            <span class="fu">EmitChanged</span><span class="op">();</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>You then want to connect the signal when a new resource is set:</p>
+<pre class="gdscript"><code>@tool
+class_name MyTool
+extends Node
+
+@export var resource: MyResource:
+    set(new_resource):
+        resource = new_resource
+        # Connect the changed signal as soon as a new resource is being added.
+        if resource != null:
+            resource.changed.connect(_on_resource_changed)
+
+func _on_resource_changed():
+    print(&quot;My resource just changed!&quot;)</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyTool <span class="op">:</span> Node</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> MyResource _resource<span class="op">;</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> MyResource Resource</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>        get <span class="op">=&gt;</span> _resource<span class="op">;</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>        set</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>            _resource <span class="op">=</span> value<span class="op">;</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Connect the changed signal as soon as a new resource is being added.</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>_resource <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>                _resource<span class="op">.</span><span class="fu">Changed</span> <span class="op">+=</span> OnResourceChanged<span class="op">;</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnResourceChanged</span><span class="op">()</span></span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;My resource just changed!&quot;</span><span class="op">);</span></span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Lastly, remember to disconnect the signal as the old resource being used and changed somewhere else would cause unneeded updates.</p>
+<pre class="gdscript"><code>@export var resource: MyResource:
+    set(new_resource):
+        # Disconnect the signal if the previous resource was not null.
+        if resource != null:
+            resource.changed.disconnect(_on_resource_changed)
+        resource = new_resource
+        if resource != null:
+            resource.changed.connect(_on_resource_changed)</code></pre>
+<div class="sourceCode" id="cb22"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> MyResource Resource</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    get <span class="op">=&gt;</span> _resource<span class="op">;</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    set</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Disconnect the signal if the previous resource was not null.</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>_resource <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>            _resource<span class="op">.</span><span class="fu">Changed</span> <span class="op">-=</span> OnResourceChanged<span class="op">;</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>        _resource <span class="op">=</span> value<span class="op">;</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>_resource <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>            _resource<span class="op">.</span><span class="fu">Changed</span> <span class="op">+=</span> OnResourceChanged<span class="op">;</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="reporting-node-configuration-warnings">Reporting node configuration warnings</h2>
+<p>Godot uses a <em>node configuration warning</em> system to warn users about incorrectly configured nodes. When a node isn't configured correctly, a yellow warning sign appears next to the node's name in the Scene dock. When you hover or click on the icon, a warning message pops up. You can use this feature in your scripts to help you and your team avoid mistakes when setting up scenes.</p>
+<p>When using node configuration warnings, when any value that should affect or remove the warning changes, you need to call ref . By default, the warning only updates when closing and reopening the scene.</p>
+<pre class="gdscript"><code># Use setters to update the configuration warning automatically.
+@export var title = &quot;&quot;:
+    set(p_title):
+        if p_title != title:
+            title = p_title
+            update_configuration_warnings()
+
+@export var description = &quot;&quot;:
+    set(p_description):
+        if p_description != description:
+            description = p_description
+            update_configuration_warnings()
+
+
+func _get_configuration_warnings():
+    var warnings = []
+
+    if title == &quot;&quot;:
+        warnings.append(&quot;Please set `title` to a non-empty value.&quot;)
+
+    if description.length() &gt;= 100:
+        warnings.append(&quot;`description` should be less than 100 characters long.&quot;)
+
+    # Returning an empty array means &quot;no warning&quot;.
+    return warnings</code></pre>
+<h2 id="running-one-off-scripts-using-editorscript">Running one-off scripts using EditorScript</h2>
+<p>Sometimes, you need to run code just one time to automate a certain task that is not available in the editor out of the box. Some examples might be:</p>
+<ul>
+<li>Use as a playground for GDScript or C# scripting without having to run a project. <code>print()</code> output is displayed in the editor Output panel.</li>
+<li>Scale all light nodes in the currently edited scene, as you noticed your level ends up looking too dark or too bright after placing lights where desired.</li>
+<li>Replace nodes that were copy-pasted with scene instances to make them easier to modify later.</li>
+</ul>
+<p>This is available in Godot by extending <code>class_EditorScript</code> in a script. This provides a way to run individual scripts in the editor without having to create an editor plugin.</p>
+<p>To create an EditorScript, right-click a folder or empty space in the FileSystem dock then choose <strong>New &gt; Script...</strong>. In the script creation dialog, click the tree icon to choose an object to extend from (or enter <code>EditorScript</code> directly in the field on the left, though note this is case-sensitive):</p>
+<p><em>Image: Creating an editor script in the script editor creation dialog</em></p>
+<p>Creating an editor script in the script editor creation dialog</p>
+<p>This will automatically select a script template that is suited for EditorScripts, with a <code>_run()</code> method already inserted:</p>
+<pre class="gdscript"><code>@tool
+extends EditorScript
+
+# Called when the script is executed (using File -&gt; Run in Script Editor).
+func _run():
+    pass</code></pre>
+<div class="sourceCode" id="cb25"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyEditorScript <span class="op">:</span> EditorScript</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Called when the script is executed (right-click on Script -&gt; Run in FileSystem dock).</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Run</span><span class="op">()</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ...</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This <code>_run()</code> method is executed when you use any of the 4 approaches that can be used to run an EditorScript:</p>
+<ul>
+<li>Use <code>File &gt; Run</code> at the top of the script editor with the EditorScript being the current tab.</li>
+<li>Press the keyboard shortcut <code>Ctrl + Shift + X</code> while the EditorScript is the current tab. This keyboard shortcut is only effective when focused on the script editor.</li>
+<li>Right-click the script in the FileSystem dock and choose <code>Run</code>.</li>
+<li>Add a class_name at the top of the script, bring up the command palette by pressing <code>Ctrl + Shift + P</code>, and enter the class name to run it. The entry will be named according to the class name, with automatic capitalization applied.</li>
+</ul>
+<p>Scripts that extend EditorScript <strong>must</strong> be <code>@tool</code> scripts to function.</p>
+<blockquote>
+<p><strong>Note:</strong> EditorScripts can only be run from the Godot script editor. If you are using an external editor, use one of the last two approaches to run the script.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> C# EditorScripts cannot be run from the script editor as it only supports GDScript. Please refer to the above alternative approaches to run custom C# EditorScripts.</p>
+<p>Keep in mind C# tool scripts will only appear in the command palette when denoted by the ref attribute.</p>
+</blockquote>
+<blockquote>
+<p><strong>Danger:</strong> EditorScripts have no undo/redo functionality, so <strong>make sure to save your scene before running one</strong> if the script is designed to modify any data.</p>
+</blockquote>
+<p>To access nodes in the currently edited scene, use the ref method which returns the root Node of the currently edited scene. Here's an example that recursively gets all nodes in the currently edited scene and doubles the range of all OmniLight3D nodes:</p>
+<pre class="gdscript"><code>@tool
+# Thanks to the class name, we can run this script by bringing up
+# the command palette and searching &quot;Scale Omni Lights&quot;.
+class_name ScaleOmniLights
+extends EditorScript
+
+func _run():
+    for node in EditorInterface.get_edited_scene_root().find_children(&quot;&quot;, &quot;OmniLight3D&quot;):
+        # Don&#39;t operate on instanced subscene children, as changes are lost
+        # when reloading the scene.
+        # See the &quot;Instancing scenes&quot; section below for a description of `owner`.
+        var is_instanced_subscene_child = node != get_scene() and node.owner != get_scene()
+        if not is_instanced_subscene_child:
+            node.omni_range *= 2.0
+            EditorInterface.mark_scene_as_unsaved()</code></pre>
+<div class="sourceCode" id="cb27"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>GlobalClass<span class="op">,</span> Tool<span class="op">]</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Thanks to the GlobalClass attribute, we can run this script by bringing up</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="co">// the command palette and searching &quot;Scale Omni Lights&quot;.</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> ScaleOmniLights <span class="op">:</span> EditorScript</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Run</span><span class="op">()</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> sceneNode <span class="op">=</span> EditorInterface<span class="op">.</span><span class="fu">Singleton</span><span class="op">.</span><span class="fu">GetEditedSceneRoot</span><span class="op">();</span></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">foreach</span> <span class="op">(</span>OmniLight3D node <span class="kw">in</span> sceneNode<span class="op">.</span><span class="fu">FindChildren</span><span class="op">(</span><span class="st">&quot;&quot;</span><span class="op">,</span> <span class="st">&quot;OmniLight3D&quot;</span><span class="op">))</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Don&#39;t operate on instanced subscene children, as changes are lost</span></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>            <span class="co">// when reloading the scene.</span></span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>            <span class="co">// See the &quot;Instancing scenes&quot; section below for a description of `owner`.</span></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a>            <span class="dt">var</span> isInstancedSubsceneChild <span class="op">=</span> node <span class="op">!=</span> sceneNode <span class="op">&amp;&amp;</span> node<span class="op">.</span><span class="fu">Owner</span> <span class="op">!=</span> sceneNode<span class="op">;</span></span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(!</span>isInstancedSubsceneChild<span class="op">)</span></span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a>                node<span class="op">.</span><span class="fu">OmniRange</span> <span class="op">*=</span> <span class="fl">2.0f</span><span class="op">;</span></span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a>                EditorInterface<span class="op">.</span><span class="fu">Singleton</span><span class="op">.</span><span class="fu">MarkSceneAsUnsaved</span><span class="op">();</span></span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In the above example, we also call ref after any modification that affects the scene's state. This allows the editor to display the scene as "unsaved" (i.e. with an asterisk next to the name). This way, you also get a confirmation when trying to close the scene with unsaved changes.</p>
+<blockquote>
+<p><strong>Tip:</strong> You can change the currently edited scene at the top of the editor even while the Script view is open. This will affect the return value of ref, so make sure you've selected the scene you intend to iterate upon before running the script.</p>
+</blockquote>
+<h2 id="instancing-scenes">Instancing scenes</h2>
+<p>You can instantiate packed scenes normally and add them to the scene currently opened in the editor. By default, nodes or scenes added with ref are <strong>not</strong> visible in the Scene tree dock and are <strong>not</strong> persisted to disk. If you wish the node or scene to be visible in the scene tree dock and persisted to disk when saving the scene, you need to set the child node's ref property to the currently edited scene root.</p>
+<p>If you are using <code>@tool</code>:</p>
+<pre class="gdscript"><code>func _ready():
+    var node = Node3D.new()
+    add_child(node) # Parent could be any node in the scene
+
+    # The line below is required to make the node visible in the Scene tree dock
+    # and persist changes made by the tool script to the saved scene file.
+    node.owner = get_tree().edited_scene_root</code></pre>
+<div class="sourceCode" id="cb29"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> node <span class="op">=</span> <span class="kw">new</span> <span class="fu">Node3D</span><span class="op">();</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">AddChild</span><span class="op">(</span>node<span class="op">);</span> <span class="co">// Parent could be any node in the scene</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// The line below is required to make the node visible in the Scene tree dock</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// and persist changes made by the tool script to the saved scene file.</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>    node<span class="op">.</span><span class="fu">Owner</span> <span class="op">=</span> <span class="fu">GetTree</span><span class="op">().</span><span class="fu">EditedSceneRoot</span><span class="op">;</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>If you are using ref:</p>
+<pre class="gdscript"><code>func _run():
+    # `parent` could be any node in the scene.
+    var parent = get_scene().get_node(&quot;Parent&quot;)
+    var node = Node3D.new()
+    parent.add_child(node)
+
+    # The line below is required to make the node visible in the Scene tree dock
+    # and persist changes made by the tool script to the saved scene file.
+    node.owner = get_scene()</code></pre>
+<div class="sourceCode" id="cb31"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Run</span><span class="op">()</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// `parent` could be any node in the scene.</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> parent <span class="op">=</span> <span class="fu">GetScene</span><span class="op">().</span><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Parent&quot;</span><span class="op">);</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> node <span class="op">=</span> <span class="kw">new</span> <span class="fu">Node3D</span><span class="op">();</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    parent<span class="op">.</span><span class="fu">AddChild</span><span class="op">(</span>node<span class="op">);</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// The line below is required to make the node visible in the Scene tree dock</span></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// and persist changes made by the tool script to the saved scene file.</span></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>    node<span class="op">.</span><span class="fu">Owner</span> <span class="op">=</span> <span class="fu">GetScene</span><span class="op">();</span></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> Changes made by tool scripts and EditorScript (such as adding nodes or modifying properties) do <strong>not</strong> automatically mark the scene as unsaved. To show the asterisk <code>(*)</code> and prevent accidental data loss, call ref after modifications, or use ref for undo support.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Using <code>@tool</code> improperly can yield many errors. It is advised to first write the code how you want it, and only then add the <code>@tool</code> annotation to the top. Also, make sure to separate code that runs in-editor from code that runs in-game. This way, you can find bugs more easily.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

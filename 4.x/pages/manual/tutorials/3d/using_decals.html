@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using decals — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-decals">Using decals</h1>
+<blockquote>
+<p><strong>Note:</strong> Decals are only supported in the Forward+ and Mobile renderers, not the Compatibility renderer.</p>
+<p>If using the Compatibility renderer, consider using Sprite3D as an alternative for projecting decals onto (mostly) flat surfaces.</p>
+</blockquote>
+<p>Decals are projected textures that apply on opaque or transparent surfaces in 3D. This projection happens in real-time and doesn't rely on mesh generation. This allows you to move decals every frame with only a small performance impact, even when applied on complex meshes.</p>
+<p>While decals cannot add actual geometry detail onto the projected surface, decals can still make use of physically-based rendering to provide similar properties to full-blown <code>PBR (Physically-Based Rendering)</code> materials.</p>
+<p>On this page, you'll learn:</p>
+<ul>
+<li>How to set up decals in the 3D editor.</li>
+<li>How to create decals during gameplay in a 3D scene (such as bullet impacts).</li>
+<li>How to balance decal configuration between performance and quality.</li>
+</ul>
+<blockquote>
+<p><strong>See also:</strong> The Godot demo projects repository contains a <a href="https://github.com/godotengine/godot-demo-projects/tree/master/3d/decals">3D decals demo</a>.</p>
+<p>If you're looking to write arbitrary 3D text on top of a surface, use <code>doc_3d_text</code> placed close to a surface instead of a Decal node.</p>
+</blockquote>
+<h2 id="use-cases">Use cases</h2>
+<h3 id="static-decoration">Static decoration</h3>
+<p>Sometimes, the fastest way to add texture detail to a scene is to use decals. This is especially the case for organic detail, such as patches of dirt or sand scattered on a large surface. Decals can help break up texture repetition in scenes and make patterns look more natural. On a smaller scale, decals can also be used to create detail variations for objects. For example, decals can be used to add nuts and bolts on top of hard-surface geometry.</p>
+<p>Since decals can inject their own <code>PBR (Physically-Based Rendering)</code> properties on top of the projected surfaces, they can also be used to create footprints or wet puddles.</p>
+<p><em>Image: Dirt added on top of level geometry using decals</em></p>
+<p>Dirt added on top of level geometry using decals</p>
+<h3 id="dynamic-gameplay-elements">Dynamic gameplay elements</h3>
+<p>Decals can represent temporary or persistent gameplay effects such as bullet impacts and explosion scorches.</p>
+<p>Using an AnimationPlayer node or a script, decals can be made to fade over time (and then be removed using <code>queue_free()</code>) to improve performance.</p>
+<h3 id="blob-shadows">Blob shadows</h3>
+<p>Blob shadows are frequently used in mobile projects (or to follow a retro art style), as real-time lighting tends to be too expensive on low-end mobile devices. However, when relying on baked lightmaps with fully baked lights, dynamic objects will not cast <em>any</em> shadow from those lights. This makes dynamic objects in lightmapped scenes look flat in comparison to real-time lighting, with dynamic objects almost looking like they're floating.</p>
+<p>Thanks to blob shadows, dynamic objects can still cast an approximative shadow. Not only this helps with depth perception in the scene, but this can also be a gameplay element, especially in 3D platformers. The blob shadow's length can be extended to let the player know where they will land if they fall straight down.</p>
+<p>Even with real-time lighting, blob shadows can still be useful as a form of ambient occlusion for situations where SSAO is too expensive or too unstable due to its screen-space nature. For example, vehicles' underside shadows are well-represented using blob shadows.</p>
+<p><em>Image: Blob shadow under object comparison</em></p>
+<p>Blob shadow under object comparison</p>
+<h2 id="quick-start-guide">Quick start guide</h2>
+<h3 id="creating-decals-in-the-editor">Creating decals in the editor</h3>
+<ol type="1">
+<li>Create a Decal node in the 3D editor.</li>
+<li>In the inspector, expand the <strong>Textures</strong> section and load a texture in <strong>Textures &gt; Albedo</strong>.</li>
+<li>Move the Decal node towards an object, then rotate it so the decal is visible (and in the right orientation). If the decal appears mirrored, try to rotate it by 180 degrees. You can double-check whether it's in the right orientation by increasing <strong>Parameters &gt; Normal Fade</strong> to 0.5. This will prevent the Decal from being projected on surfaces that are not facing the decal.</li>
+<li>If your decal is meant to affect static objects only, configure it to prevent affecting dynamic objects (or vice versa). To do so, change the decal's <strong>Cull Mask</strong> property to exclude certain layers. After doing this, modify your dynamic objects' MeshInstance3D nodes to change their visibility layers. For instance, you can move them from layer 1 to layer 2, then disable layer 2 in the decal's <strong>Cull Mask</strong> property.</li>
+</ol>
+<h2 id="decal-node-properties">Decal node properties</h2>
+<ul>
+<li><strong>Extents:</strong> The size of the decal. The Y axis determines the length of the decal's projection. Keep the projection length as short as possible to improve culling opportunities, therefore improving performance.</li>
+</ul>
+<h3 id="textures">Textures</h3>
+<ul>
+<li><strong>Albedo:</strong> The albedo (diffuse/color) map to use for the decal. In most situations, this is the texture you want to set first. If using a normal or ORM map, an albedo map <em>must</em> be set to provide an alpha channel. This alpha channel will be used as a mask to determine how much the normal/ORM maps will affect the underlying surface.</li>
+<li><strong>Normal:</strong> The normal map to use for the decal. This can be used to increase perceived detail on the decal by modifying how light reacts to it. The impact of this texture is multiplied by the albedo texture's alpha channel (but not <strong>Albedo Mix</strong>).</li>
+<li><strong>ORM:</strong> The Occlusion/Roughness/Metallic map to use for the decal. This is an optimized format for storing PBR material maps. Ambient Occlusion map is stored in the red channel, roughness map in the green channel, metallic map in the blue channel. The impact of this texture is multiplied by the albedo texture's alpha channel (but not <strong>Albedo Mix</strong>).</li>
+<li><strong>Emission:</strong> The emission texture to use for the decal. Unlike <strong>Albedo</strong>, this texture will appear to glow in the dark.</li>
+</ul>
+<h3 id="parameters">Parameters</h3>
+<ul>
+<li><strong>Emission Energy:</strong> The brightness of the emission texture.</li>
+<li><strong>Modulate:</strong> Multiplies the color of the albedo and emission textures. Use this to tint decals (e.g. for paint decals, or to increase variation by randomizing each decal's modulation).</li>
+<li><strong>Albedo Mix:</strong> The opacity of the albedo texture. Unlike using an albedo texture with a more transparent alpha channel, decreasing this value below <code>1.0</code> does <em>not</em> reduce the impact of the normal/ORM texture on the underlying surface. Set this to <code>0.0</code> when creating normal/ORM-only decals such as footsteps or wet puddles.</li>
+<li><strong>Normal Fade:</strong> Fades the Decal if the angle between the Decal's <code>AABB (Axis-Aligned Bounding Box)</code> and the target surface becomes too large. A value of <code>0.0</code> projects the decal regardless of angle, while a value of <code>0.999</code> limits the decal to surfaces that are nearly perpendicular. Setting <strong>Normal Fade</strong> to a value greater than <code>0.0</code> has a small performance cost due to the added normal angle computations.</li>
+</ul>
+<h3 id="vertical-fade">Vertical Fade</h3>
+<ul>
+<li><strong>Upper Fade:</strong> The curve over which the decal will fade as the surface gets further from the center of the <code>AABB (Axis-Aligned Bounding Box)</code> (towards the decal's projection angle). Only positive values are valid.</li>
+<li><strong>Lower Fade:</strong> The curve over which the decal will fade as the surface gets further from the center of the <code>AABB (Axis-Aligned Bounding Box)</code> (away from the decal's projection angle). Only positive values are valid.</li>
+</ul>
+<h3 id="distance-fade">Distance Fade</h3>
+<ul>
+<li><strong>Enabled:</strong> Controls whether distance fade (a form of <code>LOD (Level of Detail)</code>) is enabled. The decal will fade out over <strong>Begin + Length</strong>, after which it will be culled and not sent to the shader at all. Use this to reduce the number of active decals in a scene and thus improve performance.</li>
+<li><strong>Begin:</strong> The distance from the camera at which the decal begins to fade away (in 3D units).</li>
+<li><strong>Length:</strong> The distance over which the decal fades (in 3D units). The decal becomes slowly more transparent over this distance and is completely invisible at the end. Higher values result in a smoother fade-out transition, which is more suited when the camera moves fast.</li>
+</ul>
+<h3 id="cull-mask">Cull Mask</h3>
+<ul>
+<li><strong>Cull Mask:</strong> Specifies which VisualInstance3D layers this decal will project on. By default, decals affect all layers. This is used so you can specify which types of objects receive the decal and which do not. This is especially useful so you can ensure that dynamic objects don't accidentally receive a Decal intended for the terrain under them.</li>
+</ul>
+<h2 id="decal-rendering-order">Decal rendering order</h2>
+<p>By default, decals are ordered based on the size of their <code>AABB (Axis-Aligned Bounding Box)</code> and the distance to the camera. AABBs that are closer to the camera are rendered first, which means that decal rendering order can sometimes appear to change depending on camera position if some decals are positioned at the same location.</p>
+<p>To resolve this, you can adjust the <strong>Sorting Offset</strong> property in the VisualInstance3D section of the Decal node inspector. This offset is not a strict priority order, but a <em>guideline</em> that the renderer will use as the AABB size still affects how decal sorting works. Therefore, higher values will <em>always</em> result in the decal being drawn above other decals with a lower sorting offset.</p>
+<p>If you want to ensure a decal is always rendered on top of other decals, you need to set its <strong>Sorting Offset</strong> property to a positive value greater than the AABB length of the largest decal that may overlap it. To make this decal drawn behind other decals instead, set the <strong>Sorting Offset</strong> to the same negative value.</p>
+<p><em>Image: VisualInstance3D Sorting Offset comparison on Decals</em></p>
+<p>VisualInstance3D Sorting Offset comparison on Decals</p>
+<h2 id="tweaking-performance-and-quality">Tweaking performance and quality</h2>
+<p>Decal rendering performance is mostly determined by their screen coverage, but also their number. In general, a few large decals that cover up most of the screen will be more expensive to render than many small decals that are scattered around.</p>
+<p>To improve rendering performance, you can enable the <strong>Distance Fade</strong> property as described above. This will make distant decals fade out when they are far away from the camera (and may have little to no impact on the final scene rendering). Using node groups, you can also prevent non-essential decorative decals from spawning based on user configuration.</p>
+<p>The way decals are rendered also has an impact on performance. The ref advanced project setting lets you control how decal textures should be filtered. <strong>Nearest/Linear</strong> does not use mipmaps. However, decals will look grainy at a distance. <strong>Nearest/Linear Mipmaps</strong> will look smoother at a distance, but decals will look blurry when viewed from oblique angles. This can be resolved by using <strong>Nearest/Linear Mipmaps Anisotropic</strong>, which provides the highest quality, but is also slower to render.</p>
+<p>If your project has a pixel art style, consider setting the filter to one of the <strong>Nearest</strong> values so that decals use nearest-neighbor filtering. Otherwise, stick to <strong>Linear</strong>.</p>
+<h2 id="limitations">Limitations</h2>
+<p>Decals cannot affect material properties other than the ones listed above, such as height (for parallax mapping).</p>
+<p>For performance reasons, decals use purely fixed rendering logic. This means decals cannot use custom shaders. However, custom shaders on the projected surfaces are able to read the information that is overridden by decals on top of them, such as roughness and metallic.</p>
+<p>When using the Forward+ renderer, Godot uses a <em>clustering</em> approach for decal rendering. As many decals as desired can be added (as long as performance allows). However, there's still a default limit of 512 <em>clustered elements</em> that can be present in the current camera view. A clustered element is an omni light, a spot light, an area light, a ref, or a ref. This limit can be increased by adjusting ref in <strong>Project Settings &gt; Rendering &gt; Limits &gt; Cluster Builder</strong>.</p>
+<p>When using the Mobile renderer, only 8 decals can be applied on each individual Mesh <em>resource</em>. If there are more decals affecting a single mesh, not all of them will be rendered on the mesh.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

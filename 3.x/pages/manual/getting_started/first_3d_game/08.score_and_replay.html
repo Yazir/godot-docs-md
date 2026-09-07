@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Score and replay — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="score-and-replay">Score and replay</h1>
+<p>In this part, we'll add the score, music playback, and the ability to restart the game.</p>
+<p>We have to keep track of the current score in a variable and display it on screen using a minimal interface. We will use a text label to do that.</p>
+<p>In the main scene, add a new <em>Control</em> node as a child of <em>Main</em> and name it <em>UserInterface</em>. You will automatically be taken to the 2D screen, where you can edit your User Interface (UI).</p>
+<p>Add a <em>Label</em> node and rename it to <em>ScoreLabel</em>.</p>
+<p><em>Image: image0</em></p>
+<p>In the <em>Inspector</em>, set the <em>Label</em>'s <em>Text</em> to a placeholder like "Score: 0".</p>
+<p><em>Image: image1</em></p>
+<p>Also, the text is white by default, like our game's background. We need to change its color to see it at runtime.</p>
+<p>Scroll down to <em>Theme Overrides</em>, and expand <em>Colors</em> and click the black box next to <em>Font Color</em> to tint the text.</p>
+<p><em>Image: image2</em></p>
+<p>Pick a dark tone so it contrasts well with the 3D scene.</p>
+<p><em>Image: image3</em></p>
+<p>Finally, click and drag on the text in the viewport to move it away from the top-left corner.</p>
+<p><em>Image: image4</em></p>
+<p>The <em>UserInterface</em> node allows us to group our UI in a branch of the scene tree and use a theme resource that will propagate to all its children. We'll use it to set our game's font.</p>
+<h2 id="creating-a-ui-theme">Creating a UI theme</h2>
+<p>Once again, select the <em>UserInterface</em> node. In the <em>Inspector</em>, create a new theme resource in <em>Theme -&gt; Theme</em>.</p>
+<p><em>Image: image5</em></p>
+<p>Click on it to open the theme editor In the bottom panel. It gives you a preview of how all the built-in UI widgets will look with your theme resource.</p>
+<p><em>Image: image6</em></p>
+<p>By default, a theme only has one property, the <em>Default Font</em>.</p>
+<blockquote>
+<p><strong>See also:</strong> You can add more properties to the theme resource to design complex user interfaces, but that is beyond the scope of this series. To learn more about creating and editing themes, see <code>doc_gui_skinning</code>.</p>
+</blockquote>
+<p>Click the <em>Default Font</em> property and create a new <em>DynamicFont</em>.</p>
+<p><em>Image: image7</em></p>
+<p>Expand the <em>DynamicFont</em> by clicking on it and expand its <em>Font</em> section. There, you will see an empty <em>Font Data</em> field.</p>
+<p><em>Image: image8</em></p>
+<p>This one expects a font file like the ones you have on your computer. DynamicFont supports the following formats:</p>
+<ul>
+<li>TrueType (<code>.ttf</code>)</li>
+<li>OpenType (<code>.otf</code>)</li>
+<li>Web Open Font Format 1 (<code>.woff</code>)</li>
+<li>Web Open Font Format 2 (<code>.woff2</code>, since Godot 3.5)</li>
+</ul>
+<p>In the <em>FileSystem</em> dock, expand the <code>fonts</code> directory and click and drag the <code>Montserrat-Medium.ttf</code> file we included in the project onto the <em>Font Data</em>. The text will reappear in the theme preview.</p>
+<p>The text is a bit small. Set the <em>Settings -&gt; Size</em> to <code>22</code> pixels to increase the text's size.</p>
+<p><em>Image: image9</em></p>
+<h2 id="keeping-track-of-the-score">Keeping track of the score</h2>
+<p>Let's work on the score next. Attach a new script to the <em>ScoreLabel</em> and define the <code>score</code> variable.</p>
+<pre class="gdscript"><code>extends Label
+
+var score = 0</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> ScoreLabel <span class="op">:</span> Label</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">int</span> _score <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The score should increase by <code>1</code> every time we squash a monster. We can use their <code>squashed</code> signal to know when that happens. However, as we instantiate monsters from the code, we cannot do the connection in the editor.</p>
+<p>Instead, we have to make the connection from the code every time we spawn a monster.</p>
+<p>Open the script <code>Main.gd</code>. If it's still open, you can click on its name in the script editor's left column.</p>
+<p><em>Image: image10</em></p>
+<p>Alternatively, you can double-click the <code>Main.gd</code> file in the <em>FileSystem</em> dock.</p>
+<p>At the bottom of the <code>_on_MobTimer_timeout()</code> function, add the following line.</p>
+<pre class="gdscript"><code>func _on_MobTimer_timeout():
+    #...
+    # We connect the mob to the score label to update the score upon squashing one.
+    mob.connect(&quot;squashed&quot;, $UserInterface/ScoreLabel, &quot;_on_Mob_squashed&quot;)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnMobTimerTimeout</span><span class="op">()</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ...</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We connect the mob to the score label to update the score upon squashing one.</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    mob<span class="op">.</span><span class="fu">Connect</span><span class="op">(</span><span class="fu">nameof</span><span class="op">(</span>Mob<span class="op">.</span><span class="fu">Squashed</span><span class="op">),</span> GetNode<span class="op">&lt;</span>ScoreLabel<span class="op">&gt;(</span><span class="st">&quot;UserInterface/ScoreLabel&quot;</span><span class="op">),</span> <span class="fu">nameof</span><span class="op">(</span>ScoreLabel<span class="op">.</span><span class="fu">OnMobSquashed</span><span class="op">));</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This line means that when the mob emits the <code>squashed</code> signal, the <em>ScoreLabel</em> node will receive it and call the function <code>_on_Mob_squashed()</code>.</p>
+<p>Head back to the <code>ScoreLabel.gd</code> script to define the <code>_on_Mob_squashed()</code> callback function.</p>
+<p>There, we increment the score and update the displayed text.</p>
+<pre class="gdscript"><code>func _on_Mob_squashed():
+    score += 1
+    text = &quot;Score: %s&quot; % score</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnMobSquashed</span><span class="op">()</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    _score <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    Text <span class="op">=</span> <span class="dt">string</span><span class="op">.</span><span class="fu">Format</span><span class="op">(</span><span class="st">&quot;Score: {0}&quot;</span><span class="op">,</span> _score<span class="op">);</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The second line uses the value of the <code>score</code> variable to replace the placeholder <code>%s</code>. When using this feature, Godot automatically converts values to text, which is convenient to output text in labels or using the <code>print()</code> function.</p>
+<blockquote>
+<p><strong>See also:</strong> You can learn more about string formatting here: <code>doc_gdscript_printf</code>.</p>
+</blockquote>
+<p>You can now play the game and squash a few enemies to see the score increase.</p>
+<p><em>Image: image11</em></p>
+<blockquote>
+<p><strong>Note:</strong> In a complex game, you may want to completely separate your user interface from the game world. In that case, you would not keep track of the score on the label. Instead, you may want to store it in a separate, dedicated object. But when prototyping or when your project is simple, it is fine to keep your code simple. Programming is always a balancing act.</p>
+</blockquote>
+<h2 id="retrying-the-game">Retrying the game</h2>
+<p>We'll now add the ability to play again after dying. When the player dies, we'll display a message on the screen and wait for input.</p>
+<p>Head back to the <em>Main</em> scene, select the <em>UserInterface</em> node, add a <em>ColorRect</em> node as a child of it and name it <em>Retry</em>. This node fills a rectangle with a uniform color and will serve as an overlay to darken the screen.</p>
+<p>To make it span over the whole viewport, you can use the <em>Layout</em> menu in the toolbar.</p>
+<p><em>Image: image12</em></p>
+<p>Open it and apply the <em>Full Rect</em> command.</p>
+<p><em>Image: image13</em></p>
+<p>Nothing happens. Well, almost nothing: only the four green pins move to the corners of the selection box.</p>
+<p><em>Image: image14</em></p>
+<p>This is because UI nodes (all the ones with a green icon) work with anchors and margins relative to their parent's bounding box. Here, the <em>UserInterface</em> node has a small size and the <em>Retry</em> one is limited by it.</p>
+<p>Select the <em>UserInterface</em> and apply <em>Layout -&gt; Full Rect</em> to it as well. The <em>Retry</em> node should now span the whole viewport.</p>
+<p>Let's change its color so it darkens the game area. Select <em>Retry</em> and in the <em>Inspector</em>, set its <em>Color</em> to something both dark and transparent. To do so, in the color picker, drag the <em>A</em> slider to the left. It controls the color's alpha channel, that is to say, its opacity.</p>
+<p><em>Image: image15</em></p>
+<p>Next, add a <em>Label</em> as a child of <em>Retry</em> and give it the <em>Text</em> "Press Enter to retry."</p>
+<p><em>Image: image16</em></p>
+<p>To move it and anchor it in the center of the screen, apply <em>Layout -&gt; Center</em> to it.</p>
+<p><em>Image: image17</em></p>
+<h3 id="coding-the-retry-option">Coding the retry option</h3>
+<p>We can now head to the code to show and hide the <em>Retry</em> node when the player dies and plays again.</p>
+<p>Open the script <code>Main.gd</code>. First, we want to hide the overlay at the start of the game. Add this line to the <code>_ready()</code> function.</p>
+<pre class="gdscript"><code>func _ready():
+    #...
+    $UserInterface/Retry.hide()</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ...</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Control<span class="op">&gt;(</span><span class="st">&quot;UserInterface/Retry&quot;</span><span class="op">).</span><span class="fu">Hide</span><span class="op">();</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Then, when the player gets hit, we show the overlay.</p>
+<pre class="gdscript"><code>func _on_Player_hit():
+    #...
+    $UserInterface/Retry.show()</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnPlayerHit</span><span class="op">()</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">//...</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    GetNode<span class="op">&lt;</span>Control<span class="op">&gt;(</span><span class="st">&quot;UserInterface/Retry&quot;</span><span class="op">).</span><span class="fu">Show</span><span class="op">();</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Finally, when the <em>Retry</em> node is visible, we need to listen to the player's input and restart the game if they press enter. To do this, we use the built-in <code>_unhandled_input()</code> callback.</p>
+<p>If the player pressed the predefined <code>ui_accept</code> input action and <em>Retry</em> is visible, we reload the current scene.</p>
+<pre class="gdscript"><code>func _unhandled_input(event):
+    if event.is_action_pressed(&quot;ui_accept&quot;) and $UserInterface/Retry.visible:
+        # This restarts the current scene.
+        get_tree().reload_current_scene()</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_UnhandledInput</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;ui_accept&quot;</span><span class="op">)</span> <span class="op">&amp;&amp;</span> GetNode<span class="op">&lt;</span>Control<span class="op">&gt;(</span><span class="st">&quot;UserInterface/Retry&quot;</span><span class="op">).</span><span class="fu">Visible</span><span class="op">)</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// This restarts the current scene.</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        <span class="fu">GetTree</span><span class="op">().</span><span class="fu">ReloadCurrentScene</span><span class="op">();</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The function <code>get_tree()</code> gives us access to the global ref object, which allows us to reload and restart the current scene.</p>
+<h2 id="adding-music">Adding music</h2>
+<p>To add music that plays continuously in the background, we're going to use another feature in Godot: ref.</p>
+<p>To play audio, all you need to do is add an <em>AudioStreamPlayer</em> node to your scene and attach an audio file to it. When you start the scene, it can play automatically. However, when you reload the scene, like we do to play again, the audio nodes are also reset, and the music starts back from the beginning.</p>
+<p>You can use the autoload feature to have Godot load a node or a scene automatically at the start of the game, outside the current scene. You can also use it to create globally accessible objects.</p>
+<p>Create a new scene by going to the <em>Scene</em> menu and clicking <em>New Scene</em>.</p>
+<p><em>Image: image18</em></p>
+<p>Click the <em>Other Node</em> button to create an <em>AudioStreamPlayer</em> and rename it to <em>MusicPlayer</em>.</p>
+<p><em>Image: image19</em></p>
+<p>We included a music soundtrack in the <code>art/</code> directory, <code>House In a Forest Loop.ogg</code>. Click and drag it onto the <em>Stream</em> property in the <em>Inspector</em>. Also, turn on <em>Autoplay</em> so the music plays automatically at the start of the game.</p>
+<p><em>Image: image20</em></p>
+<p>Save the scene as <code>MusicPlayer.tscn</code>.</p>
+<p>We have to register it as an autoload. Head to the <em>Project -&gt; Project Settings…</em> menu and click on the <em>Autoload</em> tab.</p>
+<p>In the <em>Path</em> field, you want to enter the path to your scene. Click the folder icon to open the file browser and double-click on <code>MusicPlayer.tscn</code>. Then, click the <em>Add</em> button on the right to register the node.</p>
+<p><em>Image: image21</em></p>
+<p>If you run the game now, the music will play automatically. And even when you lose and retry, it keeps going.</p>
+<p>Before we wrap up this lesson, here's a quick look at how it works under the hood. When you run the game, your <em>Scene</em> dock changes to give you two tabs: <em>Remote</em> and <em>Local</em>.</p>
+<p><em>Image: image22</em></p>
+<p>The <em>Remote</em> tab allows you to visualize the node tree of your running game. There, you will see the <em>Main</em> node and everything the scene contains and the instantiated mobs at the bottom.</p>
+<p><em>Image: image23</em></p>
+<p>At the top are the autoloaded <em>MusicPlayer</em> and a <em>root</em> node, which is your game's viewport.</p>
+<p>And that does it for this lesson. In the next part, we'll add an animation to make the game both look and feel much nicer.</p>
+<p>Here is the complete <code>Main.gd</code> script for reference.</p>
+<pre class="gdscript"><code>extends Node
+
+export (PackedScene) var mob_scene
+
+
+func _ready():
+    randomize()
+    $UserInterface/Retry.hide()
+
+
+func _unhandled_input(event):
+    if event.is_action_pressed(&quot;ui_accept&quot;) and $UserInterface/Retry.visible:
+        get_tree().reload_current_scene()
+
+
+func _on_MobTimer_timeout():
+    var mob = mob_scene.instance()
+
+    var mob_spawn_location = get_node(&quot;SpawnPath/SpawnLocation&quot;)
+    mob_spawn_location.unit_offset = randf()
+
+    var player_position = $Player.transform.origin
+    mob.initialize(mob_spawn_location.translation, player_position)
+
+    add_child(mob)
+    mob.connect(&quot;squashed&quot;, $UserInterface/ScoreLabel, &quot;_on_Mob_squashed&quot;)
+
+
+func _on_Player_hit():
+    $MobTimer.stop()
+    $UserInterface/Retry.show()</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Main <span class="op">:</span> Node</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>#pragma warning disable <span class="dv">649</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> PackedScene MobScene<span class="op">;</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>#pragma warning restore <span class="dv">649</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Randomize</span><span class="op">();</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>        GetNode<span class="op">&lt;</span>Control<span class="op">&gt;(</span><span class="st">&quot;UserInterface/Retry&quot;</span><span class="op">).</span><span class="fu">Hide</span><span class="op">();</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_UnhandledInput</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>@event<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;ui_accept&quot;</span><span class="op">)</span> <span class="op">&amp;&amp;</span> GetNode<span class="op">&lt;</span>Control<span class="op">&gt;(</span><span class="st">&quot;UserInterface/Retry&quot;</span><span class="op">).</span><span class="fu">Visible</span><span class="op">)</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>            <span class="fu">GetTree</span><span class="op">().</span><span class="fu">ReloadCurrentScene</span><span class="op">();</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnMobTimerTimeout</span><span class="op">()</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>        Mob mob <span class="op">=</span> <span class="op">(</span>Mob<span class="op">)</span>MobScene<span class="op">.</span><span class="fu">Instance</span><span class="op">();</span></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> mobSpawnLocation <span class="op">=</span> GetNode<span class="op">&lt;</span>PathFollow<span class="op">&gt;(</span><span class="st">&quot;SpawnPath/SpawnLocation&quot;</span><span class="op">);</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>        mobSpawnLocation<span class="op">.</span><span class="fu">UnitOffset</span> <span class="op">=</span> GD<span class="op">.</span><span class="fu">Randf</span><span class="op">();</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>        Vector3 playerPosition <span class="op">=</span> GetNode<span class="op">&lt;</span>Player<span class="op">&gt;(</span><span class="st">&quot;Player&quot;</span><span class="op">).</span><span class="fu">Transform</span><span class="op">.</span><span class="fu">origin</span><span class="op">;</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>        mob<span class="op">.</span><span class="fu">Initialize</span><span class="op">(</span>mobSpawnLocation<span class="op">.</span><span class="fu">Translation</span><span class="op">,</span> playerPosition<span class="op">);</span></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>        <span class="fu">AddChild</span><span class="op">(</span>mob<span class="op">);</span></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>        mob<span class="op">.</span><span class="fu">Connect</span><span class="op">(</span><span class="fu">nameof</span><span class="op">(</span>Mob<span class="op">.</span><span class="fu">Squashed</span><span class="op">),</span> GetNode<span class="op">&lt;</span>ScoreLabel<span class="op">&gt;(</span><span class="st">&quot;UserInterface/ScoreLabel&quot;</span><span class="op">),</span> <span class="fu">nameof</span><span class="op">(</span>ScoreLabel<span class="op">.</span><span class="fu">OnMobSquashed</span><span class="op">));</span></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnPlayerHit</span><span class="op">()</span></span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a>        GetNode<span class="op">&lt;</span>Timer<span class="op">&gt;(</span><span class="st">&quot;MobTimer&quot;</span><span class="op">).</span><span class="fu">Stop</span><span class="op">();</span></span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>        GetNode<span class="op">&lt;</span>Control<span class="op">&gt;(</span><span class="st">&quot;UserInterface/Retry&quot;</span><span class="op">).</span><span class="fu">Show</span><span class="op">();</span></span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

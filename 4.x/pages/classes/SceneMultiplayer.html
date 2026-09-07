@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SceneMultiplayer — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="scenemultiplayer">SceneMultiplayer</h1>
+<p><em>Inherits: <a href="MultiplayerAPI.html">MultiplayerAPI</a> &lt; <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>High-level multiplayer API implementation.</p>
+<h2 id="description">Description</h2>
+<p>This class is the default implementation of <a href="MultiplayerAPI.html">MultiplayerAPI</a>, used to provide multiplayer functionalities in Godot Engine.</p>
+<p>This implementation supports RPCs via <code>Node.rpc()</code> and <code>Node.rpc_id()</code> and requires <code>MultiplayerAPI.rpc()</code> to be passed a <a href="Node.html">Node</a> (it will fail for other object types).</p>
+<p>This implementation additionally provide <a href="SceneTree.html">SceneTree</a> replication via the <a href="MultiplayerSpawner.html">MultiplayerSpawner</a> and <a href="MultiplayerSynchronizer.html">MultiplayerSynchronizer</a> nodes, and the <a href="SceneReplicationConfig.html">SceneReplicationConfig</a> resource.</p>
+<p><strong>Note:</strong> The high-level multiplayer API protocol is an implementation detail and isn't meant to be used by non-Godot servers. It may change without notice.</p>
+<p><strong>Note:</strong> When exporting to Android, make sure to enable the <code>INTERNET</code> permission in the Android export preset before exporting the project or using one-click deploy. Otherwise, network communication of any kind will be blocked by Android.</p>
+<h2 id="properties">Properties</h2>
+<h3 id="bool-allow_object_decoding--false"><code>bool allow_object_decoding = false</code></h3>
+<ul>
+<li>Setter: <code>set_allow_object_decoding(value: bool)</code></li>
+<li>Getter: <code>is_object_decoding_allowed()</code></li>
+</ul>
+<p>If <code>true</code>, the MultiplayerAPI will allow encoding and decoding of object during RPCs.</p>
+<p><strong>Warning:</strong> Deserialized objects can contain code which gets executed. Do not use this option if the serialized object comes from untrusted sources to avoid potential security threat such as remote code execution.</p>
+<h3 id="callable-auth_callback--callable"><code>Callable auth_callback = Callable()</code></h3>
+<ul>
+<li>Setter: <code>set_auth_callback(value: Callable)</code></li>
+<li>Getter: <code>get_auth_callback()</code></li>
+</ul>
+<p>The callback to execute when receiving authentication data sent via <code>send_auth()</code>. If the <a href="Callable.html">Callable</a> is empty (default), peers will be automatically accepted as soon as they connect.</p>
+<h3 id="float-auth_timeout--30"><code>float auth_timeout = 3.0</code></h3>
+<ul>
+<li>Setter: <code>set_auth_timeout(value: float)</code></li>
+<li>Getter: <code>get_auth_timeout()</code></li>
+</ul>
+<p>If set to a value greater than <code>0.0</code>, the maximum duration in seconds peers can stay in the authenticating state, after which the authentication will automatically fail. See the <code>peer_authenticating</code> and <code>peer_authentication_failed</code> signals.</p>
+<h3 id="int-max_delta_packet_size--65535"><code>int max_delta_packet_size = 65535</code></h3>
+<ul>
+<li>Setter: <code>set_max_delta_packet_size(value: int)</code></li>
+<li>Getter: <code>get_max_delta_packet_size()</code></li>
+</ul>
+<p>Maximum size of each delta packet. Higher values increase the chance of receiving full updates in a single frame, but also the chance of causing networking congestion (higher latency, disconnections). See <a href="MultiplayerSynchronizer.html">MultiplayerSynchronizer</a>.</p>
+<h3 id="int-max_sync_packet_size--1350"><code>int max_sync_packet_size = 1350</code></h3>
+<ul>
+<li>Setter: <code>set_max_sync_packet_size(value: int)</code></li>
+<li>Getter: <code>get_max_sync_packet_size()</code></li>
+</ul>
+<p>Maximum size of each synchronization packet. Higher values increase the chance of receiving full updates in a single frame, but also the chance of packet loss. See <a href="MultiplayerSynchronizer.html">MultiplayerSynchronizer</a>.</p>
+<h3 id="bool-refuse_new_connections--false"><code>bool refuse_new_connections = false</code></h3>
+<ul>
+<li>Setter: <code>set_refuse_new_connections(value: bool)</code></li>
+<li>Getter: <code>is_refusing_new_connections()</code></li>
+</ul>
+<p>If <code>true</code>, the MultiplayerAPI's <code>MultiplayerAPI.multiplayer_peer</code> refuses new incoming connections.</p>
+<h3 id="nodepath-root_path--nodepath"><code>NodePath root_path = NodePath("")</code></h3>
+<ul>
+<li>Setter: <code>set_root_path(value: NodePath)</code></li>
+<li>Getter: <code>get_root_path()</code></li>
+</ul>
+<p>The root path to use for RPCs and replication. Instead of an absolute path, a relative path will be used to find the node upon which the RPC should be executed.</p>
+<p>This effectively allows to have different branches of the scene tree to be managed by different MultiplayerAPI, allowing for example to run both client and server in the same scene.</p>
+<h3 id="bool-server_relay--true"><code>bool server_relay = true</code></h3>
+<ul>
+<li>Setter: <code>set_server_relay_enabled(value: bool)</code></li>
+<li>Getter: <code>is_server_relay_enabled()</code></li>
+</ul>
+<p>Enable or disable the server feature that notifies clients of other peers' connection/disconnection, and relays messages between them. When this option is <code>false</code>, clients won't be automatically notified of other peers and won't be able to send them packets through the server.</p>
+<p><strong>Note:</strong> Changing this option while other peers are connected may lead to unexpected behaviors.</p>
+<p><strong>Note:</strong> Support for this feature may depend on the current <a href="MultiplayerPeer.html">MultiplayerPeer</a> configuration. See <code>MultiplayerPeer.is_server_relay_supported()</code>.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-clear"><code>void clear()</code></h3>
+<p>Clears the current SceneMultiplayer network state (you shouldn't call this unless you know what you are doing).</p>
+<h3 id="globalscopeerror-complete_authid-int">``@GlobalScope.Error<code> complete_auth(id: int)</code></h3>
+<p>Mark the authentication step as completed for the remote peer identified by <code>id</code>. The <code>MultiplayerAPI.peer_connected</code> signal will be emitted for this peer once the remote side also completes the authentication. No further authentication messages are expected to be received from this peer.</p>
+<p>If a peer disconnects before completing authentication, either due to a network issue, the <code>auth_timeout</code> expiring, or manually calling <code>disconnect_peer()</code>, the <code>peer_authentication_failed</code> signal will be emitted instead of <code>MultiplayerAPI.peer_disconnected</code>.</p>
+<h3 id="void-disconnect_peerid-int"><code>void disconnect_peer(id: int)</code></h3>
+<p>Disconnects the peer identified by <code>id</code>, removing it from the list of connected peers, and closing the underlying connection with it.</p>
+<h3 id="packedint32array-get_authenticating_peers"><code>PackedInt32Array get_authenticating_peers()</code></h3>
+<p>Returns the IDs of the peers currently trying to authenticate with this <a href="MultiplayerAPI.html">MultiplayerAPI</a>.</p>
+<h3 id="globalscopeerror-send_authid-int-data-packedbytearray">``@GlobalScope.Error<code> send_auth(id: int, data: PackedByteArray)</code></h3>
+<p>Sends the specified <code>data</code> to the remote peer identified by <code>id</code> as part of an authentication message. This can be used to authenticate peers, and control when <code>MultiplayerAPI.peer_connected</code> is emitted (and the remote peer accepted as one of the connected peers).</p>
+<h3 id="globalscopeerrorsend_bytesbytes-packedbytearray-id-int--0-modemultiplayerpeertransfermode--2-channel-int--0">``@GlobalScope.Error<code>send_bytes(bytes: PackedByteArray, id: int = 0, mode:</code>MultiplayerPeer.TransferMode<code> = 2, channel: int = 0)</code></h3>
+<p>Sends the given raw <code>bytes</code> to a specific peer identified by <code>id</code> (see <code>MultiplayerPeer.set_target_peer()</code>). Default ID is <code>0</code>, i.e. broadcast to all peers.</p>
+<h2 id="signals">Signals</h2>
+<h3 id="peer_authenticatingid-int"><code>peer_authenticating(id: int)</code></h3>
+<p>Emitted when this MultiplayerAPI's <code>MultiplayerAPI.multiplayer_peer</code> connects to a new peer and a valid <code>auth_callback</code> is set. In this case, the <code>MultiplayerAPI.peer_connected</code> will not be emitted until <code>complete_auth()</code> is called with given peer <code>id</code>. While in this state, the peer will not be included in the list returned by <code>MultiplayerAPI.get_peers()</code> (but in the one returned by <code>get_authenticating_peers()</code>), and only authentication data will be sent or received. See <code>send_auth()</code> for sending authentication data.</p>
+<h3 id="peer_authentication_failedid-int"><code>peer_authentication_failed(id: int)</code></h3>
+<p>Emitted when this MultiplayerAPI's <code>MultiplayerAPI.multiplayer_peer</code> disconnects from a peer for which authentication had not yet completed. See <code>peer_authenticating</code>.</p>
+<h3 id="peer_packetid-int-packet-packedbytearray"><code>peer_packet(id: int, packet: PackedByteArray)</code></h3>
+<p>Emitted when this MultiplayerAPI's <code>MultiplayerAPI.multiplayer_peer</code> receives a <code>packet</code> with custom data (see <code>send_bytes()</code>). ID is the peer ID of the peer that sent the packet.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

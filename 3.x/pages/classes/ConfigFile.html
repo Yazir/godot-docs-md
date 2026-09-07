@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ConfigFile — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="configfile">ConfigFile</h1>
+<p><em>Inherits: <a href="Reference.html">Reference</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Helper class to handle INI-style files.</p>
+<h2 id="description">Description</h2>
+<p>This helper class can be used to store <a href="Variant.html">Variant</a> values on the filesystem using INI-style formatting. The stored values are identified by a section and a key:</p>
+<pre class="gdscript"><code>[section]
+some_key=42
+string_example=&quot;Hello World!&quot;
+a_vector=Vector3( 1, 0, 2 )</code></pre>
+<p>The stored data can be saved to or parsed from a file, though ConfigFile objects can also be used directly without accessing the filesystem.</p>
+<p>The following example shows how to create a simple <strong>ConfigFile</strong> and save it on disk:</p>
+<pre class="gdscript"><code># Create new ConfigFile object.
+var config = ConfigFile.new()
+
+# Store some values.
+config.set_value(&quot;Player1&quot;, &quot;player_name&quot;, &quot;Steve&quot;)
+config.set_value(&quot;Player1&quot;, &quot;best_score&quot;, 10)
+config.set_value(&quot;Player2&quot;, &quot;player_name&quot;, &quot;V3geta&quot;)
+config.set_value(&quot;Player2&quot;, &quot;best_score&quot;, 9001)
+
+# Save it to a file (overwrite if already exists).
+config.save(&quot;user://scores.cfg&quot;)</code></pre>
+<p>This example shows how the above file could be loaded:</p>
+<pre class="gdscript"><code>var score_data = {}
+var config = ConfigFile.new()
+
+# Load data from a file.
+var err = config.load(&quot;user://scores.cfg&quot;)
+
+# If the file didn&#39;t load, ignore it.
+if err != OK:
+    return
+
+# Iterate over all sections.
+for player in config.get_sections():
+    # Fetch the data for each section.
+    var player_name = config.get_value(player, &quot;player_name&quot;)
+    var player_score = config.get_value(player, &quot;best_score&quot;)
+    score_data[player_name] = player_score</code></pre>
+<p>Any operation that mutates the ConfigFile such as <code>set_value</code>, <code>clear</code>, or <code>erase_section</code>, only changes what is loaded in memory. If you want to write the change to a file, you have to save the changes with <code>save</code>, <code>save_encrypted</code>, or <code>save_encrypted_pass</code>.</p>
+<p>Keep in mind that section and property names can't contain spaces. Anything after a space will be ignored on save and on load.</p>
+<p>ConfigFiles can also contain manually written comment lines starting with a semicolon (<code>;</code>). Those lines will be ignored when parsing the file. Note that comments will be lost when saving the ConfigFile. This can still be useful for dedicated server configuration files, which are typically never overwritten without explicit user action.</p>
+<p><strong>Note:</strong> The file extension given to a ConfigFile does not have any impact on its formatting or behavior. By convention, the <code>.cfg</code> extension is used here, but any other extension such as <code>.ini</code> is also valid. Since neither <code>.cfg</code> nor <code>.ini</code> are standardized, Godot's ConfigFile formatting may differ from files written by other programs.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-clear"><code>void clear()</code></h3>
+<p>Removes the entire contents of the config.</p>
+<h3 id="void-erase_sectionsection-string"><code>void erase_section(section: String)</code></h3>
+<p>Deletes the specified section along with all the key-value pairs inside. Raises an error if the section does not exist.</p>
+<h3 id="void-erase_section_keysection-string-key-string"><code>void erase_section_key(section: String, key: String)</code></h3>
+<p>Deletes the specified key in a section. Raises an error if either the section or the key do not exist.</p>
+<h3 id="poolstringarray-get_section_keyssection-string-const"><code>PoolStringArray get_section_keys(section: String) const</code></h3>
+<p>Returns an array of all defined key identifiers in the specified section. Raises an error and returns an empty array if the section does not exist.</p>
+<h3 id="poolstringarray-get_sections-const"><code>PoolStringArray get_sections() const</code></h3>
+<p>Returns an array of all defined section identifiers.</p>
+<h3 id="variant-get_valuesection-string-key-string-defaultnull-variant-const"><code>Variant get_value(section: String, key: String, default=null: Variant) const</code></h3>
+<p>Returns the current value for the specified section and key. If either the section or the key do not exist, the method returns the fallback <code>default</code> value. If <code>default</code> is not specified or set to <code>null</code>, an error is also raised.</p>
+<h3 id="bool-has_sectionsection-string-const"><code>bool has_section(section: String) const</code></h3>
+<p>Returns <code>true</code> if the specified section exists.</p>
+<h3 id="bool-has_section_keysection-string-key-string-const"><code>bool has_section_key(section: String, key: String) const</code></h3>
+<p>Returns <code>true</code> if the specified section-key pair exists.</p>
+<h3 id="globalscopeerror-loadpath-string">``@GlobalScope.Error<code> load(path: String)</code></h3>
+<p>Loads the config file specified as a parameter. The file's contents are parsed and loaded in the <strong>ConfigFile</strong> object which the method was called on.</p>
+<p>Returns one of the <code>@GlobalScope.Error</code> code constants (<code>OK</code> on success).</p>
+<h3 id="globalscopeerror-load_encryptedpath-string-key-poolbytearray">``@GlobalScope.Error<code> load_encrypted(path: String, key: PoolByteArray)</code></h3>
+<p>Loads the encrypted config file specified as a parameter, using the provided <code>key</code> to decrypt it. The file's contents are parsed and loaded in the <strong>ConfigFile</strong> object which the method was called on.</p>
+<p>Returns one of the <code>@GlobalScope.Error</code> code constants (<code>OK</code> on success).</p>
+<h3 id="globalscopeerror-load_encrypted_passpath-string-password-string">``@GlobalScope.Error<code> load_encrypted_pass(path: String, password: String)</code></h3>
+<p>Loads the encrypted config file specified as a parameter, using the provided <code>password</code> to decrypt it. The file's contents are parsed and loaded in the <strong>ConfigFile</strong> object which the method was called on.</p>
+<p>Returns one of the <code>@GlobalScope.Error</code> code constants (<code>OK</code> on success).</p>
+<h3 id="globalscopeerror-parsedata-string">``@GlobalScope.Error<code> parse(data: String)</code></h3>
+<p>Parses the passed string as the contents of a config file. The string is parsed and loaded in the ConfigFile object which the method was called on.</p>
+<p>Returns one of the <code>@GlobalScope.Error</code> code constants (<code>OK</code> on success).</p>
+<h3 id="globalscopeerror-savepath-string">``@GlobalScope.Error<code> save(path: String)</code></h3>
+<p>Saves the contents of the <strong>ConfigFile</strong> object to the file specified as a parameter. The output file uses an INI-style structure.</p>
+<p>Returns one of the <code>@GlobalScope.Error</code> code constants (<code>OK</code> on success).</p>
+<h3 id="globalscopeerror-save_encryptedpath-string-key-poolbytearray">``@GlobalScope.Error<code> save_encrypted(path: String, key: PoolByteArray)</code></h3>
+<p>Saves the contents of the <strong>ConfigFile</strong> object to the AES-256 encrypted file specified as a parameter, using the provided <code>key</code> to encrypt it. The output file uses an INI-style structure.</p>
+<p>Returns one of the <code>@GlobalScope.Error</code> code constants (<code>OK</code> on success).</p>
+<h3 id="globalscopeerror-save_encrypted_passpath-string-password-string">``@GlobalScope.Error<code> save_encrypted_pass(path: String, password: String)</code></h3>
+<p>Saves the contents of the <strong>ConfigFile</strong> object to the AES-256 encrypted file specified as a parameter, using the provided <code>password</code> to encrypt it. The output file uses an INI-style structure.</p>
+<p>Returns one of the <code>@GlobalScope.Error</code> code constants (<code>OK</code> on success).</p>
+<h3 id="void-set_valuesection-string-key-string-value-variant"><code>void set_value(section: String, key: String, value: Variant)</code></h3>
+<p>Assigns a value to the specified key of the specified section. If either the section or the key do not exist, they are created. Passing a <code>null</code> value deletes the specified key if it exists, and deletes the section if it ends up empty once the key has been removed.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

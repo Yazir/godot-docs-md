@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Singletons (AutoLoad) — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="singletons-autoload">Singletons (AutoLoad)</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Godot's scene system, while powerful and flexible, has a drawback: there is no method for storing information (e.g. a player's score or inventory) that is needed by more than one scene.</p>
+<p>It's possible to address this with some workarounds, but they come with their own limitations:</p>
+<ul>
+<li>You can use a "master" scene that loads and unloads other scenes as its children. However, this means you can no longer run those scenes individually and expect them to work correctly.</li>
+<li>Information can be stored to disk in <code>user://</code> and then loaded by scenes that require it, but frequently saving and loading data is cumbersome and may be slow.</li>
+</ul>
+<p>The <a href="https://en.wikipedia.org/wiki/Singleton_pattern">Singleton pattern</a> is a useful tool for solving the common use case where you need to store persistent information between scenes. In our case, it's possible to reuse the same scene or class for multiple singletons as long as they have different names.</p>
+<p>Using this concept, you can create objects that:</p>
+<ul>
+<li>Are always loaded, no matter which scene is currently running.</li>
+<li>Can store global variables such as player information.</li>
+<li>Can handle switching scenes and between-scene transitions.</li>
+<li><em>Act</em> like a singleton, since GDScript does not support global variables by design.</li>
+</ul>
+<p>Autoloading nodes and scripts can give us these characteristics.</p>
+<blockquote>
+<p><strong>Note:</strong> Godot won't make an AutoLoad a "true" singleton as per the singleton design pattern. It may still be instanced more than once by the user if desired.</p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> If you're creating an autoload as part of an editor plugin, consider ref when the plugin is enabled.</p>
+</blockquote>
+<h2 id="autoload">AutoLoad</h2>
+<p>You can create an AutoLoad to load a scene or a script that inherits from <code>class_Node</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> When autoloading a script, a <code>class_Node</code> will be created and the script will be attached to it. This node will be added to the root viewport before any other scenes are loaded.</p>
+</blockquote>
+<p>To autoload a scene or script, select <strong>Project &gt; Project Settings</strong> from the menu and switch to the <strong>AutoLoad</strong> tab.</p>
+<p>Here you can add any number of scenes or scripts. Each entry in the list requires a name, which is assigned as the node's <code>name</code> property. The order of the entries as they are added to the global scene tree can be manipulated using the up/down arrow keys. Like regular scenes, the engine will read these nodes in top-to-bottom order.</p>
+<p>This means that any node can access a singleton named "PlayerVariables" with:</p>
+<pre class="gdscript"><code>var player_vars = get_node(&quot;/root/PlayerVariables&quot;)
+player_vars.health -= 10</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> playerVariables <span class="op">=</span> GetNode<span class="op">&lt;</span>PlayerVariables<span class="op">&gt;(</span><span class="st">&quot;/root/PlayerVariables&quot;</span><span class="op">);</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>playerVariables<span class="op">.</span><span class="fu">Health</span> <span class="op">-=</span> <span class="dv">10</span><span class="op">;</span> <span class="co">// Instance field.</span></span></code></pre></div>
+<p>If the <strong>Enable</strong> column is checked (which is the default), then the singleton can be accessed directly without requiring <code>get_node()</code>:</p>
+<pre class="gdscript"><code>PlayerVariables.health -= 10</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Static members can be accessed by using the class name.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>PlayerVariables<span class="op">.</span><span class="fu">Health</span> <span class="op">-=</span> <span class="dv">10</span><span class="op">;</span></span></code></pre></div>
+<p>Note that autoload objects (scripts and/or scenes) are accessed just like any other node in the scene tree. In fact, if you look at the running scene tree, you'll see the autoloaded nodes appear:</p>
+<blockquote>
+<p><strong>Warning:</strong> Autoloads must <strong>not</strong> be removed using <code>free()</code> or <code>queue_free()</code> at runtime, or the engine will crash.</p>
+</blockquote>
+<h2 id="custom-scene-switcher">Custom scene switcher</h2>
+<p>This tutorial will demonstrate building a scene switcher using autoloads. For basic scene switching, you can use the ref method (see <code>doc_scene_tree</code> for details). However, if you need more complex behavior when changing scenes, this method provides more functionality.</p>
+<p>To begin, download the template from here: download and open it in Godot.</p>
+<p>The project contains two scenes: <code>Scene1.tscn</code> and <code>Scene2.tscn</code>. Each scene contains a label displaying the scene name and a button with its <code>pressed()</code> signal connected. When you run the project, it starts in <code>Scene1.tscn</code>. However, pressing the button does nothing.</p>
+<h3 id="globalgd">Global.gd</h3>
+<p>Switch to the <strong>Script</strong> tab and create a new script called <code>Global.gd</code>. Make sure it inherits from <code>Node</code>:</p>
+<p>The next step is to add this script to the autoLoad list. Open <strong>Project &gt; Project Settings</strong> from the menu, switch to the <strong>AutoLoad</strong> tab and select the script by clicking the browse button or typing its path: <code>res://Global.gd</code>. Press <strong>Add</strong> to add it to the autoload list:</p>
+<p>Now whenever we run any scene in the project, this script will always be loaded.</p>
+<p>Returning to the script, it needs to fetch the current scene in the _ready() function. Both the current scene (the one with the button) and <code>Global.gd</code> are children of root, but autoloaded nodes are always first. This means that the last child of root is always the loaded scene.</p>
+<pre class="gdscript"><code>extends Node
+
+var current_scene = null
+
+func _ready():
+    var root = get_tree().root
+    current_scene = root.get_child(root.get_child_count() - 1)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Global <span class="op">:</span> Godot<span class="op">.</span><span class="fu">Node</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Node CurrentScene <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        Viewport root <span class="op">=</span> <span class="fu">GetTree</span><span class="op">().</span><span class="fu">Root</span><span class="op">;</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        CurrentScene <span class="op">=</span> root<span class="op">.</span><span class="fu">GetChild</span><span class="op">(</span>root<span class="op">.</span><span class="fu">GetChildCount</span><span class="op">()</span> <span class="op">-</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Now we need a function for changing the scene. This function needs to free the current scene and replace it with the requested one.</p>
+<pre class="gdscript"><code>func goto_scene(path):
+    # This function will usually be called from a signal callback,
+    # or some other function in the current scene.
+    # Deleting the current scene at this point is
+    # a bad idea, because it may still be executing code.
+    # This will result in a crash or unexpected behavior.
+
+    # The solution is to defer the load to a later time, when
+    # we can be sure that no code from the current scene is running:
+
+    call_deferred(&quot;_deferred_goto_scene&quot;, path)
+
+
+func _deferred_goto_scene(path):
+    # It is now safe to remove the current scene
+    current_scene.free()
+
+    # Load the new scene.
+    var s = ResourceLoader.load(path)
+
+    # Instance the new scene.
+    current_scene = s.instance()
+
+    # Add it to the active scene, as child of root.
+    get_tree().root.add_child(current_scene)
+
+    # Optionally, to make it compatible with the SceneTree.change_scene() API.
+    get_tree().current_scene = current_scene</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">GotoScene</span><span class="op">(</span><span class="dt">string</span> path<span class="op">)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// This function will usually be called from a signal callback,</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// or some other function from the current scene.</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Deleting the current scene at this point is</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// a bad idea, because it may still be executing code.</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// This will result in a crash or unexpected behavior.</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// The solution is to defer the load to a later time, when</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// we can be sure that no code from the current scene is running:</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">CallDeferred</span><span class="op">(</span><span class="fu">nameof</span><span class="op">(</span>DeferredGotoScene<span class="op">),</span> path<span class="op">);</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">DeferredGotoScene</span><span class="op">(</span><span class="dt">string</span> path<span class="op">)</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">// It is now safe to remove the current scene</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    CurrentScene<span class="op">.</span><span class="fu">Free</span><span class="op">();</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Load a new scene.</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> nextScene <span class="op">=</span> <span class="op">(</span>PackedScene<span class="op">)</span>GD<span class="op">.</span><span class="fu">Load</span><span class="op">(</span>path<span class="op">);</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Instance the new scene.</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    CurrentScene <span class="op">=</span> nextScene<span class="op">.</span><span class="fu">Instance</span><span class="op">();</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add it to the active scene, as child of root.</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">GetTree</span><span class="op">().</span><span class="fu">Root</span><span class="op">.</span><span class="fu">AddChild</span><span class="op">(</span>CurrentScene<span class="op">);</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Optionally, to make it compatible with the SceneTree.change_scene() API.</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">GetTree</span><span class="op">().</span><span class="fu">CurrentScene</span> <span class="op">=</span> CurrentScene<span class="op">;</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Using ref, the second function will only run once all code from the current scene has completed. Thus, the current scene will not be removed while it is still being used (i.e. its code is still running).</p>
+<p>Finally, we need to fill the empty callback functions in the two scenes:</p>
+<pre class="gdscript"><code># Add to &#39;Scene1.gd&#39;.
+
+func _on_Button_pressed():
+    Global.goto_scene(&quot;res://Scene2.tscn&quot;)</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Add to &#39;Scene1.cs&#39;.</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnButtonPressed</span><span class="op">()</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> global <span class="op">=</span> GetNode<span class="op">&lt;</span>Global<span class="op">&gt;(</span><span class="st">&quot;/root/Global&quot;</span><span class="op">);</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    global<span class="op">.</span><span class="fu">GotoScene</span><span class="op">(</span><span class="st">&quot;res://Scene2.tscn&quot;</span><span class="op">);</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>and</p>
+<pre class="gdscript"><code># Add to &#39;Scene2.gd&#39;.
+
+func _on_Button_pressed():
+    Global.goto_scene(&quot;res://Scene1.tscn&quot;)</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Add to &#39;Scene2.cs&#39;.</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnButtonPressed</span><span class="op">()</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> global <span class="op">=</span> GetNode<span class="op">&lt;</span>Global<span class="op">&gt;(</span><span class="st">&quot;/root/Global&quot;</span><span class="op">);</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    global<span class="op">.</span><span class="fu">GotoScene</span><span class="op">(</span><span class="st">&quot;res://Scene1.tscn&quot;</span><span class="op">);</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Run the project and test that you can switch between scenes by pressing the button.</p>
+<blockquote>
+<p><strong>Note:</strong> When scenes are small, the transition is instantaneous. However, if your scenes are more complex, they may take a noticeable amount of time to appear. To learn how to handle this, see the next tutorial: <code>doc_background_loading</code>.</p>
+<p>Alternatively, if the loading time is relatively short (less than 3 seconds or so), you can display a "loading plaque" by showing some kind of 2D element just before changing the scene. You can then hide it just after the scene is changed. This can be used to indicate to the player that a scene is being loaded.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

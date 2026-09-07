@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EditorTranslationParserPlugin — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="editortranslationparserplugin">EditorTranslationParserPlugin</h1>
+<p><em>Inherits: <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Plugin for adding custom parsers to extract strings that are to be translated from custom files (.csv, .json etc.).</p>
+<h2 id="description">Description</h2>
+<p><strong>EditorTranslationParserPlugin</strong> is invoked when a file is being parsed to extract strings that require translation. To define the parsing and string extraction logic, override the <code>_parse_file()</code> method in script.</p>
+<p>The return value should be an <a href="Array.html">Array</a> of <a href="PackedStringArray.html">PackedStringArray</a> s, one for each extracted translatable string. Each entry should contain <code>[msgid, msgctxt, msgid_plural, comment, source_line]</code>, where all except <code>msgid</code> are optional. Empty strings will be ignored.</p>
+<p>The extracted strings will be written into a translation template file selected by user under "Template Generation" in "Localization" tab in "Project Settings" menu.</p>
+<p>Below shows an example of a custom parser that extracts strings from a CSV file to write into a template.</p>
+<pre class="gdscript"><code>@tool
+extends EditorTranslationParserPlugin
+
+func _parse_file(path):
+    var ret: Array[PackedStringArray] = []
+    var file = FileAccess.open(path, FileAccess.READ)
+    var text = file.get_as_text()
+    var split_strs = text.split(&quot;,&quot;, false)
+    for s in split_strs:
+        ret.append(PackedStringArray([s]))
+        #print(&quot;Extracted string: &quot; + s)
+
+    return ret
+
+func _get_recognized_extensions():
+    return [&quot;csv&quot;]</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> CustomParser <span class="op">:</span> EditorTranslationParserPlugin</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Array</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">[]&gt;</span> <span class="fu">_ParseFile</span><span class="op">(</span><span class="dt">string</span> path<span class="op">)</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Array</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">[]&gt;</span> ret<span class="op">;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">using</span> <span class="dt">var</span> file <span class="op">=</span> FileAccess<span class="op">.</span><span class="fu">Open</span><span class="op">(</span>path<span class="op">,</span> FileAccess<span class="op">.</span><span class="fu">ModeFlags</span><span class="op">.</span><span class="fu">Read</span><span class="op">);</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">string</span> text <span class="op">=</span> file<span class="op">.</span><span class="fu">GetAsText</span><span class="op">();</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">string</span><span class="op">[]</span> splitStrs <span class="op">=</span> text<span class="op">.</span><span class="fu">Split</span><span class="op">(</span><span class="st">&quot;,&quot;</span><span class="op">,</span> allowEmpty<span class="op">:</span> <span class="kw">false</span><span class="op">);</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">foreach</span> <span class="op">(</span><span class="dt">string</span> s <span class="kw">in</span> splitStrs<span class="op">)</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            ret<span class="op">.</span><span class="fu">Add</span><span class="op">([</span>s<span class="op">]);</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>            <span class="co">//GD.Print($&quot;Extracted string: {s}&quot;);</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> ret<span class="op">;</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">string</span><span class="op">[]</span> <span class="fu">_GetRecognizedExtensions</span><span class="op">()</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="op">[</span><span class="st">&quot;csv&quot;</span><span class="op">];</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>To add a translatable string associated with a context, plural, comment, or source line:</p>
+<pre class="gdscript"><code># This will add a message with msgid &quot;Test 1&quot;, msgctxt &quot;context&quot;, msgid_plural &quot;test 1 plurals&quot;, comment &quot;test 1 comment&quot;, and source line &quot;7&quot;.
+ret.append(PackedStringArray([&quot;Test 1&quot;, &quot;context&quot;, &quot;test 1 plurals&quot;, &quot;test 1 comment&quot;, &quot;7&quot;]))
+# This will add a message with msgid &quot;A test without context&quot; and msgid_plural &quot;plurals&quot;.
+ret.append(PackedStringArray([&quot;A test without context&quot;, &quot;&quot;, &quot;plurals&quot;]))
+# This will add a message with msgid &quot;Only with context&quot; and msgctxt &quot;a friendly context&quot;.
+ret.append(PackedStringArray([&quot;Only with context&quot;, &quot;a friendly context&quot;]))</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// This will add a message with msgid &quot;Test 1&quot;, msgctxt &quot;context&quot;, msgid_plural &quot;test 1 plurals&quot;, comment &quot;test 1 comment&quot;, and source line &quot;7&quot;.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>ret<span class="op">.</span><span class="fu">Add</span><span class="op">([</span><span class="st">&quot;Test 1&quot;</span><span class="op">,</span> <span class="st">&quot;context&quot;</span><span class="op">,</span> <span class="st">&quot;test 1 plurals&quot;</span><span class="op">,</span> <span class="st">&quot;test 1 comment&quot;</span><span class="op">,</span> <span class="st">&quot;7&quot;</span><span class="op">]);</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">// This will add a message with msgid &quot;A test without context&quot; and msgid_plural &quot;plurals&quot;.</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>ret<span class="op">.</span><span class="fu">Add</span><span class="op">([</span><span class="st">&quot;A test without context&quot;</span><span class="op">,</span> <span class="st">&quot;&quot;</span><span class="op">,</span> <span class="st">&quot;plurals&quot;</span><span class="op">]);</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">// This will add a message with msgid &quot;Only with context&quot; and msgctxt &quot;a friendly context&quot;.</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>ret<span class="op">.</span><span class="fu">Add</span><span class="op">([</span><span class="st">&quot;Only with context&quot;</span><span class="op">,</span> <span class="st">&quot;a friendly context&quot;</span><span class="op">]);</span></span></code></pre></div>
+<p><strong>Note:</strong> If you override parsing logic for standard script types (GDScript, C#, etc.), it would be better to load the <code>path</code> argument using <code>ResourceLoader.load()</code>. This is because built-in scripts are loaded as <a href="Resource.html">Resource</a> type, not <a href="FileAccess.html">FileAccess</a> type. For example:</p>
+<pre class="gdscript"><code>func _parse_file(path):
+    var res = ResourceLoader.load(path, &quot;Script&quot;)
+    var text = res.source_code
+    # Parsing logic.
+
+func _get_recognized_extensions():
+    return [&quot;gd&quot;]</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Array</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">[]&gt;</span> <span class="fu">_ParseFile</span><span class="op">(</span><span class="dt">string</span> path<span class="op">)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> res <span class="op">=</span> ResourceLoader<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Script<span class="op">&gt;(</span>path<span class="op">,</span> <span class="st">&quot;Script&quot;</span><span class="op">);</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">string</span> text <span class="op">=</span> res<span class="op">.</span><span class="fu">SourceCode</span><span class="op">;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Parsing logic.</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">string</span><span class="op">[]</span> <span class="fu">_GetRecognizedExtensions</span><span class="op">()</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> <span class="op">[</span><span class="st">&quot;gd&quot;</span><span class="op">];</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Alternatively, the plugin can directly modify the final list of strings, by implementing <code>_customize_strings()</code>.</p>
+<p>To use <strong>EditorTranslationParserPlugin</strong>, register it using the <code>EditorPlugin.add_translation_parser_plugin()</code> method first.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="arraypackedstringarray-_customize_stringsstrings-arraypackedstringarray-virtual-const"><code>Array\[PackedStringArray\] _customize_strings(strings: Array\[PackedStringArray\]) virtual const</code></h3>
+<p>Called after parsing all files. You can modify the <code>strings</code> array to add or remove entries from the final list of strings, then return it after modifications. Each entry is a <a href="PackedStringArray.html">PackedStringArray</a> like explained in the <strong>EditorTranslationParserPlugin</strong>'s description.</p>
+<pre class="gdscript"><code>@tool
+extends EditorTranslationParserPlugin
+
+func _customize_strings(strings):
+    # Add new string.
+    strings.append([&quot;Test 1&quot;, &quot;context&quot;, &quot;test 1 plurals&quot;, &quot;test 1 comment&quot;])
+
+    # Remove all strings that begin with $.
+    strings = strings.filter(func(s): return not s[0].begins_with(&quot;$&quot;))
+
+    return strings</code></pre>
+<h3 id="packedstringarray-_get_recognized_extensions-virtual-const"><code>PackedStringArray _get_recognized_extensions() virtual const</code></h3>
+<p>Gets the list of file extensions to associate with this parser, e.g. <code>["csv"]</code>.</p>
+<h3 id="arraypackedstringarray-_parse_filepath-string-virtual"><code>Array\[PackedStringArray\] _parse_file(path: String) virtual</code></h3>
+<p>Override this method to define a custom parsing logic to extract the translatable strings.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

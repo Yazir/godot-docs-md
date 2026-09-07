@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AudioStreamGenerator — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="audiostreamgenerator">AudioStreamGenerator</h1>
+<p><em>Inherits: <a href="AudioStream.html">AudioStream</a> &lt; <a href="Resource.html">Resource</a> &lt; <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>An audio stream with utilities for procedural sound generation.</p>
+<h2 id="description">Description</h2>
+<p><strong>AudioStreamGenerator</strong> is a type of audio stream that does not play back sounds on its own; instead, it expects a script to generate audio data for it. See also <a href="AudioStreamGeneratorPlayback.html">AudioStreamGeneratorPlayback</a>.</p>
+<p>Here's a sample on how to use it to generate a sine wave:</p>
+<pre class="gdscript"><code>var playback # Will hold the AudioStreamGeneratorPlayback.
+@onready var sample_hz = $AudioStreamPlayer.stream.mix_rate
+var pulse_hz = 440.0 # The frequency of the sound wave.
+var phase = 0.0
+
+func _ready():
+    $AudioStreamPlayer.play()
+    playback = $AudioStreamPlayer.get_stream_playback()
+    fill_buffer()
+
+func fill_buffer():
+    var increment = pulse_hz / sample_hz
+    var frames_available = playback.get_frames_available()
+
+    for i in range(frames_available):
+        playback.push_frame(Vector2.ONE * sin(phase * TAU))
+        phase = fmod(phase + increment, 1.0)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Export<span class="op">]</span> <span class="kw">public</span> AudioStreamPlayer Player <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> AudioStreamGeneratorPlayback _playback<span class="op">;</span> <span class="co">// Will hold the AudioStreamGeneratorPlayback.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">float</span> _sampleHz<span class="op">;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">float</span> _pulseHz <span class="op">=</span> <span class="fl">440.0f</span><span class="op">;</span> <span class="co">// The frequency of the sound wave.</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">double</span> phase <span class="op">=</span> <span class="fl">0.0</span><span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>Player<span class="op">.</span><span class="fu">Stream</span> <span class="kw">is</span> AudioStreamGenerator generator<span class="op">)</span> <span class="co">// Type as a generator to access MixRate.</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        _sampleHz <span class="op">=</span> generator<span class="op">.</span><span class="fu">MixRate</span><span class="op">;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        Player<span class="op">.</span><span class="fu">Play</span><span class="op">();</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        _playback <span class="op">=</span> <span class="op">(</span>AudioStreamGeneratorPlayback<span class="op">)</span>Player<span class="op">.</span><span class="fu">GetStreamPlayback</span><span class="op">();</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">FillBuffer</span><span class="op">();</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">FillBuffer</span><span class="op">()</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> increment <span class="op">=</span> _pulseHz <span class="op">/</span> _sampleHz<span class="op">;</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> framesAvailable <span class="op">=</span> _playback<span class="op">.</span><span class="fu">GetFramesAvailable</span><span class="op">();</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    <span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> framesAvailable<span class="op">;</span> i<span class="op">++)</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        _playback<span class="op">.</span><span class="fu">PushFrame</span><span class="op">(</span>Vector2<span class="op">.</span><span class="fu">One</span> <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>Mathf<span class="op">.</span><span class="fu">Sin</span><span class="op">(</span>phase <span class="op">*</span> Mathf<span class="op">.</span><span class="fu">Tau</span><span class="op">));</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        phase <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">PosMod</span><span class="op">(</span>phase <span class="op">+</span> increment<span class="op">,</span> <span class="fl">1.0</span><span class="op">);</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In the example above, the "AudioStreamPlayer" node must use an <strong>AudioStreamGenerator</strong> as its stream. The <code>fill_buffer</code> function provides audio data for approximating a sine wave.</p>
+<p>See also <a href="AudioEffectSpectrumAnalyzer.html">AudioEffectSpectrumAnalyzer</a> for performing real-time audio spectrum analysis.</p>
+<p><strong>Note:</strong> Due to performance constraints, this class is best used from C# or from a compiled language via GDExtension. If you still want to use this class from GDScript, consider using a lower <code>mix_rate</code> such as 11,025 Hz or 22,050 Hz.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/tutorials/audio/audio_streams.html">Audio streams</a></li>
+<li><a href="https://godotengine.org/asset-library/asset/2759">Audio Generator Demo</a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="float-buffer_length--05"><code>float buffer_length = 0.5</code></h3>
+<ul>
+<li>Setter: <code>set_buffer_length(value: float)</code></li>
+<li>Getter: <code>get_buffer_length()</code></li>
+</ul>
+<p>The length of the buffer to generate (in seconds). Lower values result in less latency, but require the script to generate audio data faster, resulting in increased CPU usage and more risk for audio cracking if the CPU can't keep up.</p>
+<h3 id="float-mix_rate--441000"><code>float mix_rate = 44100.0</code></h3>
+<ul>
+<li>Setter: <code>set_mix_rate(value: float)</code></li>
+<li>Getter: <code>get_mix_rate()</code></li>
+</ul>
+<p>The sample rate to use (in Hz). Higher values are more demanding for the CPU to generate, but result in better quality.</p>
+<p>In games, common sample rates in use are <code>11025</code>, <code>16000</code>, <code>22050</code>, <code>32000</code>, <code>44100</code>, and <code>48000</code>.</p>
+<p>According to the <a href="https://en.wikipedia.org/wiki/Nyquist%E2%80%93Shannon_sampling_theorem">Nyquist-Shannon sampling theorem</a>, there is no quality difference to human hearing when going past 40,000 Hz (since most humans can only hear up to ~20,000 Hz, often less). If you are generating lower-pitched sounds such as voices, lower sample rates such as <code>32000</code> or <code>22050</code> may be usable with no loss in quality.</p>
+<p><strong>Note:</strong> <strong>AudioStreamGenerator</strong> is not automatically resampling input data, to produce expected result <code>mix_rate_mode</code> should match the sampling rate of input data.</p>
+<p><strong>Note:</strong> If you are using <a href="AudioEffectCapture.html">AudioEffectCapture</a> as the source of your data, set <code>mix_rate_mode</code> to <code>MIX_RATE_INPUT</code> or <code>MIX_RATE_OUTPUT</code> to automatically match current <a href="AudioServer.html">AudioServer</a> mixing rate.</p>
+<h3 id="audiostreamgeneratormixrate-mix_rate_mode--2">``AudioStreamGeneratorMixRate<code> mix_rate_mode = 2</code></h3>
+<ul>
+<li>Setter: <code>set_mix_rate_mode(value: </code>AudioStreamGeneratorMixRate<code>)</code></li>
+<li>Getter: <code>get_mix_rate_mode()</code></li>
+</ul>
+<p>Mixing rate mode. If set to <code>MIX_RATE_CUSTOM</code>, <code>mix_rate</code> is used, otherwise current <a href="AudioServer.html">AudioServer</a> mixing rate is used.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-audiostreamgeneratormixrate"><code>enum AudioStreamGeneratorMixRate</code></h3>
+<ul>
+<li><p><code>MIX_RATE_OUTPUT = 0</code></p>
+<p>Current <a href="AudioServer.html">AudioServer</a> output mixing rate.</p></li>
+<li><p><code>MIX_RATE_INPUT = 1</code></p>
+<p>Current <a href="AudioServer.html">AudioServer</a> input mixing rate.</p></li>
+<li><p><code>MIX_RATE_CUSTOM = 2</code></p>
+<p>Custom mixing rate, specified by <code>mix_rate</code>.</p></li>
+<li><p><code>MIX_RATE_MAX = 3</code></p>
+<p>Maximum value for the mixing rate mode enum.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sky — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="sky">Sky</h1>
+<p><em>Inherits: <a href="Resource.html">Resource</a> &lt; <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Defines a 3D environment's background by using a <a href="Material.html">Material</a>.</p>
+<h2 id="description">Description</h2>
+<p>The <strong>Sky</strong> class uses a <a href="Material.html">Material</a> to render a 3D environment's background and the light it emits by updating the reflection/radiance cubemaps.</p>
+<h2 id="properties">Properties</h2>
+<h3 id="processmode-process_mode--0">``ProcessMode<code> process_mode = 0</code></h3>
+<ul>
+<li>Setter: <code>set_process_mode(value: </code>ProcessMode<code>)</code></li>
+<li>Getter: <code>get_process_mode()</code></li>
+</ul>
+<p>The method for generating the radiance map from the sky. The radiance map is a cubemap with increasingly blurry versions of the sky corresponding to different levels of roughness. Radiance maps can be expensive to calculate.</p>
+<h3 id="radiancesize-radiance_size--3">``RadianceSize<code> radiance_size = 3</code></h3>
+<ul>
+<li>Setter: <code>set_radiance_size(value: </code>RadianceSize<code>)</code></li>
+<li>Getter: <code>get_radiance_size()</code></li>
+</ul>
+<p>The <strong>Sky</strong>'s radiance map size. The higher the radiance map size, the more detailed the lighting from the <strong>Sky</strong> will be.</p>
+<p><strong>Note:</strong> Some hardware will have trouble with higher radiance sizes, especially <code>RADIANCE_SIZE_512</code> and above. Only use such high values on high-end hardware.</p>
+<h3 id="material-sky_material"><code>Material sky_material</code></h3>
+<ul>
+<li>Setter: <code>set_material(value: Material)</code></li>
+<li>Getter: <code>get_material()</code></li>
+</ul>
+<p><a href="Material.html">Material</a> used to draw the background. Can be <a href="PanoramaSkyMaterial.html">PanoramaSkyMaterial</a>, <a href="ProceduralSkyMaterial.html">ProceduralSkyMaterial</a>, <a href="PhysicalSkyMaterial.html">PhysicalSkyMaterial</a>, or even a <a href="ShaderMaterial.html">ShaderMaterial</a> if you want to use your own custom shader.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-radiancesize"><code>enum RadianceSize</code></h3>
+<ul>
+<li><p><code>RADIANCE_SIZE_32 = 0</code></p>
+<p>Radiance texture size is 32×32 pixels.</p></li>
+<li><p><code>RADIANCE_SIZE_64 = 1</code></p>
+<p>Radiance texture size is 64×64 pixels.</p></li>
+<li><p><code>RADIANCE_SIZE_128 = 2</code></p>
+<p>Radiance texture size is 128×128 pixels.</p></li>
+<li><p><code>RADIANCE_SIZE_256 = 3</code></p>
+<p>Radiance texture size is 256×256 pixels.</p></li>
+<li><p><code>RADIANCE_SIZE_512 = 4</code></p>
+<p>Radiance texture size is 512×512 pixels.</p></li>
+<li><p><code>RADIANCE_SIZE_1024 = 5</code></p>
+<p>Radiance texture size is 1024×1024 pixels.</p></li>
+<li><p><code>RADIANCE_SIZE_2048 = 6</code></p>
+<p>Radiance texture size is 2048×2048 pixels.</p></li>
+<li><p><code>RADIANCE_SIZE_MAX = 7</code></p>
+<p>Represents the size of the <code>RadianceSize</code> enum.</p></li>
+</ul>
+<h3 id="enum-processmode"><code>enum ProcessMode</code></h3>
+<ul>
+<li><p><code>PROCESS_MODE_AUTOMATIC = 0</code></p>
+<p>Automatically selects the appropriate process mode based on your sky shader. If your shader uses <code>TIME</code> or <code>POSITION</code>, this will use <code>PROCESS_MODE_REALTIME</code>. If your shader uses any of the <code>LIGHT_*</code> variables or any custom uniforms, this uses <code>PROCESS_MODE_INCREMENTAL</code>. Otherwise, this defaults to <code>PROCESS_MODE_QUALITY</code>.</p></li>
+<li><p><code>PROCESS_MODE_QUALITY = 1</code></p>
+<p>Uses high quality importance sampling to process the radiance map. In general, this results in much higher quality than <code>PROCESS_MODE_REALTIME</code> but takes much longer to generate. This should not be used if you plan on changing the sky at runtime. If you are finding that the reflection is not blurry enough and is showing sparkles or fireflies, try increasing <code>ProjectSettings.rendering/reflections/sky_reflections/ggx_samples</code>.</p></li>
+<li><p><code>PROCESS_MODE_INCREMENTAL = 2</code></p>
+<p>Uses the same high quality importance sampling to process the radiance map as <code>PROCESS_MODE_QUALITY</code>, but updates over several frames. The number of frames is determined by <code>ProjectSettings.rendering/reflections/sky_reflections/roughness_layers</code>. Use this when you need highest quality radiance maps, but have a sky that updates slowly.</p></li>
+<li><p><code>PROCESS_MODE_REALTIME = 3</code></p>
+<p>Uses the fast filtering algorithm to process the radiance map. In general this results in lower quality, but substantially faster run times. If you need better quality, but still need to update the sky every frame, consider turning on <code>ProjectSettings.rendering/reflections/sky_reflections/fast_filter_high_quality</code>.</p>
+<p><strong>Note:</strong> The fast filtering algorithm is limited to 256×256 cubemaps, so <code>radiance_size</code> must be set to <code>RADIANCE_SIZE_256</code>. Otherwise, a warning is printed and the overridden radiance size is ignored.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

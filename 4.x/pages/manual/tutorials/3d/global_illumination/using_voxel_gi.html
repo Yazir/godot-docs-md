@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using Voxel global illumination — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-voxel-global-illumination">Using Voxel global illumination</h1>
+<p>VoxelGI is a form of fully real-time global illumination, intended to be used for small/medium-scale 3D scenes. VoxelGI is fairly demanding on the GPU, so it's best used when targeting dedicated graphics cards.</p>
+<blockquote>
+<p><strong>Important:</strong> VoxelGI is only supported when using the Forward+ renderer, not the Mobile or Compatibility renderers.</p>
+</blockquote>
+<blockquote>
+<p><strong>See also:</strong> Not sure if VoxelGI is suited to your needs? See <code>doc_introduction_to_global_illumination_comparison</code> for a comparison of GI techniques available in Godot 4.</p>
+</blockquote>
+<h2 id="visual-comparison">Visual comparison</h2>
+<p><em>Image: VoxelGI disabled.</em></p>
+<p>VoxelGI disabled.</p>
+<p><em>Image: VoxelGI enabled.</em></p>
+<p>VoxelGI enabled.</p>
+<h2 id="setting-up-voxelgi">Setting up VoxelGI</h2>
+<ol type="1">
+<li>Make sure your static level geometry is imported with the Light Baking option set to <strong>Static</strong> or <strong>Static Lightmaps</strong> in the Import dock. For manually added MeshInstance3D nodes, make sure the <strong>Global Illumination &gt; Mode</strong> property is set to <strong>Static</strong> in the inspector.</li>
+<li>Create a VoxelGI node in the Scene tree dock.</li>
+<li>Move the VoxelGI node to the center of the area you want it to cover by dragging the manipulation gizmo in the 3D viewport. Then adjust the VoxelGI's extents by dragging the red points in the 3D viewport (or enter values in the inspector). Make sure the VoxelGI's extents aren't unnecessarily large, or quality will suffer.</li>
+<li>Select the VoxelGI node and click <strong>Bake</strong> at the top of the 3D editor viewport. This will take at least a few seconds to complete (depending on the number of VoxelGI subdivisions and scene complexity).</li>
+</ol>
+<p>If at least one mesh contained within the VoxelGI's extents has its global illumination mode set to <strong>Static</strong>, you should see indirect lighting appear within the scene.</p>
+<blockquote>
+<p><strong>Note:</strong> To avoid bloating text-based scene files with large amounts of binary data, make sure the VoxelGIData resource is <em>always</em> saved to an external binary file. This file must be saved with a <code>.res</code> (binary resource) extension instead of <code>.tres</code> (text-based resource). Using an external binary resource for VoxelGIData will keep your text-based scene small while ensuring it loads and saves quickly.</p>
+</blockquote>
+<h2 id="voxelgi-node-properties">VoxelGI node properties</h2>
+<p>The following properties can be adjusted in the VoxelGI node inspector before baking:</p>
+<ul>
+<li><strong>Subdiv:</strong> Higher values result in more precise indirect lighting, at the cost of lower performance, longer bake times and increased storage requirements.</li>
+<li><strong>Extents:</strong> Represents the size of the box in which indirect lighting should be baked. Extents are centered around the VoxelGI node's origin.</li>
+</ul>
+<p>The following properties can be adjusted in the VoxelGIData <em>resource</em> that is contained within a VoxelGI node after it has been baked:</p>
+<ul>
+<li><strong>Dynamic Range:</strong> The maximum brightness that can be represented in indirect lighting. Higher values make it possible to represent brighter indirect light, at the cost of lower precision (which can result in visible banding). If in doubt, leave this unchanged.</li>
+<li><strong>Energy:</strong> The indirect lighting's overall energy. This also effects the energy of direct lighting emitted by meshes with emissive materials.</li>
+<li><strong>Bias:</strong> Optional bias added to lookups into the voxel buffer at runtime. This helps avoid self-occlusion artifacts.</li>
+<li><strong>Normal Bias:</strong> Similar to <strong>Bias</strong>, but offsets the lookup into the voxel buffer by the surface normal. This also helps avoid self-occlusion artifacts. Higher values reduce self-reflections visible in non-rough materials, at the cost of more visible light leaking and flatter-looking indirect lighting. To prioritize hiding self-reflections over lighting quality, set <strong>Bias</strong> to <code>0.0</code> and <strong>Normal Bias</strong> to a value between <code>1.0</code> and <code>2.0</code>.</li>
+<li><strong>Propagation:</strong> The energy factor to use for bounced indirect lighting. Higher values will result in brighter, more diffuse lighting (which may end up looking too flat). When <strong>Use Two Bounces</strong> is enabled, you may want to decrease <strong>Propagation</strong> to compensate for the overall brighter indirect lighting.</li>
+<li><strong>Use Two Bounces:</strong> If enabled, lighting will bounce twice instead of just once. This results in more realistic-looking indirect lighting, and makes indirect lighting visible in reflections as well. Enabling this generally has no noticeable performance cost.</li>
+<li><strong>Interior:</strong> If enabled, environment sky lighting will not be taken into account by VoxelGI. This should be enabled in indoor scenes to avoid light leaking from the environment.</li>
+</ul>
+<h2 id="voxelgi-interaction-with-lights-and-objects">VoxelGI interaction with lights and objects</h2>
+<p>To ensure correct visuals when using VoxelGI, you must configure your meshes and lights' global illumination properties according to their <em>purpose</em> in the scene (static or dynamic).</p>
+<p>There are 3 global illumination modes available for meshes:</p>
+<ul>
+<li><strong>Disabled:</strong> The mesh won't be taken into account for VoxelGI baking. The mesh will <em>receive</em> indirect lighting from the scene, but it will not <em>contribute</em> indirect lighting to the scene.</li>
+<li><strong>Static (default):</strong> The mesh will be taken into account for VoxelGI baking. The mesh will both receive <em>and</em> contribute indirect lighting to the scene. If the mesh is changed in any way after baking, the VoxelGI node must be baked again. Otherwise, indirect lighting will look incorrect.</li>
+<li><strong>Dynamic:</strong> The mesh won't be taken into account for VoxelGI baking, but it will still receive <em>and</em> contribute indirect lighting to the scene in real-time. This option is much slower compared to <strong>Static</strong>. Only use the <strong>Dynamic</strong> global illumination mode on large meshes that will change significantly during gameplay.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> For meshes with the <strong>Static</strong> bake mode, the VoxelGI baking system is not able to make use of custom shaders (<code>class_ShaderMaterial</code>). These meshes will be considered to be pure black, only acting as light blockers. You can make VoxelGI take custom shaders into account by using the <strong>Dynamic</strong> bake mode for these objects, but this has a performance cost.</p>
+<p>For <code>class_BaseMaterial3D</code>, some properties are currently ignored during baking. This can impact visuals if the material's albedo or emission texture was designed around using certain UV mappings:</p>
+<ul>
+<li><strong>UV1 &gt; Offset</strong></li>
+<li><strong>UV1 &gt; Scale</strong></li>
+<li><strong>UV1 &gt; Triplanar</strong></li>
+<li><strong>Emission &gt; On UV2</strong></li>
+</ul>
+</blockquote>
+<p>Additionally, there are 3 bake modes available for lights (DirectionalLight3D, OmniLight3D, SpotLight3D, and AreaLight3D):</p>
+<ul>
+<li><strong>Disabled:</strong> The light won't be taken into account for VoxelGI baking. The light won't contribute indirect lighting to the scene.</li>
+<li><strong>Static:</strong> The light will be taken into account for VoxelGI baking. The light will contribute indirect lighting to the scene. If the light is changed in any way after baking, the VoxelGI node must be baked again or indirect lighting will look incorrect. If in doubt, use this mode for level lighting.</li>
+<li><strong>Dynamic (default):</strong> The light won't be taken into account for VoxelGI baking, but it will still contribute indirect lighting to the scene in real-time. This option is slower compared to <strong>Static</strong>. Only use the <strong>Dynamic</strong> global illumination mode on lights that will change significantly during gameplay.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> The amount of indirect energy emitted by a light depends on its color, energy <em>and</em> indirect energy properties. To make a specific light emit more or less indirect energy without affecting the amount of direct light emitted by the light, adjust the <strong>Indirect Energy</strong> property in the Light3D inspector.</p>
+</blockquote>
+<blockquote>
+<p><strong>See also:</strong> See <code>doc_introduction_to_global_illumination_gi_mode_recommendations</code> for general usage recommendations.</p>
+</blockquote>
+<h2 id="adjusting-voxelgi-performance-and-quality">Adjusting VoxelGI performance and quality</h2>
+<p>Since VoxelGI is relatively demanding, it will perform best on systems with recent dedicated GPUs. On older dedicated GPUs and integrated graphics, tweaking the settings is necessary to achieve reasonable performance.</p>
+<p>In the Project Settings' <strong>Rendering &gt; Global Illumination</strong> section, VoxelGI quality can also be adjusted in two ways:</p>
+<ul>
+<li><strong>Voxel Gi &gt; Quality:</strong> If set to <strong>Low</strong> instead of <strong>High</strong>, voxel cone tracing will only use 4 taps instead of 6. This speeds up rendering at the cost of less pronounced ambient occlusion.</li>
+<li><strong>Gi &gt; Use Half Resolution:</strong> If enabled, both VoxelGI and SDFGI will have their GI buffer rendering at halved resolution. For instance, when rendering in 3840×2160, the GI buffer will be computed at a 1920×1080 resolution. Enabling this option saves a lot of GPU time, but it can introduce visible aliasing around thin details.</li>
+</ul>
+<p>Note that the <strong>Advanced</strong> toggle must be enabled in the project settings dialog for the above settings to be visible.</p>
+<p>Additionally, VoxelGI can be disabled entirely by hiding the VoxelGI node. This can be used for comparison purposes or to improve performance on low-end systems.</p>
+<h2 id="reducing-voxelgi-light-leaks-and-artifacts">Reducing VoxelGI light leaks and artifacts</h2>
+<p>After baking VoxelGI, you may notice indirect light is leaking at some spots in your level geometry. This can be remedied in several ways:</p>
+<ul>
+<li>For both light leaking and artifacts, try moving or rotating the VoxelGI node then bake it again.</li>
+<li>To combat light leaking in general, ensure your level geometry is fully sealed. This is best done in the 3D modeling software used to design the level, but primitive MeshInstance3D nodes with their global illumination mode set to <strong>Static</strong> can also be used.</li>
+<li>To combat light leaking with thin geometry, it's recommended to make the geometry in question thicker. If this is not possible, then add a primitive MeshInstance3D node with its global illumination mode set to <strong>Static</strong>. Bake VoxelGI again, then hide the primitive MeshInstance3D node (it will still be taken into account by VoxelGI). For optimal results, the MeshInstance3D should have a material whose color matches the original thin geometry.</li>
+<li>To combat artifacts that can appear on reflective surfaces, try increasing <strong>Bias</strong> and/or <strong>Normal Bias</strong> in the VoxelGIData resource as described above. Do not increase these values too high, or light leaking will become more pronounced.</li>
+</ul>
+<p>If you notice VoxelGI nodes popping in and out of existence as the camera moves, this is most likely because the engine is rendering too many VoxelGI instances at once. Godot is limited to rendering 8 VoxelGI nodes at once, which means up to 8 instances can be in the camera view before some of them will start flickering.</p>
+<p>Additionally, for performance reasons, Godot can only blend between 2 VoxelGI nodes at a given pixel on the screen. If you have more than 2 VoxelGI nodes overlapping, global illumination may appear to flicker as the camera moves or rotates.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

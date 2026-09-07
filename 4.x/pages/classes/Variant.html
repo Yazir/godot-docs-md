@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Variant — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="variant">Variant</h1>
+<p>The most important data type in Godot.</p>
+<h2 id="description">Description</h2>
+<p>In computer programming, a Variant class is a class that is designed to store a variety of other types. Dynamic programming languages like PHP, Lua, JavaScript and GDScript like to use them to store variables' data on the backend. With these Variants, properties are able to change value types freely.</p>
+<pre class="gdscript"><code>var foo = 2 # foo is dynamically an integer
+foo = &quot;Now foo is a string!&quot;
+foo = RefCounted.new() # foo is an Object
+var bar: int = 2 # bar is a statically typed integer.
+# bar = &quot;Uh oh! I can&#39;t make statically typed variables become a different type!&quot;</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// C# is statically typed. Once a variable has a type it cannot be changed. You can use the `var` keyword to let the compiler infer the type automatically.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> foo <span class="op">=</span> <span class="dv">2</span><span class="op">;</span> <span class="co">// Foo is a 32-bit integer (int). Be cautious, integers in GDScript are 64-bit and the direct C# equivalent is `long`.</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">// foo = &quot;foo was and will always be an integer. It cannot be turned into a string!&quot;;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> boo <span class="op">=</span> <span class="st">&quot;Boo is a string!&quot;</span><span class="op">;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> <span class="kw">ref</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">RefCounted</span><span class="op">();</span> <span class="co">// var is especially useful when used together with a constructor.</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Godot also provides a Variant type that works like a union of all the Variant-compatible types.</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>Variant fooVar <span class="op">=</span> <span class="dv">2</span><span class="op">;</span> <span class="co">// fooVar is dynamically an integer (stored as a `long` in the Variant type).</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>fooVar <span class="op">=</span> <span class="st">&quot;Now fooVar is a string!&quot;</span><span class="op">;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>fooVar <span class="op">=</span> <span class="kw">new</span> <span class="fu">RefCounted</span><span class="op">();</span> <span class="co">// fooVar is a GodotObject.</span></span></code></pre></div>
+<p>Godot tracks all scripting API variables within Variants. Without even realizing it, you use Variants all the time. When a particular language enforces its own rules for keeping data typed, then that language is applying its own custom logic over the base Variant scripting API.</p>
+<ul>
+<li><p>GDScript automatically wrap values in them. It keeps all data in plain Variants by default and then optionally enforces custom static typing rules on variable types.</p></li>
+<li><p>C# is statically typed, but uses its own implementation of the Variant type in place of Godot's <strong>Variant</strong> class when it needs to represent a dynamic value. C# Variant can be assigned any compatible type implicitly but converting requires an explicit cast.</p></li>
+</ul>
+<p>The global <code>@GlobalScope.typeof()</code> function returns the enumerated value of the Variant type stored in the current variable (see <code>Variant.Type</code>).</p>
+<pre class="gdscript"><code>var foo = 2
+match typeof(foo):
+    TYPE_NIL:
+        print(&quot;foo is null&quot;)
+    TYPE_INT:
+        print(&quot;foo is an integer&quot;)
+    TYPE_OBJECT:
+        # Note that Objects are their own special category.
+        # To get the name of the underlying Object type, you need the `get_class()` method.
+        print(&quot;foo is a(n) %s&quot; % foo.get_class()) # inject the class name into a formatted string.
+        # Note that this does not get the script&#39;s `class_name` global identifier.
+        # If the `class_name` is needed, use `foo.get_script().get_global_name()` instead.</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>Variant foo <span class="op">=</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">switch</span> <span class="op">(</span>foo<span class="op">.</span><span class="fu">VariantType</span><span class="op">)</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">case</span> Variant<span class="op">.</span><span class="fu">Type</span><span class="op">.</span><span class="fu">Nil</span><span class="op">:</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;foo is null&quot;</span><span class="op">);</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">case</span> Variant<span class="op">.</span><span class="fu">Type</span><span class="op">.</span><span class="fu">Int</span><span class="op">:</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;foo is an integer&quot;</span><span class="op">);</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">case</span> Variant<span class="op">.</span><span class="fu">Type</span><span class="op">.</span><span class="fu">Object</span><span class="op">:</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Note that Objects are their own special category.</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        <span class="co">// You can convert a Variant to a GodotObject and use reflection to get its name.</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>$<span class="st">&quot;foo is a(n) {foo.AsGodotObject().GetType().Name}&quot;</span><span class="op">);</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>A Variant takes up only 20 bytes and can store almost any engine datatype inside of it. Variants are rarely used to hold information for long periods of time. Instead, they are used mainly for communication, editing, serialization and moving data around.</p>
+<p>Godot has specifically invested in making its Variant class as flexible as possible; so much so that it is used for a multitude of operations to facilitate communication between all of Godot's systems.</p>
+<p>A Variant:</p>
+<ul>
+<li><p>Can store almost any datatype.</p></li>
+<li><p>Can perform operations between many variants. GDScript uses Variant as its atomic/native datatype.</p></li>
+<li><p>Can be hashed, so it can be compared quickly to other variants.</p></li>
+<li><p>Can be used to convert safely between datatypes.</p></li>
+<li><p>Can be used to abstract calling methods and their arguments. Godot exports all its functions through variants.</p></li>
+<li><p>Can be used to defer calls or move data between threads.</p></li>
+<li><p>Can be serialized as binary and stored to disk, or transferred via network.</p></li>
+<li><p>Can be serialized to text and use it for printing values and editable settings.</p></li>
+<li><p>Can work as an exported property, so the editor can edit it universally.</p></li>
+<li><p>Can be used for dictionaries, arrays, parsers, etc.</p></li>
+</ul>
+<p><strong>Containers (Array and Dictionary):</strong> Both are implemented using variants. A <a href="Dictionary.html">Dictionary</a> can match any datatype used as key to any other datatype. An <a href="Array.html">Array</a> just holds an array of Variants. Of course, a Variant can also hold a <a href="Dictionary.html">Dictionary</a> and an <a href="Array.html">Array</a> inside, making it even more flexible.</p>
+<p>Modifications to a container will modify all references to it. A <a href="Mutex.html">Mutex</a> should be created to lock it if multi-threaded access is desired.</p>
+<blockquote>
+<p><strong>Note:</strong> There are notable differences when using this API with C#. See <code>c_sharp_differences</code> for more information.</p>
+</blockquote>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/engine_details/architecture/variant_class.html">Variant class introduction</a></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

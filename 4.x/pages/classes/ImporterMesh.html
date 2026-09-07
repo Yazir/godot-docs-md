@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ImporterMesh — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="importermesh">ImporterMesh</h1>
+<p><em>Inherits: <a href="Resource.html">Resource</a> &lt; <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>A <a href="Resource.html">Resource</a> that contains vertex array-based geometry during the import process.</p>
+<h2 id="description">Description</h2>
+<p>ImporterMesh is a type of <a href="Resource.html">Resource</a> analogous to <a href="ArrayMesh.html">ArrayMesh</a>. It contains vertex array-based geometry, divided in <em>surfaces</em>. Each surface contains a completely separate array and a material used to draw it. Design wise, a mesh with multiple surfaces is preferred to a single surface, because objects created in 3D editing software commonly contain multiple materials.</p>
+<p>Unlike its runtime counterpart, <strong>ImporterMesh</strong> contains mesh data before various import steps, such as LOD and shadow mesh generation, have taken place. Modify surface data by calling <code>clear()</code>, followed by <code>add_surface()</code> for each surface.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-add_blend_shapename-string"><code>void add_blend_shape(name: String)</code></h3>
+<p>Adds name for a blend shape that will be added with <code>add_surface()</code>. Must be called before surface is added.</p>
+<h3 id="void-add_surfaceprimitive-meshprimitivetype-arrays-array-blend_shapes-arrayarray---lods-dictionary---material-material--null-name-string---flags-int--0"><code>void add_surface(primitive: </code>Mesh.PrimitiveType<code>, arrays: Array, blend_shapes: Array\[Array\] = [], lods: Dictionary = {}, material: Material = null, name: String = "", flags: int = 0)</code></h3>
+<p>Creates a new surface. <code>Mesh.get_surface_count()</code> will become the <code>surf_idx</code> for this new surface.</p>
+<p>Surfaces are created to be rendered using a <code>primitive</code>, which may be any of the values defined in <code>Mesh.PrimitiveType</code>.</p>
+<p>The <code>arrays</code> argument is an array of arrays. Each of the <code>Mesh.ARRAY_MAX</code> elements contains an array with some of the mesh data for this surface as described by the corresponding member of <code>Mesh.ArrayType</code> or <code>null</code> if it is not used by the surface. For example, <code>arrays[0]</code> is the array of vertices. That first vertex sub-array is always required; the others are optional. Adding an index array puts this surface into "index mode" where the vertex and other arrays become the sources of data and the index array defines the vertex order. All sub-arrays must have the same length as the vertex array (or be an exact multiple of the vertex array's length, when multiple elements of a sub-array correspond to a single vertex) or be empty, except for <code>Mesh.ARRAY_INDEX</code> if it is used.</p>
+<p>The <code>blend_shapes</code> argument is an array of vertex data for each blend shape. Each element is an array of the same structure as <code>arrays</code>, but <code>Mesh.ARRAY_VERTEX</code>, <code>Mesh.ARRAY_NORMAL</code>, and <code>Mesh.ARRAY_TANGENT</code> are set if and only if they are set in <code>arrays</code> and all other entries are <code>null</code>.</p>
+<p>The <code>lods</code> argument is a dictionary with <a href="float.html">float</a> keys and <a href="PackedInt32Array.html">PackedInt32Array</a> values. Each entry in the dictionary represents an LOD level of the surface, where the value is the <code>Mesh.ARRAY_INDEX</code> array to use for the LOD level and the key is roughly proportional to the distance at which the LOD stats being used. I.e., increasing the key of an LOD also increases the distance that the objects has to be from the camera before the LOD is used.</p>
+<p>The <code>flags</code> argument is the bitwise OR of, as required: One value of <code>Mesh.ArrayCustomFormat</code> left shifted by <code>ARRAY_FORMAT_CUSTOMn_SHIFT</code> for each custom channel in use, <code>Mesh.ARRAY_FLAG_USE_DYNAMIC_UPDATE</code>, <code>Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS</code>, or <code>Mesh.ARRAY_FLAG_USES_EMPTY_VERTEX_ARRAY</code>.</p>
+<p><strong>Note:</strong> When using indices, it is recommended to only use points, lines, or triangles.</p>
+<h3 id="void-clear"><code>void clear()</code></h3>
+<p>Removes all surfaces and blend shapes from this <strong>ImporterMesh</strong>.</p>
+<h3 id="importermesh-from_meshmesh-mesh-static"><code>ImporterMesh from_mesh(mesh: Mesh) static</code></h3>
+<p>Converts the given <a href="Mesh.html">Mesh</a> into an <strong>ImporterMesh</strong> by copying all its surfaces, blend shapes, materials, and metadata into a new <strong>ImporterMesh</strong> object.</p>
+<h3 id="void-generate_lodsnormal_merge_angle-float-normal_split_angle-float-bone_transform_array-array"><code>void generate_lods(normal_merge_angle: float, normal_split_angle: float, bone_transform_array: Array)</code></h3>
+<p>Generates all lods for this ImporterMesh.</p>
+<p><code>normal_merge_angle</code> is in degrees and used in the same way as the importer settings in <code>lods</code>.</p>
+<p><code>normal_split_angle</code> is not used and only remains for compatibility with older versions of the API.</p>
+<p>The number of generated lods can be accessed using <code>get_surface_lod_count()</code>, and each LOD is available in <code>get_surface_lod_size()</code> and <code>get_surface_lod_indices()</code>.</p>
+<p><code>bone_transform_array</code> is an <a href="Array.html">Array</a> which can be either empty or contain <a href="Transform3D.html">Transform3D</a> s which, for each of the mesh's bone IDs, will apply mesh skinning when generating the LOD mesh variations. This is usually used to account for discrepancies in scale between the mesh itself and its skinning data.</p>
+<h3 id="int-get_blend_shape_count-const"><code>int get_blend_shape_count() const</code></h3>
+<p>Returns the number of blend shapes that the mesh holds.</p>
+<h3 id="meshblendshapemode-get_blend_shape_mode-const">``Mesh.BlendShapeMode<code> get_blend_shape_mode() const</code></h3>
+<p>Returns the blend shape mode for this Mesh.</p>
+<h3 id="string-get_blend_shape_nameblend_shape_idx-int-const"><code>String get_blend_shape_name(blend_shape_idx: int) const</code></h3>
+<p>Returns the name of the blend shape at this index.</p>
+<h3 id="vector2i-get_lightmap_size_hint-const"><code>Vector2i get_lightmap_size_hint() const</code></h3>
+<p>Returns the size hint of this mesh for lightmap-unwrapping in UV-space.</p>
+<h3 id="arraymesh-get_meshbase_mesh-arraymesh--null"><code>ArrayMesh get_mesh(base_mesh: ArrayMesh = null)</code></h3>
+<p>Returns the mesh data represented by this <strong>ImporterMesh</strong> as a usable <a href="ArrayMesh.html">ArrayMesh</a>.</p>
+<p>This method caches the returned mesh, and subsequent calls will return the cached data until <code>clear()</code> is called.</p>
+<p>If not yet cached and <code>base_mesh</code> is provided, <code>base_mesh</code> will be used and mutated.</p>
+<h3 id="array-get_surface_arrayssurface_idx-int-const"><code>Array get_surface_arrays(surface_idx: int) const</code></h3>
+<p>Returns the arrays for the vertices, normals, UVs, etc. that make up the requested surface. See <code>add_surface()</code>.</p>
+<h3 id="array-get_surface_blend_shape_arrayssurface_idx-int-blend_shape_idx-int-const"><code>Array get_surface_blend_shape_arrays(surface_idx: int, blend_shape_idx: int) const</code></h3>
+<p>Returns a single set of blend shape arrays for the requested blend shape index for a surface.</p>
+<h3 id="int-get_surface_count-const"><code>int get_surface_count() const</code></h3>
+<p>Returns the number of surfaces that the mesh holds.</p>
+<h3 id="int-get_surface_formatsurface_idx-int-const"><code>int get_surface_format(surface_idx: int) const</code></h3>
+<p>Returns the format of the surface that the mesh holds.</p>
+<h3 id="int-get_surface_lod_countsurface_idx-int-const"><code>int get_surface_lod_count(surface_idx: int) const</code></h3>
+<p>Returns the number of lods that the mesh holds on a given surface.</p>
+<h3 id="packedint32array-get_surface_lod_indicessurface_idx-int-lod_idx-int-const"><code>PackedInt32Array get_surface_lod_indices(surface_idx: int, lod_idx: int) const</code></h3>
+<p>Returns the index buffer of a lod for a surface.</p>
+<h3 id="float-get_surface_lod_sizesurface_idx-int-lod_idx-int-const"><code>float get_surface_lod_size(surface_idx: int, lod_idx: int) const</code></h3>
+<p>Returns the screen ratio which activates a lod for a surface.</p>
+<h3 id="material-get_surface_materialsurface_idx-int-const"><code>Material get_surface_material(surface_idx: int) const</code></h3>
+<p>Returns a <a href="Material.html">Material</a> in a given surface. Surface is rendered using this material.</p>
+<h3 id="string-get_surface_namesurface_idx-int-const"><code>String get_surface_name(surface_idx: int) const</code></h3>
+<p>Gets the name assigned to this surface.</p>
+<h3 id="meshprimitivetype-get_surface_primitive_typesurface_idx-int">``Mesh.PrimitiveType<code> get_surface_primitive_type(surface_idx: int)</code></h3>
+<p>Returns the primitive type of the requested surface (see <code>add_surface()</code>).</p>
+<h3 id="importermesh-merge_importer_meshesimporter_meshes-arrayimportermesh-relative_transforms-arraytransform3d-deduplicate_surfaces-bool--true-static"><code>ImporterMesh merge_importer_meshes(importer_meshes: Array\[ImporterMesh\], relative_transforms: Array\[Transform3D\], deduplicate_surfaces: bool = true) static</code></h3>
+<p>Merges multiple <strong>ImporterMesh</strong> es into a single <strong>ImporterMesh</strong>. Each input mesh is transformed by the corresponding <a href="Transform3D.html">Transform3D</a> in the <code>relative_transforms</code> array, which must be the same size as <code>importer_meshes</code>. Negative scales are supported, and the winding order in the mesh data will be corrected to account for this.</p>
+<p>If <code>deduplicate_surfaces</code> is <code>true</code> and multiple meshes have surfaces with the same names and formats, the surfaces will be merged together when the meshes are merged, and will use the material from the first matching surface. This is useful for reducing the number of surfaces in the resulting mesh, and avoids duplicating materials. Surfaces with bone weights will never be deduplicated. If <code>deduplicate_surfaces</code> is <code>false</code>, the surfaces will always be kept separate, and will be given unique names.</p>
+<p><strong>Warning:</strong> Blend shapes and LODs are not supported and will be discarded. Do not use this function to discard blend shapes and LODs, as support for these may be added in the future.</p>
+<h3 id="void-set_blend_shape_modemode-meshblendshapemode"><code>void set_blend_shape_mode(mode: </code>Mesh.BlendShapeMode<code>)</code></h3>
+<p>Sets the blend shape mode.</p>
+<h3 id="void-set_lightmap_size_hintsize-vector2i"><code>void set_lightmap_size_hint(size: Vector2i)</code></h3>
+<p>Sets the size hint of this mesh for lightmap-unwrapping in UV-space.</p>
+<h3 id="void-set_surface_materialsurface_idx-int-material-material"><code>void set_surface_material(surface_idx: int, material: Material)</code></h3>
+<p>Sets a <a href="Material.html">Material</a> for a given surface. Surface will be rendered using this material.</p>
+<h3 id="void-set_surface_namesurface_idx-int-name-string"><code>void set_surface_name(surface_idx: int, name: String)</code></h3>
+<p>Sets a name for a given surface.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

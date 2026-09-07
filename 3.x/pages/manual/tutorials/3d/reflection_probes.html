@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reflection probes — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="reflection-probes">Reflection probes</h1>
+<h2 id="introduction">Introduction</h2>
+<p>As stated in the <code>doc_spatial_material</code>, objects can show reflected or diffuse light. Reflection probes are used as a source of reflected and ambient light for objects inside their area of influence.</p>
+<p>A probe of this type captures the surroundings (as a sort of 360 degrees image), and stores versions of it with increasing levels of <em>blur</em>. This is used to simulate roughness in materials, as well as ambient lighting.</p>
+<p>While these probes are an efficient way of storing reflections, they have a few shortcomings:</p>
+<ul>
+<li>They are efficient to render, but expensive to compute. This leads to a default behavior where they only capture on scene load.</li>
+<li>They work best for rectangular shaped rooms or places, otherwise the reflections shown are not as faithful (especially when roughness is 0).</li>
+</ul>
+<h2 id="setting-up">Setting up</h2>
+<p>Create a ReflectionProbe node and wrap it around the area where you want to have reflections:</p>
+<p>This should result in immediate local reflections. If you are using a Sky texture, reflections are by default blended with it.</p>
+<p>By default, on interiors, reflections may appear not to have much consistence. In this scenario, make sure to tick the <em>"Box Correct"</em> property.</p>
+<p>This setting changes the reflection from an infinite skybox to reflecting a box the size of the probe:</p>
+<p>Adjusting the box walls may help improve the reflection a bit, but it will always look best in box shaped rooms.</p>
+<p>The probe captures the surrounding from the center of the gizmo. If, for some reason, the room shape or contents occlude the center, it can be displaced to an empty place by moving the handles in the center:</p>
+<p>By default, shadow mapping is disabled when rendering probes (only in the rendered image inside the probe, not the actual scene). This is a simple way to save on performance and memory. If you want shadows in the probe, they can be toggled on/off with the <em>Enable Shadow</em> setting:</p>
+<p>Finally, keep in mind that you may not want the Reflection Probe to render some objects. A typical scenario is an enemy inside the room which will move around. To keep objects from being rendered in the reflections, use the <em>Cull Mask</em> setting:</p>
+<h2 id="interior-vs-exterior">Interior vs exterior</h2>
+<p>If you are using reflection probes in an interior setting, it is recommended that the <strong>Interior</strong> property be enabled. This stops the probe from rendering the sky and also allows custom ambient lighting settings.</p>
+<p>When probes are set to <strong>Interior</strong>, custom constant ambient lighting can be specified per probe. Just choose a color and an energy.</p>
+<p>Optionally, you can blend this ambient light with the probe diffuse capture by tweaking the <strong>Ambient Contribution</strong> property (0.0 means pure ambient color, while 1.0 means pure diffuse capture).</p>
+<h2 id="blending">Blending</h2>
+<p>Multiple reflection probes can be used, and Godot will blend them where they overlap using a smart algorithm:</p>
+<p>As you can see, this blending is never perfect (after all, these are box reflections, not real reflections), but these artifacts are only visible when using perfectly mirrored reflections. Normally, scenes have normal mapping and varying levels of roughness, which can hide this.</p>
+<p>Alternatively, Reflection Probes work well blended together with Screen Space Reflections to solve these problems. Combining them makes local reflections appear more faithful, while probes are only used as a fallback when no screen-space information is found:</p>
+<p>Finally, blending interior and exterior probes is the recommended approach when making levels that combine both interiors and exteriors. Near the door, a probe can be marked as <em>exterior</em> (so it will get sky reflections) while on the inside, it can be interior.</p>
+<h2 id="reflection-atlas">Reflection atlas</h2>
+<p>In the current renderer implementation, all probes are the same size and are fit into a Reflection Atlas. The size and amount of probes can be customized in Project Settings -&gt; Quality -&gt; Reflections</p>
+<p>The default setting of Atlas Subdiv: 8 will allow up to 16 reflection probes in a scene. This value needs to be increased if you need more reflection probes.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

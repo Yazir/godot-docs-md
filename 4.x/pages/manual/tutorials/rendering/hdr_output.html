@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HDR output — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="hdr-output">HDR output</h1>
+<p>HDR output is a feature that enables presentation of High Dynamic Range (HDR) visuals on HDR-capable screens. HDR <strong>output</strong> is not to be confused with the internal HDR rendering that is used by Godot for both Standard Dynamic Range (SDR) output and HDR output modes.</p>
+<p>HDR output is supported on iOS, Linux (Wayland), macOS, visionOS, and Windows. It is not supported on Android, Linux (X11), or web.</p>
+<blockquote>
+<p><strong>Note:</strong> Both Windows 10 and 11 support HDR output, but only Windows 11 provides an app that can be used to configure the screen’s maximum luminance that is used by the Godot editor.</p>
+<p>On Linux, GNOME versions prior to 50 have a bug that prevents HDR output from working on Wayland. If you are using an older version of GNOME, you will need to upgrade to version 50 or later to use HDR output on Wayland.</p>
+</blockquote>
+<h2 id="enabling-hdr-output-in-your-project">Enabling HDR output in your project</h2>
+<p>You can enable HDR output in any new or existing project using these steps:</p>
+<ol type="1">
+<li>Ensure <em>no</em> ref resources use SDR-only features:</li>
+</ol>
+<ul>
+<li>Tonemap Mode: Filmic or ACES</li>
+<li>Glow Blend Mode: Soft Light</li>
+<li>Adjustments: Color Correction</li>
+</ul>
+<ol start="2" type="1">
+<li>Configure the ref project setting to <code>mobile</code> or <code>forward_plus</code>.</li>
+<li>Configure the ref advanced project setting to <code>metal</code> for iOS and <code>d3d12</code> for Windows.</li>
+<li>Configure the ref advanced project setting to <code>wayland</code> and enable the ref editor setting.</li>
+<li>Turn on the ref project setting and enable ref for all ref and ref that should support HDR output.</li>
+<li>Turn on the ref project setting and enable ref for all other ref that should support HDR output.</li>
+<li><em>[Optional]</em> Provide in-game HDR settings by copying the example from the <a href="https://github.com/godotengine/godot-demo-projects/tree/master/misc/hdr_output">HDR output demo project</a> to your project.</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> Some of these settings may already be configured correctly for HDR output in your project. For example, the Windows Rendering Device Driver is set to <code>d3d12</code> in projects created in Godot 4.6 onwards, but will need to be changed if the project was created with an older version of Godot.</p>
+</blockquote>
+<h2 id="using-hdr-output-in-godot">Using HDR output in Godot</h2>
+<p>Try out the <a href="https://github.com/godotengine/godot-demo-projects/tree/master/misc/hdr_output">HDR output demo project</a> as a first step to using HDR output in Godot. This demo contains examples of the concepts described on this page and will help you ensure that your development environment is correctly configured for HDR output.</p>
+<h3 id="hdr-output-in-the-godot-editor">HDR output in the Godot editor</h3>
+<p>The Godot editor will use HDR output for its main window when the ref project setting has been enabled. You can tell if your game is running in SDR or HDR output mode based on the text on the right side of game view toolbar: Your game is running in HDR mode when the text "HDR" appears next to the window size.</p>
+<p>The number in parentheses next to the "HDR" text is the current ref which is described in the following sections. You can toggle the game's ref property in the game window options menu:</p>
+<h2 id="hdr-output-fundamentals">HDR output fundamentals</h2>
+<p>Godot uses the <a href="https://developer.apple.com/videos/play/wwdc2021/10161/">Extended Dynamic Range (EDR)</a> paradigm for HDR output. While SDR output allows color component values between <code>0.0</code> and <code>1.0</code> to be displayed, HDR output allows values higher than <code>1.0</code>. The maximum value that can be displayed is provided by ref and this method is valid when using SDR or HDR.</p>
+<blockquote>
+<p><strong>Note:</strong> These graphs are presented as SDR images that do not contain any HDR color. To compensate for this limitation, the grayscale bars along each axis have a glow effect applied to represent values that are outside of the SDR range. The "output max value" in this graph represents the maximum linear color component value returned by ref.</p>
+</blockquote>
+<h2 id="designing-for-hdr-output">Designing for HDR output</h2>
+<p>There are two primary approaches to make the most of HDR output: using the ref and using tonemapping.</p>
+<p>While both approaches can be used in the same project, tonemapping should be used to produce HDR output from a ref that uses lighting that exceeds the capabilities of an SDR screen, indirect lighting, global illumination, emissive materials, post-processing effects, or any other techniques that make use of the colors values in the scene.</p>
+<p>The ref should only be used to present colors directly to the screen without tonemapping and without influencing lighting, post-processing effects, or surrounding color. This makes the ref well suited for ref or unshaded materials in a scene that has no lighting or basic lighting that otherwise does not exceed the capabilities of an SDR screen.</p>
+<p>The ref property can be used to separate which ref are affected by tonemapping and other <code>class_WorldEnvironment</code> effects.</p>
+<h3 id="using-output-max-linear-value">Using output max linear value</h3>
+<p>In a traditional SDR-only game, the brightest presentation of a color is limited by either the red, green, or blue component of the color reaching a maximum of <code>1.0</code>. When using a modern HDR screen this limitation no longer applies and color components above <code>1.0</code> can be accurately presented. Godot provides the maximum color component value that can be presented by the screen through the ref. This value can be used in both SDR and HDR, which makes it easy to build your game for both output modes without needing to change behavior based on whether or not HDR output is enabled.</p>
+<p>The ref may change often as the player adjusts their device brightness, enables or disables HDR output on their device, or moves the game window between screens, so it's important to retrieve this value every frame or use the ref signal. The value will always equal <code>1.0</code> in SDR mode and may also equal <code>1.0</code> when HDR output is enabled and the player has adjusted their screen to its maximum brightness.</p>
+<p>It is best to use this ref with "highlights" and special effects that are either brief or involve a small portion of the screen; if the majority of the screen is presented at this maximum brightness for more than a short time, it will cause the game to appear uncomfortably bright, as if the game is ignoring the device brightness setting. You may also find that some effects look best when limited to a maximum linear value that is greater than <code>1.0</code>, but less than the ref. You can read more about how it is sometimes desirable to limit the maximum HDR value in the <a href="https://android-developers.googleblog.com/2025/09/hdr-and-user-interfaces.html">HDR and User Interfaces</a> post of the Android Developers Blog.</p>
+<p>Transforming a color to be the brightest the screen can present can be done with a script. When working with <code>class_CanvasItem</code>, it may be convenient to apply the resulting modified color to the ref or ref property with the base color of the <code>class_CanvasItem</code> set to ref. The following script demonstrates this:</p>
+<pre class="gdscript"><code>extends CanvasItem
+
+# Set this to your desired color when the CanvasItem&#39;s base color is white.
+@export var sdr_self_modulate: Color = Color.WHITE
+
+# Set this to -1.0 to disable limiting the maximum color value.
+@export_range(0, 20, 0.1, &quot;or_less&quot;, &quot;or_greater&quot;) var max_linear_value_limit: float = -1.0
+
+
+func _enter_tree() -&gt; void:
+    var window: Window = get_window()
+    window.output_max_linear_value_changed.connect(_on_output_max_linear_value_changed)
+    _on_output_max_linear_value_changed(window.get_output_max_linear_value())
+
+
+func _exit_tree() -&gt; void:
+    get_window().output_max_linear_value_changed.disconnect(_on_output_max_linear_value_changed)
+
+
+func _on_output_max_linear_value_changed(output_max_linear_value: float) -&gt; void:
+    # Adjust the brightness of color to be the brightest possible, regardless
+    # of SDR or HDR output, but no brighter than max_linear_value_limit.
+    if max_linear_value_limit &gt;= 0.0:
+        output_max_linear_value = minf(output_max_linear_value, max_linear_value_limit)
+    self_modulate = normalize_color(sdr_self_modulate, output_max_linear_value)
+
+
+func normalize_color(srgb_color, output_max_linear_value = 1.0):
+    # Color must be linear-encoded to use math operations.
+    var linear_color = srgb_color.srgb_to_linear()
+    var max_rgb_value = maxf(linear_color.r, maxf(linear_color.g, linear_color.b))
+    var brightness_scale = output_max_linear_value / max_rgb_value
+    linear_color *= brightness_scale
+    # Undo changes to the alpha channel, which should not be modified.
+    linear_color.a = srgb_color.a
+    # Convert back to nonlinear sRGB encoding, which is required for Color in
+    # Godot unless stated otherwise.
+    return linear_color.linear_to_srgb()</code></pre>
+<p>The <a href="https://github.com/godotengine/godot-demo-projects/tree/master/misc/hdr_output">HDR output demo project</a> includes more advanced versions of this script and examples of how this approach can be used in your project.</p>
+<h3 id="using-tonemapping">Using Tonemapping</h3>
+<p>To produce HDR output without using the ref your scenes will need color values that exceed what an SDR screen can present, so it is important to use a tonemapper like ref or ref to handle display of these bright scene values on both SDR and HDR screens.</p>
+<p><strong>Tonemapping and HDR</strong></p>
+<p>The primary role of a tonemapper is to reduce the dynamic range of a natural scene with a very high dynamic range of brightness to a smaller dynamic range that can be presented on a screen. Tonemappers in Godot use the ref to determine the output range that the screen is capable of presenting. For example, with the ref tonemapper in Godot, linear scene values in the range of <code>0.0</code> to ref are mapped to an output range of <code>0.0</code> to ref.</p>
+<p>With this approach, you can adjust ref to be sure that any linear scene value below ref will be shown without clipping. This ensures that details are not lost when presenting the image on a screen with a lower dynamic range than the original scene.</p>
+<p>While this behavior is perfectly stable in SDR, where the ref is fixed at <code>1.0</code>, this behavior is dynamic with HDR based on the capabilities of the screen:</p>
+<p>As shown in the graphs above, the ref tonemapper will behave the same as the ref tonemapper when ref is equal to or higher than ref. This allows for accurate color reproduction on HDR screens that are capable of reproducing the original brighter scene values. When ref has increased to be higher than ref, tonemap white will be adjusted to match this output max linear value.</p>
+<p>The ref tonemapper behaves similar to ref in this way, but its ref is always multiplied by ref. The ref tonemapper applies no tonemapping at all; its ref equals ref in all scenarios. The ref and ref tonemappers ignore ref entirely and always produce an image in the SDR range.</p>
+<h3 id="why-not-mix-output-max-linear-value-with-other-techniques">Why not mix output max linear value with other techniques?</h3>
+<p>Tonemapping, indirect lighting, global illumination, and post-processing effects all depend on stable scene color values to produce consistent and predictable results in both SDR and HDR modes. If a developer uses these types of techniques with a scene that has color values that change based on ref, the results will no longer be similar for screens with different capabilities.</p>
+<p>For example, the strength of the glow effect is directly influenced by the brightness of the scene. If the scene brightness changes based on ref, then the glow strength will change as well: a larger ref will produce a stronger glow effect, which is generally an undesirable behavior.</p>
+<h2 id="absolute-luminance-values">Absolute luminance values</h2>
+<p>When using HDR output, ref is calculated based on the reference white luminance and the maximum luminance of the screen.</p>
+<h3 id="reference-white-luminance">Reference white luminance</h3>
+<p>The reference white luminance, or reference luminance for short, represents the brightest possible SDR white value. When a user changes the brightness setting of the device that is producing the video signal, such as a desktop computer, laptop, or smartphone, they are simply adjusting their reference luminance. On a smartphone this change may happen automatically via the smartphone's automatic screen brightness feature and also happens when the user manually adjusts their screen brightness. On desktop or laptop computers, there are different ways to adjust this reference luminance depending on the operating system.</p>
+<p>This value is typically around 100 to 300 nits and is always represented by an ref of exactly <code>1.0</code>. This value may also be referred to as "paper white" or the "SDR white level".</p>
+<blockquote>
+<p><strong>Note:</strong> When using an external screen on Windows, the <em>SDR content brightness</em> HDR display setting directly controls the reference luminance value and is the primary way to adjust the brightness of the Windows desktop and Godot. When using a built-in HDR screen on Windows, changing <em>HDR content brightness</em> also directly controls the reference luminance, but has no effect on the brightness of the Windows desktop or Godot because a separate brightness implementation negates any effect of changes to the reference luminance.</p>
+</blockquote>
+<h3 id="maximum-luminance">Maximum luminance</h3>
+<p>The maximum luminance is a property of an HDR screen. This value may be anywhere from 250 to 2,000 nits or beyond. It is common for external screens to report a maximum luminance value that is higher than the physical capabilities of the screen that results in visible tonemapping applied by the screen. Some desktop or laptop operating systems provide a way to calibrate the maximum luminance value that is used for each external screen.</p>
+<blockquote>
+<p><strong>Note:</strong> When using a built-in screen on Windows, the reported maximum luminance will change as the user adjusts their laptop screen brightness while the reported reference luminance remains constant. This behavior is opposite from using an external display on Windows and adjusting the <em>SDR content brightness</em> HDR display setting and also opposite of other platforms.</p>
+</blockquote>
+<h3 id="output-max-linear-value-in-practice">Output max linear value in practice</h3>
+<p>When in HDR mode, the ref will increase as the user decreases their reference luminance because more HDR headroom becomes available. Similarly, as the user increases their reference luminance, they will have less HDR headroom available and ref will decrease. In some cases when using HDR mode with the highest reference luminance, ref will equal <code>1.0</code>, matching SDR behavior, because no HDR headroom is available.</p>
+<h2 id="not-all-screens-are-equal">Not all screens are equal</h2>
+<p>SDR standards were designed to match the capabilities of existing screens that were commonly used around the world. HDR standards have been intentionally written with the opposite approach: they are designed to utilize the capabilities of an ideal screen that is not yet widely available.</p>
+<p>In practice, this means that common HDR screens may perform their own internal tonemapping, gamut mapping, or dynamic tonemapping (DTM) to support content that extends to a wider gamut and luminance range than what the physical hardware can achieve. Some screens are not capable of presenting very bright color values that fill more than a small (1% to 10%) portion of the screen and will dim the entire image or part of the image temporarily when this happens. These features may produce colors that are not representative of other screens so it's best to disable them, if possible, when developing your HDR game. You may be able to disable some or all of these features by enabling the HGiG mode on your screen or setting the screen's mode to "clip" and/or "stable". Some HDR screens may present dark or saturated colors differently than others; this difference in appearance is often the result of the screen technologies.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

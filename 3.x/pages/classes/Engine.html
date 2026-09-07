@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engine — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="engine">Engine</h1>
+<p><em>Inherits: <a href="Object.html">Object</a></em></p>
+<p>Access to engine properties.</p>
+<h2 id="description">Description</h2>
+<p>The <strong>Engine</strong> singleton allows you to query and modify the project's run-time parameters, such as frames per second, time scale, and others.</p>
+<h2 id="properties">Properties</h2>
+<h3 id="bool-editor_hint--true"><code>bool editor_hint = true</code></h3>
+<ul>
+<li>Setter: <code>set_editor_hint(value: bool)</code></li>
+<li>Getter: <code>is_editor_hint()</code></li>
+</ul>
+<p>If <code>true</code>, the script is currently running inside the editor. This is useful for <code>tool</code> scripts to conditionally draw editor helpers, or prevent accidentally running "game" code that would affect the scene state while in the editor:</p>
+<pre class="gdscript"><code>if Engine.editor_hint:
+    draw_gizmos()
+else:
+    simulate_physics()</code></pre>
+<p>See <a href="../manual/tutorials/plugins/running_code_in_the_editor.html">Running code in the editor</a> in the documentation for more information.</p>
+<p><strong>Note:</strong> To detect whether the script is run from an editor <em>build</em> (e.g. when pressing <code>F5</code>), use <code>OS.has_feature</code> with the <code>"editor"</code> argument instead. <code>OS.has_feature("editor")</code> will evaluate to <code>true</code> both when the code is running in the editor and when running the project from the editor, but it will evaluate to <code>false</code> when the code is run from an exported project.</p>
+<h3 id="int-iterations_per_second--60"><code>int iterations_per_second = 60</code></h3>
+<ul>
+<li>Setter: <code>set_iterations_per_second(value: int)</code></li>
+<li>Getter: <code>get_iterations_per_second()</code></li>
+</ul>
+<p>The number of fixed iterations per second. This controls how often physics simulation and <code>Node._physics_process</code> methods are run. This value should generally always be set to <code>60</code> or above, as Godot doesn't interpolate the physics step. As a result, values lower than <code>60</code> will look stuttery. This value can be increased to make input more reactive or work around collision tunneling issues, but keep in mind doing so will increase CPU usage. See also <code>target_fps</code> and <code>ProjectSettings.physics/common/physics_fps</code>.</p>
+<p><strong>Note:</strong> Only 8 physics ticks may be simulated per rendered frame at most. If more than 8 physics ticks have to be simulated per rendered frame to keep up with rendering, the game will appear to slow down (even if <code>delta</code> is used consistently in physics calculations). Therefore, it is recommended not to increase <code>iterations_per_second</code> above 240. Otherwise, the game will slow down when the rendering framerate goes below 30 FPS.</p>
+<h3 id="float-physics_jitter_fix--05"><code>float physics_jitter_fix = 0.5</code></h3>
+<ul>
+<li>Setter: <code>set_physics_jitter_fix(value: float)</code></li>
+<li>Getter: <code>get_physics_jitter_fix()</code></li>
+</ul>
+<p>Controls how much physics ticks are synchronized with real time. For 0 or less, the ticks are synchronized. Such values are recommended for network games, where clock synchronization matters. Higher values cause higher deviation of the in-game clock and real clock but smooth out framerate jitters. The default value of 0.5 should be fine for most; values above 2 could cause the game to react to dropped frames with a noticeable delay and are not recommended.</p>
+<p><strong>Note:</strong> For best results, when using a custom physics interpolation solution, the physics jitter fix should be disabled by setting <code>physics_jitter_fix</code> to <code>0</code>.</p>
+<h3 id="bool-print_error_messages--true"><code>bool print_error_messages = true</code></h3>
+<ul>
+<li>Setter: <code>set_print_error_messages(value: bool)</code></li>
+<li>Getter: <code>is_printing_error_messages()</code></li>
+</ul>
+<p>If <code>false</code>, stops printing error and warning messages to the console and editor Output log. This can be used to hide error and warning messages during unit test suite runs. This property is equivalent to the <code>ProjectSettings.application/run/disable_stderr</code> project setting.</p>
+<p><strong>Warning:</strong> If you set this to <code>false</code> anywhere in the project, important error messages may be hidden even if they are emitted from other scripts. If this is set to <code>false</code> in a <code>tool</code> script, this will also impact the editor itself. Do <em>not</em> report bugs before ensuring error messages are enabled (as they are by default).</p>
+<p><strong>Note:</strong> This property does not impact the editor's Errors tab when running a project from the editor.</p>
+<h3 id="int-target_fps--0"><code>int target_fps = 0</code></h3>
+<ul>
+<li>Setter: <code>set_target_fps(value: int)</code></li>
+<li>Getter: <code>get_target_fps()</code></li>
+</ul>
+<p>The desired frames per second. If the hardware cannot keep up, this setting may not be respected. A value of 0 means no limit.</p>
+<h3 id="float-time_scale--10"><code>float time_scale = 1.0</code></h3>
+<ul>
+<li>Setter: <code>set_time_scale(value: float)</code></li>
+<li>Getter: <code>get_time_scale()</code></li>
+</ul>
+<p>Controls how fast or slow the in-game clock ticks versus the real life one. It defaults to 1.0. A value of 2.0 means the game moves twice as fast as real life, whilst a value of 0.5 means the game moves at half the regular speed. This also affects <a href="Timer.html">Timer</a> and <a href="SceneTreeTimer.html">SceneTreeTimer</a> (see <code>SceneTree.create_timer</code> for how to control this).</p>
+<h2 id="methods">Methods</h2>
+<h3 id="dictionary-get_author_info-const"><code>Dictionary get_author_info() const</code></h3>
+<p>Returns engine author information in a Dictionary.</p>
+<p><code>lead_developers</code> - Array of Strings, lead developer names</p>
+<p><code>founders</code> - Array of Strings, founder names</p>
+<p><code>project_managers</code> - Array of Strings, project manager names</p>
+<p><code>developers</code> - Array of Strings, developer names</p>
+<h3 id="array-get_copyright_info-const"><code>Array get_copyright_info() const</code></h3>
+<p>Returns an Array of copyright information Dictionaries.</p>
+<p><code>name</code> - String, component name</p>
+<p><code>parts</code> - Array of Dictionaries {<code>files</code>, <code>copyright</code>, <code>license</code>} describing subsections of the component</p>
+<h3 id="dictionary-get_donor_info-const"><code>Dictionary get_donor_info() const</code></h3>
+<p>Returns a Dictionary of Arrays of donor names.</p>
+<p>{<code>platinum_sponsors</code>, <code>gold_sponsors</code>, <code>silver_sponsors</code>, <code>bronze_sponsors</code>, <code>mini_sponsors</code>, <code>gold_donors</code>, <code>silver_donors</code>, <code>bronze_donors</code>}</p>
+<h3 id="int-get_frames_drawn"><code>int get_frames_drawn()</code></h3>
+<p>Returns the total number of frames drawn. On headless platforms, or if the render loop is disabled with <code>--disable-render-loop</code> via command line, <code>get_frames_drawn</code> always returns <code>0</code>. See <code>get_idle_frames</code>.</p>
+<h3 id="float-get_frames_per_second-const"><code>float get_frames_per_second() const</code></h3>
+<p>Returns the frames per second of the running game.</p>
+<h3 id="int-get_idle_frames-const"><code>int get_idle_frames() const</code></h3>
+<p>Returns the total number of frames passed since engine initialization which is advanced on each <strong>idle frame</strong>, regardless of whether the render loop is enabled. See also <code>get_frames_drawn</code> and <code>get_physics_frames</code>.</p>
+<p><code>get_idle_frames</code> can be used to run expensive logic less often without relying on a <a href="Timer.html">Timer</a>:</p>
+<pre class="gdscript"><code>func _process(_delta):
+    if Engine.get_idle_frames() % 2 == 0:
+        pass  # Run expensive logic only once every 2 idle (render) frames here.</code></pre>
+<h3 id="dictionary-get_license_info-const"><code>Dictionary get_license_info() const</code></h3>
+<p>Returns Dictionary of licenses used by Godot and included third party components.</p>
+<h3 id="string-get_license_text-const"><code>String get_license_text() const</code></h3>
+<p>Returns Godot license text.</p>
+<h3 id="mainloop-get_main_loop-const"><code>MainLoop get_main_loop() const</code></h3>
+<p>Returns the main loop object (see <a href="MainLoop.html">MainLoop</a> and <a href="SceneTree.html">SceneTree</a>).</p>
+<h3 id="int-get_physics_frames-const"><code>int get_physics_frames() const</code></h3>
+<p>Returns the total number of frames passed since engine initialization which is advanced on each <strong>physics frame</strong>. See also <code>get_idle_frames</code>.</p>
+<p><code>get_physics_frames</code> can be used to run expensive logic less often without relying on a <a href="Timer.html">Timer</a>:</p>
+<pre class="gdscript"><code>func _physics_process(_delta):
+    if Engine.get_physics_frames() % 2 == 0:
+        pass  # Run expensive logic only once every 2 physics frames here.</code></pre>
+<h3 id="float-get_physics_interpolation_fraction-const"><code>float get_physics_interpolation_fraction() const</code></h3>
+<p>Returns the fraction through the current physics tick we are at the time of rendering the frame. This can be used to implement fixed timestep interpolation.</p>
+<h3 id="object-get_singletonname-string-const"><code>Object get_singleton(name: String) const</code></h3>
+<p>Returns a global singleton with given <code>name</code>. Often used for plugins, e.g. <code>GodotPayment</code> on Android.</p>
+<h3 id="dictionary-get_version_info-const"><code>Dictionary get_version_info() const</code></h3>
+<p>Returns the current engine version information in a Dictionary.</p>
+<p><code>major</code> - Holds the major version number as an int</p>
+<p><code>minor</code> - Holds the minor version number as an int</p>
+<p><code>patch</code> - Holds the patch version number as an int</p>
+<p><code>hex</code> - Holds the full version number encoded as a hexadecimal int with one byte (2 places) per number (see example below)</p>
+<p><code>status</code> - Holds the status (e.g. "beta", "rc1", "rc2", ... "stable") as a String</p>
+<p><code>build</code> - Holds the build name (e.g. "custom_build") as a String</p>
+<p><code>hash</code> - Holds the full Git commit hash as a String</p>
+<p><code>year</code> - Holds the year the version was released in as an int</p>
+<p><code>string</code> - <code>major</code> + <code>minor</code> + <code>patch</code> + <code>status</code> + <code>build</code> in a single String</p>
+<p>The <code>hex</code> value is encoded as follows, from left to right: one byte for the major, one byte for the minor, one byte for the patch version. For example, "3.1.12" would be <code>0x03010C</code>. <strong>Note:</strong> It's still an int internally, and printing it will give you its decimal representation, which is not particularly meaningful. Use hexadecimal literals for easy version comparisons from code:</p>
+<pre class="gdscript"><code>if Engine.get_version_info().hex &gt;= 0x030200:
+    # Do things specific to version 3.2 or later
+else:
+    # Do things specific to versions before 3.2</code></pre>
+<h3 id="bool-has_singletonname-string-const"><code>bool has_singleton(name: String) const</code></h3>
+<p>Returns <code>true</code> if a singleton with given <code>name</code> exists in global scope.</p>
+<h3 id="bool-is_in_physics_frame-const"><code>bool is_in_physics_frame() const</code></h3>
+<p>Returns <code>true</code> if the game is inside the fixed process and physics phase of the game loop.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

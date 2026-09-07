@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CanvasItem shaders — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="canvasitem-shaders">CanvasItem shaders</h1>
+<p>CanvasItem shaders are used to draw all 2D elements in Godot. These include all nodes that inherit from CanvasItems, and all GUI elements.</p>
+<p>CanvasItem shaders contain fewer built-in variables and functionality than ref, but they maintain the same basic structure with vertex, fragment, and light processor functions.</p>
+<h2 id="render-modes">Render modes</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Render mode</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>blend_mix</strong></td>
+<td>Mix blend mode (alpha is transparency), default.</td>
+</tr>
+<tr class="even">
+<td><strong>blend_add</strong></td>
+<td>Additive blend mode.</td>
+</tr>
+<tr class="odd">
+<td><strong>blend_sub</strong></td>
+<td>Subtractive blend mode.</td>
+</tr>
+<tr class="even">
+<td><strong>blend_mul</strong></td>
+<td>Multiplicative blend mode.</td>
+</tr>
+<tr class="odd">
+<td><strong>blend_premul_alpha</strong></td>
+<td>Pre-multiplied alpha blend mode.</td>
+</tr>
+<tr class="even">
+<td><strong>blend_disabled</strong></td>
+<td>Disable blending, values (including alpha) are written as-is.</td>
+</tr>
+<tr class="odd">
+<td><strong>unshaded</strong></td>
+<td>Result is just albedo. No lighting/shading happens in material.</td>
+</tr>
+<tr class="even">
+<td><strong>light_only</strong></td>
+<td>Only draw in the light pass.</td>
+</tr>
+<tr class="odd">
+<td><strong>skip_vertex_transform</strong></td>
+<td><code>VERTEX</code> needs to be transformed manually in the <code>vertex()</code> function.</td>
+</tr>
+<tr class="even">
+<td><strong>world_vertex_coords</strong></td>
+<td><code>VERTEX</code> is modified in world coordinates instead of local.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="built-ins">Built-ins</h2>
+<p>Values marked as <code>in</code> are read-only. Values marked as <code>out</code> can optionally be written to and will not necessarily contain sensible values. Values marked as <code>inout</code> provide a sensible default value, and can optionally be written to. Samplers cannot be written to so they are not marked.</p>
+<p>Not all built-ins are available in all processing functions. To access a vertex built-in from the <code>fragment()</code> function, you can use a ref. The same applies for accessing fragment built-ins from the <code>light()</code> function.</p>
+<h2 id="global-built-ins">Global built-ins</h2>
+<p>Global built-ins are available everywhere, including custom functions.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Built-in</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>in float <strong>TIME</strong></td>
+<td>Global time since the engine has started, in seconds. It repeats after every <code>3,600</code> seconds (which can be changed with the ref | setting). It's affected by ref but not by pausing. If you need a | <code>TIME</code> variable that is not affected by time scale, add your own ref and update it each | frame.</td>
+</tr>
+<tr class="even">
+<td>in float <strong>PI</strong></td>
+<td>A <code>PI</code> constant (<code>3.141592</code>). The ratio of a circle's circumference to its diameter and the number of radians in a half turn.</td>
+</tr>
+<tr class="odd">
+<td>in float <strong>TAU</strong></td>
+<td>A <code>TAU</code> constant (<code>6.283185</code>). Equivalent to <code>PI * 2</code> and the number of radians in a full turn.</td>
+</tr>
+<tr class="even">
+<td>in float <strong>E</strong></td>
+<td>An <code>E</code> constant (<code>2.718281</code>). Euler's number, the base of the natural logarithm.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="vertex-built-ins">Vertex built-ins</h2>
+<p>Vertex data (<code>VERTEX</code>) is presented in local space (pixel coordinates, relative to the Node2D's origin). If not written to, these values will not be modified and be passed through as they came.</p>
+<p>The user can disable the built-in model to world transform (world to screen and projection will still happen later) and do it manually with the following code:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>shader_type canvas_item<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>render_mode skip_vertex_transform<span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">vertex</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    VERTEX <span class="op">=</span> <span class="op">(</span>MODEL_MATRIX <span class="op">*</span> <span class="dt">vec4</span><span class="op">(</span>VERTEX<span class="op">,</span> <span class="fl">0.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">)).</span><span class="fu">xy</span><span class="op">;</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Other built-ins, such as <code>UV</code> and <code>COLOR</code>, are also passed through to the <code>fragment()</code> function if not modified.</p>
+<p>For instancing, the <code>INSTANCE_CUSTOM</code> variable contains the instance custom data. When using particles, this information is usually:</p>
+<ul>
+<li><strong>x</strong>: Rotation angle in radians.</li>
+<li><strong>y</strong>: Phase during lifetime (<code>0.0</code> to <code>1.0</code>).</li>
+<li><strong>z</strong>: Animation frame.</li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th>Built-in</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>in mat4 <strong>MODEL_MATRIX</strong></td>
+<td>Local space to world space transform. World space is the coordinates you normally use in the editor.</td>
+</tr>
+<tr class="even">
+<td>in mat4 <strong>CANVAS_MATRIX</strong></td>
+<td>World space to canvas space transform. In canvas space the origin is the upper-left corner of the screen and coordinates range from <code>(0.0, 0.0)</code> to viewport size.</td>
+</tr>
+<tr class="odd">
+<td>in mat4 <strong>SCREEN_MATRIX</strong></td>
+<td>Canvas space to clip space transform. In clip space coordinates range from <code>(-1.0, -1.0)</code> to <code>(1.0, 1.0).</code></td>
+</tr>
+<tr class="even">
+<td>in int <strong>INSTANCE_ID</strong></td>
+<td>Instance ID for instancing.</td>
+</tr>
+<tr class="odd">
+<td>in vec4 <strong>INSTANCE_CUSTOM</strong></td>
+<td>Instance custom data.</td>
+</tr>
+<tr class="even">
+<td>in bool <strong>AT_LIGHT_PASS</strong></td>
+<td>Always <code>false</code>.</td>
+</tr>
+<tr class="odd">
+<td>in vec2 <strong>TEXTURE_PIXEL_SIZE</strong></td>
+<td>Normalized pixel size of the default 2D texture. For a Sprite2D with a texture of size 64×32 pixels, <code>TEXTURE_PIXEL_SIZE</code> = <code>vec2(1.0 / 64.0, 1.0 / 32.0)</code>.</td>
+</tr>
+<tr class="even">
+<td>inout vec2 <strong>VERTEX</strong></td>
+<td>Vertex position, in local space.</td>
+</tr>
+<tr class="odd">
+<td>in int <strong>VERTEX_ID</strong></td>
+<td>The index of the current vertex in the vertex buffer.</td>
+</tr>
+<tr class="even">
+<td>inout vec2 <strong>UV</strong></td>
+<td>Normalized texture coordinates. Range from <code>0.0</code> to <code>1.0</code>.</td>
+</tr>
+<tr class="odd">
+<td>inout vec4 <strong>COLOR</strong></td>
+<td>Color from vertex primitive multiplied by the CanvasItem's ref | multiplied by CanvasItem's ref. |</td>
+</tr>
+<tr class="even">
+<td>inout float <strong>POINT_SIZE</strong></td>
+<td>Point size for point drawing.</td>
+</tr>
+<tr class="odd">
+<td>in vec4 <strong>CUSTOM0</strong></td>
+<td>Custom value from vertex primitive.</td>
+</tr>
+<tr class="even">
+<td>in vec4 <strong>CUSTOM1</strong></td>
+<td>Custom value from vertex primitive.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="fragment-built-ins">Fragment built-ins</h2>
+<h3 id="color-and-texture">COLOR and TEXTURE</h3>
+<p>The built-in variable <code>COLOR</code> is used for a few things:</p>
+<blockquote>
+<ul>
+<li>In the <code>vertex()</code> function, <code>COLOR</code> contains the color from the vertex primitive multiplied by the CanvasItem's ref multiplied by the CanvasItem's ref.</li>
+<li>In the <code>fragment()</code> function, the input value <code>COLOR</code> is that same value multiplied by the color from the default <code>TEXTURE</code> (if present).</li>
+<li>In the <code>fragment()</code> function, <code>COLOR</code> is also the final output.</li>
+</ul>
+</blockquote>
+<p>Certain nodes (for example, ref) display a texture by default, for example ref. When using a custom <code>fragment()</code> function, you have a few options on how to sample this texture.</p>
+<p>To read only the contents of the default texture, ignoring the vertex <code>COLOR</code>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  COLOR <span class="op">=</span> <span class="bu">texture</span><span class="op">(</span>TEXTURE<span class="op">,</span> UV<span class="op">);</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>To read the contents of the default texture multiplied by vertex <code>COLOR</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Equivalent to an empty fragment() function, since COLOR is also the output variable.</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  COLOR <span class="op">=</span> COLOR<span class="op">;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>To read only the vertex <code>COLOR</code> in <code>fragment()</code>, ignoring the main texture, you must pass <code>COLOR</code> as a varying, then read it in <code>fragment()</code>:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">varying</span> <span class="dt">vec4</span> vertex_color<span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">vertex</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  vertex_color <span class="op">=</span> COLOR<span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  COLOR <span class="op">=</span> vertex_color<span class="op">;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="normal">NORMAL</h3>
+<p>Similarly, if a normal map is used in the ref, Godot uses it by default and assigns its value to the built-in <code>NORMAL</code> variable. If you are using a normal map meant for use in 3D, it will appear inverted. In order to use it in your shader, you must assign it to the <code>NORMAL_MAP</code> property. Godot will handle converting it for use in 2D and overwriting <code>NORMAL</code>.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>NORMAL_MAP <span class="op">=</span> <span class="bu">texture</span><span class="op">(</span>NORMAL_TEXTURE<span class="op">,</span> UV<span class="op">).</span><span class="fu">rgb</span><span class="op">;</span></span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th>Built-in</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>in vec4 <strong>FRAGCOORD</strong></td>
+<td>Coordinate of pixel center. In screen space. <code>xy</code> specifies position in viewport. Upper-left of the viewport is the origin, <code>(0.0, 0.0)</code>. Bottom-right of the viewport is <code>(1.0, 1.0)</code>.</td>
+</tr>
+<tr class="even">
+<td>in vec2 <strong>SCREEN_PIXEL_SIZE</strong></td>
+<td>Size of individual pixels. Equal to the inverse of resolution.</td>
+</tr>
+<tr class="odd">
+<td>in vec4 <strong>REGION_RECT</strong></td>
+<td>Visible area of the sprite region in format <code>(x, y, width, height)</code>. Varies according to Sprite2D's <code>region_enabled</code> property. Values are normalized; for example, a 600×400 region on a 1000×800 texture with a 100×100 offset would be <code>vec4(0.1, 0.125, 0.6, 0.5)</code>. Values may exceed the 0.0 to 1.0 range if the X/Y offset is negative, or if the size exceeds the texture's size.</td>
+</tr>
+<tr class="even">
+<td>in vec2 <strong>POINT_COORD</strong></td>
+<td>Coordinate for drawing points in the 0.0 to 1.0 range.</td>
+</tr>
+<tr class="odd">
+<td>sampler2D <strong>TEXTURE</strong></td>
+<td>Default 2D texture.</td>
+</tr>
+<tr class="even">
+<td>in vec2 <strong>TEXTURE_PIXEL_SIZE</strong></td>
+<td>Normalized pixel size of the default 2D texture. For a Sprite2D with a texture of size 64×32 pixels, <code>TEXTURE_PIXEL_SIZE</code> = <code>vec2(1.0 / 64.0, 1.0 / 32.0)</code>.</td>
+</tr>
+<tr class="odd">
+<td>in bool <strong>AT_LIGHT_PASS</strong></td>
+<td>Always <code>false</code>.</td>
+</tr>
+<tr class="even">
+<td>sampler2D <strong>SPECULAR_SHININESS_TEXTURE</strong></td>
+<td>Specular shininess texture of this object.</td>
+</tr>
+<tr class="odd">
+<td>in vec4 <strong>SPECULAR_SHININESS</strong></td>
+<td>Specular shininess color, as sampled from the texture.</td>
+</tr>
+<tr class="even">
+<td>in vec2 <strong>UV</strong></td>
+<td>UV from the <code>vertex()</code> function. For a Sprite2D with region enabled, this will sample the entire texture. Use <code>REGION_RECT</code> instead to sample only the region defined in the Sprite2D's properties.</td>
+</tr>
+<tr class="odd">
+<td>in vec2 <strong>SCREEN_UV</strong></td>
+<td>Screen UV coordinate for the current pixel.</td>
+</tr>
+<tr class="even">
+<td>sampler2D <strong>SCREEN_TEXTURE</strong></td>
+<td>Removed in Godot 4. Use a <code>sampler2D</code> with <code>hint_screen_texture</code> instead.</td>
+</tr>
+<tr class="odd">
+<td>inout vec3 <strong>NORMAL</strong></td>
+<td>Normal read from <code>NORMAL_TEXTURE</code>. Writable.</td>
+</tr>
+<tr class="even">
+<td>sampler2D <strong>NORMAL_TEXTURE</strong></td>
+<td>Default 2D normal texture.</td>
+</tr>
+<tr class="odd">
+<td>out vec3 <strong>NORMAL_MAP</strong></td>
+<td>Configures normal maps meant for 3D for use in 2D. If used, overrides <code>NORMAL</code>.</td>
+</tr>
+<tr class="even">
+<td>out float <strong>NORMAL_MAP_DEPTH</strong></td>
+<td>Normal map depth for scaling.</td>
+</tr>
+<tr class="odd">
+<td>inout vec2 <strong>VERTEX</strong></td>
+<td>Pixel position in screen space.</td>
+</tr>
+<tr class="even">
+<td>inout vec2 <strong>SHADOW_VERTEX</strong></td>
+<td>Same as <code>VERTEX</code> but can be written to alter shadows.</td>
+</tr>
+<tr class="odd">
+<td>inout vec3 <strong>LIGHT_VERTEX</strong></td>
+<td>Same as <code>VERTEX</code> but can be written to alter lighting. Z component represents height.</td>
+</tr>
+<tr class="even">
+<td>inout vec4 <strong>COLOR</strong></td>
+<td><code>COLOR</code> from the <code>vertex()</code> function multiplied by the <code>TEXTURE</code> color. Also output color value.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="light-built-ins">Light built-ins</h2>
+<p>Light processor functions work differently in Godot 4.x than they did in Godot 3.x. In Godot 4.x all lighting is done during the regular draw pass. In other words, Godot no longer draws the object again for each light.</p>
+<p>Use the <code>unshaded</code> render mode if you do not want the <code>light()</code> function to run. Use the <code>light_only</code> render mode if you only want to see the impact of lighting on an object; this can be useful when you only want the object visible where it is covered by light.</p>
+<p>If you define a <code>light()</code> function it will replace the built-in light function, even if your light function is empty.</p>
+<p>Below is an example of a light shader that takes a CanvasItem's normal map into account:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">light</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">float</span> cNdotL <span class="op">=</span> <span class="bu">max</span><span class="op">(</span><span class="fl">0.0</span><span class="op">,</span> <span class="bu">dot</span><span class="op">(</span>NORMAL<span class="op">,</span> LIGHT_DIRECTION<span class="op">));</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  LIGHT <span class="op">=</span> <span class="dt">vec4</span><span class="op">(</span>LIGHT_COLOR<span class="op">.</span><span class="fu">rgb</span> <span class="op">*</span> COLOR<span class="op">.</span><span class="fu">rgb</span> <span class="op">*</span> LIGHT_ENERGY <span class="op">*</span> cNdotL<span class="op">,</span> LIGHT_COLOR<span class="op">.</span><span class="fu">a</span><span class="op">);</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th>Built-in</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>in vec4 <strong>FRAGCOORD</strong></td>
+<td>Coordinate of pixel center. In screen space. <code>xy</code> specifies position in viewport. Upper-left of the viewport is the origin, <code>(0.0, 0.0)</code>. Bottom-right of the viewport is <code>(1.0, 1.0)</code>.</td>
+</tr>
+<tr class="even">
+<td>in vec3 <strong>NORMAL</strong></td>
+<td>Input normal.</td>
+</tr>
+<tr class="odd">
+<td>in vec4 <strong>COLOR</strong></td>
+<td>Input color. This is the output of the <code>fragment()</code> function.</td>
+</tr>
+<tr class="even">
+<td>in vec2 <strong>UV</strong></td>
+<td>UV from the <code>vertex()</code> function, equivalent to the UV in the <code>fragment()</code> function.</td>
+</tr>
+<tr class="odd">
+<td>sampler2D <strong>TEXTURE</strong></td>
+<td>Current texture in use for the CanvasItem.</td>
+</tr>
+<tr class="even">
+<td>in vec2 <strong>TEXTURE_PIXEL_SIZE</strong></td>
+<td>Normalized pixel size of <code>TEXTURE</code>. For a Sprite2D with a <code>TEXTURE</code> of size 64×32 pixels, <code>TEXTURE_PIXEL_SIZE</code> = <code>vec2(1.0 / 64.0, 1.0 / 32.0)</code>.</td>
+</tr>
+<tr class="odd">
+<td>in vec2 <strong>SCREEN_UV</strong></td>
+<td>Screen UV coordinate for the current pixel.</td>
+</tr>
+<tr class="even">
+<td>in vec2 <strong>POINT_COORD</strong></td>
+<td>UV for Point Sprite.</td>
+</tr>
+<tr class="odd">
+<td>in vec4 <strong>LIGHT_COLOR</strong></td>
+<td>ref of the <code>class_Light2D</code>. | If the light is a <code>class_PointLight2D</code>, multiplied by the light's ref. |</td>
+</tr>
+<tr class="even">
+<td>in float <strong>LIGHT_ENERGY</strong></td>
+<td>ref of the | <code>class_Light2D</code>.</td>
+</tr>
+<tr class="odd">
+<td>in vec3 <strong>LIGHT_POSITION</strong></td>
+<td>Position of the <code>class_Light2D</code> in screen space. If using a <code>class_DirectionalLight2D</code> this is always <code>(0.0, 0.0, 0.0)</code>.</td>
+</tr>
+<tr class="even">
+<td>in vec3 <strong>LIGHT_DIRECTION</strong></td>
+<td>Direction of the <code>class_Light2D</code> in screen space.</td>
+</tr>
+<tr class="odd">
+<td>in bool <strong>LIGHT_IS_DIRECTIONAL</strong></td>
+<td><code>true</code> if this pass is a <code>class_DirectionalLight2D</code>.</td>
+</tr>
+<tr class="even">
+<td>in vec3 <strong>LIGHT_VERTEX</strong></td>
+<td>Pixel position, in screen space as modified in the <code>fragment()</code> function.</td>
+</tr>
+<tr class="odd">
+<td>inout vec4 <strong>LIGHT</strong></td>
+<td>Output color for this <code>class_Light2D</code>.</td>
+</tr>
+<tr class="even">
+<td>in vec4 <strong>SPECULAR_SHININESS</strong></td>
+<td>Specular shininess, as set in the object's texture.</td>
+</tr>
+<tr class="odd">
+<td>out vec4 <strong>SHADOW_MODULATE</strong></td>
+<td>Multiply shadows cast at this point by this color.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sdf-functions">SDF functions</h2>
+<p>There are a few additional functions implemented to sample an automatically generated Signed Distance Field texture. These functions are available in the <code>fragment()</code> and <code>light()</code> functions of CanvasItem shaders. Custom functions may also use them as long as they are called from supported functions.</p>
+<p>The signed distance field is generated from <code>class_LightOccluder2D</code> nodes present in the scene with the <strong>SDF Collision</strong> property enabled (which is the default). See the ref documentation for more information.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>float <strong>texture_sdf</strong> (vec2 sdf_pos)</td>
+<td>Performs an SDF texture lookup.</td>
+</tr>
+<tr class="even">
+<td>vec2 <strong>texture_sdf_normal</strong> (vec2 sdf_pos)</td>
+<td>Calculates a normal from the SDF texture.</td>
+</tr>
+<tr class="odd">
+<td>vec2 <strong>sdf_to_screen_uv</strong> (vec2 sdf_pos)</td>
+<td>Converts an SDF to screen UV.</td>
+</tr>
+<tr class="even">
+<td>vec2 <strong>screen_uv_to_sdf</strong> (vec2 uv)</td>
+<td>Converts screen UV to an SDF.</td>
+</tr>
+</tbody>
+</table>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

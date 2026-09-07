@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RandomNumberGenerator — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="randomnumbergenerator">RandomNumberGenerator</h1>
+<p><em>Inherits: <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Provides methods for generating pseudo-random numbers.</p>
+<h2 id="description">Description</h2>
+<p>RandomNumberGenerator is a class for generating pseudo-random numbers. It currently uses <a href="https://www.pcg-random.org/">PCG32</a>.</p>
+<p><strong>Note:</strong> The underlying algorithm is an implementation detail and should not be depended upon.</p>
+<p>To generate a random float number (within a given range) based on a time-dependent seed:</p>
+<pre class="gdscript"><code>var rng = RandomNumberGenerator.new()
+func _ready():
+    var my_random_number = rng.randf_range(-10.0, 10.0)</code></pre>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/tutorials/math/random_number_generation.html">Random number generation</a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="int-seed--0"><code>int seed = 0</code></h3>
+<ul>
+<li>Setter: <code>set_seed(value: int)</code></li>
+<li>Getter: <code>get_seed()</code></li>
+</ul>
+<p>Initializes the random number generator state based on the given seed value. A given seed will give a reproducible sequence of pseudo-random numbers.</p>
+<p><strong>Note:</strong> The RNG does not have an avalanche effect, and can output similar random streams given similar seeds. Consider using a hash function to improve your seed quality if they're sourced externally.</p>
+<p><strong>Note:</strong> The default value of this property is pseudo-random, and changes when calling <code>randomize()</code>. The <code>0</code> value documented here is a placeholder, and not the actual default seed.</p>
+<p><strong>Note:</strong> Setting this property produces a side effect of changing the internal <code>state</code>, so make sure to initialize the seed <em>before</em> modifying the <code>state</code>:</p>
+<pre class="gdscript"><code>var rng = RandomNumberGenerator.new()
+rng.seed = hash(&quot;Godot&quot;)
+rng.state = 100 # Restore to some previously saved state.</code></pre>
+<h3 id="int-state--0"><code>int state = 0</code></h3>
+<ul>
+<li>Setter: <code>set_state(value: int)</code></li>
+<li>Getter: <code>get_state()</code></li>
+</ul>
+<p>The current state of the random number generator. Save and restore this property to restore the generator to a previous state:</p>
+<pre class="gdscript"><code>var rng = RandomNumberGenerator.new()
+print(rng.randf())
+var saved_state = rng.state # Store current state.
+print(rng.randf()) # Advance internal state.
+rng.state = saved_state # Restore the state.
+print(rng.randf()) # Prints the same value as previously.</code></pre>
+<p><strong>Note:</strong> Do not set state to arbitrary values, since the random number generator requires the state to have certain qualities to behave properly. It should only be set to values that came from the state property itself. To initialize the random number generator with arbitrary input, use <code>seed</code> instead.</p>
+<p><strong>Note:</strong> The default value of this property is pseudo-random, and changes when calling <code>randomize()</code>. The <code>0</code> value documented here is a placeholder, and not the actual default state.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="int-rand_weightedweights-packedfloat32array"><code>int rand_weighted(weights: PackedFloat32Array)</code></h3>
+<p>Returns a random integer between <code>0</code> and the size of the array that is passed as a parameter. Each value in the array should be a floating-point number that represents the relative likelihood that it will be returned as an index. A higher value means the value is more likely to be returned as an index, while a value of <code>0</code> means it will never be returned as an index.</p>
+<p>For example, if <code>[0.5, 1, 1, 2]</code> is passed as a parameter, then the method is twice as likely to return <code>3</code> (the index of the value <code>2</code>) and twice as unlikely to return <code>0</code> (the index of the value <code>0.5</code>) compared to the indices <code>1</code> and <code>2</code>.</p>
+<p>Prints an error and returns <code>-1</code> if the array is empty.</p>
+<pre class="gdscript"><code>var rng = RandomNumberGenerator.new()
+
+var my_array = [&quot;one&quot;, &quot;two&quot;, &quot;three&quot;, &quot;four&quot;]
+var weights = PackedFloat32Array([0.5, 1, 1, 2])
+
+# Prints one of the four elements in `my_array`.
+# It is more likely to print &quot;four&quot;, and less likely to print &quot;one&quot;.
+print(my_array[rng.rand_weighted(weights)])</code></pre>
+<h3 id="float-randf"><code>float randf()</code></h3>
+<p>Returns a pseudo-random float between <code>0.0</code> and <code>1.0</code> (inclusive).</p>
+<h3 id="float-randf_rangefrom-float-to-float"><code>float randf_range(from: float, to: float)</code></h3>
+<p>Returns a pseudo-random float between <code>from</code> and <code>to</code> (inclusive).</p>
+<h3 id="float-randfnmean-float--00-deviation-float--10"><code>float randfn(mean: float = 0.0, deviation: float = 1.0)</code></h3>
+<p>Returns a <a href="https://en.wikipedia.org/wiki/Normal_distribution">normally-distributed</a>, pseudo-random floating-point number from the specified <code>mean</code> and a standard <code>deviation</code>. This is also known as a Gaussian distribution.</p>
+<p><strong>Note:</strong> This method uses the <a href="https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform">Box-Muller transform</a> algorithm.</p>
+<h3 id="int-randi"><code>int randi()</code></h3>
+<p>Returns a pseudo-random 32-bit unsigned integer between <code>0</code> and <code>4294967295</code> (inclusive).</p>
+<h3 id="int-randi_rangefrom-int-to-int"><code>int randi_range(from: int, to: int)</code></h3>
+<p>Returns a pseudo-random 32-bit signed integer between <code>from</code> and <code>to</code> (inclusive).</p>
+<h3 id="void-randomize"><code>void randomize()</code></h3>
+<p>Sets up a time-based seed for this <strong>RandomNumberGenerator</strong> instance. Unlike the <a href="@GlobalScope.html">@GlobalScope</a> random number generation functions, different <strong>RandomNumberGenerator</strong> instances can use different seeds.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

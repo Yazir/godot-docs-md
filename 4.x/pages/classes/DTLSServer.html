@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTLSServer — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="dtlsserver">DTLSServer</h1>
+<p><em>Inherits: <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Helper class to implement a DTLS server.</p>
+<h2 id="description">Description</h2>
+<p>This class is used to store the state of a DTLS server. Upon <code>setup()</code> it converts connected <a href="PacketPeerUDP.html">PacketPeerUDP</a> to <a href="PacketPeerDTLS.html">PacketPeerDTLS</a> accepting them via <code>take_connection()</code> as DTLS clients. Under the hood, this class is used to store the DTLS state and cookies of the server. The reason of why the state and cookies are needed is outside of the scope of this documentation.</p>
+<p>Below a small example of how to use it:</p>
+<pre class="gdscript"><code># server_node.gd
+extends Node
+
+var dtls = DTLSServer.new()
+var server = UDPServer.new()
+var peers = []
+
+func _ready():
+    server.listen(4242)
+    var key = load(&quot;key.key&quot;) # Your private key.
+    var cert = load(&quot;cert.crt&quot;) # Your X509 certificate.
+    dtls.setup(TlsOptions.server(key, cert))
+
+func _process(delta):
+    while server.is_connection_available():
+        var peer = server.take_connection()
+        var dtls_peer = dtls.take_connection(peer)
+        if dtls_peer.get_status() != PacketPeerDTLS.STATUS_HANDSHAKING:
+            continue # It is normal that 50% of the connections fails due to cookie exchange.
+        print(&quot;Peer connected!&quot;)
+        peers.append(dtls_peer)
+
+    for p in peers:
+        p.poll() # Must poll to update the state.
+        if p.get_status() == PacketPeerDTLS.STATUS_CONNECTED:
+            while p.get_available_packet_count() &gt; 0:
+                print(&quot;Received message from client: %s&quot; % p.get_packet().get_string_from_utf8())
+                p.put_packet(&quot;Hello DTLS client&quot;.to_utf8_buffer())</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ServerNode.cs</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> ServerNode <span class="op">:</span> Node</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> DtlsServer _dtls <span class="op">=</span> <span class="kw">new</span> <span class="fu">DtlsServer</span><span class="op">();</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> UdpServer _server <span class="op">=</span> <span class="kw">new</span> <span class="fu">UdpServer</span><span class="op">();</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Array</span><span class="op">&lt;</span>PacketPeerDtls<span class="op">&gt;</span> _peers <span class="op">=</span> <span class="op">[];</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        _server<span class="op">.</span><span class="fu">Listen</span><span class="op">(</span><span class="dv">4242</span><span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> key <span class="op">=</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>CryptoKey<span class="op">&gt;(</span><span class="st">&quot;key.key&quot;</span><span class="op">);</span> <span class="co">// Your private key.</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> cert <span class="op">=</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>X509Certificate<span class="op">&gt;(</span><span class="st">&quot;cert.crt&quot;</span><span class="op">);</span> <span class="co">// Your X509 certificate.</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        _dtls<span class="op">.</span><span class="fu">Setup</span><span class="op">(</span>TlsOptions<span class="op">.</span><span class="fu">Server</span><span class="op">(</span>key<span class="op">,</span> cert<span class="op">));</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        <span class="kw">while</span> <span class="op">(</span>_server<span class="op">.</span><span class="fu">IsConnectionAvailable</span><span class="op">())</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>            PacketPeerUdp peer <span class="op">=</span> _server<span class="op">.</span><span class="fu">TakeConnection</span><span class="op">();</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>            PacketPeerDtls dtlsPeer <span class="op">=</span> _dtls<span class="op">.</span><span class="fu">TakeConnection</span><span class="op">(</span>peer<span class="op">);</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>dtlsPeer<span class="op">.</span><span class="fu">GetStatus</span><span class="op">()</span> <span class="op">!=</span> PacketPeerDtls<span class="op">.</span><span class="fu">Status</span><span class="op">.</span><span class="fu">Handshaking</span><span class="op">)</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>                <span class="kw">continue</span><span class="op">;</span> <span class="co">// It is normal that 50% of the connections fails due to cookie exchange.</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;Peer connected!&quot;</span><span class="op">);</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>            _peers<span class="op">.</span><span class="fu">Add</span><span class="op">(</span>dtlsPeer<span class="op">);</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>        <span class="kw">foreach</span> <span class="op">(</span><span class="dt">var</span> p <span class="kw">in</span> _peers<span class="op">)</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>            p<span class="op">.</span><span class="fu">Poll</span><span class="op">();</span> <span class="co">// Must poll to update the state.</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>p<span class="op">.</span><span class="fu">GetStatus</span><span class="op">()</span> <span class="op">==</span> PacketPeerDtls<span class="op">.</span><span class="fu">Status</span><span class="op">.</span><span class="fu">Connected</span><span class="op">)</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>                <span class="kw">while</span> <span class="op">(</span>p<span class="op">.</span><span class="fu">GetAvailablePacketCount</span><span class="op">()</span> <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>                <span class="op">{</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>                    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>$<span class="st">&quot;Received Message From Client: {p.GetPacket().GetStringFromUtf8()}&quot;</span><span class="op">);</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>                    p<span class="op">.</span><span class="fu">PutPacket</span><span class="op">(</span><span class="st">&quot;Hello DTLS Client&quot;</span><span class="op">.</span><span class="fu">ToUtf8Buffer</span><span class="op">());</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="gdscript"><code># client_node.gd
+extends Node
+
+var dtls = PacketPeerDTLS.new()
+var udp = PacketPeerUDP.new()
+var connected = false
+
+func _ready():
+    udp.connect_to_host(&quot;127.0.0.1&quot;, 4242)
+    dtls.connect_to_peer(udp, false) # Use true in production for certificate validation!
+
+func _process(delta):
+    dtls.poll()
+    if dtls.get_status() == PacketPeerDTLS.STATUS_CONNECTED:
+        if !connected:
+            # Try to contact server
+            dtls.put_packet(&quot;The answer is... 42!&quot;.to_utf8_buffer())
+        while dtls.get_available_packet_count() &gt; 0:
+            print(&quot;Connected: %s&quot; % dtls.get_packet().get_string_from_utf8())
+            connected = true</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ClientNode.cs</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">.</span><span class="fu">Text</span><span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> ClientNode <span class="op">:</span> Node</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> PacketPeerDtls _dtls <span class="op">=</span> <span class="kw">new</span> <span class="fu">PacketPeerDtls</span><span class="op">();</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> PacketPeerUdp _udp <span class="op">=</span> <span class="kw">new</span> <span class="fu">PacketPeerUdp</span><span class="op">();</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">bool</span> _connected <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        _udp<span class="op">.</span><span class="fu">ConnectToHost</span><span class="op">(</span><span class="st">&quot;127.0.0.1&quot;</span><span class="op">,</span> <span class="dv">4242</span><span class="op">);</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        _dtls<span class="op">.</span><span class="fu">ConnectToPeer</span><span class="op">(</span>_udp<span class="op">,</span> validateCerts<span class="op">:</span> <span class="kw">false</span><span class="op">);</span> <span class="co">// Use true in production for certificate validation!</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        _dtls<span class="op">.</span><span class="fu">Poll</span><span class="op">();</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>_dtls<span class="op">.</span><span class="fu">GetStatus</span><span class="op">()</span> <span class="op">==</span> PacketPeerDtls<span class="op">.</span><span class="fu">Status</span><span class="op">.</span><span class="fu">Connected</span><span class="op">)</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(!</span>_connected<span class="op">)</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>                <span class="co">// Try to contact server</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>                _dtls<span class="op">.</span><span class="fu">PutPacket</span><span class="op">(</span><span class="st">&quot;The Answer Is..42!&quot;</span><span class="op">.</span><span class="fu">ToUtf8Buffer</span><span class="op">());</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>            <span class="kw">while</span> <span class="op">(</span>_dtls<span class="op">.</span><span class="fu">GetAvailablePacketCount</span><span class="op">()</span> <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>                GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>$<span class="st">&quot;Connected: {_dtls.GetPacket().GetStringFromUtf8()}&quot;</span><span class="op">);</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>                _connected <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="methods">Methods</h2>
+<h3 id="globalscopeerror-setupserver_options-tlsoptions">``@GlobalScope.Error<code> setup(server_options: TLSOptions)</code></h3>
+<p>Setup the DTLS server to use the given <code>server_options</code>. See <code>TLSOptions.server()</code>.</p>
+<h3 id="packetpeerdtls-take_connectionudp_peer-packetpeerudp"><code>PacketPeerDTLS take_connection(udp_peer: PacketPeerUDP)</code></h3>
+<p>Try to initiate the DTLS handshake with the given <code>udp_peer</code> which must be already connected (see <code>PacketPeerUDP.connect_to_host()</code>).</p>
+<p><strong>Note:</strong> You must check that the state of the return PacketPeerUDP is <code>PacketPeerDTLS.STATUS_HANDSHAKING</code>, as it is normal that 50% of the new connections will be invalid due to cookie exchange.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using ImmediateMesh — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-immediatemesh">Using ImmediateMesh</h1>
+<p>The ref is a convenient tool to create dynamic geometry using an OpenGL 1.x-style API. Which makes it both approachable to use and efficient for meshes which need to be updated every frame.</p>
+<p>Generating complex geometry (several thousand vertices) with this tool is inefficient, even if it's done only once. Instead, it is designed to generate simple geometry that changes every frame.</p>
+<p>First, you need to create a ref and add an ref to it in the Inspector.</p>
+<p>Next, add a script to the MeshInstance3D. The code for the ImmediateMesh should go in the <code>_process()</code> function if you want it to update each frame, or in the <code>_ready()</code> function if you want to create the mesh once and not update it. If you only generate a surface once, the ImmediateMesh is just as efficient as any other kind of mesh as the generated mesh is cached and reused.</p>
+<p>To begin generating geometry you must call <code>surface_begin()</code>. <code>surface_begin()</code> takes a <code>PrimitiveType</code> as an argument. <code>PrimitiveType</code> instructs the GPU how to arrange the primitive based on the vertices given whether it is triangles, lines, points, etc. A complete list can be found under the ref class reference page.</p>
+<p>Once you have called <code>surface_begin()</code> you are ready to start adding vertices. You add vertices one at a time. First you add vertex specific attributes such as normals or UVs using <code>surface_set_****()</code> (e.g. <code>surface_set_normal()</code>). Then you call <code>surface_add_vertex()</code> to add a vertex with those attributes. For example:</p>
+<pre class="gdscript"><code># Add a vertex with normal and uv.
+surface_set_normal(Vector3(0, 1, 0))
+surface_set_uv(Vector2(1, 1))
+surface_add_vertex(Vector3(0, 0, 1))</code></pre>
+<p>Only attributes added before the call to <code>surface_add_vertex()</code> will be included in that vertex. If you add an attribute twice before calling <code>surface_add_vertex()</code>, only the second call will be used.</p>
+<p>Finally, once you have added all your vertices call <code>surface_end()</code> to signal that you have finished generating the surface. You can call <code>surface_begin()</code> and <code>surface_end()</code> multiple times to generate multiple surfaces for the mesh.</p>
+<p>The example code below draws a single triangle in the <code>_ready()</code> function.</p>
+<pre class="gdscript"><code>extends MeshInstance3D
+
+func _ready():
+    # Begin draw.
+    mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+
+    # Prepare attributes for add_vertex.
+    mesh.surface_set_normal(Vector3(0, 0, 1))
+    mesh.surface_set_uv(Vector2(0, 0))
+    # Call last for each vertex, adds the above attributes.
+    mesh.surface_add_vertex(Vector3(-1, -1, 0))
+
+    mesh.surface_set_normal(Vector3(0, 0, 1))
+    mesh.surface_set_uv(Vector2(0, 1))
+    mesh.surface_add_vertex(Vector3(-1, 1, 0))
+
+    mesh.surface_set_normal(Vector3(0, 0, 1))
+    mesh.surface_set_uv(Vector2(1, 1))
+    mesh.surface_add_vertex(Vector3(1, 1, 0))
+
+    # End drawing.
+    mesh.surface_end()</code></pre>
+<p>The ImmediateMesh can also be used across frames. Each time you call <code>surface_begin()</code> and <code>surface_end()</code>, you are adding a new surface to the ImmediateMesh. If you want to recreate the mesh from scratch each frame, call <code>clear_surfaces()</code> before calling <code>surface_begin()</code>.</p>
+<pre class="gdscript"><code>extends MeshInstance3D
+
+func _process(delta):
+
+    # Clean up before drawing.
+    mesh.clear_surfaces()
+
+    # Begin draw.
+    mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+
+    # Draw mesh.
+
+    # End drawing.
+    mesh.surface_end()</code></pre>
+<p>The above code will dynamically create and draw a single surface each frame.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

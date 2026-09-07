@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Particle shaders — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="particle-shaders">Particle shaders</h1>
+<p>Particle shaders are a special type of shader that runs before the object is drawn. They are used for calculating material properties such as color, position, and rotation. They can be drawn with any regular material for CanvasItem or Spatial, depending on whether they are 2D or 3D.</p>
+<p>Particle shaders are unique because they are not used to draw the object itself; they are used to calculate particle properties, which are then used by a ref or ref shader. They contain two processor functions: <code>start()</code> and <code>process()</code>.</p>
+<p>Unlike other shader types, particle shaders keep the data that was output the previous frame. Therefore, particle shaders can be used for complex effects that take place over multiple frames.</p>
+<blockquote>
+<p><strong>Note:</strong> Particle shaders are only available with GPU-based particle nodes (<code>class_GPUParticles2D</code> and <code>class_GPUParticles3D</code>).</p>
+<p>CPU-based particle nodes (<code>class_CPUParticles2D</code> and <code>class_CPUParticles3D</code>) are <em>rendered</em> on the GPU (which means they can use custom CanvasItem or Spatial shaders), but their motion is <em>simulated</em> on the CPU.</p>
+</blockquote>
+<h2 id="render-modes">Render modes</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Render mode</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>keep_data</strong></td>
+<td>Do not clear previous data on restart.</td>
+</tr>
+<tr class="even">
+<td><strong>disable_force</strong></td>
+<td>Disable attractor force.</td>
+</tr>
+<tr class="odd">
+<td><strong>disable_velocity</strong></td>
+<td>Ignore <code>VELOCITY</code> value.</td>
+</tr>
+<tr class="even">
+<td><strong>collision_use_scale</strong></td>
+<td>Scale the particle's size for collisions.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="built-ins">Built-ins</h2>
+<p>Values marked as <code>in</code> are read-only. Values marked as <code>out</code> can optionally be written to and will not necessarily contain sensible values. Values marked as <code>inout</code> provide a sensible default value, and can optionally be written to. Samplers cannot be written to so they are not marked.</p>
+<h2 id="global-built-ins">Global built-ins</h2>
+<p>Global built-ins are available everywhere, including custom functions.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Built-in</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>in float <strong>TIME</strong></td>
+<td>Global time since the engine has started, in seconds. It repeats after every <code>3,600</code> seconds (which can be changed with the ref | setting). It's affected by ref but not by pausing. If you need a | <code>TIME</code> variable that is not affected by time scale, add your own ref and update it each | frame.</td>
+</tr>
+<tr class="even">
+<td>in float <strong>PI</strong></td>
+<td>A <code>PI</code> constant (<code>3.141592</code>). The ratio of a circle's circumference to its diameter and the number of radians in a half turn.</td>
+</tr>
+<tr class="odd">
+<td>in float <strong>TAU</strong></td>
+<td>A <code>TAU</code> constant (<code>6.283185</code>). Equivalent to <code>PI * 2</code> and the number of radians in a full turn.</td>
+</tr>
+<tr class="even">
+<td>in float <strong>E</strong></td>
+<td>An <code>E</code> constant (<code>2.718281</code>). Euler's number, the base of the natural logarithm.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="start-and-process-built-ins">Start and Process built-ins</h2>
+<p>These properties can be accessed from both the <code>start()</code> and <code>process()</code> functions.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>in float <strong>LIFETIME</strong></td>
+<td>Particle lifetime.</td>
+</tr>
+<tr class="even">
+<td>in float <strong>DELTA</strong></td>
+<td>Delta process time.</td>
+</tr>
+<tr class="odd">
+<td>in uint <strong>NUMBER</strong></td>
+<td>Unique number since emission start.</td>
+</tr>
+<tr class="even">
+<td>in uint <strong>INDEX</strong></td>
+<td>Particle index (from total particles).</td>
+</tr>
+<tr class="odd">
+<td>in mat4 <strong>EMISSION_TRANSFORM</strong></td>
+<td>Emitter transform (used for non-local systems).</td>
+</tr>
+<tr class="even">
+<td>in uint <strong>RANDOM_SEED</strong></td>
+<td>Random seed used as base for random.</td>
+</tr>
+<tr class="odd">
+<td>inout bool <strong>ACTIVE</strong></td>
+<td><code>true</code> when the particle is active, can be set to <code>false</code>.</td>
+</tr>
+<tr class="even">
+<td>inout vec4 <strong>COLOR</strong></td>
+<td>Particle color, can be written to and accessed in the mesh's vertex function.</td>
+</tr>
+<tr class="odd">
+<td>inout vec3 <strong>VELOCITY</strong></td>
+<td>Particle velocity, can be modified.</td>
+</tr>
+<tr class="even">
+<td>inout mat4 <strong>TRANSFORM</strong></td>
+<td>Particle transform.</td>
+</tr>
+<tr class="odd">
+<td>inout vec4 <strong>CUSTOM</strong></td>
+<td>Custom particle data. Accessible from the mesh's shader as <code>INSTANCE_CUSTOM</code>.</td>
+</tr>
+<tr class="even">
+<td>inout float <strong>MASS</strong></td>
+<td>Particle mass, intended to be used with attractors. <code>1.0</code> by default.</td>
+</tr>
+<tr class="odd">
+<td>in vec4 <strong>USERDATAX</strong></td>
+<td>Vector that enables the integration of supplementary user-defined data into the particle process shader. <code>USERDATAX</code> are six built-ins identified by number, <code>X</code> can be numbers between 1 and 6, for example <code>USERDATA3</code>.</td>
+</tr>
+<tr class="even">
+<td>in uint <strong>FLAG_EMIT_POSITION</strong></td>
+<td>A flag for the last argument of the <code>emit_subparticle()</code> function to assign a position to a new particle's transform.</td>
+</tr>
+<tr class="odd">
+<td>in uint <strong>FLAG_EMIT_ROT_SCALE</strong></td>
+<td>A flag for the last argument of the <code>emit_subparticle()</code> function to assign a rotation and scale to a new particle's transform.</td>
+</tr>
+<tr class="even">
+<td>in uint <strong>FLAG_EMIT_VELOCITY</strong></td>
+<td>A flag for the last argument of the <code>emit_subparticle()</code> function to assign a velocity to a new particle.</td>
+</tr>
+<tr class="odd">
+<td>in uint <strong>FLAG_EMIT_COLOR</strong></td>
+<td>A flag for the last argument of the <code>emit_subparticle()</code> function to assign a color to a new particle.</td>
+</tr>
+<tr class="even">
+<td>in uint <strong>FLAG_EMIT_CUSTOM</strong></td>
+<td>A flag for the last argument of the <code>emit_subparticle()</code> function to assign a custom data vector to a new particle.</td>
+</tr>
+<tr class="odd">
+<td>in vec3 <strong>EMITTER_VELOCITY</strong></td>
+<td>Velocity of the ref (ref) node. |</td>
+</tr>
+<tr class="even">
+<td>in float <strong>INTERPOLATE_TO_END</strong></td>
+<td>Value of the ref | (ref) property of the Particles node. |</td>
+</tr>
+<tr class="odd">
+<td>in uint <strong>AMOUNT_RATIO</strong></td>
+<td>Value of the ref | (ref) property of the Particles node. |</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> In order to use the <code>COLOR</code> variable in a StandardMaterial3D, set <code>vertex_color_use_as_albedo</code> to <code>true</code>. In a ShaderMaterial, access it with the <code>COLOR</code> variable.</p>
+</blockquote>
+<h2 id="start-built-ins">Start built-ins</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Built-in</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>in bool <strong>RESTART_POSITION</strong></td>
+<td><code>true</code> if particle is restarted, or emitted without a custom position (i.e. this particle was created by <code>emit_subparticle()</code> without the <code>FLAG_EMIT_POSITION</code> flag).</td>
+</tr>
+<tr class="even">
+<td>in bool <strong>RESTART_ROT_SCALE</strong></td>
+<td><code>true</code> if particle is restarted, or emitted without a custom rotation or scale (i.e. this particle was created by <code>emit_subparticle()</code> without the <code>FLAG_EMIT_ROT_SCALE</code> flag).</td>
+</tr>
+<tr class="odd">
+<td>in bool <strong>RESTART_VELOCITY</strong></td>
+<td><code>true</code> if particle is restarted, or emitted without a custom velocity (i.e. this particle was created by <code>emit_subparticle()</code> without the <code>FLAG_EMIT_VELOCITY</code> flag).</td>
+</tr>
+<tr class="even">
+<td>in bool <strong>RESTART_COLOR</strong></td>
+<td><code>true</code> if particle is restarted, or emitted without a custom color (i.e. this particle was created by <code>emit_subparticle()</code> without the <code>FLAG_EMIT_COLOR</code> flag).</td>
+</tr>
+<tr class="odd">
+<td>in bool <strong>RESTART_CUSTOM</strong></td>
+<td><code>true</code> if particle is restarted, or emitted without a custom property (i.e. this particle was created by <code>emit_subparticle()</code> without the <code>FLAG_EMIT_CUSTOM</code> flag).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="process-built-ins">Process built-ins</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Built-in</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>in bool <strong>RESTART</strong></td>
+<td><code>true</code> if the current process frame is the first for the particle.</td>
+</tr>
+<tr class="even">
+<td>in bool <strong>COLLIDED</strong></td>
+<td><code>true</code> when the particle has collided with a particle collider.</td>
+</tr>
+<tr class="odd">
+<td>in vec3 <strong>COLLISION_NORMAL</strong></td>
+<td>A normal of the last collision. If there is no collision detected it is equal to <code>(0.0, 0.0, 0.0)</code>.</td>
+</tr>
+<tr class="even">
+<td>in float <strong>COLLISION_DEPTH</strong></td>
+<td>A length of the normal of the last collision. If there is no collision detected it is equal to <code>0.0</code>.</td>
+</tr>
+<tr class="odd">
+<td>in vec3 <strong>ATTRACTOR_FORCE</strong></td>
+<td>A combined force of the attractors at the moment on that particle.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="process-functions">Process functions</h2>
+<p><code>emit_subparticle()</code> is currently the only custom function supported by particle shaders. It allows users to add a new particle with specified parameters from a sub-emitter. The newly created particle will only use the properties that match the <code>flags</code> parameter. For example, the following code will emit a particle with a specified position, velocity, and color, but unspecified rotation, scale, and custom value:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">mat4</span> custom_transform <span class="op">=</span> <span class="dt">mat4</span><span class="op">(</span><span class="fl">1.0</span><span class="op">);</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>custom_transform<span class="op">[</span><span class="dv">3</span><span class="op">].</span><span class="fu">xyz</span> <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">10.5</span><span class="op">,</span> <span class="fl">0.0</span><span class="op">,</span> <span class="fl">4.0</span><span class="op">);</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">emit_subparticle</span><span class="op">(</span>custom_transform<span class="op">,</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">1.0</span><span class="op">,</span> <span class="fl">0.5</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">),</span> <span class="dt">vec4</span><span class="op">(</span><span class="fl">1.0</span><span class="op">,</span> <span class="fl">0.0</span><span class="op">,</span> <span class="fl">0.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">),</span> <span class="dt">vec4</span><span class="op">(</span><span class="fl">1.0</span><span class="op">),</span> FLAG_EMIT_POSITION <span class="op">|</span> FLAG_EMIT_VELOCITY <span class="op">|</span> FLAG_EMIT_COLOR<span class="op">);</span></span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>bool <strong>emit_subparticle</strong> (mat4 xform, vec3 velocity, vec4 color, vec4 custom, uint flags)</td>
+<td>Emits a particle from a sub-emitter.</td>
+</tr>
+</tbody>
+</table>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

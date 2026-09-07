@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using NavigationLayers — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-navigationlayers">Using NavigationLayers</h1>
+<p>NavigationLayers are an optional feature to further control which navigation meshes are considered in a path query. They work similar to how physics layers control collision between collision objects or how visual layers control what is rendered to the Viewport.</p>
+<p>NavigationLayers can be named in the <strong>ProjectSettings</strong> the same as physics layers or visual layers.</p>
+<p>If a region has not a single compatible navigation layer with the <code>navigation_layers</code> parameter of a path query this regions navigation mesh will be skipped in pathfinding. See <code>doc_navigation_using_navigationpaths</code> for more information on querying the NavigationServer for paths.</p>
+<p>NavigationLayers are a single <code>int</code> value that is used as a <strong>bitmask</strong>. Many navigation related nodes have <code>set_navigation_layer_value()</code> and <code>get_navigation_layer_value()</code> functions to set and get a layer number directly without the need for more complex bitwise operations.</p>
+<p>In scripts the following helper functions can be used to work with the <code>navigation_layers</code> bitmask.</p>
+<pre class="gdscript"><code>func change_layers():
+    var region: NavigationRegion2D = get_node(&quot;NavigationRegion2D&quot;)
+    # enables 4-th layer for this region
+    region.navigation_layers = enable_bitmask_inx(region.navigation_layers, 4)
+    # disables 1-rst layer for this region
+    region.navigation_layers = disable_bitmask_inx(region.navigation_layers, 1)
+
+    var agent: NavigationAgent2D = get_node(&quot;NavigationAgent2D&quot;)
+    # make future path queries of this agent ignore regions with 4-th layer
+    agent.navigation_layers = disable_bitmask_inx(agent.navigation_layers, 4)
+
+    var path_query_navigation_layers: int = 0
+    path_query_navigation_layers = enable_bitmask_inx(path_query_navigation_layers, 2)
+    # get a path that only considers 2-nd layer regions
+    var path: PackedVector2Array = NavigationServer2D.map_get_path(
+        map,
+        start_position,
+        target_position,
+        true,
+        path_query_navigation_layers
+        )
+
+static func is_bitmask_inx_enabled(_bitmask: int, _index: int) -&gt; bool:
+    return _bitmask &amp; (1 &lt;&lt; _index) != 0
+
+static func enable_bitmask_inx(_bitmask: int, _index: int) -&gt; int:
+    return _bitmask | (1 &lt;&lt; _index)
+
+static func disable_bitmask_inx(_bitmask: int, _index: int) -&gt; int:
+    return _bitmask &amp; ~(1 &lt;&lt; _index)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2D <span class="op">:</span> Node2D</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Rid _map<span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector2 _startPosition<span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector2 _targetPosition<span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">ChangeLayers</span><span class="op">()</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        NavigationRegion2D region <span class="op">=</span> GetNode<span class="op">&lt;</span>NavigationRegion2D<span class="op">&gt;(</span><span class="st">&quot;NavigationRegion2D&quot;</span><span class="op">);</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Enables the 4th layer for this region.</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        region<span class="op">.</span><span class="fu">NavigationLayers</span> <span class="op">=</span> <span class="fu">EnableBitmaskInx</span><span class="op">(</span>region<span class="op">.</span><span class="fu">NavigationLayers</span><span class="op">,</span> <span class="dv">4</span><span class="op">);</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Disables the 1st layer for this region.</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        region<span class="op">.</span><span class="fu">NavigationLayers</span> <span class="op">=</span> <span class="fu">DisableBitmaskInx</span><span class="op">(</span>region<span class="op">.</span><span class="fu">NavigationLayers</span><span class="op">,</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        NavigationAgent2D agent <span class="op">=</span> GetNode<span class="op">&lt;</span>NavigationAgent2D<span class="op">&gt;(</span><span class="st">&quot;NavigationAgent2D&quot;</span><span class="op">);</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Make future path queries of this agent ignore regions with the 4th layer.</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        agent<span class="op">.</span><span class="fu">NavigationLayers</span> <span class="op">=</span> <span class="fu">DisableBitmaskInx</span><span class="op">(</span>agent<span class="op">.</span><span class="fu">NavigationLayers</span><span class="op">,</span> <span class="dv">4</span><span class="op">);</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        <span class="dt">uint</span> pathQueryNavigationLayers <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        pathQueryNavigationLayers <span class="op">=</span> <span class="fu">EnableBitmaskInx</span><span class="op">(</span>pathQueryNavigationLayers<span class="op">,</span> <span class="dv">2</span><span class="op">);</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Get a path that only considers 2nd layer regions.</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        Vector2<span class="op">[]</span> path <span class="op">=</span> NavigationServer2D<span class="op">.</span><span class="fu">MapGetPath</span><span class="op">(</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>            _map<span class="op">,</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>            _startPosition<span class="op">,</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>            _targetPosition<span class="op">,</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>            <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>            pathQueryNavigationLayers</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">static</span> <span class="dt">bool</span> <span class="fu">IsBitmaskInxEnabled</span><span class="op">(</span><span class="dt">uint</span> bitmask<span class="op">,</span> <span class="dt">int</span> index<span class="op">)</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="op">(</span>bitmask <span class="op">&amp;</span> <span class="op">(</span><span class="dv">1</span> <span class="op">&lt;&lt;</span> index<span class="op">))</span> <span class="op">!=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">static</span> <span class="dt">uint</span> <span class="fu">EnableBitmaskInx</span><span class="op">(</span><span class="dt">uint</span> bitmask<span class="op">,</span> <span class="dt">int</span> index<span class="op">)</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> bitmask <span class="op">|</span> <span class="op">(</span><span class="dv">1u</span> <span class="op">&lt;&lt;</span> index<span class="op">);</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">static</span> <span class="dt">uint</span> <span class="fu">DisableBitmaskInx</span><span class="op">(</span><span class="dt">uint</span> bitmask<span class="op">,</span> <span class="dt">int</span> index<span class="op">)</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> bitmask <span class="op">&amp;</span> <span class="op">~(</span><span class="dv">1u</span> <span class="op">&lt;&lt;</span> index<span class="op">);</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="gdscript"><code>func change_layers():
+    var region: NavigationRegion3D = get_node(&quot;NavigationRegion3D&quot;)
+    # enables 4-th layer for this region
+    region.navigation_layers = enable_bitmask_inx(region.navigation_layers, 4)
+    # disables 1-rst layer for this region
+    region.navigation_layers = disable_bitmask_inx(region.navigation_layers, 1)
+
+    var agent: NavigationAgent3D = get_node(&quot;NavigationAgent3D&quot;)
+    # make future path queries of this agent ignore regions with 4-th layer
+    agent.navigation_layers = disable_bitmask_inx(agent.navigation_layers, 4)
+
+    var path_query_navigation_layers: int = 0
+    path_query_navigation_layers = enable_bitmask_inx(path_query_navigation_layers, 2)
+    # get a path that only considers 2-nd layer regions
+    var path: PackedVector3Array = NavigationServer3D.map_get_path(
+        map,
+        start_position,
+        target_position,
+        true,
+        path_query_navigation_layers
+        )
+
+static func is_bitmask_inx_enabled(_bitmask: int, _index: int) -&gt; bool:
+    return _bitmask &amp; (1 &lt;&lt; _index) != 0
+
+static func enable_bitmask_inx(_bitmask: int, _index: int) -&gt; int:
+    return _bitmask | (1 &lt;&lt; _index)
+
+static func disable_bitmask_inx(_bitmask: int, _index: int) -&gt; int:
+    return _bitmask &amp; ~(1 &lt;&lt; _index)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode3D <span class="op">:</span> Node3D</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Rid _map<span class="op">;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector3 _startPosition<span class="op">;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector3 _targetPosition<span class="op">;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">ChangeLayers</span><span class="op">()</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        NavigationRegion3D region <span class="op">=</span> GetNode<span class="op">&lt;</span>NavigationRegion3D<span class="op">&gt;(</span><span class="st">&quot;NavigationRegion3D&quot;</span><span class="op">);</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Enables the 4th layer for this region.</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        region<span class="op">.</span><span class="fu">NavigationLayers</span> <span class="op">=</span> <span class="fu">EnableBitmaskInx</span><span class="op">(</span>region<span class="op">.</span><span class="fu">NavigationLayers</span><span class="op">,</span> <span class="dv">4</span><span class="op">);</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Disables the 1st layer for this region.</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        region<span class="op">.</span><span class="fu">NavigationLayers</span> <span class="op">=</span> <span class="fu">DisableBitmaskInx</span><span class="op">(</span>region<span class="op">.</span><span class="fu">NavigationLayers</span><span class="op">,</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        NavigationAgent3D agent <span class="op">=</span> GetNode<span class="op">&lt;</span>NavigationAgent3D<span class="op">&gt;(</span><span class="st">&quot;NavigationAgent2D&quot;</span><span class="op">);</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Make future path queries of this agent ignore regions with the 4th layer.</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        agent<span class="op">.</span><span class="fu">NavigationLayers</span> <span class="op">=</span> <span class="fu">DisableBitmaskInx</span><span class="op">(</span>agent<span class="op">.</span><span class="fu">NavigationLayers</span><span class="op">,</span> <span class="dv">4</span><span class="op">);</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        <span class="dt">uint</span> pathQueryNavigationLayers <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        pathQueryNavigationLayers <span class="op">=</span> <span class="fu">EnableBitmaskInx</span><span class="op">(</span>pathQueryNavigationLayers<span class="op">,</span> <span class="dv">2</span><span class="op">);</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Get a path that only considers 2nd layer regions.</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>        Vector3<span class="op">[]</span> path <span class="op">=</span> NavigationServer3D<span class="op">.</span><span class="fu">MapGetPath</span><span class="op">(</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>            _map<span class="op">,</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>            _startPosition<span class="op">,</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>            _targetPosition<span class="op">,</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>            <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>            pathQueryNavigationLayers</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">static</span> <span class="dt">bool</span> <span class="fu">IsBitmaskInxEnabled</span><span class="op">(</span><span class="dt">uint</span> bitmask<span class="op">,</span> <span class="dt">int</span> index<span class="op">)</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="op">(</span>bitmask <span class="op">&amp;</span> <span class="op">(</span><span class="dv">1</span> <span class="op">&lt;&lt;</span> index<span class="op">))</span> <span class="op">!=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">static</span> <span class="dt">uint</span> <span class="fu">EnableBitmaskInx</span><span class="op">(</span><span class="dt">uint</span> bitmask<span class="op">,</span> <span class="dt">int</span> index<span class="op">)</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> bitmask <span class="op">|</span> <span class="op">(</span><span class="dv">1u</span> <span class="op">&lt;&lt;</span> index<span class="op">);</span></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">static</span> <span class="dt">uint</span> <span class="fu">DisableBitmaskInx</span><span class="op">(</span><span class="dt">uint</span> bitmask<span class="op">,</span> <span class="dt">int</span> index<span class="op">)</span></span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> bitmask <span class="op">&amp;</span> <span class="op">~(</span><span class="dv">1u</span> <span class="op">&lt;&lt;</span> index<span class="op">);</span></span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Changing navigation layers for path queries is a performance friendly alternative to enabling / disabling entire navigation regions. Compared to region changes a navigation path query with different navigation layers does not trigger large scale updates on the NavigationServer.</p>
+<p>Changing the navigation layers of NavigationAgent nodes will have an immediate effect on the next path query. Changing the navigation layers of regions will have an effect after the next NavigationServer sync.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

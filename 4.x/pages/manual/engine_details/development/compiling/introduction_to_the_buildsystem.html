@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Introduction to the buildsystem — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="introduction-to-the-buildsystem">Introduction to the buildsystem</h1>
+<p>Godot is a primarily C++ project and it ref We love SCons for how maintainable and easy to set up it makes our buildsystem. And thanks to that compiling Godot from source can be as simple as running:</p>
+<pre><code>scons</code></pre>
+<p>This produces an editor build for your current platform, operating system, and architecture. You can change what gets built by specifying a target, a platform, and/or an architecture. For example, to build an export template used for running exported games, you can run:</p>
+<pre><code>scons target=template_release</code></pre>
+<p>If you plan to debug or develop the engine, then you might want to enable the <code>dev_build</code> option to enable dev-only debugging code:</p>
+<pre><code>scons dev_build=yes</code></pre>
+<p>Following sections in the article will explain these and other universal options in more detail. But before you can compile Godot, you need to install a few prerequisites. Please refer to the platform documentation to learn more:</p>
+<ul>
+<li><code>doc_compiling_for_android</code></li>
+<li><code>doc_compiling_for_ios</code></li>
+<li><code>doc_compiling_for_linuxbsd</code></li>
+<li><code>doc_compiling_for_macos</code></li>
+<li><code>doc_compiling_for_web</code></li>
+<li><code>doc_compiling_for_windows</code></li>
+</ul>
+<p>These articles cover in great detail both how to setup your environment to compile Godot on a specific platform, and how to compile for that platform. Please feel free to go back and forth between them and this article to reference platform-specific and universal configuration options.</p>
+<h2 id="using-multi-threading">Using multi-threading</h2>
+<p>The build process may take a while, depending on how powerful your system is. By default, Godot's SCons setup is configured to use all CPU threads but one (to keep the system responsive during compilation). If the system has 4 CPU threads or fewer, it will use all threads by default.</p>
+<p>If you want to adjust how many CPU threads SCons will use, use the <code>-j&lt;threads&gt;</code> parameter to specify how many threads will be used for the build.</p>
+<p>Example for using 12 threads:</p>
+<pre><code>scons -j12</code></pre>
+<h2 id="platform-selection">Platform selection</h2>
+<p>Godot's build system will begin by detecting the platforms it can build for. If not detected, the platform will simply not appear on the list of available platforms. The build requirements for each platform are described in the rest of this tutorial section.</p>
+<p>SCons is invoked by just calling <code>scons</code>. If no platform is specified, SCons will detect the target platform automatically based on the host platform. It will then start building for the target platform right away.</p>
+<p>To list the available target platforms, use <code>scons platform=list</code>:</p>
+<pre class="text"><code>scons platform=list
+scons: Reading SConscript files ...
+The following platforms are available:
+
+    android
+    ios
+    linuxbsd
+    macos
+    web
+    windows
+
+Please run SCons again and select a valid platform: platform=&lt;string&gt;</code></pre>
+<p>To build for a platform (for example, <code>linuxbsd</code>), run with the <code>platform=</code> (or <code>p=</code> to make it short) argument:</p>
+<pre><code>scons platform=linuxbsd</code></pre>
+<h2 id="resulting-binary">Resulting binary</h2>
+<p>The resulting binaries will be placed in the <code>bin/</code> subdirectory, generally with this naming convention:</p>
+<pre><code>godot.&lt;platform&gt;.&lt;target&gt;[.dev][.double].&lt;arch&gt;[.&lt;extra_suffix&gt;][.&lt;ext&gt;]</code></pre>
+<p>For the previous build attempt, the result would look like this:</p>
+<pre class="console"><code>ls bin
+bin/godot.linuxbsd.editor.x86_64</code></pre>
+<p>This means that the binary is for Linux <em>or</em> *BSD (<em>not</em> both), is not optimized, has the whole editor compiled in, and is meant for 64 bits.</p>
+<p>A Windows binary with the same configuration will look like this:</p>
+<pre class="doscon"><code>C:\godot&gt; dir bin/
+godot.windows.editor.64.exe</code></pre>
+<p>Copy that binary to any location you like, as it contains the Project Manager, editor and all means to execute the game. However, it lacks the data to export it to the different platforms. For that the export templates are needed (which can be either downloaded from <a href="https://godotengine.org/">godotengine.org</a>, or you can build them yourself).</p>
+<p>Aside from that, there are a few standard options that can be set in all build targets, and which will be explained below.</p>
+<h2 id="target">Target</h2>
+<p>The <code>target</code> option controls if the editor is compiled and debug flags are used. Optimization levels (<code>optimize</code>) and whether each build contains debug symbols (<code>debug_symbols</code>) is controlled separately from the target. Each mode means:</p>
+<ul>
+<li><code>target=editor</code>: Build an editor binary (defines <code>TOOLS_ENABLED</code> and <code>DEBUG_ENABLED</code>)</li>
+<li><code>target=template_debug</code>: Build a debug export template (defines <code>DEBUG_ENABLED</code>)</li>
+<li><code>target=template_release</code>: Build a release export template</li>
+</ul>
+<p>The editor is enabled by default in all PC targets (Linux, Windows, macOS), disabled for everything else. Disabling the editor produces a binary that can run projects but does not include the editor or the Project Manager.</p>
+<p>The list of ref available varies depending on the build type.</p>
+<pre><code>scons platform=&lt;platform&gt; target=editor|template_debug|template_release</code></pre>
+<h2 id="development-and-production-aliases">Development and production aliases</h2>
+<p>When creating builds for development (running debugging/ref tools), you often have different goals compared to production builds (making binaries as fast and small as possible).</p>
+<p>Godot provides two aliases for this purpose:</p>
+<ul>
+<li><code>dev_mode=yes</code> is an alias for <code>verbose=yes warnings=extra werror=yes tests=yes</code>. This enables warnings-as-errors behavior (similar to Godot's continuous integration setup) and also builds ref so you can run them locally.</li>
+<li><code>production=yes</code> is an alias for <code>use_static_cpp=yes debug_symbols=no lto=auto</code>. Statically linking libstdc++ allows for better binary portability when compiling for Linux. This alias also enables link-time optimization when compiling for Linux, Web and Windows with MinGW, but keeps LTO disabled when compiling for macOS, iOS or Windows with MSVC. This is because LTO on those platforms is very slow to link or has issues with the generated code.</li>
+</ul>
+<p>You can manually override options from those aliases by specifying them on the same command line with different values. For example, you can use <code>scons production=yes debug_symbols=yes</code> to create production-optimized binaries with debugging symbols included.</p>
+<h2 id="dev-build">Dev build</h2>
+<blockquote>
+<p><strong>Note:</strong> <code>dev_build</code> should <strong>not</strong> be confused with <code>dev_mode</code>, which is an alias for several development-related options (see above).</p>
+</blockquote>
+<p>When doing engine development the <code>dev_build</code> option can be used together with <code>target</code> to enable dev-specific code. <code>dev_build</code> defines <code>DEV_ENABLED</code>, disables optimization (<code>-O0</code>/<code>/0d</code>), enables generating debug symbols, and does not define <code>NDEBUG</code> (so <code>assert()</code> works in thirdparty libraries).</p>
+<pre><code>scons platform=&lt;platform&gt; dev_build=yes</code></pre>
+<p>This flag appends the <code>.dev</code> suffix (for development) to the generated binary name.</p>
+<blockquote>
+<p><strong>See also:</strong> There are additional SCons options to enable <em>sanitizers</em>, which are tools you can enable at compile-time to better debug certain engine issues. See <code>doc_using_sanitizers</code> for more information.</p>
+</blockquote>
+<h2 id="debugging-symbols">Debugging symbols</h2>
+<p>By default, <code>debug_symbols=no</code> is used, which means <strong>no</strong> debugging symbols are included in compiled binaries. Use <code>debug_symbols=yes</code> to include debug symbols within compiled binaries, which allows debuggers and profilers to work correctly. Debugging symbols are also required for Godot's crash stacktraces to display with references to source code files and lines.</p>
+<p>The downside is that debugging symbols are large files (significantly larger than the binaries themselves). As a result, official binaries currently do not include debugging symbols. This means you need to compile Godot yourself to have access to debugging symbols.</p>
+<p>When using <code>debug_symbols=yes</code>, you can also use <code>separate_debug_symbols=yes</code> to put debug information in a separate file with a <code>.debug</code> suffix. This allows distributing both files independently. Note that on Windows, when compiling with MSVC, debugging information is <em>always</em> written to a separate <code>.pdb</code> file regardless of <code>separate_debug_symbols</code>.</p>
+<blockquote>
+<p><strong>Tip:</strong> Use the strip command to remove debugging symbols from a binary you've already compiled.</p>
+</blockquote>
+<h2 id="optimization-level">Optimization level</h2>
+<p>Several compiler optimization levels can be chosen from:</p>
+<ul>
+<li><code>optimize=speed_trace</code> <em>(default when targeting non-Web platforms)</em>: Favors execution speed at the cost of larger binary size. Optimizations may sometimes negatively impact debugger usage (stack traces may be less accurate. If this occurs to you, use <code>optimize=debug</code> instead.</li>
+<li><code>optimize=speed</code>: Favors even more execution speed, at the cost of even larger binary size compared to <code>optimize=speed_trace</code>. Even less friendly to debugging compared to <code>optimize=debug</code>, as this uses the most aggressive optimizations available.</li>
+<li><code>optimize=size</code> <em>(default when targeting the Web platform)</em>: Favors small binaries at the cost of slower execution speed.</li>
+<li><code>optimize=size_extra</code>: Favors even smaller binaries, at the cost of even slower execution speed compared to <code>optimize=size</code>.</li>
+<li><code>optimize=debug</code>: Only enables optimizations that do not impact debugging in any way. This results in faster binaries than <code>optimize=none</code>, but slower binaries than <code>optimize=speed_trace</code>.</li>
+<li><code>optimize=none</code>: Do not perform any optimization. This provides the fastest build times, but the slowest execution times.</li>
+<li><code>optimize=custom</code> <em>(advanced users only)</em>: Do not pass optimization arguments to the C/C++ compilers. You will have to pass arguments manually using the <code>cflags</code>, <code>ccflags</code> and <code>cxxflags</code> SCons options.</li>
+</ul>
+<h2 id="architecture">Architecture</h2>
+<p>The <code>arch</code> option is meant to control the CPU or OS version intended to run the binaries. It is focused mostly on desktop platforms and ignored everywhere else.</p>
+<p>Supported values for the <code>arch</code> option are <strong>auto</strong>, <strong>x86_32</strong>, <strong>x86_64</strong>, <strong>arm32</strong>, <strong>arm64</strong>, <strong>rv64</strong>, <strong>ppc32</strong>, <strong>ppc64</strong> and <strong>wasm32</strong>.</p>
+<pre><code>scons platform=&lt;platform&gt; arch={auto|x86_32|x86_64|arm32|arm64|rv64|ppc32|ppc64|wasm32}</code></pre>
+<p>This flag appends the value of <code>arch</code> to resulting binaries when relevant. The default value <code>arch=auto</code> detects the architecture that matches the host platform.</p>
+<h2 id="custom-modules">Custom modules</h2>
+<p>It's possible to compile modules residing outside of Godot's directory tree, along with the built-in modules.</p>
+<p>A <code>custom_modules</code> build option can be passed to the command line before compiling. The option represents a comma-separated list of directory paths containing a collection of independent C++ modules that can be seen as C++ packages, just like the built-in <code>modules/</code> directory.</p>
+<p>For instance, it's possible to provide both relative, absolute, and user directory paths containing such modules:</p>
+<pre><code>scons custom_modules=&quot;../modules,/abs/path/to/modules,~/src/godot_modules&quot;</code></pre>
+<blockquote>
+<p><strong>Note:</strong> If there's any custom module with the exact directory name as a built-in module, the engine will only compile the custom one. This logic can be used to override built-in module implementations.</p>
+</blockquote>
+<blockquote>
+<p><strong>See also:</strong> <code>doc_custom_modules_in_cpp</code></p>
+</blockquote>
+<h2 id="cleaning-generated-files">Cleaning generated files</h2>
+<p>Sometimes, you may encounter an error due to generated files being present. You can remove them by using scons --clean, where <code>&lt;options&gt;</code> is the list of build options you've used to build Godot previously.</p>
+<p>Alternatively, you can use <code>git clean -fixd</code> which will clean build artifacts for all platforms and configurations. Beware, as this will remove all untracked and ignored files in the repository. Don't run this command if you have uncommitted work!</p>
+<h2 id="other-build-options">Other build options</h2>
+<p>There are several other build options that you can use to configure the way Godot should be built (compiler, debug options, etc.) as well as the features to include/disable.</p>
+<p>Check the output of <code>scons --help</code> for details about each option for the version you are willing to compile.</p>
+<h3 id="overriding-the-build-options">Overriding the build options</h3>
+<h4 id="using-a-file">Using a file</h4>
+<p>The default <code>custom.py</code> file can be created at the root of the Godot Engine source to initialize any SCons build options passed via the command line:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>optimize <span class="op">=</span> <span class="st">&quot;size&quot;</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>module_mono_enabled <span class="op">=</span> <span class="st">&quot;yes&quot;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>use_llvm <span class="op">=</span> <span class="st">&quot;yes&quot;</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>extra_suffix <span class="op">=</span> <span class="st">&quot;game_title&quot;</span></span></code></pre></div>
+<p>You can also disable some of the built-in modules before compiling, saving some time it takes to build the engine. See <code>doc_optimizing_for_size</code> page for more details.</p>
+<blockquote>
+<p><strong>See also:</strong> You can use the online <a href="https://godot-build-options-generator.github.io/">Godot build options generator</a> to generate a <code>custom.py</code> file containing SCons options. You can then save this file and place it at the root of your Godot source directory.</p>
+</blockquote>
+<p>Another custom file can be specified explicitly with the <code>profile</code> command line option, both overriding the default build configuration:</p>
+<pre class="shell"><code>scons profile=path/to/custom.py</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Build options set from the file can be overridden by the command line options.</p>
+</blockquote>
+<p>It's also possible to override the options conditionally:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> version</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Override options specific for Godot 3.x and 4.x versions.</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> version.major <span class="op">==</span> <span class="dv">3</span>:</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">pass</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="cf">elif</span> version.major <span class="op">==</span> <span class="dv">4</span>:</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">pass</span></span></code></pre></div>
+<h4 id="using-the-sconsflags">Using the SCONSFLAGS</h4>
+<p><code>SCONSFLAGS</code> is an environment variable which is used by the SCons to set the options automatically without having to supply them via the command line.</p>
+<p>For instance, you may want to force a number of CPU threads with the aforementioned <code>-j</code> option for all future builds:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">SCONSFLAGS</span><span class="op">=</span><span class="st">&quot;-j4&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode bat"><code class="sourceCode dosbat"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="va">SCONSFLAGS</span>=-j4</span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="va">$env</span><span class="op">:</span>SCONSFLAGS<span class="op">=</span><span class="st">&quot;-j4&quot;</span></span></code></pre></div>
+<h4 id="scu-single-compilation-unit-build">SCU (single compilation unit) build</h4>
+<p>Regular builds tend to be bottlenecked by including large numbers of headers in each compilation translation unit. Primarily to speed up development (rather than for production builds), Godot offers a "single compilation unit" build (aka "Unity / Jumbo" build).</p>
+<p>For the folders accelerated by this option, multiple <code>.cpp</code> files are compiled in each translation unit, so headers can be shared between multiple files, which can dramatically decrease build times.</p>
+<p>To perform an SCU build, use the <code>scu_build=yes</code> SCons option.</p>
+<blockquote>
+<p><strong>Note:</strong> When developing a pull request using SCU builds, be sure to make a regular build prior to submitting the PR. This is because SCU builds by nature include headers from earlier <code>.cpp</code> files in the translation unit, therefore won't catch all the includes you will need in a regular build. The CI will catch these errors, but it will usually be faster to catch them on a local build on your machine.</p>
+</blockquote>
+<h2 id="export-templates">Export templates</h2>
+<p>Official export templates are downloaded from the Godot Engine site: <a href="https://godotengine.org/">godotengine.org</a>. However, you might want to build them yourself (in case you want newer ones, you are using custom modules, or simply don't trust your own shadow).</p>
+<p>If you download the official export templates package and unzip it, you will notice that most files are optimized binaries or packages for each platform:</p>
+<pre class="none"><code>android_debug.apk
+android_release.apk
+android_source.zip
+ios.zip
+linux_debug.arm32
+linux_debug.arm64
+linux_debug.x86_32
+linux_debug.x86_64
+linux_release.arm32
+linux_release.arm64
+linux_release.x86_32
+linux_release.x86_64
+macos.zip
+version.txt
+web_debug.zip
+web_dlink_debug.zip
+web_dlink_nothreads_debug.zip
+web_dlink_nothreads_release.zip
+web_dlink_release.zip
+web_nothreads_debug.zip
+web_nothreads_release.zip
+web_release.zip
+windows_debug_x86_32_console.exe
+windows_debug_x86_32.exe
+windows_debug_x86_64_console.exe
+windows_debug_x86_64.exe
+windows_debug_arm64_console.exe
+windows_debug_arm64.exe
+windows_release_x86_32_console.exe
+windows_release_x86_32.exe
+windows_release_x86_64_console.exe
+windows_release_x86_64.exe
+windows_release_arm64_console.exe
+windows_release_arm64.exe</code></pre>
+<p>To create those yourself, follow the instructions detailed for each platform in this same tutorial section. Each platform explains how to create its own template.</p>
+<p>The <code>version.txt</code> file should contain the corresponding Godot version identifier. This file is used to install export templates in a version-specific directory to avoid conflicts. For instance, if you are building export templates for Godot 4.4.1, <code>version.txt</code> should contain <code>4.4.1.stable</code> on the first line (and nothing else). This version identifier is based on the <code>major</code>, <code>minor</code>, <code>patch</code> (if present) and <code>status</code> lines of the <a href="https://github.com/godotengine/godot/blob/master/version.py">version.py file in the Godot Git repository</a>.</p>
+<p>If you are developing for multiple platforms, macOS is definitely the most convenient host platform for cross-compilation, since you can cross-compile for every target. Linux and Windows come in second place, but Linux has the advantage of being the easier platform to set this up.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

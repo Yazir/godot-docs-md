@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Viewport and canvas transforms — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="viewport-and-canvas-transforms">Viewport and canvas transforms</h1>
+<h2 id="introduction">Introduction</h2>
+<p>This is an overview of the 2D transforms going on for nodes from the moment they draw their content locally to the time they are drawn onto the screen. This overview discusses very low level details of the engine.</p>
+<h2 id="canvas-transform">Canvas transform</h2>
+<p>As mentioned in the previous tutorial, <code>doc_canvas_layers</code>, every CanvasItem node (remember that Node2D and Control based nodes use CanvasItem as their common root) will reside in a <em>Canvas Layer</em>. Every canvas layer has a transform (translation, rotation, scale, etc.) that can be accessed as a ref.</p>
+<p>Also covered in the previous tutorial, nodes are drawn by default in Layer 0, in the built-in canvas. To put nodes in a different layer, a ref node can be used.</p>
+<h2 id="global-canvas-transform">Global canvas transform</h2>
+<p>Viewports also have a Global Canvas transform (also a ref). This is the master transform and affects all individual <em>Canvas Layer</em> transforms. Generally, this transform is not of much use, but is used in the CanvasItem Editor in Godot's editor.</p>
+<h2 id="stretch-transform">Stretch transform</h2>
+<p>Finally, viewports have a <em>Stretch Transform</em>, which is used when resizing or stretching the screen. This transform is used internally (as described in <code>doc_multiple_resolutions</code>), but can also be manually set on each viewport.</p>
+<p>Input events received in the ref callback are multiplied by this transform but lack the ones above. To convert InputEvent coordinates to local CanvasItem coordinates, the ref function was added for convenience.</p>
+<h2 id="transform-order">Transform order</h2>
+<p>For a coordinate in CanvasItem local properties to become an actual screen coordinate, the following chain of transforms must be applied:</p>
+<h2 id="transform-functions">Transform functions</h2>
+<p>Obtaining each transform can be achieved with the following functions:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Type</th>
+<th>Transform</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CanvasItem</td>
+<td>ref |</td>
+</tr>
+<tr class="even">
+<td>CanvasLayer</td>
+<td>ref |</td>
+</tr>
+<tr class="odd">
+<td>CanvasLayer+GlobalCanvas+Stretch</td>
+<td>ref |</td>
+</tr>
+</tbody>
+</table>
+<p>Finally, then, to convert a CanvasItem local coordinates to screen coordinates, just multiply in the following order:</p>
+<pre class="gdscript"><code>var screen_coord = get_viewport_transform() * (get_global_transform() * local_pos)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> screenCord <span class="op">=</span> <span class="op">(</span><span class="fu">GetViewportTransform</span><span class="op">()</span> <span class="op">*</span> <span class="fu">GetGlobalTransform</span><span class="op">()).</span><span class="fu">Xform</span><span class="op">(</span>localPos<span class="op">);</span></span></code></pre></div>
+<p>Keep in mind, however, that it is generally not desired to work with screen coordinates. The recommended approach is to simply work in Canvas coordinates (<code>CanvasItem.get_global_transform()</code>), to allow automatic screen resolution resizing to work properly.</p>
+<h2 id="feeding-custom-input-events">Feeding custom input events</h2>
+<p>It is often desired to feed custom input events to the scene tree. With the above knowledge, to correctly do this, it must be done the following way:</p>
+<pre class="gdscript"><code>var local_pos = Vector2(10, 20) # local to Control/Node2D
+var ie = InputEventMouseButton.new()
+ie.button_index = BUTTON_LEFT
+ie.position = get_viewport_transform() * (get_global_transform() * local_pos)
+get_tree().input_event(ie)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> localPos <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">10</span><span class="op">,</span><span class="dv">20</span><span class="op">);</span> <span class="co">// local to Control/Node2D</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> ie <span class="op">=</span> <span class="kw">new</span> <span class="fu">InputEventMouseButton</span><span class="op">();</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>ie<span class="op">.</span><span class="fu">ButtonIndex</span> <span class="op">=</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>ButtonList<span class="op">.</span><span class="fu">Left</span><span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>ie<span class="op">.</span><span class="fu">Position</span> <span class="op">=</span> <span class="op">(</span><span class="fu">GetViewportTransform</span><span class="op">()</span> <span class="op">*</span> <span class="fu">GetGlobalTransform</span><span class="op">()).</span><span class="fu">Xform</span><span class="op">(</span>localPos<span class="op">);</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">GetTree</span><span class="op">().</span><span class="fu">InputEvent</span><span class="op">(</span>ie<span class="op">);</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

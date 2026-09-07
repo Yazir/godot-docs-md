@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Basis — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="basis">Basis</h1>
+<p>A 3×3 matrix for representing 3D rotation and scale.</p>
+<h2 id="description">Description</h2>
+<p>The <strong>Basis</strong> built-in <a href="Variant.html">Variant</a> type is a 3×3 <a href="https://en.wikipedia.org/wiki/Matrix_(mathematics)">matrix</a> used to represent 3D rotation, scale, and shear. It is frequently used within a <a href="Transform3D.html">Transform3D</a>.</p>
+<p>A <strong>Basis</strong> is composed by 3 axis vectors, each representing a column of the matrix: <code>x</code>, <code>y</code>, and <code>z</code>. The length of each axis (<code>Vector3.length()</code>) influences the basis's scale, while the direction of all axes influence the rotation. Usually, these axes are perpendicular to one another. However, when you rotate any axis individually, the basis becomes sheared. Applying a sheared basis to a 3D model will make the model appear distorted.</p>
+<p>A <strong>Basis</strong> is:</p>
+<ul>
+<li><p><strong>Orthogonal</strong> if its axes are perpendicular to each other.</p></li>
+<li><p><strong>Normalized</strong> if the length of every axis is <code>1.0</code>.</p></li>
+<li><p><strong>Uniform</strong> if all axes share the same length (see <code>get_scale()</code>).</p></li>
+<li><p><strong>Orthonormal</strong> if it is both orthogonal and normalized, which allows it to only represent rotations (see <code>orthonormalized()</code>).</p></li>
+<li><p><strong>Conformal</strong> if it is both orthogonal and uniform, which ensures it is not distorted.</p></li>
+</ul>
+<p>For a general introduction, see the <a href="../manual/tutorials/math/matrices_and_transforms.html">Matrices and transforms</a> tutorial.</p>
+<p><strong>Note:</strong> Godot uses a <a href="https://en.wikipedia.org/wiki/Right-hand_rule">right-handed coordinate system</a>, which is a common standard. For directions, the convention for built-in types like <a href="Camera3D.html">Camera3D</a> is for -Z to point forward (+X is right, +Y is up, and +Z is back). Other objects may use different direction conventions. For more information, see the <code>3D asset direction conventions &lt;../tutorials/assets_pipeline/importing_3d_scenes/model_export_considerations.html#d-asset-direction-conventions&gt;</code>__ tutorial.</p>
+<p><strong>Note:</strong> The basis matrices are exposed as <a href="https://www.mindcontrol.org/~hplus/graphics/matrix-layout.html">column-major</a> order, which is the same as OpenGL. However, they are stored internally in row-major order, which is the same as DirectX.</p>
+<p><strong>Note:</strong> In a boolean context, a basis will evaluate to <code>false</code> if it's equal to <code>IDENTITY</code>. Otherwise, a basis will always evaluate to <code>true</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> There are notable differences when using this API with C#. See <code>c_sharp_differences</code> for more information.</p>
+</blockquote>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/tutorials/math/index.html">Math documentation index</a></li>
+<li><a href="../manual/tutorials/math/matrices_and_transforms.html">Matrices and transforms</a></li>
+<li><a href="../manual/tutorials/3d/using_transforms.html">Using 3D transforms</a></li>
+<li><a href="https://godotengine.org/asset-library/asset/2787">Matrix Transform Demo</a></li>
+<li><a href="https://godotengine.org/asset-library/asset/2748">3D Platformer Demo</a></li>
+<li><a href="https://godotengine.org/asset-library/asset/2755">3D Voxel Demo</a></li>
+<li><a href="https://godotengine.org/asset-library/asset/2783">2.5D Game Demo</a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="vector3-x--vector31-0-0"><code>Vector3 x = Vector3(1, 0, 0)</code></h3>
+<p>The basis's X axis, and the column <code>0</code> of the matrix.</p>
+<p>On the identity basis, this vector points right (<code>Vector3.RIGHT</code>).</p>
+<h3 id="vector3-y--vector30-1-0"><code>Vector3 y = Vector3(0, 1, 0)</code></h3>
+<p>The basis's Y axis, and the column <code>1</code> of the matrix.</p>
+<p>On the identity basis, this vector points up (<code>Vector3.UP</code>).</p>
+<h3 id="vector3-z--vector30-0-1"><code>Vector3 z = Vector3(0, 0, 1)</code></h3>
+<p>The basis's Z axis, and the column <code>2</code> of the matrix.</p>
+<p>On the identity basis, this vector points back (<code>Vector3.BACK</code>).</p>
+<h2 id="constructors">Constructors</h2>
+<h3 id="basis-basis"><code>Basis Basis()</code></h3>
+<p>Constructs a <strong>Basis</strong> identical to <code>IDENTITY</code>.</p>
+<p><strong>Note:</strong> In C#, this constructs a <strong>Basis</strong> with all of its components set to <code>Vector3.ZERO</code>.</p>
+<h3 id="basis-basisfrom-basis"><code>Basis Basis(from: Basis)</code></h3>
+<p>Constructs a <strong>Basis</strong> as a copy of the given <strong>Basis</strong>.</p>
+<h3 id="basis-basisaxis-vector3-angle-float"><code>Basis Basis(axis: Vector3, angle: float)</code></h3>
+<p>Constructs a <strong>Basis</strong> that only represents rotation, rotated around the <code>axis</code> by the given <code>angle</code>, in radians. The axis must be a normalized vector.</p>
+<p><strong>Note:</strong> This is the same as using <code>rotated()</code> on the <code>IDENTITY</code> basis. With more than one angle consider using <code>from_euler()</code>, instead.</p>
+<h3 id="basis-basisfrom-quaternion"><code>Basis Basis(from: Quaternion)</code></h3>
+<p>Constructs a <strong>Basis</strong> that only represents rotation from the given <a href="Quaternion.html">Quaternion</a>.</p>
+<p><strong>Note:</strong> Quaternions <em>only</em> store rotation, not scale. Because of this, conversions from <strong>Basis</strong> to <a href="Quaternion.html">Quaternion</a> cannot always be reversed.</p>
+<h3 id="basis-basisx_axis-vector3-y_axis-vector3-z_axis-vector3"><code>Basis Basis(x_axis: Vector3, y_axis: Vector3, z_axis: Vector3)</code></h3>
+<p>Constructs a <strong>Basis</strong> from 3 axis vectors. These are the columns of the basis matrix.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="float-determinant-const"><code>float determinant() const</code></h3>
+<p>Returns the <a href="https://en.wikipedia.org/wiki/Determinant">determinant</a> of this basis's matrix. For advanced math, this number can be used to determine a few attributes:</p>
+<ul>
+<li><p>If the determinant is exactly <code>0.0</code>, the basis is not invertible (see <code>inverse()</code>).</p></li>
+<li><p>If the determinant is a negative number, the basis represents a negative scale.</p></li>
+</ul>
+<p><strong>Note:</strong> If the basis's scale is the same for every axis, its determinant is always that scale by the power of 3.</p>
+<h3 id="basis-from_eulereuler-vector3-order-int--2-static"><code>Basis from_euler(euler: Vector3, order: int = 2) static</code></h3>
+<p>Constructs a new <strong>Basis</strong> that only represents rotation from the given <a href="Vector3.html">Vector3</a> of <a href="https://en.wikipedia.org/wiki/Euler_angles">Euler angles</a>, in radians.</p>
+<ul>
+<li><p>The <code>Vector3.x</code> should contain the angle around the <code>x</code> axis (pitch);</p></li>
+<li><p>The <code>Vector3.y</code> should contain the angle around the <code>y</code> axis (yaw);</p></li>
+<li><p>The <code>Vector3.z</code> should contain the angle around the <code>z</code> axis (roll).</p></li>
+</ul>
+<pre class="gdscript"><code># Creates a Basis whose z axis points down.
+var my_basis = Basis.from_euler(Vector3(TAU / 4, 0, 0))
+
+print(my_basis.z) # Prints (0.0, -1.0, 0.0)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Creates a Basis whose z axis points down.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> myBasis <span class="op">=</span> Basis<span class="op">.</span><span class="fu">FromEuler</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span>Mathf<span class="op">.</span><span class="fu">Tau</span> <span class="op">/</span> <span class="fl">4.0f</span><span class="op">,</span> <span class="fl">0.0f</span><span class="op">,</span> <span class="fl">0.0f</span><span class="op">));</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis<span class="op">.</span><span class="fu">Z</span><span class="op">);</span> <span class="co">// Prints (0, -1, 0)</span></span></code></pre></div>
+<p>The order of each consecutive rotation can be changed with <code>order</code> (see <code>@GlobalScope.EulerOrder</code> constants). In Godot, Euler angles always use intrinsic order. By default, the intrinsic YXZ convention is used (<code>@GlobalScope.EULER_ORDER_YXZ</code>): the basis rotates first around the local Y axis (yaw), then local X (pitch), and lastly local Z (roll). When using the opposite method <code>get_euler()</code> to decompose a rotation, this order is reversed.</p>
+<h3 id="basis-from_scalescale-vector3-static"><code>Basis from_scale(scale: Vector3) static</code></h3>
+<p>Constructs a new <strong>Basis</strong> that only represents scale, with no rotation or shear, from the given <code>scale</code> vector.</p>
+<pre class="gdscript"><code>var my_basis = Basis.from_scale(Vector3(2, 4, 8))
+
+print(my_basis.x) # Prints (2.0, 0.0, 0.0)
+print(my_basis.y) # Prints (0.0, 4.0, 0.0)
+print(my_basis.z) # Prints (0.0, 0.0, 8.0)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> myBasis <span class="op">=</span> Basis<span class="op">.</span><span class="fu">FromScale</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="fl">2.0f</span><span class="op">,</span> <span class="fl">4.0f</span><span class="op">,</span> <span class="fl">8.0f</span><span class="op">));</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis<span class="op">.</span><span class="fu">X</span><span class="op">);</span> <span class="co">// Prints (2, 0, 0)</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis<span class="op">.</span><span class="fu">Y</span><span class="op">);</span> <span class="co">// Prints (0, 4, 0)</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis<span class="op">.</span><span class="fu">Z</span><span class="op">);</span> <span class="co">// Prints (0, 0, 8)</span></span></code></pre></div>
+<p><strong>Note:</strong> In linear algebra, the matrix of this basis is also known as a <a href="https://en.wikipedia.org/wiki/Diagonal_matrix">diagonal matrix</a>.</p>
+<h3 id="vector3-get_eulerorder-int--2-const"><code>Vector3 get_euler(order: int = 2) const</code></h3>
+<p>Returns this basis's rotation as a <a href="Vector3.html">Vector3</a> of <a href="https://en.wikipedia.org/wiki/Euler_angles">Euler angles</a>, in radians. For the returned value:</p>
+<ul>
+<li><p>The <code>Vector3.x</code> contains the angle around the <code>x</code> axis (pitch);</p></li>
+<li><p>The <code>Vector3.y</code> contains the angle around the <code>y</code> axis (yaw);</p></li>
+<li><p>The <code>Vector3.z</code> contains the angle around the <code>z</code> axis (roll).</p></li>
+</ul>
+<p>The order of each consecutive rotation can be changed with <code>order</code> (see <code>@GlobalScope.EulerOrder</code> constants). In Godot, Euler angles always use intrinsic order. By default, the intrinsic YXZ convention is used (<code>@GlobalScope.EULER_ORDER_YXZ</code>): since we are decomposing, local Z (roll) is calculated first, then local X (pitch), and lastly local Y (yaw). When using the opposite method <code>from_euler()</code> to compose a rotation, this order is reversed.</p>
+<p><strong>Note:</strong> For this method to return correctly, the basis needs to be <em>orthonormal</em> (see <code>orthonormalized()</code>).</p>
+<p><strong>Note:</strong> Euler angles are much more intuitive but are not suitable for 3D math. Because of this, consider using the <code>get_rotation_quaternion()</code> method instead, which returns a <a href="Quaternion.html">Quaternion</a>.</p>
+<p><strong>Note:</strong> In the Inspector dock, a basis's rotation is often displayed in Euler angles (in degrees), as is the case with the <code>Node3D.rotation</code> property.</p>
+<h3 id="quaternion-get_rotation_quaternion-const"><code>Quaternion get_rotation_quaternion() const</code></h3>
+<p>Returns this basis's rotation as a <a href="Quaternion.html">Quaternion</a>.</p>
+<p><strong>Note:</strong> Quaternions are much more suitable for 3D math but are less intuitive. For user interfaces, consider using the <code>get_euler()</code> method, which returns Euler angles.</p>
+<h3 id="vector3-get_scale-const"><code>Vector3 get_scale() const</code></h3>
+<p>Returns the length of each axis of this basis, as a <a href="Vector3.html">Vector3</a>. If the basis is not sheared, this value is the scaling factor. It is not affected by rotation.</p>
+<pre class="gdscript"><code>var my_basis = Basis(
+    Vector3(2, 0, 0),
+    Vector3(0, 4, 0),
+    Vector3(0, 0, 8)
+)
+# Rotating the Basis in any way preserves its scale.
+my_basis = my_basis.rotated(Vector3.UP, TAU / 2)
+my_basis = my_basis.rotated(Vector3.RIGHT, TAU / 4)
+
+print(my_basis.get_scale()) # Prints (2.0, 4.0, 8.0)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> myBasis <span class="op">=</span> <span class="kw">new</span> <span class="fu">Basis</span><span class="op">(</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Vector3</span><span class="op">(</span><span class="fl">2.0f</span><span class="op">,</span> <span class="fl">0.0f</span><span class="op">,</span> <span class="fl">0.0f</span><span class="op">),</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Vector3</span><span class="op">(</span><span class="fl">0.0f</span><span class="op">,</span> <span class="fl">4.0f</span><span class="op">,</span> <span class="fl">0.0f</span><span class="op">),</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Vector3</span><span class="op">(</span><span class="fl">0.0f</span><span class="op">,</span> <span class="fl">0.0f</span><span class="op">,</span> <span class="fl">8.0f</span><span class="op">)</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Rotating the Basis in any way preserves its scale.</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>myBasis <span class="op">=</span> myBasis<span class="op">.</span><span class="fu">Rotated</span><span class="op">(</span>Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span> Mathf<span class="op">.</span><span class="fu">Tau</span> <span class="op">/</span> <span class="fl">2.0f</span><span class="op">);</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>myBasis <span class="op">=</span> myBasis<span class="op">.</span><span class="fu">Rotated</span><span class="op">(</span>Vector3<span class="op">.</span><span class="fu">Right</span><span class="op">,</span> Mathf<span class="op">.</span><span class="fu">Tau</span> <span class="op">/</span> <span class="fl">4.0f</span><span class="op">);</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis<span class="op">.</span><span class="fu">Scale</span><span class="op">);</span> <span class="co">// Prints (2, 4, 8)</span></span></code></pre></div>
+<p><strong>Note:</strong> If the value returned by <code>determinant()</code> is negative, the scale is also negative.</p>
+<h3 id="basis-inverse-const"><code>Basis inverse() const</code></h3>
+<p>Returns the <a href="https://en.wikipedia.org/wiki/Invertible_matrix">inverse of this basis's matrix</a>.</p>
+<h3 id="bool-is_conformal-const"><code>bool is_conformal() const</code></h3>
+<p>Returns <code>true</code> if this basis is conformal. A conformal basis is both <em>orthogonal</em> (the axes are perpendicular to each other) and <em>uniform</em> (the axes share the same length). This method can be especially useful during physics calculations.</p>
+<h3 id="bool-is_equal_approxb-basis-const"><code>bool is_equal_approx(b: Basis) const</code></h3>
+<p>Returns <code>true</code> if this basis and <code>b</code> are approximately equal, by calling <code>@GlobalScope.is_equal_approx()</code> on all vector components.</p>
+<h3 id="bool-is_finite-const"><code>bool is_finite() const</code></h3>
+<p>Returns <code>true</code> if this basis is finite, by calling <code>@GlobalScope.is_finite()</code> on all vector components.</p>
+<h3 id="bool-is_orthonormal-const"><code>bool is_orthonormal() const</code></h3>
+<p>Returns <code>true</code> if this basis is orthonormal. An orthonormal basis is both <em>orthogonal</em> (the axes are perpendicular to each other) and <em>normalized</em> (the length of every axis is <code>1.0</code>). This method can be especially useful during physics calculations.</p>
+<h3 id="basis-looking_attarget-vector3-up-vector3--vector30-1-0-use_model_front-bool--false-static"><code>Basis looking_at(target: Vector3, up: Vector3 = Vector3(0, 1, 0), use_model_front: bool = false) static</code></h3>
+<p>Creates a new <strong>Basis</strong> with a rotation such that the forward axis (-Z) points towards the <code>target</code> position.</p>
+<p>By default, the -Z axis (camera forward) is treated as forward (implies +X is right). If <code>use_model_front</code> is <code>true</code>, the +Z axis (asset front) is treated as forward (implies +X is left) and points toward the <code>target</code> position.</p>
+<p>The up axis (+Y) points as close to the <code>up</code> vector as possible while staying perpendicular to the forward axis. The returned basis is orthonormalized (see <code>orthonormalized()</code>).</p>
+<p>The <code>target</code> and the <code>up</code> cannot be <code>Vector3.ZERO</code>, and shouldn't be colinear to avoid unintended rotation around local Z axis.</p>
+<h3 id="basis-orthonormalized-const"><code>Basis orthonormalized() const</code></h3>
+<p>Returns the orthonormalized version of this basis. An orthonormal basis is both <em>orthogonal</em> (the axes are perpendicular to each other) and <em>normalized</em> (the axes have a length of <code>1.0</code>), which also means it can only represent a rotation.</p>
+<p>It is often useful to call this method to avoid rounding errors on a rotating basis:</p>
+<pre class="gdscript"><code># Rotate this Node3D every frame.
+func _process(delta):
+    basis = basis.rotated(Vector3.UP, TAU * delta)
+    basis = basis.rotated(Vector3.RIGHT, TAU * delta)
+    basis = basis.orthonormalized()</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Rotate this Node3D every frame.</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    Basis <span class="op">=</span> Basis<span class="op">.</span><span class="fu">Rotated</span><span class="op">(</span>Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span> Mathf<span class="op">.</span><span class="fu">Tau</span> <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta<span class="op">)</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">Rotated</span><span class="op">(</span>Vector3<span class="op">.</span><span class="fu">Right</span><span class="op">,</span> Mathf<span class="op">.</span><span class="fu">Tau</span> <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta<span class="op">)</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">Orthonormalized</span><span class="op">();</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="basis-rotatedaxis-vector3-angle-float-const"><code>Basis rotated(axis: Vector3, angle: float) const</code></h3>
+<p>Returns a copy of this basis rotated around the given <code>axis</code> by the given <code>angle</code> (in radians).</p>
+<p>The <code>axis</code> must be a normalized vector (see <code>Vector3.normalized()</code>). If <code>angle</code> is positive, the basis is rotated counter-clockwise around the axis.</p>
+<pre class="gdscript"><code>var my_basis = Basis.IDENTITY
+var angle = TAU / 2
+
+my_basis = my_basis.rotated(Vector3.UP, angle)    # Rotate around the up axis (yaw).
+my_basis = my_basis.rotated(Vector3.RIGHT, angle) # Rotate around the right axis (pitch).
+my_basis = my_basis.rotated(Vector3.BACK, angle)  # Rotate around the back axis (roll).</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> myBasis <span class="op">=</span> Basis<span class="op">.</span><span class="fu">Identity</span><span class="op">;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> angle <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Tau</span> <span class="op">/</span> <span class="fl">2.0f</span><span class="op">;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>myBasis <span class="op">=</span> myBasis<span class="op">.</span><span class="fu">Rotated</span><span class="op">(</span>Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span> angle<span class="op">);</span>    <span class="co">// Rotate around the up axis (yaw).</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>myBasis <span class="op">=</span> myBasis<span class="op">.</span><span class="fu">Rotated</span><span class="op">(</span>Vector3<span class="op">.</span><span class="fu">Right</span><span class="op">,</span> angle<span class="op">);</span> <span class="co">// Rotate around the right axis (pitch).</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>myBasis <span class="op">=</span> myBasis<span class="op">.</span><span class="fu">Rotated</span><span class="op">(</span>Vector3<span class="op">.</span><span class="fu">Back</span><span class="op">,</span> angle<span class="op">);</span>  <span class="co">// Rotate around the back axis (roll).</span></span></code></pre></div>
+<h3 id="basis-scaledscale-vector3-const"><code>Basis scaled(scale: Vector3) const</code></h3>
+<p>Returns this basis with each axis's components scaled by the given <code>scale</code>'s components.</p>
+<p>The basis matrix's rows are multiplied by <code>scale</code>'s components. This operation is a global scale (relative to the parent).</p>
+<pre class="gdscript"><code>var my_basis = Basis(
+    Vector3(1, 1, 1),
+    Vector3(2, 2, 2),
+    Vector3(3, 3, 3)
+)
+my_basis = my_basis.scaled(Vector3(0, 2, -2))
+
+print(my_basis.x) # Prints (0.0, 2.0, -2.0)
+print(my_basis.y) # Prints (0.0, 4.0, -4.0)
+print(my_basis.z) # Prints (0.0, 6.0, -6.0)</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> myBasis <span class="op">=</span> <span class="kw">new</span> <span class="fu">Basis</span><span class="op">(</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="fl">1.0f</span><span class="op">,</span> <span class="fl">1.0f</span><span class="op">,</span> <span class="fl">1.0f</span><span class="op">),</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="fl">2.0f</span><span class="op">,</span> <span class="fl">2.0f</span><span class="op">,</span> <span class="fl">2.0f</span><span class="op">),</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="fl">3.0f</span><span class="op">,</span> <span class="fl">3.0f</span><span class="op">,</span> <span class="fl">3.0f</span><span class="op">)</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>myBasis <span class="op">=</span> myBasis<span class="op">.</span><span class="fu">Scaled</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="fl">0.0f</span><span class="op">,</span> <span class="fl">2.0f</span><span class="op">,</span> <span class="op">-</span><span class="fl">2.0f</span><span class="op">));</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis<span class="op">.</span><span class="fu">X</span><span class="op">);</span> <span class="co">// Prints (0, 2, -2)</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis<span class="op">.</span><span class="fu">Y</span><span class="op">);</span> <span class="co">// Prints (0, 4, -4)</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis<span class="op">.</span><span class="fu">Z</span><span class="op">);</span> <span class="co">// Prints (0, 6, -6)</span></span></code></pre></div>
+<h3 id="basis-scaled_localscale-vector3-const"><code>Basis scaled_local(scale: Vector3) const</code></h3>
+<p>Returns this basis with each axis scaled by the corresponding component in the given <code>scale</code>.</p>
+<p>The basis matrix's columns are multiplied by <code>scale</code>'s components. This operation is a local scale (relative to self).</p>
+<pre class="gdscript"><code>var my_basis = Basis(
+    Vector3(1, 1, 1),
+    Vector3(2, 2, 2),
+    Vector3(3, 3, 3)
+)
+my_basis = my_basis.scaled_local(Vector3(0, 2, -2))
+
+print(my_basis.x) # Prints (0.0, 0.0, 0.0)
+print(my_basis.y) # Prints (4.0, 4.0, 4.0)
+print(my_basis.z) # Prints (-6.0, -6.0, -6.0)</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> myBasis <span class="op">=</span> <span class="kw">new</span> <span class="fu">Basis</span><span class="op">(</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="fl">1.0f</span><span class="op">,</span> <span class="fl">1.0f</span><span class="op">,</span> <span class="fl">1.0f</span><span class="op">),</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="fl">2.0f</span><span class="op">,</span> <span class="fl">2.0f</span><span class="op">,</span> <span class="fl">2.0f</span><span class="op">),</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="fl">3.0f</span><span class="op">,</span> <span class="fl">3.0f</span><span class="op">,</span> <span class="fl">3.0f</span><span class="op">)</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>myBasis <span class="op">=</span> myBasis<span class="op">.</span><span class="fu">ScaledLocal</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="fl">0.0f</span><span class="op">,</span> <span class="fl">2.0f</span><span class="op">,</span> <span class="op">-</span><span class="fl">2.0f</span><span class="op">));</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis<span class="op">.</span><span class="fu">X</span><span class="op">);</span> <span class="co">// Prints (0, 0, 0)</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis<span class="op">.</span><span class="fu">Y</span><span class="op">);</span> <span class="co">// Prints (4, 4, 4)</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis<span class="op">.</span><span class="fu">Z</span><span class="op">);</span> <span class="co">// Prints (-6, -6, -6)</span></span></code></pre></div>
+<h3 id="basis-slerpto-basis-weight-float-const"><code>Basis slerp(to: Basis, weight: float) const</code></h3>
+<p>Performs a spherical-linear interpolation with the <code>to</code> basis, given a <code>weight</code>. Both this basis and <code>to</code> should represent a rotation.</p>
+<p><strong>Example:</strong> Smoothly rotate a <a href="Node3D.html">Node3D</a> to the target basis over time, with a <a href="Tween.html">Tween</a>:</p>
+<pre class="gdscript"><code>var start_basis = Basis.IDENTITY
+var target_basis = Basis.IDENTITY.rotated(Vector3.UP, TAU / 2)
+
+func _ready():
+    create_tween().tween_method(interpolate, 0.0, 1.0, 5.0).set_trans(Tween.TRANS_EXPO)
+
+func interpolate(weight):
+    basis = start_basis.slerp(target_basis, weight)</code></pre>
+<h3 id="float-tdotxwith-vector3-const"><code>float tdotx(with: Vector3) const</code></h3>
+<p>Returns the transposed dot product between <code>with</code> and the <code>x</code> axis (see <code>transposed()</code>).</p>
+<p>This is equivalent to <code>basis.x.dot(vector)</code>.</p>
+<h3 id="float-tdotywith-vector3-const"><code>float tdoty(with: Vector3) const</code></h3>
+<p>Returns the transposed dot product between <code>with</code> and the <code>y</code> axis (see <code>transposed()</code>).</p>
+<p>This is equivalent to <code>basis.y.dot(vector)</code>.</p>
+<h3 id="float-tdotzwith-vector3-const"><code>float tdotz(with: Vector3) const</code></h3>
+<p>Returns the transposed dot product between <code>with</code> and the <code>z</code> axis (see <code>transposed()</code>).</p>
+<p>This is equivalent to <code>basis.z.dot(vector)</code>.</p>
+<h3 id="basis-transposed-const"><code>Basis transposed() const</code></h3>
+<p>Returns the transposed version of this basis. This turns the basis matrix's columns into rows, and its rows into columns.</p>
+<pre class="gdscript"><code>var my_basis = Basis(
+    Vector3(1, 2, 3),
+    Vector3(4, 5, 6),
+    Vector3(7, 8, 9)
+)
+my_basis = my_basis.transposed()
+
+print(my_basis.x) # Prints (1.0, 4.0, 7.0)
+print(my_basis.y) # Prints (2.0, 5.0, 8.0)
+print(my_basis.z) # Prints (3.0, 6.0, 9.0)</code></pre>
+<div class="sourceCode" id="cb17"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> myBasis <span class="op">=</span> <span class="kw">new</span> <span class="fu">Basis</span><span class="op">(</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="fl">1.0f</span><span class="op">,</span> <span class="fl">2.0f</span><span class="op">,</span> <span class="fl">3.0f</span><span class="op">),</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="fl">4.0f</span><span class="op">,</span> <span class="fl">5.0f</span><span class="op">,</span> <span class="fl">6.0f</span><span class="op">),</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="fl">7.0f</span><span class="op">,</span> <span class="fl">8.0f</span><span class="op">,</span> <span class="fl">9.0f</span><span class="op">)</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>myBasis <span class="op">=</span> myBasis<span class="op">.</span><span class="fu">Transposed</span><span class="op">();</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis<span class="op">.</span><span class="fu">X</span><span class="op">);</span> <span class="co">// Prints (1, 4, 7)</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis<span class="op">.</span><span class="fu">Y</span><span class="op">);</span> <span class="co">// Prints (2, 5, 8)</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis<span class="op">.</span><span class="fu">Z</span><span class="op">);</span> <span class="co">// Prints (3, 6, 9)</span></span></code></pre></div>
+<h2 id="operators">Operators</h2>
+<h3 id="bool-operator-right-basis"><code>bool operator !=(right: Basis)</code></h3>
+<p>Returns <code>true</code> if the components of both <strong>Basis</strong> matrices are not equal.</p>
+<p><strong>Note:</strong> Due to floating-point precision errors, consider using <code>is_equal_approx()</code> instead, which is more reliable.</p>
+<h3 id="basis-operator--right-basis-"><code>Basis operator(* ( right: Basis ))</code></h3>
+<p>Transforms (multiplies) the <code>right</code> basis by this basis.</p>
+<p>This is the operation performed between parent and child <a href="Node3D.html">Node3D</a> s.</p>
+<h3 id="vector3-operator--right-vector3-"><code>Vector3 operator(* ( right: Vector3 ))</code></h3>
+<p>Transforms (multiplies) the <code>right</code> vector by this basis, returning a <a href="Vector3.html">Vector3</a>.</p>
+<pre class="gdscript"><code># Basis that swaps the X/Z axes and doubles the scale.
+var my_basis = Basis(Vector3(0, 2, 0), Vector3(2, 0, 0), Vector3(0, 0, 2))
+print(my_basis * Vector3(1, 2, 3)) # Prints (4.0, 2.0, 6.0)</code></pre>
+<div class="sourceCode" id="cb19"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Basis that swaps the X/Z axes and doubles the scale.</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> myBasis <span class="op">=</span> <span class="kw">new</span> <span class="fu">Basis</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span> <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">2</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span> <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">2</span><span class="op">));</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>myBasis <span class="op">*</span> <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span><span class="op">));</span> <span class="co">// Prints (4, 2, 6)</span></span></code></pre></div>
+<h3 id="basis-operator--right-float-"><code>Basis operator(* ( right: float ))</code></h3>
+<p>Multiplies all components of the <strong>Basis</strong> by the given <a href="float.html">float</a>. This affects the basis's scale uniformly, resizing all 3 axes by the <code>right</code> value.</p>
+<h3 id="basis-operator--right-int-"><code>Basis operator(* ( right: int ))</code></h3>
+<p>Multiplies all components of the <strong>Basis</strong> by the given <a href="int.html">int</a>. This affects the basis's scale uniformly, resizing all 3 axes by the <code>right</code> value.</p>
+<h3 id="basis-operator-right-float"><code>Basis operator /(right: float)</code></h3>
+<p>Divides all components of the <strong>Basis</strong> by the given <a href="float.html">float</a>. This affects the basis's scale uniformly, resizing all 3 axes by the <code>right</code> value.</p>
+<h3 id="basis-operator-right-int"><code>Basis operator /(right: int)</code></h3>
+<p>Divides all components of the <strong>Basis</strong> by the given <a href="int.html">int</a>. This affects the basis's scale uniformly, resizing all 3 axes by the <code>right</code> value.</p>
+<h3 id="bool-operator-right-basis-1"><code>bool operator ==(right: Basis)</code></h3>
+<p>Returns <code>true</code> if the components of both <strong>Basis</strong> matrices are exactly equal.</p>
+<p><strong>Note:</strong> Due to floating-point precision errors, consider using <code>is_equal_approx()</code> instead, which is more reliable.</p>
+<h3 id="vector3-operator-index-int"><code>Vector3 operator [](index: int)</code></h3>
+<p>Accesses each axis (column) of this basis by their index. Index <code>0</code> is the same as <code>x</code>, index <code>1</code> is the same as <code>y</code>, and index <code>2</code> is the same as <code>z</code>.</p>
+<p><strong>Note:</strong> In C++, this operator accesses the rows of the basis matrix, <em>not</em> the columns. For the same behavior as scripting languages, use the <code>set_column</code> and <code>get_column</code> methods.</p>
+<h2 id="constants">Constants</h2>
+<h3 id="identity--basis1-0-0-0-1-0-0-0-1"><code>IDENTITY = Basis(1, 0, 0, 0, 1, 0, 0, 0, 1)</code></h3>
+<p>The identity <strong>Basis</strong>. This is an orthonormal basis with no rotation, no shear, and a scale of <code>Vector3.ONE</code>. This also means that:</p>
+<ul>
+<li><p>The <code>x</code> points right (<code>Vector3.RIGHT</code>);</p></li>
+<li><p>The <code>y</code> points up (<code>Vector3.UP</code>);</p></li>
+<li><p>The <code>z</code> points back (<code>Vector3.BACK</code>).</p></li>
+</ul>
+<pre class="gdscript"><code>var basis = Basis.IDENTITY
+print(&quot;| X | Y | Z&quot;)
+print(&quot;| %.f | %.f | %.f&quot; % [basis.x.x, basis.y.x, basis.z.x])
+print(&quot;| %.f | %.f | %.f&quot; % [basis.x.y, basis.y.y, basis.z.y])
+print(&quot;| %.f | %.f | %.f&quot; % [basis.x.z, basis.y.z, basis.z.z])
+# Prints:
+# | X | Y | Z
+# | 1 | 0 | 0
+# | 0 | 1 | 0
+# | 0 | 0 | 1</code></pre>
+<p>If a <a href="Vector3.html">Vector3</a> or another <strong>Basis</strong> is transformed (multiplied) by this constant, no transformation occurs.</p>
+<p><strong>Note:</strong> In GDScript, this constant is equivalent to creating a <code>Basis</code> without any arguments. It can be used to make your code clearer, and for consistency with C#.</p>
+<h3 id="flip_x--basis-1-0-0-0-1-0-0-0-1"><code>FLIP_X = Basis(-1, 0, 0, 0, 1, 0, 0, 0, 1)</code></h3>
+<p>When any basis is multiplied by <code>FLIP_X</code>, it negates all components of the <code>x</code> axis (the X column).</p>
+<p>When <code>FLIP_X</code> is multiplied by any basis, it negates the <code>Vector3.x</code> component of all axes (the X row).</p>
+<h3 id="flip_y--basis1-0-0-0--1-0-0-0-1"><code>FLIP_Y = Basis(1, 0, 0, 0, -1, 0, 0, 0, 1)</code></h3>
+<p>When any basis is multiplied by <code>FLIP_Y</code>, it negates all components of the <code>y</code> axis (the Y column).</p>
+<p>When <code>FLIP_Y</code> is multiplied by any basis, it negates the <code>Vector3.y</code> component of all axes (the Y row).</p>
+<h3 id="flip_z--basis1-0-0-0-1-0-0-0--1"><code>FLIP_Z = Basis(1, 0, 0, 0, 1, 0, 0, 0, -1)</code></h3>
+<p>When any basis is multiplied by <code>FLIP_Z</code>, it negates all components of the <code>z</code> axis (the Z column).</p>
+<p>When <code>FLIP_Z</code> is multiplied by any basis, it negates the <code>Vector3.z</code> component of all axes (the Z row).</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

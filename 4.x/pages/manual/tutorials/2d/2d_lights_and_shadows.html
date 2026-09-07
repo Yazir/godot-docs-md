@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2D lights and shadows — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="2d-lights-and-shadows">2D lights and shadows</h1>
+<h2 id="introduction">Introduction</h2>
+<p>By default, 2D scenes in Godot are unshaded, with no lights and shadows visible. While this is fast to render, unshaded scenes can look bland. Godot provides the ability to use real-time 2D lighting and shadows, which can greatly enhance the sense of depth in your project.</p>
+<p><em>Image: No 2D lights or shadows, scene is unshaded</em></p>
+<p>No 2D lights or shadows, scene is unshaded</p>
+<p><em>Image: 2D lights enabled (without shadows)</em></p>
+<p>2D lights enabled (without shadows)</p>
+<p><em>Image: 2D lights and shadows enabled</em></p>
+<p>2D lights and shadows enabled</p>
+<h2 id="nodes">Nodes</h2>
+<p>There are several nodes involved in a complete 2D lighting setup:</p>
+<ul>
+<li>ref (to darken the rest of the scene)</li>
+<li>ref (for omnidirectional or spot lights)</li>
+<li>ref (for sunlight or moonlight)</li>
+<li>ref (for light shadow casters)</li>
+<li>Other 2D nodes that receive lighting, such as Sprite2D or TileMapLayer.</li>
+</ul>
+<p>ref is used to darken the scene by specifying a color that will act as the base "ambient" color. This is the final lighting color in areas that are <em>not</em> reached by any 2D light. Without a CanvasModulate node, the final scene would look too bright as 2D lights would only brighten the existing unshaded appearance (which appears fully lit).</p>
+<p>ref are used to display the textures for the light blobs, the background, and for the shadow casters.</p>
+<p>ref are used to light the scene. The way a light typically works is by adding a selected texture over the rest of the scene to simulate lighting.</p>
+<p>ref are used to tell the shader which parts of the scene cast shadows. These occluders can be placed as independent nodes or can be part of a TileMapLayer node.</p>
+<p>The shadows appear only on areas covered by the ref and their direction is based on the center of the ref.</p>
+<blockquote>
+<p><strong>Note:</strong> The background color does <strong>not</strong> receive any lighting. If you want light to be cast on the background, you need to add a visual representation for the background, such as a Sprite2D.</p>
+<p>The Sprite2D's <strong>Region</strong> properties can be helpful to quickly create a repeating background texture, but remember to also set <strong>Texture &gt; Repeat</strong> to <strong>Enabled</strong> in the Sprite2D's properties.</p>
+</blockquote>
+<h2 id="point-lights">Point lights</h2>
+<p>Point lights (also called positional lights) are the most common element in 2D lighting. Point lights can be used to represent light from torches, fire, projectiles, etc.</p>
+<p>PointLight2D offers the following properties to tweak in the inspector:</p>
+<ul>
+<li><strong>Texture:</strong> The texture to use as a light source. The texture's size determines the size of the light. The texture may have an alpha channel, which is useful when using Light2D's <strong>Mix</strong> blend mode, but it is not required if using the <strong>Add</strong> (default) or <strong>Subtract</strong> blend modes.</li>
+<li><strong>Offset:</strong> The offset for the light texture. Unlike when you move the light node, changing the offset does <em>not</em> cause shadows to move.</li>
+<li><strong>Texture Scale:</strong> The multiplier for the light's size. Higher values will make the light extend out further. Larger lights have a higher performance cost as they affect more pixels on screen, so consider this before increasing a light's size.</li>
+<li><strong>Height:</strong> The light's virtual height with regards to normal mapping. By default, the light is very close to surfaces receiving lights. This will make lighting hardly visible if normal mapping is used, so consider increasing this value. Adjusting the light's height only makes a visible difference on surfaces that use normal mapping.</li>
+</ul>
+<p>If you don't have a pre-made texture to use in a light, you can use this "neutral" point light texture (right-click &gt; <strong>Save Image As…</strong>):</p>
+<p><em>Image: Neutral point light texture</em></p>
+<p>Neutral point light texture</p>
+<p>If you need different falloff, you can procedurally create a texture by assigning a <strong>New GradientTexture2D</strong> on the light's <strong>Texture</strong> property. After creating the resource, expand its <strong>Fill</strong> section and set the fill mode to <strong>Radial</strong>. You will then have to adjust the gradient itself to start from opaque white to transparent white, and move its starting location to be in the center.</p>
+<h2 id="directional-light">Directional light</h2>
+<p>Directional lighting is used to represent sunlight or moonlight. Light rays are casted parallel to each other, as if the sun or moon was infinitely far away from the surface that is receiving the light.</p>
+<p>DirectionalLight2D offers the following properties:</p>
+<ul>
+<li><strong>Height:</strong> The light's virtual height with regards to normal mapping (<code>0.0</code> = parallel to surfaces, <code>1.0</code> = perpendicular to surfaces). By default, the light is fully parallel with the surfaces receiving lights. This will make lighting hardly visible if normal mapping is used, so consider increasing this value. Adjusting the light's height only makes a visual difference on surfaces that use normal mapping. <strong>Height</strong> does not affect shadows' appearance.</li>
+<li><strong>Max Distance:</strong> The maximum distance from the camera center objects can be before their shadows are culled (in pixels). Decreasing this value can prevent objects located outside the camera from casting shadows (while also improving performance). Camera2D zoom is not taken into account by <strong>Max Distance</strong>, which means that at higher zoom values, shadows will appear to fade out sooner when zooming onto a given point.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> Directional shadows will always appear to be infinitely long, regardless of the value of the <strong>Height</strong> property. This is a limitation of the shadow rendering method used for 2D lights in Godot.</p>
+<p>To have directional shadows that are not infinitely long, you should disable shadows in the DirectionalLight2D and use a custom shader that reads from the 2D signed distance field instead. This distance field is automatically generated from LightOccluder2D nodes present in the scene.</p>
+</blockquote>
+<h2 id="common-light-properties">Common light properties</h2>
+<p>Both PointLight2D and DirectionalLight2D offer common properties, which are part of the Light2D base class:</p>
+<ul>
+<li><strong>Enabled:</strong> Allows toggling the light's visibility. Unlike hiding the light node, disabling this property will not hide the light's children.</li>
+<li><strong>Editor Only:</strong> If enabled, the light is only visible within the editor. It will be automatically disabled in the running project.</li>
+<li><strong>Color:</strong> The light's color.</li>
+<li><strong>Energy:</strong> The light's intensity multiplier. Higher values result in a brighter light.</li>
+<li><strong>Blend Mode:</strong> The blending formula used for light computations. The default <strong>Add</strong> is suited for most use cases. <strong>Subtract</strong> can be used for negative lights, which are not physically accurate but can be used for special effects. The <strong>Mix</strong> blend mode mixes the value of pixels corresponding to the light's texture with the values of pixels under it by linear interpolation.</li>
+<li><strong>Range &gt; Z Min:</strong> The lowest Z index affected by the light.</li>
+<li><strong>Range &gt; Z Max:</strong> The highest Z index affected by the light.</li>
+<li><strong>Range &gt; Layer Min:</strong> The lowest visual layer affected by the light.</li>
+<li><strong>Range &gt; Layer Max:</strong> The highest visual layer affected by the light.</li>
+<li><strong>Range &gt; Item Cull Mask:</strong> Controls which nodes receive light from this node, depending on the other nodes' enabled visual layers <strong>Occluder Light Mask</strong>. This can be used to prevent certain objects from receiving light.</li>
+</ul>
+<h2 id="setting-up-shadows">Setting up shadows</h2>
+<p>After enabling the <strong>Shadow &gt; Enabled</strong> property on a PointLight2D or DirectionalLight2D node, you will not see any visual difference initially. This is because no nodes in your scene have any <em>occluders</em> yet, which are used as a basis for shadow casting.</p>
+<p>For shadows to appear in the scene, LightOccluder2D nodes must be added to the scene. These nodes must also have occluder polygons that are designed to match the sprite's outline.</p>
+<p>Along with their polygon resource (which must be set to have any visual effect), LightOccluder2D nodes have 2 properties:</p>
+<ul>
+<li><strong>SDF Collision:</strong> If enabled, the occluder will be part of a real-time generated <em>signed distance field</em> that can be used in custom shaders. When not using custom shaders that read from this SDF, enabling this makes no visual difference and has no performance cost, so this is enabled by default for convenience.</li>
+<li><strong>Occluder Light Mask:</strong> This is used in tandem with PointLight2D and DirectionalLight2D's <strong>Shadow &gt; Item Cull Mask</strong> property to control which objects cast shadows for each light. This can be used to prevent specific objects from casting shadows.</li>
+</ul>
+<p>There are two ways to create light occluders:</p>
+<h3 id="automatically-generating-a-light-occluder">Automatically generating a light occluder</h3>
+<p>Occluders can be created automatically from Sprite2D nodes by selecting the node, clicking the <strong>Sprite2D</strong> menu at the top of the 2D editor then choosing <strong>Create LightOccluder2D Sibling</strong>.</p>
+<p>In the dialog that appears, an outline will surround your sprite's edges. If the outline matches the sprite's edges closely, you can click <strong>OK</strong>. If the outline is too far away from the sprite's edges (or is "eating" into the sprite's edges), adjust <strong>Grow (pixels)</strong> and <strong>Shrink (pixels)</strong>, then click <strong>Update Preview</strong>. Repeat this operation until you get satisfactory results.</p>
+<h3 id="manually-drawing-a-light-occluder">Manually drawing a light occluder</h3>
+<p>Create a LightOccluder2D node, then select the node and click the "+" button at the top of the 2D editor. When asked to create a polygon resource, answer <strong>Yes</strong>. You can then start drawing an occluder polygon by clicking to create new points. You can remove existing points by right-clicking them, and you can create new points from the existing line by clicking on the line then dragging.</p>
+<p>The following properties can be adjusted on 2D lights that have shadows enabled:</p>
+<ul>
+<li><strong>Color:</strong> The color of shaded areas. By default, shaded areas are fully black, but this can be changed for artistic purposes. The color's alpha channel controls how much the shadow is tinted by the specified color.</li>
+<li><strong>Filter:</strong> The filter mode to use for shadows. The default <strong>None</strong> is the fastest to render, and is well suited for games with a pixel art aesthetic (due to its "blocky" visuals). If you want a soft shadow, use <strong>PCF5</strong> instead. <strong>PCF13</strong> is even softer, but is the most demanding to render. PCF13 should only be used for a few lights at once due to its high rendering cost.</li>
+<li><strong>Filter Smooth:</strong> Controls how much softening is applied to shadows when <strong>Filter</strong> is set to <strong>PCF5</strong> or <strong>PCF13</strong>. Higher values result in a softer shadow, but may cause banding artifacts to be visible (especially with PCF5).</li>
+<li><strong>Item Cull Mask:</strong> Controls which LightOccluder2D nodes cast shadows, depending on their respective <strong>Occluder Light Mask</strong> properties.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> <strong>Lighting and shadow resolution in pixel-art games</strong></p>
+<p>The engine computes 2D lighting and shadows at the <strong>Viewport's pixel resolution</strong>, not at the source texture's texel resolution. The appearance of lights and shadows depends on your window or Viewport resolution, not on the resolution of individual sprite textures.</p>
+<p>If you create a pixel-art game and want pixelated or blocky lighting and shadows that match your art style, <strong>Nearest</strong> texture filtering will <strong>not</strong> achieve this effect. Nearest filtering affects only how the engine samples textures — it does not change how the engine renders lighting and shadows.</p>
+<p>To achieve pixelated lighting and shadows, use a custom shader to modify <code>LIGHT_VERTEX</code> and <code>SHADOW_VERTEX</code> to snap light sampling to a pixel grid. The following shader snaps lighting to a grid using the <code>floor()</code> function:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>shader_type canvas_item<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> pixel_size <span class="op">=</span> <span class="fl">4.0</span><span class="op">;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Snap lighting and shadows to pixel grid.</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    LIGHT_VERTEX<span class="op">.</span><span class="fu">xy</span> <span class="op">=</span> <span class="bu">floor</span><span class="op">(</span>LIGHT_VERTEX<span class="op">.</span><span class="fu">xy</span> <span class="op">/</span> pixel_size<span class="op">)</span> <span class="op">*</span> pixel_size<span class="op">;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    SHADOW_VERTEX <span class="op">=</span> <span class="bu">floor</span><span class="op">(</span>SHADOW_VERTEX <span class="op">/</span> pixel_size<span class="op">)</span> <span class="op">*</span> pixel_size<span class="op">;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Normal rendering.</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    COLOR <span class="op">=</span> <span class="bu">texture</span><span class="op">(</span>TEXTURE<span class="op">,</span> UV<span class="op">);</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This works by dividing the position by <code>pixel_size</code> to convert to grid space, using <code>floor()</code> to round down to the nearest grid point, then multiplying back to convert to screen space. The result forces the engine to sample lighting from discrete grid positions, which creates the pixelated effect.</p>
+<p>For more information on canvas item shaders, see ref.</p>
+</blockquote>
+<p><em>Image: Hard shadows</em></p>
+<p>Hard shadows</p>
+<p><em>Image: Soft shadows (PCF13, Filter Smooth 1.5)</em></p>
+<p>Soft shadows (PCF13, Filter Smooth 1.5)</p>
+<p><em>Image: Soft shadows with streaking artifacts due to Filter Smooth being too high (PCF5, Filter Smooth 4)</em></p>
+<p>Soft shadows with streaking artifacts due to Filter Smooth being too high (PCF5, Filter Smooth 4)</p>
+<h2 id="normal-and-specular-maps">Normal and specular maps</h2>
+<p>Normal maps and specular maps can greatly enhance the sense of depth of your 2D lighting. Similar to how these work in 3D rendering, normal maps can help make lighting look less flat by varying its intensity depending on the direction of the surface receiving light (on a per-pixel basis). Specular maps further help improve visuals by making some of the light reflect back to the viewer.</p>
+<p>Both PointLight2D and DirectionalLight2D support normal mapping and specular mapping. Normal and specular maps can be assigned to any 2D element, including nodes that inherit from Node2D or Control.</p>
+<p>A normal map represents the direction in which each pixel is "pointing" towards. This information is then used by the engine to correctly apply lighting to 2D surfaces in a physically plausible way. Normal maps are typically created from hand-painted height maps, but they can also be automatically generated from other textures.</p>
+<p>A specular map defines how much each pixel should reflect light (and in which color, if the specular map contains color). Brighter values will result in a brighter reflection at that given spot on the texture. Specular maps are typically created with manual editing, using the diffuse texture as a base.</p>
+<blockquote>
+<p><strong>Tip:</strong> If you don't have normal or specular maps for your sprites, you can generate them using the free and open source <a href="https://azagaya.itch.io/laigter">Laigter</a> tool.</p>
+</blockquote>
+<p>To set up normal maps and/or specular maps on a 2D node, create a new CanvasTexture resource for the property that draws the node's texture. For example, on a Sprite2D:</p>
+<p><em>Image: Creating a CanvasTexture resource for a Sprite2D node</em></p>
+<p>Creating a CanvasTexture resource for a Sprite2D node</p>
+<p>Expand the newly created resource. You can find several properties you will need to adjust:</p>
+<ul>
+<li><strong>Diffuse &gt; Texture:</strong> The base color texture. In this property, load the texture you're using for the sprite itself.</li>
+<li><strong>Normal Map &gt; Texture:</strong> The normal map texture. In this property, load a normal map texture you've generated from a height map (see the tip above).</li>
+<li><strong>Specular &gt; Texture:</strong> The specular map texture, which controls the specular intensity of each pixel on the diffuse texture. The specular map is usually grayscale, but it can also contain color to multiply the color of reflections accordingly. In this property, load a specular map texture you've created (see the tip above).</li>
+<li><strong>Specular &gt; Color:</strong> The color multiplier for specular reflections.</li>
+<li><strong>Specular &gt; Shininess:</strong> The specular exponent to use for reflections. Lower values will increase the brightness of reflections and make them more diffuse, while higher values will make reflections more localized. High values are more suited for wet-looking surfaces.</li>
+<li><strong>Texture &gt; Filter:</strong> Can be set to override the texture filtering mode, regardless of what the node's property is set to (or the <strong>Rendering &gt; Textures &gt; Canvas Textures &gt; Default Texture Filter</strong> project setting).</li>
+<li><strong>Texture &gt; Repeat:</strong> Can be set to override the texture filtering mode, regardless of what the node's property is set to (or the <strong>Rendering &gt; Textures &gt; Canvas Textures &gt; Default Texture Repeat</strong> project setting).</li>
+</ul>
+<p>After enabling normal mapping, you may notice that your lights appear to be weaker. To resolve this, increase the <strong>Height</strong> property on your PointLight2D and DirectionalLight2D nodes. You may also want to increase the lights's <strong>Energy</strong> property slightly to get closer to how your lighting's intensity looked prior to enabling normal mapping.</p>
+<h2 id="using-additive-sprites-as-a-faster-alternative-to-2d-lights">Using additive sprites as a faster alternative to 2D lights</h2>
+<p>If you run into performance issues when using 2D lights, it may be worth replacing some of them with Sprite2D nodes that use additive blending. This is particularly suited for short-lived dynamic effects, such as bullets or explosions.</p>
+<p>Additive sprites are much faster to render, since they don't need to go through a separate rendering pipeline. Additionally, it is possible to use this approach with AnimatedSprite2D (or Sprite2D + AnimationPlayer), which allows for animated 2D "lights" to be created.</p>
+<p>However, additive sprites have a few downsides compared to 2D lights:</p>
+<ul>
+<li>The blending formula is inaccurate compared to "actual" 2D lighting. This is usually not a problem in sufficiently lit areas, but this prevents additive sprites from correctly lighting up areas that are fully dark.</li>
+<li>Additive sprites cannot cast shadows, since they are not lights.</li>
+<li>Additive sprites ignore normal and specular maps used on other sprites.</li>
+</ul>
+<p>To display a sprite with additive blending, create a Sprite2D node and assign a texture to it. In the inspector, scroll down to the <strong>CanvasItem &gt; Material</strong> section, unfold it and click the dropdown next to the <strong>Material</strong> property. Choose <strong>New CanvasItemMaterial</strong>, click the newly created material to edit it, then set <strong>Blend Mode</strong> to <strong>Add</strong>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

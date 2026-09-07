@@ -1,0 +1,1243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDScript basics — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="gdscript-basics">GDScript basics</h1>
+<h2 id="introduction">Introduction</h2>
+<p><em>GDScript</em> is a high-level, dynamically typed programming language used to create content. It uses a syntax similar to <a href="https://en.wikipedia.org/wiki/Python_%28programming_language%29">Python</a> (blocks are indent-based and many keywords are similar). Its goal is to be optimized for and tightly integrated with Godot Engine, allowing great flexibility for content creation and integration.</p>
+<h3 id="history">History</h3>
+<blockquote>
+<p><strong>Note:</strong> Documentation about GDScript's history has been moved to the ref.</p>
+</blockquote>
+<h3 id="example-of-gdscript">Example of GDScript</h3>
+<p>Some people can learn better by taking a look at the syntax, so here's a simple example of how GDScript looks.</p>
+<pre><code># A file is a class!
+
+# Inheritance
+
+extends BaseClass
+
+# (optional) class definition with a custom icon
+
+class_name MyClass, &quot;res://path/to/optional/icon.svg&quot;
+
+# Member variables
+
+var a = 5
+var s = &quot;Hello&quot;
+var arr = [1, 2, 3]
+var dict = {&quot;key&quot;: &quot;value&quot;, 2: 3}
+var typed_var: int
+var inferred_type := &quot;String&quot;
+
+# Constants
+
+const ANSWER = 42
+const THE_NAME = &quot;Charly&quot;
+
+# Enums
+
+enum {UNIT_NEUTRAL, UNIT_ENEMY, UNIT_ALLY}
+enum Named {THING_1, THING_2, ANOTHER_THING = -1}
+
+# Built-in vector types
+
+var v2 = Vector2(1, 2)
+var v3 = Vector3(1, 2, 3)
+
+# Function
+
+func some_function(param1, param2):
+    var local_var = 5
+
+    if param1 &lt; local_var:
+        print(param1)
+    elif param2 &gt; 5:
+        print(param2)
+    else:
+        print(&quot;Fail!&quot;)
+
+    for i in range(20):
+        print(i)
+
+    while param2 != 0:
+        param2 -= 1
+
+    var local_var2 = param1 + 3
+    return local_var2
+
+# Functions override functions with the same name on the base/parent class.
+# If you still want to call them, use &#39;.&#39; (like &#39;super&#39; in other languages).
+
+func something(p1, p2):
+    .something(p1, p2)
+
+# Inner class
+
+class Something:
+    var a = 10
+
+# Constructor
+
+func _init():
+    print(&quot;Constructed!&quot;)
+    var lv = Something.new()
+    print(lv.a)</code></pre>
+<p>If you have previous experience with statically typed languages such as C, C++, or C# but never used a dynamically typed one before, it is advised you read this tutorial: <code>doc_gdscript_more_efficiently</code>.</p>
+<h2 id="language">Language</h2>
+<p>In the following, an overview is given to GDScript. Details, such as which methods are available to arrays or other objects, should be looked up in the linked class descriptions.</p>
+<h3 id="identifiers">Identifiers</h3>
+<p>Any string that restricts itself to alphabetic characters (<code>a</code> to <code>z</code> and <code>A</code> to <code>Z</code>), digits (<code>0</code> to <code>9</code>) and <code>_</code> qualifies as an identifier. Additionally, identifiers must not begin with a digit. Identifiers are case-sensitive (<code>foo</code> is different from <code>FOO</code>).</p>
+<h3 id="keywords">Keywords</h3>
+<p>The following is the list of keywords supported by the language. Since keywords are reserved words (tokens), they can't be used as identifiers. Operators (like <code>in</code>, <code>not</code>, <code>and</code> or <code>or</code>) and names of built-in types as listed in the following sections are also reserved.</p>
+<p>Keywords are defined in the <a href="https://github.com/godotengine/godot/blob/3.6/modules/gdscript/gdscript_tokenizer.cpp">GDScript tokenizer</a> in case you want to take a look under the hood.</p>
+<table>
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 89%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th><blockquote>
+<p>Keyword</p>
+</blockquote></th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>if</td>
+<td>See <a href="#ifelseelif">if/else/elif</a>.</td>
+</tr>
+<tr class="even">
+<td>elif</td>
+<td>See <a href="#ifelseelif">if/else/elif</a>.</td>
+</tr>
+<tr class="odd">
+<td>else</td>
+<td>See <a href="#ifelseelif">if/else/elif</a>.</td>
+</tr>
+<tr class="even">
+<td>for</td>
+<td>See <a href="#for">for</a>.</td>
+</tr>
+<tr class="odd">
+<td>while</td>
+<td>See <a href="#while">while</a>.</td>
+</tr>
+<tr class="even">
+<td>match</td>
+<td>See <a href="#match">match</a>.</td>
+</tr>
+<tr class="odd">
+<td>break</td>
+<td>Exits the execution of the current <code>for</code> or <code>while</code> loop.</td>
+</tr>
+<tr class="even">
+<td>continue</td>
+<td>Immediately skips to the next iteration of the <code>for</code> or <code>while</code> loop.</td>
+</tr>
+<tr class="odd">
+<td>pass</td>
+<td>Used where a statement is required syntactically but execution of code is undesired, e.g. in empty functions.</td>
+</tr>
+<tr class="even">
+<td>return</td>
+<td>Returns a value from a function.</td>
+</tr>
+<tr class="odd">
+<td>class</td>
+<td>Defines an inner class.</td>
+</tr>
+<tr class="even">
+<td>class_name</td>
+<td>Defines a class name and optional icon for your script.</td>
+</tr>
+<tr class="odd">
+<td>extends</td>
+<td>Defines what class to extend with the current class.</td>
+</tr>
+<tr class="even">
+<td>is</td>
+<td>Tests whether a variable extends a given class, or is of a given built-in type.</td>
+</tr>
+<tr class="odd">
+<td>as</td>
+<td>Cast the value to a given type if possible.</td>
+</tr>
+<tr class="even">
+<td>self</td>
+<td>Refers to current class instance.</td>
+</tr>
+<tr class="odd">
+<td>tool</td>
+<td>Executes the script in the editor.</td>
+</tr>
+<tr class="even">
+<td>signal</td>
+<td>Defines a signal.</td>
+</tr>
+<tr class="odd">
+<td>func</td>
+<td>Defines a function.</td>
+</tr>
+<tr class="even">
+<td>static</td>
+<td>Defines a static function. Static member variables are not allowed.</td>
+</tr>
+<tr class="odd">
+<td>const</td>
+<td>Defines a constant.</td>
+</tr>
+<tr class="even">
+<td>enum</td>
+<td>Defines an enum.</td>
+</tr>
+<tr class="odd">
+<td>var</td>
+<td>Defines a variable.</td>
+</tr>
+<tr class="even">
+<td>onready</td>
+<td>Initializes a variable once the Node the script is attached to and its children are part of the scene tree.</td>
+</tr>
+<tr class="odd">
+<td>export</td>
+<td>Saves a variable along with the resource it's attached to and makes it visible and modifiable in the editor.</td>
+</tr>
+<tr class="even">
+<td>setget</td>
+<td>Defines setter and getter functions for a variable.</td>
+</tr>
+<tr class="odd">
+<td>breakpoint</td>
+<td>Editor helper for debugger breakpoints. Unlike breakpoints created by clicking in the gutter, <code>breakpoint</code> is stored in the script itself. This makes it persistent across different machines when using version control.</td>
+</tr>
+<tr class="even">
+<td>preload</td>
+<td>Preloads a class or variable. See <a href="#classes-as-resources">Classes as resources</a>.</td>
+</tr>
+<tr class="odd">
+<td>yield</td>
+<td>Coroutine support. See <a href="#coroutines-with-yield">Coroutines with yield</a>.</td>
+</tr>
+<tr class="even">
+<td>assert</td>
+<td>Asserts a condition, logs error on failure. Ignored in non-debug builds. See <a href="#assert-keyword">Assert keyword</a>.</td>
+</tr>
+<tr class="odd">
+<td>remote</td>
+<td>Networking RPC annotation. See ref. |</td>
+</tr>
+<tr class="even">
+<td>master</td>
+<td>Networking RPC annotation. See ref. |</td>
+</tr>
+<tr class="odd">
+<td>puppet</td>
+<td>Networking RPC annotation. See ref. |</td>
+</tr>
+<tr class="even">
+<td>remotesync</td>
+<td>Networking RPC annotation. See ref. |</td>
+</tr>
+<tr class="odd">
+<td>mastersync</td>
+<td>Networking RPC annotation. See ref. |</td>
+</tr>
+<tr class="even">
+<td>puppetsync</td>
+<td>Networking RPC annotation. See ref. |</td>
+</tr>
+<tr class="odd">
+<td>PI</td>
+<td>PI constant.</td>
+</tr>
+<tr class="even">
+<td>TAU</td>
+<td>TAU constant.</td>
+</tr>
+<tr class="odd">
+<td>INF</td>
+<td>Infinity constant. Used for comparisons.</td>
+</tr>
+<tr class="even">
+<td>NAN</td>
+<td>NAN (not a number) constant. Used for comparisons.</td>
+</tr>
+</tbody>
+</table>
+
+<h3 id="operators">Operators</h3>
+<p>The following is the list of supported operators and their precedence.</p>
+<table>
+<colgroup>
+<col style="width: 63%" />
+<col style="width: 36%" />
+</colgroup>
+<tbody>
+<tr class="odd">
+<td><strong>Operator</strong></td>
+<td><strong>Description</strong></td>
+</tr>
+<tr class="even">
+<td><code>x[index]</code></td>
+<td>Subscription (highest priority)</td>
+</tr>
+<tr class="odd">
+<td><code>x.attribute</code></td>
+<td>Attribute reference</td>
+</tr>
+<tr class="even">
+<td><code>foo()</code></td>
+<td>Function call</td>
+</tr>
+<tr class="odd">
+<td><code>is</code></td>
+<td>Instance type checker</td>
+</tr>
+<tr class="even">
+<td><code>~</code></td>
+<td>Bitwise NOT</td>
+</tr>
+<tr class="odd">
+<td><code>-x</code></td>
+<td>Negative / Unary negation</td>
+</tr>
+<tr class="even">
+<td><code>*</code> <code>/</code> <code>%</code></td>
+<td><p>Multiplication / Division / Remainder</p>
+<p>These operators have the same behavior as C++. Integer division is truncated rather than returning a fractional number, and the % operator is only available for ints ("fmod" for floats), and is additionally used for Format Strings</p></td>
+</tr>
+<tr class="odd">
+<td><code>+</code></td>
+<td>Addition / Concatenation of arrays</td>
+</tr>
+<tr class="even">
+<td><code>-</code></td>
+<td>Subtraction</td>
+</tr>
+<tr class="odd">
+<td><code>&lt;&lt;</code> <code>&gt;&gt;</code></td>
+<td>Bit shifting</td>
+</tr>
+<tr class="even">
+<td><code>&amp;</code></td>
+<td>Bitwise AND</td>
+</tr>
+<tr class="odd">
+<td><code>^</code></td>
+<td>Bitwise XOR</td>
+</tr>
+<tr class="even">
+<td><code>|</code></td>
+<td>Bitwise OR</td>
+</tr>
+<tr class="odd">
+<td><code>&lt;</code> <code>&gt;</code> <code>==</code> <code>!=</code> <code>&gt;=</code> <code>&lt;=</code></td>
+<td>Comparisons</td>
+</tr>
+<tr class="even">
+<td><code>in</code></td>
+<td>When used with the <code>if</code> keyword it checks if a value is within a string, list, range, dictionary, or node. When used with the <code>for</code> keyword it is used to iterate though the contents of a string, list, range, dictionary or node.</td>
+</tr>
+<tr class="odd">
+<td><code>!</code> <code>not</code></td>
+<td>Boolean NOT</td>
+</tr>
+<tr class="even">
+<td><code>and</code> <code>&amp;&amp;</code></td>
+<td>Boolean AND</td>
+</tr>
+<tr class="odd">
+<td><code>or</code> <code>||</code></td>
+<td>Boolean OR</td>
+</tr>
+<tr class="even">
+<td><code>if x else</code></td>
+<td>Ternary if/else</td>
+</tr>
+<tr class="odd">
+<td><code>as</code></td>
+<td>Type casting</td>
+</tr>
+<tr class="even">
+<td><code>=</code> <code>+=</code> <code>-=</code> <code>*=</code> <code>/=</code> <code>%=</code> <code>&amp;=</code> <code>|=</code> <code>&lt;&lt;=</code> <code>&gt;&gt;=</code></td>
+<td>Assignment (lowest priority)</td>
+</tr>
+</tbody>
+</table>
+
+<h3 id="literals">Literals</h3>
+<table>
+<tbody>
+<tr class="odd">
+<td><strong>Literal</strong></td>
+<td><strong>Type</strong></td>
+</tr>
+<tr class="even">
+<td><code>45</code></td>
+<td>Base 10 integer</td>
+</tr>
+<tr class="odd">
+<td><code>0x8f51</code></td>
+<td>Base 16 (hexadecimal) integer</td>
+</tr>
+<tr class="even">
+<td><code>0b101010</code></td>
+<td>Base 2 (binary) integer</td>
+</tr>
+<tr class="odd">
+<td><code>3.14</code>, <code>58.1e-10</code></td>
+<td>Floating-point number (real)</td>
+</tr>
+<tr class="even">
+<td><code>"Hello"</code>, <code>"Hi"</code></td>
+<td>Strings</td>
+</tr>
+<tr class="odd">
+<td><code>"""Hello"""</code></td>
+<td>Multiline string</td>
+</tr>
+<tr class="even">
+<td><code>@"Node/Label"</code></td>
+<td><code>class_NodePath</code> or StringName</td>
+</tr>
+<tr class="odd">
+<td><code>$NodePath</code></td>
+<td>Shorthand for <code>get_node("NodePath")</code></td>
+</tr>
+</tbody>
+</table>
+<p>Integers and floats can have their numbers separated with <code>_</code> to make them more readable. The following ways to write numbers are all valid:</p>
+<pre><code>12_345_678  # Equal to 12345678.
+3.141_592_7  # Equal to 3.1415927.
+0x8080_0000_ffff  # Equal to 0x80800000ffff.
+0b11_00_11_00  # Equal to 0b11001100.</code></pre>
+<h3 id="comments">Comments</h3>
+<p>Anything from a <code>#</code> to the end of the line is ignored and is considered a comment.</p>
+<pre><code># This is a comment.</code></pre>
+<h2 id="built-in-types">Built-in types</h2>
+<p>Built-in types are stack-allocated. They are passed as values. This means a copy is created on each assignment or when passing them as arguments to functions. The only exceptions are <code>Array</code>s and <code>Dictionaries</code>, which are passed by reference so they are shared. (Pooled arrays such as <code>PoolByteArray</code> are still passed as values.)</p>
+<h3 id="basic-built-in-types">Basic built-in types</h3>
+<p>A variable in GDScript can be assigned to several built-in types.</p>
+<h4 id="null">null</h4>
+<p><code>null</code> is an empty data type that contains no information and can not be assigned any other value.</p>
+<h4 id="ref">ref</h4>
+<p>Short for "boolean", it can only contain <code>true</code> or <code>false</code>.</p>
+<h4 id="ref-1">ref</h4>
+<p>Short for "integer", it stores whole numbers (positive and negative). It is stored as a 64-bit value, equivalent to "int64_t" in C++.</p>
+<h4 id="ref-2">ref</h4>
+<p>Stores real numbers, including decimals, using floating-point values. It is stored as a 64-bit value, equivalent to "double" in C++. Note: Currently, data structures such as Vector2, Vector3, and PoolRealArray store 32-bit single-precision "float" values.</p>
+<h4 id="ref-3">ref</h4>
+<p>A sequence of characters in <a href="https://en.wikipedia.org/wiki/Unicode">Unicode format</a>. Strings can contain the following escape sequences:</p>
+<table>
+<tbody>
+<tr class="odd">
+<td><strong>Escape sequence</strong></td>
+<td><strong>Expands to</strong></td>
+</tr>
+<tr class="even">
+<td><code>\n</code></td>
+<td>Newline (line feed)</td>
+</tr>
+<tr class="odd">
+<td><code>\t</code></td>
+<td>Horizontal tab character</td>
+</tr>
+<tr class="even">
+<td><code>\r</code></td>
+<td>Carriage return</td>
+</tr>
+<tr class="odd">
+<td><code>\a</code></td>
+<td>Alert (beep/bell)</td>
+</tr>
+<tr class="even">
+<td><code>\b</code></td>
+<td>Backspace</td>
+</tr>
+<tr class="odd">
+<td><code>\f</code></td>
+<td>Formfeed page break</td>
+</tr>
+<tr class="even">
+<td><code>\v</code></td>
+<td>Vertical tab character</td>
+</tr>
+<tr class="odd">
+<td><code>\"</code></td>
+<td>Double quote</td>
+</tr>
+<tr class="even">
+<td><code>\'</code></td>
+<td>Single quote</td>
+</tr>
+<tr class="odd">
+<td><code>\\</code></td>
+<td>Backslash</td>
+</tr>
+<tr class="even">
+<td><code>\uXXXX</code></td>
+<td>Unicode codepoint <code>XXXX</code> (hexadecimal, case-insensitive)</td>
+</tr>
+</tbody>
+</table>
+<p>GDScript also supports <code>doc_gdscript_printf</code>.</p>
+<h3 id="vector-built-in-types">Vector built-in types</h3>
+<h4 id="ref-4">ref</h4>
+<p>2D vector type containing <code>x</code> and <code>y</code> fields. Can also be accessed as an array.</p>
+<h4 id="ref-5">ref</h4>
+<p>2D Rectangle type containing two vectors fields: <code>position</code> and <code>size</code>. Also contains an <code>end</code> field which is <code>position + size</code>.</p>
+<h4 id="ref-6">ref</h4>
+<p>3D vector type containing <code>x</code>, <code>y</code> and <code>z</code> fields. This can also be accessed as an array.</p>
+<h4 id="ref-7">ref</h4>
+<p>3×2 matrix used for 2D transforms.</p>
+<h4 id="ref-8">ref</h4>
+<p>3D Plane type in normalized form that contains a <code>normal</code> vector field and a <code>d</code> scalar distance.</p>
+<h4 id="ref-9">ref</h4>
+<p>Quaternion is a datatype used for representing a 3D rotation. It's useful for interpolating rotations.</p>
+<h4 id="ref-10">ref</h4>
+<p>Axis-aligned bounding box (or 3D box) contains 2 vectors fields: <code>position</code> and <code>size</code>. Also contains an <code>end</code> field which is <code>position + size</code>.</p>
+<h4 id="ref-11">ref</h4>
+<p>3x3 matrix used for 3D rotation and scale. It contains 3 vector fields (<code>x</code>, <code>y</code> and <code>z</code>) and can also be accessed as an array of 3D vectors.</p>
+<h4 id="ref-12">ref</h4>
+<p>3D Transform contains a Basis field <code>basis</code> and a Vector3 field <code>origin</code>.</p>
+<h3 id="engine-built-in-types">Engine built-in types</h3>
+<h4 id="ref-13">ref</h4>
+<p>Color data type contains <code>r</code>, <code>g</code>, <code>b</code>, and <code>a</code> fields. It can also be accessed as <code>h</code>, <code>s</code>, and <code>v</code> for hue/saturation/value.</p>
+<h4 id="ref-14">ref</h4>
+<p>Compiled path to a node used mainly in the scene system. It can be easily assigned to, and from, a String.</p>
+<h4 id="ref-15">ref</h4>
+<p>Resource ID (RID). Servers use generic RIDs to reference opaque data.</p>
+<h4 id="ref-16">ref</h4>
+<p>Base class for anything that is not a built-in type.</p>
+<h3 id="container-built-in-types">Container built-in types</h3>
+<h4 id="ref-17">ref</h4>
+<p>Generic sequence of arbitrary object types, including other arrays or dictionaries (see below). The array can resize dynamically. Arrays are indexed starting from index <code>0</code>. Negative indices count from the end.</p>
+<pre><code>var arr = []
+arr = [1, 2, 3]
+var b = arr[1] # This is 2.
+var c = arr[arr.size() - 1] # This is 3.
+var d = arr[-1] # Same as the previous line, but shorter.
+arr[0] = &quot;Hi!&quot; # Replacing value 1 with &quot;Hi!&quot;.
+arr.append(4) # Array is now [&quot;Hi!&quot;, 2, 3, 4].</code></pre>
+<p>GDScript arrays are allocated linearly in memory for speed. Large arrays (more than tens of thousands of elements) may however cause memory fragmentation. If this is a concern, special types of arrays are available. These only accept a single data type. They avoid memory fragmentation and use less memory, but are atomic and tend to run slower than generic arrays. They are therefore only recommended to use for large data sets:</p>
+<ul>
+<li>ref: An array of bytes (integers from 0 to 255).</li>
+<li>ref: An array of integers.</li>
+<li>ref: An array of floats.</li>
+<li>ref: An array of strings.</li>
+<li>ref: An array of ref objects.</li>
+<li>ref: An array of ref objects.</li>
+<li>ref: An array of ref objects.</li>
+</ul>
+<h4 id="ref-18">ref</h4>
+<p>Associative container which contains values referenced by unique keys.</p>
+<pre><code>var d = {4: 5, &quot;A key&quot;: &quot;A value&quot;, 28: [1, 2, 3]}
+d[&quot;Hi!&quot;] = 0
+d = {
+    22: &quot;value&quot;,
+    &quot;some_key&quot;: 2,
+    &quot;other_key&quot;: [2, 3, 4],
+    &quot;more_key&quot;: &quot;Hello&quot;
+}</code></pre>
+<p>Lua-style table syntax is also supported. Lua-style uses <code>=</code> instead of <code>:</code> and doesn't use quotes to mark string keys (making for slightly less to write). However, keys written in this form can't start with a digit (like any GDScript identifier).</p>
+<pre><code>var d = {
+    test22 = &quot;value&quot;,
+    some_key = 2,
+    other_key = [2, 3, 4],
+    more_key = &quot;Hello&quot;
+}</code></pre>
+<p>To add a key to an existing dictionary, access it like an existing key and assign to it:</p>
+<pre><code>var d = {} # Create an empty Dictionary.
+d.waiting = 14 # Add String &quot;waiting&quot; as a key and assign the value 14 to it.
+d[4] = &quot;hello&quot; # Add integer 4 as a key and assign the String &quot;hello&quot; as its value.
+d[&quot;Godot&quot;] = 3.01 # Add String &quot;Godot&quot; as a key and assign the value 3.01 to it.
+
+var test = 4
+# Prints &quot;hello&quot; by indexing the dictionary with a dynamic key.
+# This is not the same as `d.test`. The bracket syntax equivalent to
+# `d.test` is `d[&quot;test&quot;]`.
+print(d[test])</code></pre>
+<blockquote>
+<p><strong>Note:</strong> The bracket syntax can be used to access properties of any <code>class_Object</code>, not just Dictionaries. Keep in mind it will cause a script error when attempting to index a non-existing property. To avoid this, use the ref and ref methods instead.</p>
+</blockquote>
+<h2 id="data">Data</h2>
+<h3 id="variables">Variables</h3>
+<p>Variables can exist as class members or local to functions. They are created with the <code>var</code> keyword and may, optionally, be assigned a value upon initialization.</p>
+<pre><code>var a # Data type is &#39;null&#39; by default.
+var b = 5
+var c = 3.8
+var d = b + c # Variables are always initialized in order.</code></pre>
+<p>Variables can optionally have a type specification. When a type is specified, the variable will be forced to have always that same type, and trying to assign an incompatible value will raise an error.</p>
+<p>Types are specified in the variable declaration using a <code>:</code> (colon) symbol after the variable name, followed by the type.</p>
+<pre><code>var my_vector2: Vector2
+var my_node: Node = Sprite.new()</code></pre>
+<p>If the variable is initialized within the declaration, the type can be inferred, so it's possible to omit the type name:</p>
+<pre><code>var my_vector2 := Vector2() # &#39;my_vector2&#39; is of type &#39;Vector2&#39;.
+var my_node := Sprite.new() # &#39;my_node&#39; is of type &#39;Sprite&#39;.</code></pre>
+<p>Type inference is only possible if the assigned value has a defined type, otherwise it will raise an error.</p>
+<p>Valid types are:</p>
+<ul>
+<li>Built-in types (Array, Vector2, int, String, etc.).</li>
+<li>Engine classes (Node, Resource, Reference, etc.).</li>
+<li>Constant names if they contain a script resource (<code>MyScript</code> if you declared <code>const MyScript = preload("res://my_script.gd")</code>).</li>
+<li>Other classes in the same script, respecting scope (<code>InnerClass.NestedClass</code> if you declared <code>class NestedClass</code> inside the <code>class InnerClass</code> in the same scope).</li>
+<li>Script classes declared with the <code>class_name</code> keyword.</li>
+</ul>
+<h4 id="casting">Casting</h4>
+<p>Values assigned to typed variables must have a compatible type. If it's needed to coerce a value to be of a certain type, in particular for object types, you can use the casting operator <code>as</code>.</p>
+<p>Casting between object types results in the same object if the value is of the same type or a subtype of the cast type.</p>
+<pre><code>var my_node2D: Node2D
+my_node2D = $Sprite as Node2D # Works since Sprite is a subtype of Node2D.</code></pre>
+<p>If the value is not a subtype, the casting operation will result in a <code>null</code> value.</p>
+<pre><code>var my_node2D: Node2D
+my_node2D = $Button as Node2D # Results in &#39;null&#39; since a Button is not a subtype of Node2D.</code></pre>
+<p>For built-in types, they will be forcibly converted if possible, otherwise the engine will raise an error.</p>
+<pre><code>var my_int: int
+my_int = &quot;123&quot; as int # The string can be converted to int.
+my_int = Vector2() as int # A Vector2 can&#39;t be converted to int, this will cause an error.</code></pre>
+<p>Casting is also useful to have better type-safe variables when interacting with the scene tree:</p>
+<pre><code># Will infer the variable to be of type Sprite.
+var my_sprite := $Character as Sprite
+
+# Will fail if $AnimPlayer is not an AnimationPlayer, even if it has the method &#39;play()&#39;.
+($AnimPlayer as AnimationPlayer).play(&quot;walk&quot;)</code></pre>
+<h3 id="constants">Constants</h3>
+<p>Constants are values you cannot change when the game is running. Their value must be known at compile-time. Using the <code>const</code> keyword allows you to give a constant value a name. Trying to assign a value to a constant after it's declared will give you an error.</p>
+<p>We recommend using constants whenever a value is not meant to change.</p>
+<pre><code>const A = 5
+const B = Vector2(20, 20)
+const C = 10 + 20 # Constant expression.
+const D = Vector2(20, 30).x # Constant expression: 20.
+const E = [1, 2, 3, 4][0] # Constant expression: 1.
+const F = sin(20) # &#39;sin()&#39; can be used in constant expressions.
+const G = x + 20 # Invalid; this is not a constant expression!
+const H = A + 20 # Constant expression: 25 (`A` is a constant).</code></pre>
+<p>Although the type of constants is inferred from the assigned value, it's also possible to add explicit type specification:</p>
+<pre><code>const A: int = 5
+const B: Vector2 = Vector2()</code></pre>
+<p>Assigning a value of an incompatible type will raise an error.</p>
+<blockquote>
+<p><strong>Note:</strong> Since arrays and dictionaries are passed by reference, constants are "flat". This means that if you declare a constant array or dictionary, it can still be modified afterwards. They can't be reassigned with another value though.</p>
+</blockquote>
+<h4 id="enums">Enums</h4>
+<p>Enums are basically a shorthand for constants, and are pretty useful if you want to assign consecutive integers to some constant.</p>
+<p>If you pass a name to the enum, it will put all the keys inside a constant dictionary of that name.</p>
+<blockquote>
+<p><strong>Important:</strong> In Godot 3.1 and later, keys in a named enum are not registered as global constants. They should be accessed prefixed by the enum's name (<code>Name.KEY</code>); see an example below.</p>
+</blockquote>
+<pre><code>enum {TILE_BRICK, TILE_FLOOR, TILE_SPIKE, TILE_TELEPORT}
+# Is the same as:
+const TILE_BRICK = 0
+const TILE_FLOOR = 1
+const TILE_SPIKE = 2
+const TILE_TELEPORT = 3
+
+enum State {STATE_IDLE, STATE_JUMP = 5, STATE_SHOOT}
+# Is the same as:
+const State = {STATE_IDLE = 0, STATE_JUMP = 5, STATE_SHOOT = 6}
+# Access values with State.STATE_IDLE, etc.</code></pre>
+<h3 id="functions">Functions</h3>
+<p>Functions always belong to a <a href="#classes">class</a>. The scope priority for variable look-up is: local → class member → global. The <code>self</code> variable is always available and is provided as an option for accessing class members, but is not always required (and should <em>not</em> be sent as the function's first argument, unlike Python).</p>
+<pre><code>func my_function(a, b):
+    print(a)
+    print(b)
+    return a + b  # Return is optional; without it &#39;null&#39; is returned.</code></pre>
+<p>A function can <code>return</code> at any point. The default return value is <code>null</code>.</p>
+<p>Functions can also have type specification for the arguments and for the return value. Types for arguments can be added in a similar way to variables:</p>
+<pre><code>func my_function(a: int, b: String):
+    pass</code></pre>
+<p>If a function argument has a default value, it's possible to infer the type:</p>
+<pre><code>func my_function(int_arg := 42, String_arg := &quot;string&quot;):
+    pass</code></pre>
+<p>The return type of the function can be specified after the arguments list using the arrow token (<code>-&gt;</code>):</p>
+<pre><code>func my_int_function() -&gt; int:
+    return 0</code></pre>
+<p>Functions that have a return type <strong>must</strong> return a proper value. Setting the type as <code>void</code> means the function doesn't return anything. Void functions can return early with the <code>return</code> keyword, but they can't return any value.</p>
+<pre><code>func void_function() -&gt; void:
+    return # Can&#39;t return a value</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Non-void functions must <strong>always</strong> return a value, so if your code has branching statements (such as an <code>if</code>/<code>else</code> construct), all the possible paths must have a return. E.g., if you have a <code>return</code> inside an <code>if</code> block but not after it, the editor will raise an error because if the block is not executed, the function won't have a valid value to return.</p>
+</blockquote>
+<h4 id="referencing-functions">Referencing functions</h4>
+<p>Contrary to Python, functions are <em>not</em> first-class objects in GDScript. This means they cannot be stored in variables, passed as an argument to another function or be returned from other functions. This is for performance reasons.</p>
+<p>To reference a function by name at run-time, (e.g. to store it in a variable, or pass it to another function as an argument) one must use the <code>call</code> or <code>funcref</code> helpers:</p>
+<pre><code># Call a function by name in one step.
+my_node.call(&quot;my_function&quot;, args)
+
+# Store a function reference.
+var my_func = funcref(my_node, &quot;my_function&quot;)
+# Call stored function reference.
+my_func.call_func(args)</code></pre>
+<h4 id="static-functions">Static functions</h4>
+<p>A function can be declared static. When a function is static, it has no access to the instance member variables or <code>self</code>. This is mainly useful to make libraries of helper functions:</p>
+<pre><code>static func sum2(a, b):
+    return a + b</code></pre>
+<h3 id="statements-and-control-flow">Statements and control flow</h3>
+<p>Statements are standard and can be assignments, function calls, control flow structures, etc (see below). <code>;</code> as a statement separator is entirely optional.</p>
+<h4 id="ifelseelif">if/else/elif</h4>
+<p>Simple conditions are created by using the <code>if</code>/<code>else</code>/<code>elif</code> syntax. Parenthesis around conditions are allowed, but not required. Given the nature of the tab-based indentation, <code>elif</code> can be used instead of <code>else</code>/<code>if</code> to maintain a level of indentation.</p>
+<pre><code>if [expression]:
+    statement(s)
+elif [expression]:
+    statement(s)
+else:
+    statement(s)</code></pre>
+<p>Short statements can be written on the same line as the condition:</p>
+<pre><code>if 1 + 1 == 2: return 2 + 2
+else:
+    var x = 3 + 3
+    return x</code></pre>
+<p>Sometimes, you might want to assign a different initial value based on a boolean expression. In this case, ternary-if expressions come in handy:</p>
+<pre><code>var x = [value] if [expression] else [value]
+y += 3 if y &lt; 10 else -1</code></pre>
+<p>Ternary-if expressions can be nested to handle more than 2 cases. When nesting ternary-if expressions, it is recommended to wrap the complete expression over multiple lines to preserve readability:</p>
+<pre><code>var count = 0
+
+var fruit = (
+        &quot;apple&quot; if count == 2
+        else &quot;pear&quot; if count == 1
+        else &quot;banana&quot; if count == 0
+        else &quot;orange&quot;
+)
+print(fruit)  # banana
+
+# Alternative syntax with backslashes instead of parentheses (for multi-line expressions).
+# Less lines required, but harder to refactor.
+var fruit_alt = \
+        &quot;apple&quot; if count == 2 \
+        else &quot;pear&quot; if count == 1 \
+        else &quot;banana&quot; if count == 0 \
+        else &quot;orange&quot;
+print(fruit_alt)  # banana</code></pre>
+<p>You may also wish to check if a value is contained within something. You can use an <code>if</code> statement combined with the <code>in</code> operator to accomplish this:</p>
+<pre><code># Check if a letter is in a string.
+var text = &quot;abc&quot;
+if &#39;b&#39; in text: print(&quot;The string contains b&quot;)
+
+# Check if a variable is contained within a node.
+if &quot;varName&quot; in get_parent(): print(&quot;varName is defined in parent!&quot;)</code></pre>
+<h4 id="while">while</h4>
+<p>Simple loops are created by using <code>while</code> syntax. Loops can be broken using <code>break</code> or continued using <code>continue</code> (i.e. skipping to the next iteration of the loop without executing any further code in the current iteration):</p>
+<pre><code>while [expression]:
+    statement(s)</code></pre>
+<h4 id="for">for</h4>
+<p>To iterate through a range, such as an array or table, a <em>for</em> loop is used. When iterating over an array, the current array element is stored in the loop variable. When iterating over a dictionary, the <em>key</em> is stored in the loop variable.</p>
+<pre><code>for x in [5, 7, 11]:
+    statement # Loop iterates 3 times with &#39;x&#39; as 5, then 7 and finally 11.
+
+var dict = {&quot;a&quot;: 0, &quot;b&quot;: 1, &quot;c&quot;: 2}
+for i in dict:
+    print(dict[i]) # Prints 0, then 1, then 2.
+
+for i in range(3):
+    statement # Similar to [0, 1, 2] but does not allocate an array.
+
+for i in range(1, 3):
+    statement # Similar to [1, 2] but does not allocate an array.
+
+for i in range(2, 8, 2):
+    statement # Similar to [2, 4, 6] but does not allocate an array.
+
+for c in &quot;Hello&quot;:
+    print(c) # Iterate through all characters in a String, print every letter on new line.
+
+for i in 3:
+    statement # Similar to range(3)
+
+for i in 2.2:
+    statement # Similar to range(ceil(2.2))</code></pre>
+<h4 id="match">match</h4>
+<p>A <code>match</code> statement is used to branch execution of a program. It's the equivalent of the <code>switch</code> statement found in many other languages, but offers some additional features.</p>
+<p>Basic syntax:</p>
+<pre><code>match [expression]:
+    [pattern](s):
+        [block]
+    [pattern](s):
+        [block]
+    [pattern](s):
+        [block]</code></pre>
+<p><strong>Crash-course for people who are familiar with switch statements</strong>:</p>
+<ol type="1">
+<li>Replace <code>switch</code> with <code>match</code>.</li>
+<li>Remove <code>case</code>.</li>
+<li>Remove any <code>break</code>s. If you don't want to <code>break</code> by default, you can use <code>continue</code> for a fallthrough.</li>
+<li>Change <code>default</code> to a single underscore.</li>
+</ol>
+<p><strong>Control flow</strong>:</p>
+<p>The patterns are matched from top to bottom. If a pattern matches, the first corresponding block will be executed. After that, the execution continues below the <code>match</code> statement. You can use <code>continue</code> to stop execution in the current block and check for an additional match in the patterns below it.</p>
+<p>There are 6 pattern types:</p>
+<ul>
+<li><p>Constant pattern Constant primitives, like numbers and strings:</p>
+<pre><code>match x:
+    1:
+        print(&quot;We are number one!&quot;)
+    2:
+        print(&quot;Two are better than one!&quot;)
+    &quot;test&quot;:
+        print(&quot;Oh snap! It&#39;s a string!&quot;)</code></pre></li>
+<li><p>Variable pattern Matches the contents of a variable/enum:</p>
+<pre><code>match typeof(x):
+    TYPE_REAL:
+        print(&quot;float&quot;)
+    TYPE_STRING:
+        print(&quot;text&quot;)
+    TYPE_ARRAY:
+        print(&quot;array&quot;)</code></pre></li>
+<li><p>Wildcard pattern This pattern matches everything. It's written as a single underscore.</p>
+<p>It can be used as the equivalent of the <code>default</code> in a <code>switch</code> statement in other languages:</p>
+<pre><code>match x:
+    1:
+        print(&quot;It&#39;s one!&quot;)
+    2:
+        print(&quot;It&#39;s one times two!&quot;)
+    _:
+        print(&quot;It&#39;s not 1 or 2. I don&#39;t care to be honest.&quot;)</code></pre></li>
+<li><p>Binding pattern A binding pattern introduces a new variable. Like the wildcard pattern, it matches everything - and also gives that value a name. It's especially useful in array and dictionary patterns:</p>
+<pre><code>match x:
+    1:
+        print(&quot;It&#39;s one!&quot;)
+    2:
+        print(&quot;It&#39;s one times two!&quot;)
+    var new_var:
+        print(&quot;It&#39;s not 1 or 2, it&#39;s &quot;, new_var)</code></pre></li>
+<li><p>Array pattern Matches an array. Every single element of the array pattern is a pattern itself, so you can nest them.</p>
+<p>The length of the array is tested first, it has to be the same size as the pattern, otherwise the pattern doesn't match.</p>
+<p><strong>Open-ended array</strong>: An array can be bigger than the pattern by making the last subpattern <code>..</code>.</p>
+<p>Every subpattern has to be comma-separated.</p>
+<pre><code>match x:
+    []:
+        print(&quot;Empty array&quot;)
+    [1, 3, &quot;test&quot;, null]:
+        print(&quot;Very specific array&quot;)
+    [var start, _, &quot;test&quot;]:
+        print(&quot;First element is &quot;, start, &quot;, and the last is \&quot;test\&quot;&quot;)
+    [42, ..]:
+        print(&quot;Open ended array&quot;)</code></pre></li>
+<li><p>Dictionary pattern Works in the same way as the array pattern. Every key has to be a constant pattern.</p>
+<p>The size of the dictionary is tested first, it has to be the same size as the pattern, otherwise the pattern doesn't match.</p>
+<p><strong>Open-ended dictionary</strong>: A dictionary can be bigger than the pattern by making the last subpattern <code>..</code>.</p>
+<p>Every subpattern has to be comma separated.</p>
+<p>If you don't specify a value, then only the existence of the key is checked.</p>
+<p>A value pattern is separated from the key pattern with a <code>:</code>.</p>
+<pre><code>match x:
+    {}:
+        print(&quot;Empty dict&quot;)
+    {&quot;name&quot;: &quot;Dennis&quot;}:
+        print(&quot;The name is Dennis&quot;)
+    {&quot;name&quot;: &quot;Dennis&quot;, &quot;age&quot;: var age}:
+        print(&quot;Dennis is &quot;, age, &quot; years old.&quot;)
+    {&quot;name&quot;, &quot;age&quot;}:
+        print(&quot;Has a name and an age, but it&#39;s not Dennis :(&quot;)
+    {&quot;key&quot;: &quot;godotisawesome&quot;, ..}:
+        print(&quot;I only checked for one entry and ignored the rest&quot;)</code></pre></li>
+<li><p>Multiple patterns You can also specify multiple patterns separated by a comma. These patterns aren't allowed to have any bindings in them.</p>
+<pre><code>match x:
+    1, 2, 3:
+        print(&quot;It&#39;s 1 - 3&quot;)
+    &quot;Sword&quot;, &quot;Splash potion&quot;, &quot;Fist&quot;:
+        print(&quot;Yep, you&#39;ve taken damage&quot;)</code></pre></li>
+</ul>
+<h3 id="classes">Classes</h3>
+<p>By default, all script files are unnamed classes. In this case, you can only reference them using the file's path, using either a relative or an absolute path. For example, if you name a script file <code>character.gd</code>:</p>
+<pre><code># Inherit from &#39;Character.gd&#39;.
+
+extends &quot;res://path/to/character.gd&quot;
+
+# Load character.gd and create a new node instance from it.
+
+var Character = load(&quot;res://path/to/character.gd&quot;)
+var character_node = Character.new()</code></pre>
+<h3 id="registering-named-classes">Registering named classes</h3>
+<p>You can give your class a name to register it as a new type in Godot's editor. For that, you use the <code>class_name</code> keyword. You can optionally add a comma followed by a path to an image, to use it as an icon. Your class will then appear with its new icon in the editor:</p>
+<pre><code># Item.gd
+
+extends Node
+class_name Item, &quot;res://interface/icons/item.png&quot;</code></pre>
+<blockquote>
+<p><strong>Warning:</strong> If the script is located in the <code>res://addons/</code> directory, <code>class_name</code> will only cause the node to show up in the <strong>Create New Node</strong> dialog if the script is part of an <em>enabled</em> editor plugin. See <code>doc_making_plugins</code> for more information.</p>
+</blockquote>
+<p>Here's a class file example:</p>
+<pre><code># Saved as a file named &#39;character.gd&#39;.
+
+class_name Character
+
+var health = 5
+
+func print_health():
+    print(health)
+
+func print_this_script_three_times():
+    print(get_script())
+    print(ResourceLoader.load(&quot;res://character.gd&quot;))
+    print(Character)</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Godot's class syntax is compact: it can only contain member variables or functions. You can use static functions, but not static member variables. In the same way, the engine initializes variables every time you create an instance, and this includes arrays and dictionaries. This is in the spirit of thread safety, since scripts can be initialized in separate threads without the user knowing.</p>
+</blockquote>
+<h4 id="inheritance">Inheritance</h4>
+<p>A class (stored as a file) can inherit from:</p>
+<ul>
+<li>A global class.</li>
+<li>Another class file.</li>
+<li>An inner class inside another class file.</li>
+</ul>
+<p>Multiple inheritance is not allowed.</p>
+<p>Inheritance uses the <code>extends</code> keyword:</p>
+<pre><code># Inherit/extend a globally available class.
+extends SomeClass
+
+# Inherit/extend a named class file.
+extends &quot;somefile.gd&quot;
+
+# Inherit/extend an inner class in another file.
+extends &quot;somefile.gd&quot;.SomeInnerClass</code></pre>
+<p>To check if a given instance inherits from a given class, the <code>is</code> keyword can be used:</p>
+<pre><code># Cache the enemy class.
+const Enemy = preload(&quot;enemy.gd&quot;)
+
+# [...]
+
+# Use &#39;is&#39; to check inheritance.
+if entity is Enemy:
+    entity.apply_damage()</code></pre>
+<p>To call a function in a <em>parent class</em> (i.e. one <code>extend</code>-ed in your current class), prepend <code>.</code> to the function name:</p>
+<pre><code>.base_func(args)</code></pre>
+<p>This is especially useful because functions in extending classes replace functions with the same name in their parent classes. If you still want to call them, you can prefix them with <code>.</code> (like the <code>super</code> keyword in other languages):</p>
+<pre><code>func some_func(x):
+    .some_func(x) # Calls the same function on the parent class.</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Default functions like <code>_init</code>, and most notifications such as <code>_enter_tree</code>, <code>_exit_tree</code>, <code>_process</code>, <code>_physics_process</code>, etc. are called in all parent classes automatically. There is no need to call them explicitly when overloading them.</p>
+</blockquote>
+<h4 id="class-constructor">Class constructor</h4>
+<p>The class constructor, called on class instantiation, is named <code>_init</code>. As mentioned earlier, the constructors of parent classes are called automatically when inheriting a class. So, there is usually no need to call <code>._init()</code> explicitly.</p>
+<p>Unlike the call of a regular function, like in the above example with <code>.some_func</code>, if the constructor from the inherited class takes arguments, they are passed like this:</p>
+<pre><code>func _init(args).(parent_args):
+   pass</code></pre>
+<p>This is better explained through examples. Consider this scenario:</p>
+<pre><code># State.gd (inherited class)
+var entity = null
+var message = null
+
+func _init(e=null):
+    entity = e
+
+func enter(m):
+    message = m
+
+# Idle.gd (inheriting class)
+extends &quot;State.gd&quot;
+
+func _init(e=null, m=null).(e):
+    # Do something with &#39;e&#39;.
+    message = m</code></pre>
+<p>There are a few things to keep in mind here:</p>
+<ol type="1">
+<li><p>If the inherited class (<code>State.gd</code>) defines a <code>_init</code> constructor that takes arguments (<code>e</code> in this case), then the inheriting class (<code>Idle.gd</code>) <em>must</em> define <code>_init</code> as well and pass appropriate parameters to <code>_init</code> from <code>State.gd</code>.</p></li>
+<li><p><code>Idle.gd</code> can have a different number of arguments than the parent class <code>State.gd</code>.</p></li>
+<li><p>In the example above, <code>e</code> passed to the <code>State.gd</code> constructor is the same <code>e</code> passed in to <code>Idle.gd</code>.</p></li>
+<li><p>If <code>Idle.gd</code>'s <code>_init</code> constructor takes 0 arguments, it still needs to pass some value to the <code>State.gd</code> parent class, even if it does nothing. This brings us to the fact that you can pass literals in the base constructor as well, not just variables, e.g.:</p>
+<pre><code># Idle.gd
+
+func _init().(5):
+    pass</code></pre></li>
+</ol>
+<h4 id="inner-classes">Inner classes</h4>
+<p>A class file can contain inner classes. Inner classes are defined using the <code>class</code> keyword. They are instanced using the <code>ClassName.new()</code> function.</p>
+<pre><code># Inside a class file.
+
+# An inner class in this class file.
+class SomeInnerClass:
+    var a = 5
+
+    func print_value_of_a():
+        print(a)
+
+# This is the constructor of the class file&#39;s main class.
+func _init():
+    var c = SomeInnerClass.new()
+    c.print_value_of_a()</code></pre>
+<h4 id="classes-as-resources">Classes as resources</h4>
+<p>Classes stored as files are treated as ref. They must be loaded from disk to access them in other classes. This is done using either the <code>load</code> or <code>preload</code> functions (see below). Instancing of a loaded class resource is done by calling the <code>new</code> function on the class object:</p>
+<pre><code># Load the class resource when calling load().
+var MyClass = load(&quot;myclass.gd&quot;)
+
+# Preload the class only once at compile time.
+const MyClass = preload(&quot;myclass.gd&quot;)
+
+func _init():
+    var a = MyClass.new()
+    a.some_function()</code></pre>
+<h3 id="exports">Exports</h3>
+<blockquote>
+<p><strong>Note:</strong> Documentation about exports has been moved to <code>doc_gdscript_exports</code>.</p>
+</blockquote>
+<h3 id="settersgetters">Setters/getters</h3>
+<p>It is often useful to know when a class' member variable changes for whatever reason. It may also be desired to encapsulate its access in some way.</p>
+<p>For this, GDScript provides a <em>setter/getter</em> syntax using the <code>setget</code> keyword. It is used directly after a variable definition:</p>
+<pre><code>var variable = value setget setterfunc, getterfunc</code></pre>
+<p>Whenever the value of <code>variable</code> is modified by an <em>external</em> source (i.e. not from local usage in the class), the <em>setter</em> function (<code>setterfunc</code> above) will be called. This happens <em>before</em> the value is changed. The <em>setter</em> must decide what to do with the new value. Vice versa, when <code>variable</code> is accessed, the <em>getter</em> function (<code>getterfunc</code> above) must <code>return</code> the desired value. Below is an example:</p>
+<pre><code>var my_var setget my_var_set, my_var_get
+
+func my_var_set(new_value):
+    my_var = new_value
+
+func my_var_get():
+    return my_var # Getter must return a value.</code></pre>
+<p>Either of the <em>setter</em> or <em>getter</em> functions can be omitted:</p>
+<pre><code># Only a setter.
+var my_var = 5 setget my_var_set
+# Only a getter (note the comma).
+var my_var = 5 setget ,my_var_get</code></pre>
+<p>Setters and getters are useful when ref to the editor in tool scripts or plugins, for validating input.</p>
+<p>As said, <em>local</em> access will <em>not</em> trigger the setter and getter. Here is an illustration of this:</p>
+<pre><code>func _init():
+    # Does not trigger setter/getter.
+    my_integer = 5
+    print(my_integer)
+
+    # Does trigger setter/getter.
+    self.my_integer = 5
+    print(self.my_integer)</code></pre>
+<h3 id="tool-mode">Tool mode</h3>
+<p>By default, scripts don't run inside the editor and only the exported properties can be changed. In some cases, it is desired that they do run inside the editor (as long as they don't execute game code or manually avoid doing so). For this, the <code>tool</code> keyword exists and must be placed at the top of the file:</p>
+<pre><code>tool
+extends Button
+
+func _ready():
+    print(&quot;Hello&quot;)</code></pre>
+<p>See <code>doc_running_code_in_the_editor</code> for more information.</p>
+<blockquote>
+<p><strong>Warning:</strong> Be cautious when freeing nodes with <code>queue_free()</code> or <code>free()</code> in a tool script (especially the script's owner itself). As tool scripts run their code in the editor, misusing them may lead to crashing the editor.</p>
+</blockquote>
+<h3 id="memory-management">Memory management</h3>
+<p>If a class inherits from <code>class_Reference</code>, then instances will be freed when no longer in use. No garbage collector exists, just reference counting. By default, all classes that don't define inheritance extend <strong>Reference</strong>. If this is not desired, then a class must inherit <code>class_Object</code> manually and must call <code>instance.free()</code>. To avoid reference cycles that can't be freed, a <code>class_WeakRef</code> function is provided for creating weak references. Here is an example:</p>
+<pre><code>extends Node
+
+var my_node_ref
+
+func _ready():
+    my_node_ref = weakref(get_node(&quot;MyNode&quot;))
+
+func _this_is_called_later():
+    var my_node = my_node_ref.get_ref()
+    if my_node:
+        my_node.do_something()</code></pre>
+<p>Alternatively, when not using references, the <code>is_instance_valid(instance)</code> can be used to check if an object has been freed.</p>
+<h3 id="signals">Signals</h3>
+<p>Signals are a tool to emit messages from an object that other objects can react to. To create custom signals for a class, use the <code>signal</code> keyword.</p>
+<pre><code>extends Node
+
+# A signal named health_depleted.
+signal health_depleted</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Signals are a <a href="https://en.wikipedia.org/wiki/Callback_(computer_programming)">Callback</a> mechanism. They also fill the role of Observers, a common programming pattern. For more information, read the <a href="https://gameprogrammingpatterns.com/observer.html">Observer tutorial</a> in the Game Programming Patterns ebook.</p>
+</blockquote>
+<p>You can connect these signals to methods the same way you connect built-in signals of nodes like <code>class_Button</code> or <code>class_RigidBody</code>.</p>
+<p>In the example below, we connect the <code>health_depleted</code> signal from a <code>Character</code> node to a <code>Game</code> node. When the <code>Character</code> node emits the signal, the game node's <code>_on_Character_health_depleted</code> is called:</p>
+<pre><code># Game.gd
+
+func _ready():
+    var character_node = get_node(&#39;Character&#39;)
+    character_node.connect(&quot;health_depleted&quot;, self, &quot;_on_Character_health_depleted&quot;)
+
+func _on_Character_health_depleted():
+    get_tree().reload_current_scene()</code></pre>
+<p>You can emit as many arguments as you want along with a signal.</p>
+<p>Here is an example where this is useful. Let's say we want a life bar on screen to react to health changes with an animation, but we want to keep the user interface separate from the player in our scene tree.</p>
+<p>In our <code>Character.gd</code> script, we define a <code>health_changed</code> signal and emit it with ref, and from a <code>Game</code> node higher up our scene tree, we connect it to the <code>Lifebar</code> using the ref method:</p>
+<pre><code># Character.gd
+
+...
+signal health_changed
+
+func take_damage(amount):
+    var old_health = health
+    health -= amount
+
+    # We emit the health_changed signal every time the
+    # character takes damage.
+    emit_signal(&quot;health_changed&quot;, old_health, health)
+...
+
+# Lifebar.gd
+
+# Here, we define a function to use as a callback when the
+# character&#39;s health_changed signal is emitted.
+
+...
+func _on_Character_health_changed(old_value, new_value):
+    if old_value &gt; new_value:
+        progress_bar.modulate = Color.red
+    else:
+        progress_bar.modulate = Color.green
+
+    # Imagine that `animate` is a user-defined function that animates the
+    # bar filling up or emptying itself.
+    progress_bar.animate(old_value, new_value)
+...</code></pre>
+<blockquote>
+<p><strong>Note:</strong> To use signals, your class has to extend the <code>Object</code> class or any type extending it like <code>Node</code>, <code>KinematicBody</code>, <code>Control</code>...</p>
+</blockquote>
+<p>In the <code>Game</code> node, we get both the <code>Character</code> and <code>Lifebar</code> nodes, then connect the character, that emits the signal, to the receiver, the <code>Lifebar</code> node in this case.</p>
+<pre><code># Game.gd
+
+func _ready():
+    var character_node = get_node(&#39;Character&#39;)
+    var lifebar_node = get_node(&#39;UserInterface/Lifebar&#39;)
+
+    character_node.connect(&quot;health_changed&quot;, lifebar_node, &quot;_on_Character_health_changed&quot;)</code></pre>
+<p>This allows the <code>Lifebar</code> to react to health changes without coupling it to the <code>Character</code> node.</p>
+<p>You can write optional argument names in parentheses after the signal's definition:</p>
+<pre><code># Defining a signal that forwards two arguments.
+signal health_changed(old_value, new_value)</code></pre>
+<p>These arguments show up in the editor's node dock, and Godot can use them to generate callback functions for you. However, you can still emit any number of arguments when you emit signals; it's up to you to emit the correct values.</p>
+<p>GDScript can bind an array of values to connections between a signal and a method. When the signal is emitted, the callback method receives the bound values. These bound arguments are unique to each connection, and the values will stay the same.</p>
+<p>You can use this array of values to add extra constant information to the connection if the emitted signal itself doesn't give you access to all the data that you need.</p>
+<p>Building on the example above, let's say we want to display a log of the damage taken by each character on the screen, like <code>Player1 took 22 damage.</code>. The <code>health_changed</code> signal doesn't give us the name of the character that took damage. So when we connect the signal to the in-game console, we can add the character's name in the binds array argument:</p>
+<pre><code># Game.gd
+
+func _ready():
+    var character_node = get_node(&#39;Character&#39;)
+    var battle_log_node = get_node(&#39;UserInterface/BattleLog&#39;)
+
+    character_node.connect(&quot;health_changed&quot;, battle_log_node, &quot;_on_Character_health_changed&quot;, [character_node.name])</code></pre>
+<p>Our <code>BattleLog</code> node receives each element in the binds array as an extra argument:</p>
+<pre><code># BattleLog.gd
+
+func _on_Character_health_changed(old_value, new_value, character_name):
+    if not new_value &lt;= old_value:
+        return
+
+    var damage = old_value - new_value
+    label.text += character_name + &quot; took &quot; + str(damage) + &quot; damage.&quot;</code></pre>
+<h3 id="coroutines-with-yield">Coroutines with yield</h3>
+<p>GDScript offers support for <a href="https://en.wikipedia.org/wiki/Coroutine">coroutines</a> via the ref built-in function. Calling <code>yield()</code> will immediately return from the current function, with the current frozen state of the same function as the return value. Calling <code>resume()</code> on this resulting object will continue execution and return whatever the function returns. Once resumed, the state object becomes invalid. Here is an example:</p>
+<pre><code>func my_func():
+    print(&quot;Hello&quot;)
+    yield()
+    print(&quot;world&quot;)
+
+func _ready():
+    var y = my_func()
+    # Function state saved in &#39;y&#39;.
+    print(&quot;my dear&quot;)
+    y.resume()
+    # &#39;y&#39; resumed and is now an invalid state.</code></pre>
+<p>Will print:</p>
+<pre><code>Hello
+my dear
+world</code></pre>
+<p>It is also possible to pass values between <code>yield()</code> and <code>resume()</code>, for example:</p>
+<pre><code>func my_func():
+    print(&quot;Hello&quot;)
+    print(yield())
+    return &quot;cheers!&quot;
+
+func _ready():
+    var y = my_func()
+    # Function state saved in &#39;y&#39;.
+    print(y.resume(&quot;world&quot;))
+    # &#39;y&#39; resumed and is now an invalid state.</code></pre>
+<p>Will print:</p>
+<pre><code>Hello
+world
+cheers!</code></pre>
+<p>Remember to save the new function state, when using multiple <code>yield</code>s:</p>
+<pre><code>func co_func():
+    for i in range(1, 5):
+        print(&quot;Turn %d&quot; % i)
+        yield();
+
+func _ready():
+    var co = co_func();
+    while co is GDScriptFunctionState &amp;&amp; co.is_valid():
+        co = co.resume();</code></pre>
+<h4 id="coroutines--signals">Coroutines &amp; signals</h4>
+<p>The real strength of using <code>yield</code> is when combined with signals. <code>yield</code> can accept two arguments, an object and a signal. When the signal is received, execution will recommence. Here are some examples:</p>
+<pre><code># Resume execution the next frame.
+yield(get_tree(), &quot;idle_frame&quot;)
+
+# Resume execution when animation is done playing.
+yield(get_node(&quot;AnimationPlayer&quot;), &quot;animation_finished&quot;)
+
+# Wait 5 seconds, then resume execution.
+yield(get_tree().create_timer(5.0), &quot;timeout&quot;)</code></pre>
+<p>Coroutines themselves use the <code>completed</code> signal when they transition into an invalid state, for example:</p>
+<pre><code>func my_func():
+    yield(button_func(), &quot;completed&quot;)
+    print(&quot;All buttons were pressed, hurray!&quot;)
+
+func button_func():
+    yield($Button0, &quot;pressed&quot;)
+    yield($Button1, &quot;pressed&quot;)</code></pre>
+<p><code>my_func</code> will only continue execution once both buttons have been pressed.</p>
+<p>You can also get the signal's argument once it's emitted by an object:</p>
+<pre><code># Wait for when any node is added to the scene tree.
+var node = yield(get_tree(), &quot;node_added&quot;)</code></pre>
+<p>If there is more than one argument, <code>yield</code> returns an array containing the arguments:</p>
+<pre><code>signal done(input, processed)
+
+func process_input(input):
+    print(&quot;Processing initialized&quot;)
+    yield(get_tree(), &quot;idle_frame&quot;)
+    print(&quot;Waiting&quot;)
+    yield(get_tree(), &quot;idle_frame&quot;)
+    emit_signal(&quot;done&quot;, input, &quot;Processed &quot; + input)
+
+func _ready():
+    process_input(&quot;Test&quot;) # Prints: Processing initialized
+    var data = yield(self, &quot;done&quot;) # Prints: waiting
+    print(data[1]) # Prints: Processed Test</code></pre>
+<p>If you're unsure whether a function may yield or not, or whether it may yield multiple times, you can yield to the <code>completed</code> signal conditionally:</p>
+<pre><code>func generate():
+    var result = rand_range(-1.0, 1.0)
+
+    if result &lt; 0.0:
+        yield(get_tree(), &quot;idle_frame&quot;)
+
+    return result
+
+func make():
+    var result = generate()
+
+    if result is GDScriptFunctionState: # Still working.
+        result = yield(result, &quot;completed&quot;)
+
+    return result</code></pre>
+<p>This ensures that the function returns whatever it was supposed to return regardless of whether coroutines were used internally. Note that using <code>while</code> would be redundant here as the <code>completed</code> signal is only emitted when the function didn't yield anymore.</p>
+<h3 id="onready-keyword">onready keyword</h3>
+<p>When using nodes, it's common to desire to keep references to parts of the scene in a variable. As scenes are only warranted to be configured when entering the active scene tree, the sub-nodes can only be obtained when a call to <code>Node._ready()</code> is made.</p>
+<pre><code>var my_label
+
+func _ready():
+    my_label = get_node(&quot;MyLabel&quot;)</code></pre>
+<p>This can get a little cumbersome, especially when nodes and external references pile up. For this, GDScript has the <code>onready</code> keyword, that defers initialization of a member variable until <code>_ready()</code> is called. It can replace the above code with a single line:</p>
+<pre><code>onready var my_label = get_node(&quot;MyLabel&quot;)</code></pre>
+<h3 id="assert-keyword">Assert keyword</h3>
+<p>The <code>assert</code> keyword can be used to check conditions in debug builds. These assertions are ignored in non-debug builds. This means that the expression passed as argument won't be evaluated in a project exported in release mode. Due to this, assertions must <strong>not</strong> contain expressions that have side effects. Otherwise, the behavior of the script would vary depending on whether the project is run in a debug build.</p>
+<pre><code># Check that &#39;i&#39; is 0. If &#39;i&#39; is not 0, an assertion error will occur.
+assert(i == 0)</code></pre>
+<p>When running a project from the editor, the project will be paused if an assertion error occurs.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDScript style guide — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="gdscript-style-guide">GDScript style guide</h1>
+<p>This style guide lists conventions to write elegant GDScript. The goal is to encourage writing clean, readable code and promote consistency across projects, discussions, and tutorials. Hopefully, this will also support the development of auto-formatting tools.</p>
+<p>Since GDScript is close to Python, this guide is inspired by Python's <a href="https://www.python.org/dev/peps/pep-0008/">PEP 8</a> programming style guide.</p>
+<p>Style guides aren't meant as hard rulebooks. At times, you may not be able to apply some of the guidelines below. When that happens, use your best judgment, and ask fellow developers for insights.</p>
+<p>In general, keeping your code consistent in your projects and within your team is more important than following this guide to a tee.</p>
+<blockquote>
+<p><strong>Note:</strong> Godot's built-in script editor uses a lot of these conventions by default. Let it help you.</p>
+</blockquote>
+<p>Here is a complete class example based on these guidelines:</p>
+<pre><code>class_name StateMachine
+extends Node
+## Hierarchical State machine for the player.
+##
+## Initializes states and delegates engine callbacks ([method Node._physics_process],
+## [method Node._unhandled_input]) to the state.
+
+signal state_changed(previous, new)
+
+@export var initial_state: Node
+var is_active = true:
+    set = set_is_active
+
+@onready var _state = initial_state:
+    set = set_state
+@onready var _state_name = _state.name
+
+func _init():
+    add_to_group(&quot;state_machine&quot;)
+
+func _enter_tree():
+    print(&quot;this happens before the ready method!&quot;)
+
+func _ready():
+    state_changed.connect(_on_state_changed)
+    _state.enter()
+
+func _unhandled_input(event):
+    _state.unhandled_input(event)
+
+func _physics_process(delta):
+    _state.physics_process(delta)
+
+func transition_to(target_state_path, msg={}):
+    if not has_node(target_state_path):
+        return
+
+    var target_state = get_node(target_state_path)
+    assert(target_state.is_composite == false)
+
+    _state.exit()
+    self._state = target_state
+    _state.enter(msg)
+    Events.player_state_changed.emit(_state.name)
+
+func set_is_active(value):
+    is_active = value
+    set_physics_process(value)
+    set_process_unhandled_input(value)
+    set_block_signals(not value)
+
+func set_state(value):
+    _state = value
+    _state_name = _state.name
+
+func _on_state_changed(previous, new):
+    print(&quot;state changed&quot;)
+    state_changed.emit()
+
+class State:
+    var foo = 0
+
+    func _init():
+        print(&quot;Hello!&quot;)</code></pre>
+<h2 id="formatting">Formatting</h2>
+<h3 id="encoding-and-special-characters">Encoding and special characters</h3>
+<ul>
+<li>Use line feed (<strong>LF</strong>) characters to break lines, not CRLF or CR. <em>(editor default)</em></li>
+<li>Use one line feed character at the end of each file. <em>(editor default)</em></li>
+<li>Use <strong>UTF-8</strong> encoding without a <a href="https://en.wikipedia.org/wiki/Byte_order_mark">byte order mark</a>. <em>(editor default)</em></li>
+<li>Use <strong>Tabs</strong> instead of spaces for indentation. <em>(editor default)</em></li>
+</ul>
+<h3 id="indentation">Indentation</h3>
+<p>Each indent level should be one greater than the block containing it.</p>
+<p><strong>Good</strong>:</p>
+<pre><code>for i in range(10):
+    print(&quot;hello&quot;)</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>for i in range(10):
+  print(&quot;hello&quot;)
+
+for i in range(10):
+        print(&quot;hello&quot;)</code></pre>
+<p>Use 2 indent levels to distinguish continuation lines from regular code blocks.</p>
+<p><strong>Good</strong>:</p>
+<pre><code>effect.interpolate_property(sprite, &quot;transform/scale&quot;,
+        sprite.get_scale(), Vector2(2.0, 2.0), 0.3,
+        Tween.TRANS_QUAD, Tween.EASE_OUT)</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>effect.interpolate_property(sprite, &quot;transform/scale&quot;,
+    sprite.get_scale(), Vector2(2.0, 2.0), 0.3,
+    Tween.TRANS_QUAD, Tween.EASE_OUT)</code></pre>
+<p>Exceptions to this rule are arrays, dictionaries, and enums. Use a single indentation level to distinguish continuation lines:</p>
+<p><strong>Good</strong>:</p>
+<pre><code>var party = [
+    &quot;Godot&quot;,
+    &quot;Godette&quot;,
+    &quot;Steve&quot;,
+]
+
+var character_dict = {
+    &quot;Name&quot;: &quot;Bob&quot;,
+    &quot;Age&quot;: 27,
+    &quot;Job&quot;: &quot;Mechanic&quot;,
+}
+
+enum Tile {
+    BRICK,
+    FLOOR,
+    SPIKE,
+    TELEPORT,
+}</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>var party = [
+        &quot;Godot&quot;,
+        &quot;Godette&quot;,
+        &quot;Steve&quot;,
+]
+
+var character_dict = {
+        &quot;Name&quot;: &quot;Bob&quot;,
+        &quot;Age&quot;: 27,
+        &quot;Job&quot;: &quot;Mechanic&quot;,
+}
+
+enum Tile {
+        BRICK,
+        FLOOR,
+        SPIKE,
+        TELEPORT,
+}</code></pre>
+<h3 id="trailing-comma">Trailing comma</h3>
+<p>Use a trailing comma on the last line in arrays, dictionaries, and enums. This results in easier refactoring and better diffs in version control as the last line doesn't need to be modified when adding new elements.</p>
+<p><strong>Good</strong>:</p>
+<pre><code>var array = [
+    1,
+    2,
+    3,
+]</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>var array = [
+    1,
+    2,
+    3
+]</code></pre>
+<p>Trailing commas are unnecessary in single-line lists, so don't add them in this case.</p>
+<p><strong>Good</strong>:</p>
+<pre><code>var array = [1, 2, 3]</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>var array = [1, 2, 3,]</code></pre>
+<h3 id="blank-lines">Blank lines</h3>
+<p>Surround functions and class definitions with two blank lines:</p>
+<pre><code>func heal(amount):
+    health += amount
+    health = min(health, max_health)
+    health_changed.emit(health)
+
+func take_damage(amount, effect=null):
+    health -= amount
+    health = max(0, health)
+    health_changed.emit(health)</code></pre>
+<p>Use one blank line inside functions to separate logical sections.</p>
+<blockquote>
+<p><strong>Note:</strong> We use a single line between classes and function definitions in the class reference and in short code snippets in this documentation.</p>
+</blockquote>
+<h3 id="line-length">Line length</h3>
+<p>Keep individual lines of code under 100 characters.</p>
+<p>If you can, try to keep lines under 80 characters. This helps to read the code on small displays and with two scripts opened side-by-side in an external text editor. For example, when looking at a differential revision.</p>
+<h3 id="one-statement-per-line">One statement per line</h3>
+<p>Avoid combining multiple statements on a single line, including conditional statements, to adhere to the GDScript style guidelines for readability.</p>
+<p><strong>Good</strong>:</p>
+<pre><code>if position.x &gt; width:
+    position.x = 0
+
+if flag:
+    print(&quot;flagged&quot;)</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>if position.x &gt; width: position.x = 0
+
+if flag: print(&quot;flagged&quot;)</code></pre>
+<p>The only exception to that rule is the ternary operator:</p>
+<pre><code>next_state = &quot;idle&quot; if is_on_floor() else &quot;fall&quot;</code></pre>
+<h3 id="format-multiline-statements-for-readability">Format multiline statements for readability</h3>
+<p>When you have particularly long <code>if</code> statements or nested ternary expressions, wrapping them over multiple lines improves readability. Since continuation lines are still part of the same expression, 2 indent levels should be used instead of one.</p>
+<p>GDScript allows wrapping statements using multiple lines using parentheses or backslashes. Parentheses are favored in this style guide since they make for easier refactoring. With backslashes, you have to ensure that the last line never contains a backslash at the end. With parentheses, you don't have to worry about the last line having a backslash at the end.</p>
+<p>When wrapping a conditional expression over multiple lines, the <code>and</code>/<code>or</code> keywords should be placed at the beginning of the line continuation, not at the end of the previous line.</p>
+<p><strong>Good</strong>:</p>
+<pre><code>var angle_degrees = 135
+var quadrant = (
+        &quot;northeast&quot; if angle_degrees &lt;= 90
+        else &quot;southeast&quot; if angle_degrees &lt;= 180
+        else &quot;southwest&quot; if angle_degrees &lt;= 270
+        else &quot;northwest&quot;
+)
+
+var position = Vector2(250, 350)
+if (
+        position.x &gt; 200 and position.x &lt; 400
+        and position.y &gt; 300 and position.y &lt; 400
+):
+    pass</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>var angle_degrees = 135
+var quadrant = &quot;northeast&quot; if angle_degrees &lt;= 90 else &quot;southeast&quot; if angle_degrees &lt;= 180 else &quot;southwest&quot; if angle_degrees &lt;= 270 else &quot;northwest&quot;
+
+var position = Vector2(250, 350)
+if position.x &gt; 200 and position.x &lt; 400 and position.y &gt; 300 and position.y &lt; 400:
+    pass</code></pre>
+<h3 id="avoid-unnecessary-parentheses">Avoid unnecessary parentheses</h3>
+<p>Avoid parentheses in expressions and conditional statements. Unless necessary for order of operations or wrapping over multiple lines, they only reduce readability.</p>
+<p><strong>Good</strong>:</p>
+<pre><code>if is_colliding():
+    queue_free()</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>if (is_colliding()):
+    queue_free()</code></pre>
+<h3 id="boolean-operators">Boolean operators</h3>
+<p>Prefer the plain English versions of boolean operators, as they are the most accessible:</p>
+<ul>
+<li>Use <code>and</code> instead of <code>&amp;&amp;</code>.</li>
+<li>Use <code>or</code> instead of <code>||</code>.</li>
+<li>Use <code>not</code> instead of <code>!</code>.</li>
+</ul>
+<p>You may also use parentheses around boolean operators to clear any ambiguity. This can make long expressions easier to read.</p>
+<p><strong>Good</strong>:</p>
+<pre><code>if (foo and bar) or not baz:
+    print(&quot;condition is true&quot;)</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>if foo &amp;&amp; bar || !baz:
+    print(&quot;condition is true&quot;)</code></pre>
+<h3 id="comment-spacing">Comment spacing</h3>
+<p>Regular comments (<code>#</code>) and documentation comments (<code>##</code>) should start with a space, but not code that you comment out. Additionally, code region comments (<code>#region</code>/<code>#endregion</code>) must follow that precise syntax, so they should not start with a space.</p>
+<p>Using a space for regular and documentation comments helps differentiate text comments from disabled code.</p>
+<p><strong>Good</strong>:</p>
+<pre><code># This is a comment.
+#print(&quot;This is disabled code&quot;)</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>#This is a comment.
+# print(&quot;This is disabled code&quot;)</code></pre>
+<blockquote>
+<p><strong>Note:</strong> In the script editor, to toggle commenting of the selected code, press <code>Ctrl + K</code>. This shortcut adds/removes a single <code>#</code> sign before any code on the selected lines.</p>
+</blockquote>
+<p>Prefer writing comments on their own line as opposed to inline comments (comments written on the same line as code). Inline comments are best used for short comments, typically a few words at most:</p>
+<p><strong>Good</strong>:</p>
+<pre><code># This is a long comment that would make the line below too long if written inline.
+print(&quot;Example&quot;) # Short comment.</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>print(&quot;Example&quot;) # This is a long comment that would make this line too long if written inline.</code></pre>
+<h3 id="whitespace">Whitespace</h3>
+<p>Always use one space around operators and after commas. Also, avoid extra spaces in dictionary references and function calls. One exception to this is for single-line dictionary declarations, where a space should be added after the opening brace and before the closing brace. This makes the dictionary easier to visually distinguish from an array, as the <code>[]</code> characters look close to <code>{}</code> with most fonts.</p>
+<p><strong>Good</strong>:</p>
+<pre><code>position.x = 5
+position.y = target_position.y + 10
+dict[&quot;key&quot;] = 5
+my_array = [4, 5, 6]
+my_dictionary = { key = &quot;value&quot; }
+print(&quot;foo&quot;)</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>position.x=5
+position.y = mpos.y+10
+dict [&quot;key&quot;] = 5
+myarray = [4,5,6]
+my_dictionary = {key = &quot;value&quot;}
+print (&quot;foo&quot;)</code></pre>
+<p>Don't use spaces to align expressions vertically:</p>
+<pre><code>x        = 100
+y        = 100
+velocity = 500</code></pre>
+<h3 id="quotes">Quotes</h3>
+<p>Use double quotes unless single quotes make it possible to escape fewer characters in a given string. See the examples below:</p>
+<pre><code># Normal string.
+print(&quot;hello world&quot;)
+
+# Use double quotes as usual to avoid escapes.
+print(&quot;hello &#39;world&#39;&quot;)
+
+# Use single quotes as an exception to the rule to avoid escapes.
+print(&#39;hello &quot;world&quot;&#39;)
+
+# Both quote styles would require 2 escapes; prefer double quotes if it&#39;s a tie.
+print(&quot;&#39;hello&#39; \&quot;world\&quot;&quot;)</code></pre>
+<h3 id="numbers">Numbers</h3>
+<p>Don't omit the leading or trailing zero in floating-point numbers. Otherwise, this makes them less readable and harder to distinguish from integers at a glance.</p>
+<p><strong>Good</strong>:</p>
+<pre><code>var float_number = 0.234
+var other_float_number = 13.0</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>var float_number = .234
+var other_float_number = 13.</code></pre>
+<p>Use lowercase for letters in hexadecimal numbers, as their lower height makes the number easier to read.</p>
+<p><strong>Good</strong>:</p>
+<pre><code>var hex_number = 0xfb8c0b</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>var hex_number = 0xFB8C0B</code></pre>
+<p>Take advantage of GDScript's underscores in literals to make large numbers more readable.</p>
+<p><strong>Good</strong>:</p>
+<pre><code>var large_number = 1_234_567_890
+var large_hex_number = 0xffff_f8f8_0000
+var large_bin_number = 0b1101_0010_1010
+# Numbers lower than 1000000 generally don&#39;t need separators.
+var small_number = 12345</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>var large_number = 1234567890
+var large_hex_number = 0xfffff8f80000
+var large_bin_number = 0b110100101010
+# Numbers lower than 1000000 generally don&#39;t need separators.
+var small_number = 12_345</code></pre>
+<h2 id="naming-conventions">Naming conventions</h2>
+<p>These naming conventions follow the Godot Engine style. Breaking these will make your code clash with the built-in naming conventions, leading to inconsistent code. As a summary table:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Type</th>
+<th>Convention</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>File names</td>
+<td>snake_case</td>
+<td><code>yaml_parser.gd</code></td>
+</tr>
+<tr class="even">
+<td>Class names</td>
+<td>PascalCase</td>
+<td><code>class_name YAMLParser</code></td>
+</tr>
+<tr class="odd">
+<td>Node names</td>
+<td>PascalCase</td>
+<td><code>Camera3D</code>, <code>Player</code></td>
+</tr>
+<tr class="even">
+<td>Functions</td>
+<td>snake_case</td>
+<td><code>func load_level():</code></td>
+</tr>
+<tr class="odd">
+<td>Variables</td>
+<td>snake_case</td>
+<td><code>var particle_effect</code></td>
+</tr>
+<tr class="even">
+<td>Signals</td>
+<td>snake_case</td>
+<td><code>signal door_opened</code></td>
+</tr>
+<tr class="odd">
+<td>Constants</td>
+<td>CONSTANT_CASE</td>
+<td><code>const MAX_SPEED = 200</code></td>
+</tr>
+<tr class="even">
+<td>Enum names</td>
+<td>PascalCase</td>
+<td><code>enum Element</code></td>
+</tr>
+<tr class="odd">
+<td>Enum members</td>
+<td>CONSTANT_CASE</td>
+<td><code>{EARTH, WATER, AIR, FIRE}</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="file-names">File names</h3>
+<p>Use snake_case for file names. For named classes, convert the PascalCase class name to snake_case:</p>
+<pre><code># This file should be saved as `weapon.gd`.
+class_name Weapon
+extends Node
+
+# This file should be saved as `yaml_parser.gd`.
+class_name YAMLParser
+extends Object</code></pre>
+<p>This is consistent with how C++ files are named in Godot's source code. This also avoids case sensitivity issues that can crop up when exporting a project from Windows to other platforms.</p>
+<h3 id="classes-and-nodes">Classes and nodes</h3>
+<p>Use PascalCase for class and node names:</p>
+<pre><code>extends CharacterBody3D</code></pre>
+<p>Also use PascalCase when loading a class into a constant or a variable:</p>
+<pre><code>const Weapon = preload(&quot;res://weapon.gd&quot;)</code></pre>
+<h3 id="functions-and-variables">Functions and variables</h3>
+<p>Use snake_case to name functions and variables:</p>
+<pre><code>var particle_effect
+func load_level():</code></pre>
+<p>Prepend a single underscore (_) to virtual methods functions the user must override, private functions, and private variables:</p>
+<pre><code>var _counter = 0
+func _recalculate_path():</code></pre>
+<h3 id="signals">Signals</h3>
+<p>Use the past tense to name signals:</p>
+<pre><code>signal door_opened
+signal score_changed</code></pre>
+<h3 id="constants-and-enums">Constants and enums</h3>
+<p>Write constants with CONSTANT_CASE, that is to say in all caps with an underscore (_) to separate words:</p>
+<pre><code>const MAX_SPEED = 200</code></pre>
+<p>Use PascalCase for enum <em>names</em> and keep them singular, as they represent a type. Use CONSTANT_CASE for their members, as they are constants:</p>
+<pre><code>enum Element {
+    EARTH,
+    WATER,
+    AIR,
+    FIRE,
+}</code></pre>
+<p>Write enums with each item on its own line. This allows adding documentation comments above each item more easily, and also makes for cleaner diffs in version control when items are added or removed.</p>
+<p><strong>Good</strong>:</p>
+<pre><code>enum Element {
+    EARTH,
+    WATER,
+    AIR,
+    FIRE,
+}</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code>enum Element { EARTH, WATER, AIR, FIRE }</code></pre>
+<h2 id="code-order">Code order</h2>
+<p>This section focuses on code order. For formatting, see <code>formatting</code>. For naming conventions, see <code>naming_conventions</code>.</p>
+<p>We suggest to organize GDScript code this way:</p>
+<pre><code>01. @tool, @icon, @static_unload
+02. class_name
+03. extends
+04. ## doc comment
+
+05. signals
+06. enums
+07. constants
+08. static variables
+09. @export variables
+10. remaining regular variables
+11. @onready variables
+
+12. _static_init()
+13. remaining static methods
+14. overridden built-in virtual methods:
+    1. _init()
+    2. _enter_tree()
+    3. _ready()
+    4. _process()
+    5. _physics_process()
+    6. remaining virtual methods
+15. overridden custom methods
+16. remaining methods
+17. inner classes</code></pre>
+<p>And put the class methods and variables in the following order depending on their access modifiers:</p>
+<pre><code>1. public
+2. private</code></pre>
+<p>We optimized the order to make it easy to read the code from top to bottom, to help developers reading the code for the first time understand how it works, and to avoid errors linked to the order of variable declarations.</p>
+<p>This code order follows four rules of thumb:</p>
+<ol type="1">
+<li>Properties and signals come first, followed by methods.</li>
+<li>Public comes before private.</li>
+<li>Virtual callbacks come before the class's interface.</li>
+<li>The object's construction and initialization functions, <code>_init</code> and <code>_ready</code>, come before functions that modify the object at runtime.</li>
+</ol>
+<h3 id="class-declaration">Class declaration</h3>
+<p>If the code is meant to run in the editor, place the <code>@tool</code> annotation on the first line of the script.</p>
+<p>Follow with the optional <code>@icon</code> then the <code>class_name</code> if necessary. You can turn a GDScript file into a global type in your project using <code>class_name</code>. For more information, see <code>doc_gdscript_basics_class_name</code>. If the class is meant to be an ref, add <code>@abstract</code> <em>before</em> the <code>class_name</code> keyword.</p>
+<p>Then, add the <code>extends</code> keyword if the class extends a built-in type.</p>
+<p>Following that, you should have the class's optional ref. You can use that to explain the role of your class to your teammates, how it works, and how other developers should use it, for example.</p>
+<pre><code>@abstract
+class_name MyNode
+extends Node
+## A brief description of the class&#39;s role and functionality.
+##
+## The description of the script, what it can do,
+## and any further detail.</code></pre>
+<p>For inner classes, use single-line declarations:</p>
+<pre><code>## A brief description of the class&#39;s role and functionality.
+##
+## The description of the script, what it can do,
+## and any further detail.
+@abstract class MyNode extends Node:
+    pass</code></pre>
+<h3 id="signals-and-properties">Signals and properties</h3>
+<p>Write signal declarations, followed by properties, that is to say, member variables, after the docstring.</p>
+<p>Enums should come after signals, as you can use them as export hints for other properties.</p>
+<p>Then, write constants, exported variables, public, private, and onready variables, in that order.</p>
+<pre><code>signal player_spawned(position)
+
+enum Job {
+    KNIGHT,
+    WIZARD,
+    ROGUE,
+    HEALER,
+    SHAMAN,
+}
+
+const MAX_LIVES = 3
+
+@export var job: Job = Job.KNIGHT
+@export var max_health = 50
+@export var attack = 5
+
+var health = max_health:
+    set(new_health):
+        health = new_health
+
+var _speed = 300.0
+
+@onready var sword = get_node(&quot;Sword&quot;)
+@onready var gun = get_node(&quot;Gun&quot;)</code></pre>
+<blockquote>
+<p><strong>Note:</strong> GDScript evaluates <code>@onready</code> variables right before the <code>_ready</code> callback. You can use that to cache node dependencies, that is to say, to get child nodes in the scene that your class relies on. This is what the example above shows.</p>
+</blockquote>
+<h3 id="member-variables">Member variables</h3>
+<p>Don't declare member variables if they are only used locally in a method, as it makes the code more difficult to follow. Instead, declare them as local variables in the method's body.</p>
+<h3 id="local-variables">Local variables</h3>
+<p>Declare local variables as close as possible to their first use. This makes it easier to follow the code, without having to scroll too much to find where the variable was declared.</p>
+<h3 id="methods-and-static-functions">Methods and static functions</h3>
+<p>After the class's properties come the methods.</p>
+<p>Start with the <code>_init()</code> callback method, that the engine will call upon creating the object in memory. Follow with the <code>_ready()</code> callback, that Godot calls when it adds a node to the scene tree.</p>
+<p>These functions should come first because they show how the object is initialized.</p>
+<p>Other built-in virtual callbacks, like <code>_unhandled_input()</code> and <code>_physics_process</code>, should come next. These control the object's main loop and interactions with the game engine.</p>
+<p>The rest of the class's interface, public and private methods, come after that, in that order.</p>
+<pre><code>func _init():
+    add_to_group(&quot;state_machine&quot;)
+
+func _ready():
+    state_changed.connect(_on_state_changed)
+    _state.enter()
+
+func _unhandled_input(event):
+    _state.unhandled_input(event)
+
+func transition_to(target_state_path, msg={}):
+    if not has_node(target_state_path):
+        return
+
+    var target_state = get_node(target_state_path)
+    assert(target_state.is_composite == false)
+
+    _state.exit()
+    self._state = target_state
+    _state.enter(msg)
+    Events.player_state_changed.emit(_state.name)
+
+func _on_state_changed(previous, new):
+    print(&quot;state changed&quot;)
+    state_changed.emit()</code></pre>
+<h2 id="static-typing">Static typing</h2>
+<p>GDScript supports ref.</p>
+<h3 id="declared-types">Declared types</h3>
+<p>To declare a variable's type, use <code>&lt;variable&gt;: &lt;type&gt;</code>:</p>
+<pre><code>var health: int = 0</code></pre>
+<p>To declare the return type of a function, use <code>-&gt; &lt;type&gt;</code>:</p>
+<pre><code>func heal(amount: int) -&gt; void:</code></pre>
+<h3 id="inferred-types">Inferred types</h3>
+<p>In most cases, you can let the compiler infer the type using <code>:=</code>. Prefer <code>:=</code> when the type is written on the same line as the assignment, otherwise prefer writing the type explicitly.</p>
+<p><strong>Good</strong>:</p>
+<pre><code># The type can be int or float, and thus should be stated explicitly.
+var health: int = 0
+
+# The type is clearly inferred as Vector3.
+var direction := Vector3(1, 2, 3)</code></pre>
+<p>Include the type hint when the type is ambiguous, and omit the type hint when it's redundant.</p>
+<p><strong>Bad</strong>:</p>
+<pre><code># Typed as int, but it could be that float was intended.
+var health := 0
+
+# The type hint has redundant information.
+var direction: Vector3 = Vector3(1, 2, 3)
+
+# What type is this? It&#39;s not immediately clear to the reader, so it&#39;s bad.
+var value := complex_function()</code></pre>
+<p>In some cases, the type must be stated explicitly, otherwise the behavior will not be as expected because the compiler will only be able to use the function's return type. For example, <code>get_node()</code> cannot infer a type unless the scene or file of the node is loaded in memory. In this case, you should set the type explicitly.</p>
+<p><strong>Good</strong>:</p>
+<pre><code>@onready var health_bar: ProgressBar = get_node(&quot;UI/LifeBar&quot;)</code></pre>
+<p><strong>Bad</strong>:</p>
+<pre><code># The compiler can&#39;t infer the exact type and will use Node
+# instead of ProgressBar.
+@onready var health_bar := get_node(&quot;UI/LifeBar&quot;)</code></pre>
+<p>Alternatively, you can use the <code>as</code> keyword to cast the return type, and that type will be used to infer the type of the var.</p>
+<pre><code>@onready var health_bar := get_node(&quot;UI/LifeBar&quot;) as ProgressBar
+# health_bar will be typed as ProgressBar</code></pre>
+<blockquote>
+<p><strong>Note:</strong> This option is considered more ref than type hints, but also less null-safe as it silently casts the variable to <code>null</code> in case of a type mismatch at runtime, without an error/warning.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

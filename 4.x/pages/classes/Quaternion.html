@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quaternion — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="quaternion">Quaternion</h1>
+<p>A unit quaternion used for representing 3D rotations.</p>
+<h2 id="description">Description</h2>
+<p>The <strong>Quaternion</strong> built-in <a href="Variant.html">Variant</a> type is a 4D data structure that represents rotation in the form of a <a href="https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation">Hamilton convention quaternion</a>. Compared to the <a href="Basis.html">Basis</a> type which can store both rotation and scale, quaternions can <em>only</em> store rotation.</p>
+<p>A <strong>Quaternion</strong> is composed by 4 floating-point components: <code>w</code>, <code>x</code>, <code>y</code>, and <code>z</code>. These components are very compact in memory, and because of this some operations are more efficient and less likely to cause floating-point errors. Methods such as <code>get_angle()</code>, <code>get_axis()</code>, and <code>slerp()</code> are faster than their <a href="Basis.html">Basis</a> counterparts.</p>
+<p>For a great introduction to quaternions, see <a href="https://www.youtube.com/watch?v=d4EgbgTm0Bg">this video by 3Blue1Brown</a>. You do not need to know the math behind quaternions, as Godot provides several helper methods that handle it for you. These include <code>slerp()</code> and <code>spherical_cubic_interpolate()</code>, as well as the <code>*</code> operator.</p>
+<p><strong>Note:</strong> Quaternions must be normalized before being used for rotation (see <code>normalized()</code>).</p>
+<p><strong>Note:</strong> Similarly to <a href="Vector2.html">Vector2</a> and <a href="Vector3.html">Vector3</a>, the components of a quaternion use 32-bit precision by default, unlike <a href="float.html">float</a> which is always 64-bit. If double precision is needed, compile the engine with the option <code>precision=double</code>.</p>
+<p><strong>Note:</strong> In a boolean context, a quaternion will evaluate to <code>false</code> if it's equal to <code>IDENTITY</code>. Otherwise, a quaternion will always evaluate to <code>true</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> There are notable differences when using this API with C#. See <code>c_sharp_differences</code> for more information.</p>
+</blockquote>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="https://www.youtube.com/watch?v=d4EgbgTm0Bg">3Blue1Brown's video on Quaternions</a></li>
+<li><a href="https://quaternions.online/">Online Quaternion Visualization</a></li>
+<li><code>Using 3D transforms &lt;../tutorials/3d/using_transforms.html#interpolating-with-quaternions&gt;</code>__</li>
+<li><a href="https://godotengine.org/asset-library/asset/2710">Third Person Shooter (TPS) Demo</a></li>
+<li><a href="https://iwatake2222.github.io/rotation_master/rotation_master.html">Advanced Quaternion Visualization</a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="float-w--10"><code>float w = 1.0</code></h3>
+<p>W component of the quaternion. This is the "real" part.</p>
+<p><strong>Note:</strong> Quaternion components should usually not be manipulated directly.</p>
+<h3 id="float-x--00"><code>float x = 0.0</code></h3>
+<p>X component of the quaternion. This is the value along the "imaginary" <code>i</code> axis.</p>
+<p><strong>Note:</strong> Quaternion components should usually not be manipulated directly.</p>
+<h3 id="float-y--00"><code>float y = 0.0</code></h3>
+<p>Y component of the quaternion. This is the value along the "imaginary" <code>j</code> axis.</p>
+<p><strong>Note:</strong> Quaternion components should usually not be manipulated directly.</p>
+<h3 id="float-z--00"><code>float z = 0.0</code></h3>
+<p>Z component of the quaternion. This is the value along the "imaginary" <code>k</code> axis.</p>
+<p><strong>Note:</strong> Quaternion components should usually not be manipulated directly.</p>
+<h2 id="constructors">Constructors</h2>
+<h3 id="quaternion-quaternion"><code>Quaternion Quaternion()</code></h3>
+<p>Constructs a <strong>Quaternion</strong> identical to <code>IDENTITY</code>.</p>
+<p><strong>Note:</strong> In C#, this constructs a <strong>Quaternion</strong> with all of its components set to <code>0.0</code>.</p>
+<h3 id="quaternion-quaternionfrom-quaternion"><code>Quaternion Quaternion(from: Quaternion)</code></h3>
+<p>Constructs a <strong>Quaternion</strong> as a copy of the given <strong>Quaternion</strong>.</p>
+<h3 id="quaternion-quaternionarc_from-vector3-arc_to-vector3"><code>Quaternion Quaternion(arc_from: Vector3, arc_to: Vector3)</code></h3>
+<p>Constructs a <strong>Quaternion</strong> representing the shortest arc between <code>arc_from</code> and <code>arc_to</code>. These can be imagined as two points intersecting a sphere's surface, with a radius of <code>1.0</code>.</p>
+<h3 id="quaternion-quaternionaxis-vector3-angle-float"><code>Quaternion Quaternion(axis: Vector3, angle: float)</code></h3>
+<p>Constructs a <strong>Quaternion</strong> representing rotation around the <code>axis</code> by the given <code>angle</code>, in radians. The axis must be a normalized vector.</p>
+<h3 id="quaternion-quaternionfrom-basis"><code>Quaternion Quaternion(from: Basis)</code></h3>
+<p>Constructs a <strong>Quaternion</strong> from the given rotation <a href="Basis.html">Basis</a>.</p>
+<p>This constructor is faster than <code>Basis.get_rotation_quaternion()</code>, but the given basis must be <em>orthonormalized</em> (see <code>Basis.orthonormalized()</code>). Otherwise, the constructor fails and returns <code>IDENTITY</code>.</p>
+<h3 id="quaternion-quaternionx-float-y-float-z-float-w-float"><code>Quaternion Quaternion(x: float, y: float, z: float, w: float)</code></h3>
+<p>Constructs a <strong>Quaternion</strong> defined by the given values.</p>
+<p><strong>Note:</strong> Only normalized quaternions represent rotation; if these values are not normalized, the new <strong>Quaternion</strong> will not be a valid rotation.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="float-angle_toto-quaternion-const"><code>float angle_to(to: Quaternion) const</code></h3>
+<p>Returns the angle between this quaternion and <code>to</code>. This is the magnitude of the angle you would need to rotate by to get from one to the other.</p>
+<p><strong>Note:</strong> The magnitude of the floating-point error for this method is abnormally high, so methods such as <code>is_zero_approx</code> will not work reliably.</p>
+<h3 id="float-dotwith-quaternion-const"><code>float dot(with: Quaternion) const</code></h3>
+<p>Returns the dot product between this quaternion and <code>with</code>.</p>
+<p>This is equivalent to <code>(quat.x * with.x) + (quat.y * with.y) + (quat.z * with.z) + (quat.w * with.w)</code>.</p>
+<h3 id="quaternion-exp-const"><code>Quaternion exp() const</code></h3>
+<p>Returns the exponential of this quaternion. The rotation axis of the result is the normalized rotation axis of this quaternion, the angle of the result is the length of the vector part of this quaternion.</p>
+<h3 id="quaternion-from_eulereuler-vector3-static"><code>Quaternion from_euler(euler: Vector3) static</code></h3>
+<p>Constructs a new <strong>Quaternion</strong> from the given <a href="Vector3.html">Vector3</a> of <a href="https://en.wikipedia.org/wiki/Euler_angles">Euler angles</a>, in radians. In Godot, Euler angles always use intrinsic order. This method always uses the intrinsic YXZ convention (<code>@GlobalScope.EULER_ORDER_YXZ</code>).</p>
+<h3 id="float-get_angle-const"><code>float get_angle() const</code></h3>
+<p>Returns the angle of the rotation represented by this quaternion.</p>
+<p><strong>Note:</strong> The quaternion must be normalized.</p>
+<h3 id="vector3-get_axis-const"><code>Vector3 get_axis() const</code></h3>
+<p>Returns the rotation axis of the rotation represented by this quaternion.</p>
+<h3 id="vector3-get_eulerorder-int--2-const"><code>Vector3 get_euler(order: int = 2) const</code></h3>
+<p>Returns this quaternion's rotation as a <a href="Vector3.html">Vector3</a> of <a href="https://en.wikipedia.org/wiki/Euler_angles">Euler angles</a>, in radians.</p>
+<p>The order of each consecutive rotation can be changed with <code>order</code> (see <code>@GlobalScope.EulerOrder</code> constants). In Godot, Euler angles always use intrinsic order. By default, the intrinsic YXZ convention is used (<code>@GlobalScope.EULER_ORDER_YXZ</code>): since we are decomposing, local Z (roll) is calculated first, then local X (pitch), and lastly local Y (yaw). When using the opposite method <code>from_euler()</code> to compose a rotation, this order is reversed.</p>
+<h3 id="quaternion-inverse-const"><code>Quaternion inverse() const</code></h3>
+<p>Returns the inverse version of this quaternion, inverting the sign of every component except <code>w</code>.</p>
+<h3 id="bool-is_equal_approxto-quaternion-const"><code>bool is_equal_approx(to: Quaternion) const</code></h3>
+<p>Returns <code>true</code> if this quaternion and <code>to</code> are approximately equal, by calling <code>@GlobalScope.is_equal_approx()</code> on each component.</p>
+<h3 id="bool-is_finite-const"><code>bool is_finite() const</code></h3>
+<p>Returns <code>true</code> if this quaternion is finite, by calling <code>@GlobalScope.is_finite()</code> on each component.</p>
+<h3 id="bool-is_normalized-const"><code>bool is_normalized() const</code></h3>
+<p>Returns <code>true</code> if this quaternion is normalized. See also <code>normalized()</code>.</p>
+<h3 id="float-length-const"><code>float length() const</code></h3>
+<p>Returns this quaternion's length, also called magnitude.</p>
+<h3 id="float-length_squared-const"><code>float length_squared() const</code></h3>
+<p>Returns this quaternion's length, squared.</p>
+<p><strong>Note:</strong> This method is faster than <code>length()</code>, so prefer it if you only need to compare quaternion lengths.</p>
+<h3 id="quaternion-log-const"><code>Quaternion log() const</code></h3>
+<p>Returns the logarithm of this quaternion. Multiplies this quaternion's rotation axis by its rotation angle, and stores the result in the returned quaternion's vector part (<code>x</code>, <code>y</code>, and <code>z</code>). The returned quaternion's real part (<code>w</code>) is always <code>0.0</code>.</p>
+<h3 id="quaternion-normalized-const"><code>Quaternion normalized() const</code></h3>
+<p>Returns a copy of this quaternion, normalized so that its length is <code>1.0</code>. See also <code>is_normalized()</code>.</p>
+<h3 id="quaternion-slerpto-quaternion-weight-float-const"><code>Quaternion slerp(to: Quaternion, weight: float) const</code></h3>
+<p>Performs a spherical-linear interpolation with the <code>to</code> quaternion, given a <code>weight</code> and returns the result. Both this quaternion and <code>to</code> must be normalized.</p>
+<h3 id="quaternion-slerpnito-quaternion-weight-float-const"><code>Quaternion slerpni(to: Quaternion, weight: float) const</code></h3>
+<p>Performs a spherical-linear interpolation with the <code>to</code> quaternion, given a <code>weight</code> and returns the result. Unlike <code>slerp()</code>, this method does not check if the rotation path is smaller than 90 degrees. Both this quaternion and <code>to</code> must be normalized.</p>
+<h3 id="quaternion-spherical_cubic_interpolateb-quaternion-pre_a-quaternion-post_b-quaternion-weight-float-const"><code>Quaternion spherical_cubic_interpolate(b: Quaternion, pre_a: Quaternion, post_b: Quaternion, weight: float) const</code></h3>
+<p>Performs a spherical cubic interpolation between quaternions <code>pre_a</code>, this vector, <code>b</code>, and <code>post_b</code>, by the given amount <code>weight</code>.</p>
+<h3 id="quaternion-spherical_cubic_interpolate_in_timeb-quaternion-pre_a-quaternion-post_b-quaternion-weight-float-b_t-float-pre_a_t-float-post_b_t-float-const"><code>Quaternion spherical_cubic_interpolate_in_time(b: Quaternion, pre_a: Quaternion, post_b: Quaternion, weight: float, b_t: float, pre_a_t: float, post_b_t: float) const</code></h3>
+<p>Performs a spherical cubic interpolation between quaternions <code>pre_a</code>, this vector, <code>b</code>, and <code>post_b</code>, by the given amount <code>weight</code>.</p>
+<p>It can perform smoother interpolation than <code>spherical_cubic_interpolate()</code> by the time values.</p>
+<h2 id="operators">Operators</h2>
+<h3 id="bool-operator-right-quaternion"><code>bool operator !=(right: Quaternion)</code></h3>
+<p>Returns <code>true</code> if the components of both quaternions are not exactly equal.</p>
+<p><strong>Note:</strong> Due to floating-point precision errors, consider using <code>is_equal_approx()</code> instead, which is more reliable.</p>
+<h3 id="quaternion-operator--right-quaternion-"><code>Quaternion operator(* ( right: Quaternion ))</code></h3>
+<p>Composes (multiplies) two quaternions. This rotates the <code>right</code> quaternion (the child) by this quaternion (the parent).</p>
+<h3 id="vector3-operator--right-vector3-"><code>Vector3 operator(* ( right: Vector3 ))</code></h3>
+<p>Rotates (multiplies) the <code>right</code> vector by this quaternion, returning a <a href="Vector3.html">Vector3</a>.</p>
+<h3 id="quaternion-operator--right-float-"><code>Quaternion operator(* ( right: float ))</code></h3>
+<p>Multiplies each component of the <strong>Quaternion</strong> by the right <a href="float.html">float</a> value.</p>
+<p>This operation is not meaningful on its own, but it can be used as a part of a larger expression.</p>
+<h3 id="quaternion-operator--right-int-"><code>Quaternion operator(* ( right: int ))</code></h3>
+<p>Multiplies each component of the <strong>Quaternion</strong> by the right <a href="int.html">int</a> value.</p>
+<p>This operation is not meaningful on its own, but it can be used as a part of a larger expression.</p>
+<h3 id="quaternion-operator-right-quaternion"><code>Quaternion operator +(right: Quaternion)</code></h3>
+<p>Adds each component of the left <strong>Quaternion</strong> to the right <strong>Quaternion</strong>.</p>
+<p>This operation is not meaningful on its own, but it can be used as a part of a larger expression, such as approximating an intermediate rotation between two nearby rotations.</p>
+<h3 id="quaternion-operator--right-quaternion"><code>Quaternion operator -(right: Quaternion)</code></h3>
+<p>Subtracts each component of the left <strong>Quaternion</strong> by the right <strong>Quaternion</strong>.</p>
+<p>This operation is not meaningful on its own, but it can be used as a part of a larger expression.</p>
+<h3 id="quaternion-operator-right-float"><code>Quaternion operator /(right: float)</code></h3>
+<p>Divides each component of the <strong>Quaternion</strong> by the right <a href="float.html">float</a> value.</p>
+<p>This operation is not meaningful on its own, but it can be used as a part of a larger expression.</p>
+<h3 id="quaternion-operator-right-int"><code>Quaternion operator /(right: int)</code></h3>
+<p>Divides each component of the <strong>Quaternion</strong> by the right <a href="int.html">int</a> value.</p>
+<p>This operation is not meaningful on its own, but it can be used as a part of a larger expression.</p>
+<h3 id="bool-operator-right-quaternion-1"><code>bool operator ==(right: Quaternion)</code></h3>
+<p>Returns <code>true</code> if the components of both quaternions are exactly equal.</p>
+<p><strong>Note:</strong> Due to floating-point precision errors, consider using <code>is_equal_approx()</code> instead, which is more reliable.</p>
+<h3 id="float-operator-index-int"><code>float operator [](index: int)</code></h3>
+<p>Accesses each component of this quaternion by their index.</p>
+<p>Index <code>0</code> is the same as <code>x</code>, index <code>1</code> is the same as <code>y</code>, index <code>2</code> is the same as <code>z</code>, and index <code>3</code> is the same as <code>w</code>.</p>
+<h3 id="quaternion-operator-unary"><code>Quaternion operator unary+()</code></h3>
+<p>Returns the same value as if the <code>+</code> was not there. Unary <code>+</code> does nothing, but sometimes it can make your code more readable.</p>
+<h3 id="quaternion-operator-unary-"><code>Quaternion operator unary-()</code></h3>
+<p>Returns the negative value of the <strong>Quaternion</strong>. This is the same as multiplying all components by <code>-1</code>. This operation results in a quaternion that represents the same rotation.</p>
+<h2 id="constants">Constants</h2>
+<h3 id="identity--quaternion0-0-0-1"><code>IDENTITY = Quaternion(0, 0, 0, 1)</code></h3>
+<p>The identity quaternion, representing no rotation. This has the same rotation as <code>Basis.IDENTITY</code>.</p>
+<p>If a <a href="Vector3.html">Vector3</a> is rotated (multiplied) by this quaternion, it does not change.</p>
+<p><strong>Note:</strong> In GDScript, this constant is equivalent to creating a <code>Quaternion</code> without any arguments. It can be used to make your code clearer, and for consistency with C#.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

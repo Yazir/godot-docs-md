@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using NavigationPaths — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-navigationpaths">Using NavigationPaths</h1>
+<h2 id="obtaining-a-navigationpath">Obtaining a NavigationPath</h2>
+<p>Navigation paths can be directly queried from the NavigationServer and do not require any additional nodes or objects as long as the navigation map has a navigation mesh to work with.</p>
+<p>To obtain a 2D path, use <code>NavigationServer2D.map_get_path(map, from, to, optimize, navigation_layers)</code>.</p>
+<p>To obtain a 3D path, use <code>NavigationServer3D.map_get_path(map, from, to, optimize, navigation_layers)</code>.</p>
+<p>For more customizable navigation path queries that require additional setup see <code>doc_navigation_using_navigationpathqueryobjects</code>.</p>
+<p>One of the required parameters for the query is the RID of the navigation map. Each game world has a default navigation map automatically created. The default navigation maps can be retrieved with <code>get_world_2d().get_navigation_map()</code> from any Node2D inheriting node or <code>get_world_3d().get_navigation_map()</code> from any Node3D inheriting node. The second and third parameters are the starting position and the target position as Vector2 for 2D or Vector3 for 3D.</p>
+<p>If the <code>optimized</code> parameter is <code>true</code>, path positions will be shortened along polygon corners with an additional funnel algorithm pass. This works well for free movement on navigation meshes with unequally sized polygons as the path will hug around corners along the polygon corridor found by the A* algorithm. With small cells the A* algorithm creates a very narrow funnel corridor that can create ugly corner paths when used with grids.</p>
+<p>If the <code>optimized</code> parameter is <code>false</code>, path positions will be placed at the center of each polygon edge. This works well for pure grid movement on navigation meshes with equally sized polygons as the path will go through the center of the grid cells. Outside of grids due to polygons often covering large open areas with a single, long edge this can create paths with unnecessary long detours.</p>
+<pre class="gdscript"><code>extends Node2D
+
+# Basic query for a navigation path using the default navigation map.
+
+func get_navigation_path(p_start_position: Vector2, p_target_position: Vector2) -&gt; PackedVector2Array:
+    if not is_inside_tree():
+        return PackedVector2Array()
+
+    var default_map_rid: RID = get_world_2d().get_navigation_map()
+    var path: PackedVector2Array = NavigationServer2D.map_get_path(
+        default_map_rid,
+        p_start_position,
+        p_target_position,
+        true
+    )
+    return path</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2D <span class="op">:</span> Node2D</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Basic query for a navigation path using the default navigation map.</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector2<span class="op">[]</span> <span class="fu">GetNavigationPath</span><span class="op">(</span>Vector2 startPosition<span class="op">,</span> Vector2 targetPosition<span class="op">)</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(!</span><span class="fu">IsInsideTree</span><span class="op">())</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span> Array<span class="op">.</span><span class="fu">Empty</span><span class="op">&lt;</span>Vector2<span class="op">&gt;();</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        Rid defaultMapRid <span class="op">=</span> <span class="fu">GetWorld2D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">;</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        Vector2<span class="op">[]</span> path <span class="op">=</span> NavigationServer2D<span class="op">.</span><span class="fu">MapGetPath</span><span class="op">(</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>            defaultMapRid<span class="op">,</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>            startPosition<span class="op">,</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>            targetPosition<span class="op">,</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>            <span class="kw">true</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> path<span class="op">;</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="gdscript"><code>extends Node3D
+
+# Basic query for a navigation path using the default navigation map.
+
+func get_navigation_path(p_start_position: Vector3, p_target_position: Vector3) -&gt; PackedVector3Array:
+    if not is_inside_tree():
+        return PackedVector3Array()
+
+    var default_map_rid: RID = get_world_3d().get_navigation_map()
+    var path: PackedVector3Array = NavigationServer3D.map_get_path(
+        default_map_rid,
+        p_start_position,
+        p_target_position,
+        true
+    )
+    return path</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode3D <span class="op">:</span> Node3D</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Basic query for a navigation path using the default navigation map.</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector3<span class="op">[]</span> <span class="fu">GetNavigationPath</span><span class="op">(</span>Vector3 startPosition<span class="op">,</span> Vector3 targetPosition<span class="op">)</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(!</span><span class="fu">IsInsideTree</span><span class="op">())</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span> Array<span class="op">.</span><span class="fu">Empty</span><span class="op">&lt;</span>Vector3<span class="op">&gt;();</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        Rid defaultMapRid <span class="op">=</span> <span class="fu">GetWorld3D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">;</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        Vector3<span class="op">[]</span> path <span class="op">=</span> NavigationServer3D<span class="op">.</span><span class="fu">MapGetPath</span><span class="op">(</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>            defaultMapRid<span class="op">,</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>            startPosition<span class="op">,</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>            targetPosition<span class="op">,</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>            <span class="kw">true</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> path<span class="op">;</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>A returned <code>path</code> by the NavigationServer will be a <code>PackedVector2Array</code> for 2D or a <code>PackedVector3Array</code> for 3D. These are just a memory-optimized <code>Array</code> of vector positions. All position vectors inside the array are guaranteed to be inside a NavigationPolygon or NavigationMesh. The path array, if not empty, has the navigation mesh position closest to the starting position at the first index <code>path[0]</code> position. The closest available navigation mesh position to the target position is the last index <code>path[path.size()-1]</code> position. All indexes between are the path points that an actor should follow to reach the target without leaving the navigation mesh.</p>
+<blockquote>
+<p><strong>Note:</strong> If the target position is on a different navigation mesh that is not merged or connected the navigation path will lead to the closest possible position on the starting position navigation mesh.</p>
+</blockquote>
+<p>The following script moves a Node3D inheriting node along a navigation path using the default navigation map by setting the target position with <code>set_movement_target()</code>.</p>
+<pre class="gdscript"><code>@onready var default_3d_map_rid: RID = get_world_3d().get_navigation_map()
+
+var movement_speed: float = 4.0
+var movement_delta: float
+var path_point_margin: float = 0.5
+
+var current_path_index: int = 0
+var current_path_point: Vector3
+var current_path: PackedVector3Array
+
+func set_movement_target(target_position: Vector3):
+
+    var start_position: Vector3 = global_transform.origin
+
+    current_path = NavigationServer3D.map_get_path(
+        default_3d_map_rid,
+        start_position,
+        target_position,
+        true
+    )
+
+    if not current_path.is_empty():
+        current_path_index = 0
+        current_path_point = current_path[0]
+
+func _physics_process(delta):
+
+    if current_path.is_empty():
+        return
+
+    movement_delta = movement_speed * delta
+
+    if global_transform.origin.distance_to(current_path_point) &lt;= path_point_margin:
+        current_path_index += 1
+        if current_path_index &gt;= current_path.size():
+            current_path = []
+            current_path_index = 0
+            current_path_point = global_transform.origin
+            return
+
+    current_path_point = current_path[current_path_index]
+
+    var new_velocity: Vector3 = global_transform.origin.direction_to(current_path_point) * movement_delta
+
+    global_transform.origin = global_transform.origin.move_toward(global_transform.origin + new_velocity, movement_delta)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode3D <span class="op">:</span> Node3D</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Rid _default3DMapRid<span class="op">;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> _movementSpeed <span class="op">=</span> <span class="fl">4.0f</span><span class="op">;</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> _movementDelta<span class="op">;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> _pathPointMargin <span class="op">=</span> <span class="fl">0.5f</span><span class="op">;</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">int</span> _currentPathIndex <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector3 _currentPathPoint<span class="op">;</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector3<span class="op">[]</span> _currentPath<span class="op">;</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>        _default3DMapRid <span class="op">=</span> <span class="fu">GetWorld3D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">;</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">SetMovementTarget</span><span class="op">(</span>Vector3 targetPosition<span class="op">)</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>        Vector3 startPosition <span class="op">=</span> GlobalTransform<span class="op">.</span><span class="fu">Origin</span><span class="op">;</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>        _currentPath <span class="op">=</span> NavigationServer3D<span class="op">.</span><span class="fu">MapGetPath</span><span class="op">(</span>_default3DMapRid<span class="op">,</span> startPosition<span class="op">,</span> targetPosition<span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(!</span>_currentPath<span class="op">.</span><span class="fu">IsEmpty</span><span class="op">())</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>            _currentPathIndex <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>            _currentPathPoint <span class="op">=</span> _currentPath<span class="op">[</span><span class="dv">0</span><span class="op">];</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_PhysicsProcess</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>_currentPath<span class="op">.</span><span class="fu">IsEmpty</span><span class="op">())</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span><span class="op">;</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>        _movementDelta <span class="op">=</span> _movementSpeed <span class="op">*</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>delta<span class="op">;</span></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>GlobalTransform<span class="op">.</span><span class="fu">Origin</span><span class="op">.</span><span class="fu">DistanceTo</span><span class="op">(</span>_currentPathPoint<span class="op">)</span> <span class="op">&lt;=</span> _pathPointMargin<span class="op">)</span></span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>            _currentPathIndex <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>_currentPathIndex <span class="op">&gt;=</span> _currentPath<span class="op">.</span><span class="fu">Length</span><span class="op">)</span></span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>                _currentPath <span class="op">=</span> Array<span class="op">.</span><span class="fu">Empty</span><span class="op">&lt;</span>Vector3<span class="op">&gt;();</span></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>                _currentPathIndex <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a>                _currentPathPoint <span class="op">=</span> GlobalTransform<span class="op">.</span><span class="fu">Origin</span><span class="op">;</span></span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>                <span class="kw">return</span><span class="op">;</span></span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a>        _currentPathPoint <span class="op">=</span> _currentPath<span class="op">[</span>_currentPathIndex<span class="op">];</span></span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a>        Vector3 newVelocity <span class="op">=</span> GlobalTransform<span class="op">.</span><span class="fu">Origin</span><span class="op">.</span><span class="fu">DirectionTo</span><span class="op">(</span>_currentPathPoint<span class="op">)</span> <span class="op">*</span> _movementDelta<span class="op">;</span></span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> globalTransform <span class="op">=</span> GlobalTransform<span class="op">;</span></span>
+<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a>        globalTransform<span class="op">.</span><span class="fu">Origin</span> <span class="op">=</span> globalTransform<span class="op">.</span><span class="fu">Origin</span><span class="op">.</span><span class="fu">MoveToward</span><span class="op">(</span>globalTransform<span class="op">.</span><span class="fu">Origin</span> <span class="op">+</span> newVelocity<span class="op">,</span> _movementDelta<span class="op">);</span></span>
+<span id="cb6-59"><a href="#cb6-59" aria-hidden="true" tabindex="-1"></a>        GlobalTransform <span class="op">=</span> globalTransform<span class="op">;</span></span>
+<span id="cb6-60"><a href="#cb6-60" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-61"><a href="#cb6-61" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

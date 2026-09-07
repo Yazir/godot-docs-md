@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Introduction to shaders — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="introduction-to-shaders">Introduction to shaders</h1>
+<p>This page explains what shaders are and will give you an overview of how they work in Godot. For a detailed reference of the engine's shading language, see <code>doc_shading_language</code>.</p>
+<p>Shaders are a special kind of program that runs on Graphics Processing Units (GPUs). They were initially used to shade 3D scenes but can nowadays do much more. You can use them to control how the engine draws geometry and pixels on the screen, allowing you to achieve all sorts of effects.</p>
+<p>Modern rendering engines like Godot draw everything with shaders: graphics cards can run thousands of instructions in parallel, leading to incredible rendering speed.</p>
+<p>Because of their parallel nature, though, shaders don't process information the way a typical program does. Shader code runs on each vertex or pixel in isolation. You cannot store data between frames either. As a result, when working with shaders, you need to code and think differently from other programming languages.</p>
+<p>Suppose you want to update all the pixels in a texture to a given color. In GDScript, your code would use <code>for</code> loops:</p>
+<pre><code>for x in range(width):
+    for y in range(height):
+        set_color(x, y, some_color)</code></pre>
+<p>Your code is already part of a loop in a shader, so the corresponding code would look like this.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>shader_type canvas_item<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    COLOR <span class="op">=</span> some_color<span class="op">;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> The graphics card calls the <code>fragment()</code> function once or more for each pixel it has to draw. More on that below.</p>
+</blockquote>
+<h2 id="shaders-in-godot">Shaders in Godot</h2>
+<p>Godot provides a shading language based on the popular OpenGL Shading Language (GLSL) but simplified. The engine handles some of the lower-level initialization work for you, making it easier to write complex shaders.</p>
+<p>In Godot, shaders are made up of main functions called "processor functions". Processor functions are the entry point for your shader into the program. There are seven different processor functions.</p>
+<ol type="1">
+<li>The <code>vertex()</code> function runs over all the vertices in the mesh and sets their positions and some other per-vertex variables. Used in ref and ref.</li>
+<li>The <code>fragment()</code> function runs for every pixel covered by the mesh. It uses values output by the <code>vertex()</code> function, interpolated between the vertices. Used in ref and ref.</li>
+<li>The <code>light()</code> function runs for every pixel and for every light. It takes variables from the <code>fragment()</code> function and from its previous runs. Used in ref and ref.</li>
+<li>The <code>start()</code> function runs for every particle in a particle system once when the particle is first spawned. Used in ref.</li>
+<li>The <code>process()</code> function runs for every particle in a particle system for each frame. Used in ref.</li>
+<li>The <code>sky()</code> function runs for every pixel in the radiance cubemap when the radiance cubemap needs to be updated, and for every pixel on the current screen. Used in ref.</li>
+<li>The <code>fog()</code> function runs for every froxel in the volumetric fog froxel buffer that intersects with the ref. Used by ref.</li>
+</ol>
+<blockquote>
+<p><strong>Warning:</strong> The <code>light()</code> function won't run if the <code>vertex_lighting</code> render mode is enabled, or if <strong>Rendering &gt; Quality &gt; Shading &gt; Force Vertex Shading</strong> is enabled in the Project Settings. It's enabled by default on mobile platforms.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> Godot also exposes an API for users to write totally custom GLSL shaders. For more information see <code>doc_compute_shaders</code>.</p>
+</blockquote>
+<h2 id="shader-types">Shader types</h2>
+<p>Instead of supplying a general-purpose configuration for all uses (2D, 3D, particles, sky, fog), you must specify the type of shader you're writing. Different types support different render modes, built-in variables, and processing functions.</p>
+<p>In Godot, all shaders need to specify their type in the first line, like so:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>shader_type spatial<span class="op">;</span></span></code></pre></div>
+<p>Here are the available types:</p>
+<ul>
+<li>ref for 3D rendering.</li>
+<li>ref for 2D rendering.</li>
+<li>ref for particle systems.</li>
+<li>ref to render ref.</li>
+<li>ref to render ref.</li>
+<li>ref to render ref.</li>
+</ul>
+<h2 id="render-modes">Render modes</h2>
+<p>Shaders have optional render modes you can specify on the second line, after the shader type, like so:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>shader_type spatial<span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>render_mode unshaded<span class="op">,</span> cull_disabled<span class="op">;</span></span></code></pre></div>
+<p>Render modes alter the way Godot applies the shader. For example, the <code>unshaded</code> mode makes the engine skip the built-in light processor function.</p>
+<p>Each shader type has different render modes. See the reference for each shader type for a complete list of render modes.</p>
+<h3 id="vertex-processor">Vertex processor</h3>
+<p>The <code>vertex()</code> processing function is called once for every vertex in <code>spatial</code> and <code>canvas_item</code> shaders.</p>
+<p>Each vertex in your world's geometry has properties like a position and color. The function modifies those values and passes them to the fragment function. You can also use it to send extra data to the fragment function using varyings.</p>
+<p>By default, Godot transforms your vertex information for you, which is necessary to project geometry onto the screen. You can use render modes to transform the data yourself; see the ref for an example.</p>
+<h3 id="fragment-processor">Fragment processor</h3>
+<p>The <code>fragment()</code> processing function is used to set up the Godot material parameters per pixel. This code runs on every visible pixel the object or primitive draws. It is only available in <code>spatial</code> and <code>canvas_item</code> shaders.</p>
+<p>The standard use of the fragment function is to set up material properties used to calculate lighting. For example, you would set values for <code>ROUGHNESS</code>, <code>RIM</code>, or <code>TRANSMISSION</code>, which would tell the light function how the lights respond to that fragment. This makes it possible to control a complex shading pipeline without the user having to write much code. If you don't need this built-in functionality, you can ignore it and write your own light processing function, and Godot will optimize it away. For example, if you do not write a value to <code>RIM</code>, Godot will not calculate rim lighting. During compilation, Godot checks to see if <code>RIM</code> is used; if not, it cuts all the corresponding code out. Therefore, you will not waste calculations on the effects that you do not use.</p>
+<h3 id="light-processor">Light processor</h3>
+<p>The <code>light()</code> processor runs per pixel too, and it runs once for every light that affects the object. It does not run if no lights affect the object. It exists as a function called inside the <code>fragment()</code> processor and typically operates on the material properties setup inside the <code>fragment()</code> function.</p>
+<p>The <code>light()</code> processor works differently in 2D than it does in 3D; for a description of how it works in each, see their documentation, ref and ref, respectively.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

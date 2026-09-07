@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Core functions and types — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="core-functions-and-types">Core functions and types</h1>
+<p>godot-cpp's API is designed to be as similar as possible to Godot's internal API.</p>
+<p>This means that, in general, you can use the ref section to learn how to work with godot-cpp. In addition, it can often be useful to browse the <a href="https://github.com/godotengine/godot">engine's code</a> for examples for how to work with Godot's API.</p>
+<p>That being said, there are some differences to be aware of, which are documented here.</p>
+<h2 id="common-functions-and-macros">Common functions and macros</h2>
+<p>Please refer to <code>doc_common_engine_methods_and_macros</code> for information on this. The functions and macros documented there are also available in godot-cpp.</p>
+<h2 id="core-types">Core types</h2>
+<p>Godot's ref are also available in godot-cpp, and the same recommendations apply as described in that article. The types are regularly synchronized with the Godot codebase.</p>
+<p>In your own code, you can also use <a href="https://en.cppreference.com/w/cpp/container.html">C++ STL types</a>, or types from any library you choose, but they won't be compatible with Godot's APIs.</p>
+<h3 id="packed-arrays">Packed arrays</h3>
+<p>While in Godot, the <code>Packed*Array</code> types are aliases of <code>Vector</code>, in godot-cpp, they're their own types, using the Godot bindings. This is because <code>Packed*Array</code> are exposed to Godot and limited to only Godot types, whereas <code>Vector</code> can hold any C++ type which Godot might not be able to understand.</p>
+<p>In general, the <code>Packed*Array</code> types work the same way as their <code>Vector</code> aliases, however, there are some notable differences.</p>
+<h4 id="data-access">Data access</h4>
+<p><code>Vector</code> keeps its data entirely within the GDExtension, whereas the <code>Packed*Array</code> types keep their data on the Godot side. This means that any time a <code>Packed*Array</code> is accessed, it needs to call into Godot.</p>
+<p>To efficiently read or write a large amount of data into a <code>Packed*Array</code>, you should call <code>.ptr()</code> (for reading) or <code>.ptrw()</code> (for writing) to get a pointer directly to the array's memory:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">// BAD!</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> my_bad_function<span class="op">(</span><span class="at">const</span> PackedByteArray <span class="op">&amp;</span>p_array<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> p_array<span class="op">.</span>size<span class="op">();</span> i<span class="op">++)</span> <span class="op">{</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Each time this runs it needs to call into Godot.</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">uint8_t</span> byte <span class="op">=</span> p_array<span class="op">[</span>i<span class="op">];</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// .. do something with the byte.</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">// GOOD :-)</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> my_good_function<span class="op">(</span><span class="at">const</span> PackedByteArray <span class="op">&amp;</span>p_array<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">const</span> <span class="dt">uint8_t</span> <span class="op">*</span>array_ptr <span class="op">=</span> p_array<span class="op">.</span>ptr<span class="op">();</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> p_array<span class="op">.</span>size<span class="op">();</span> i<span class="op">++)</span> <span class="op">{</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// This directly accesses the memory!</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">uint8_t</span> byte <span class="op">=</span> array_ptr<span class="op">[</span>i<span class="op">];</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// .. do something with the byte.</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="copying">Copying</h4>
+<p><code>Variant</code> wrappers for <code>Packed*Array</code> treat them as pass-by-reference, while the <code>Packed*Array</code> types themselves are pass-by-value (implemented as copy-on-write).</p>
+<p>In addition, it may be of interest that GDScript calls use the <code>Variant</code> call interface: Any <code>Packed*Array</code> arguments to your functions will be passed in a <code>Variant</code>, and unpacked from there. This can create copies of the types, so the argument you receive may be a copy of the argument that the function was called with. In practice, this means you cannot rely on that the argument passed to you can be modified at the caller's site.</p>
+<h2 id="variant-class">Variant class</h2>
+<p>Please refer to <code>doc_variant_class</code> to learn about how to work with <code>Variant</code>.</p>
+<p>Most importantly, you should be aware that all functions exposed through the GDExtension API must be compatible with <code>Variant</code>.</p>
+<h2 id="object-class">Object class</h2>
+<p>Please refer to <code>doc_object_class</code> to learn how to register and work with your own <code>Object</code> types.</p>
+<p>We are not aware of any major differences between the godot-cpp <code>Object</code> API and Godot's internal <code>Object</code> API, except that some methods are available in Godot's internal API that are not available in godot-cpp.</p>
+<p>You should be aware that the pointer to your godot-cpp <code>Object</code> is different from the pointer that Godot uses internally. This is because the godot-cpp version is an extension instance, allocated separately from the original <code>Object</code>. However, in practice, this difference is usually not noticeable.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

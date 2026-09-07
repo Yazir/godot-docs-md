@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mesh level of detail (LOD) — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="mesh-level-of-detail-lod">Mesh level of detail (LOD)</h1>
+<p>Level of detail (LOD) is one of the most important ways to optimize rendering performance in a 3D project, along with <code>doc_occlusion_culling</code>.</p>
+<p>On this page, you'll learn:</p>
+<ul>
+<li>How mesh LOD can improve your 3D project's rendering performance.</li>
+<li>How to set up mesh LOD in Godot.</li>
+<li>How to measure mesh LOD's effectiveness in your project (and alternatives you can explore if it doesn't meet your expectations).</li>
+</ul>
+<blockquote>
+<p><strong>See also:</strong> You can see how mesh LOD works in action using the <a href="https://github.com/godotengine/godot-demo-projects/tree/master/3d/occlusion_culling_mesh_lod">Occlusion Culling and Mesh LOD demo project</a>.</p>
+</blockquote>
+<h2 id="introduction">Introduction</h2>
+<p>Historically, level of detail in 3D games involved manually authoring meshes with lower geometry density, then configuring the distance thresholds at which these lower-detailed meshes should be drawn. This approach is still used today when increased control is needed.</p>
+<p>However, in projects that have a large amount of detailed 3D assets, setting up LOD manually can be a very time-consuming process. As a result, automatic mesh decimation and LOD configuration is becoming increasingly popular.</p>
+<p>Godot provides a way to automatically generate less detailed meshes for LOD usage on import, then use those LOD meshes when needed automatically. This is completely transparent to the user. The <a href="https://meshoptimizer.org/">meshoptimizer</a> library is used for LOD mesh generation behind the scenes.</p>
+<p>Mesh LOD works with any node that draws 3D meshes. This includes MeshInstance3D, MultiMeshInstance3D, GPUParticles3D and CPUParticles3D.</p>
+<h2 id="visual-comparison">Visual comparison</h2>
+<p>Here is an example of LOD meshes generated on import. Lower detailed meshes will be used when the camera is far away from the object:</p>
+<p><em>Image: From most detailed (left) to least detailed (right), shaded view</em></p>
+<p>From most detailed (left) to least detailed (right), shaded view</p>
+<p>Here's the same image with wireframe rendering to make the decimation easier to see:</p>
+<p><em>Image: From most detailed (left) to least detailed (right), wireframe view</em></p>
+<p>From most detailed (left) to least detailed (right), wireframe view</p>
+<blockquote>
+<p><strong>See also:</strong> If you need to manually configure level of detail with artist-created meshes, use <code>doc_visibility_ranges</code> instead of automatic mesh LOD.</p>
+</blockquote>
+<h2 id="generating-mesh-lod">Generating mesh LOD</h2>
+<p>By default, mesh LOD generation happens automatically for imported 3D scenes (glTF, .blend, Collada, FBX). Once LOD meshes are generated, they will automatically be used when rendering the scene. You don't need to configure anything manually.</p>
+<p>However, mesh LOD generation does <strong>not</strong> automatically happen for imported 3D meshes (OBJ). This is because OBJ files are not imported as full 3D scenes by default, but only as individual mesh resources to load into a MeshInstance3D node (or GPUParticles3D, CPUParticles3D, ...).</p>
+<p>To make an OBJ file have mesh LOD generated for it, select it in the FileSystem dock, go to the Import dock, change its <strong>Import As</strong> option to <strong>Scene</strong> then click <strong>Reimport</strong>:</p>
+<p><em>Image: Changing the import type on an OBJ file in the Import dock</em></p>
+<p>Changing the import type on an OBJ file in the Import dock</p>
+<p>This will require restarting the editor after clicking <strong>Reimport</strong>.</p>
+<blockquote>
+<p><strong>Note:</strong> The mesh LOD generation process is not perfect, and may occasionally introduce rendering issues (especially in skinned meshes). Mesh LOD generation can also take a while on complex meshes.</p>
+<p>If mesh LOD causes a specific mesh to look broken, you can disable LOD generation for it in the Import dock. This will also speed up resource importing. This can be done globally in the 3D scene's import options, or on a per-mesh basis using the Advanced Import Settings dialog.</p>
+<p>See ref for more information.</p>
+</blockquote>
+<h2 id="comparing-mesh-lod-visuals-and-performance">Comparing mesh LOD visuals and performance</h2>
+<p>To disable mesh LOD in the editor for comparison purposes, use the <strong>Disable Mesh LOD</strong> advanced debug draw mode. This can be done using the menu in the top-left corner of the 3D viewport (labeled <strong>Perspective</strong> or <strong>Orthogonal</strong> depending on camera mode):</p>
+<p><em>Image: Disabling mesh LOD in the 3D viewport's top-left menu</em></p>
+<p>Disabling mesh LOD in the 3D viewport's top-left menu</p>
+<p>Enable <strong>View Frame Time</strong> in the same menu to view FPS in the top-right corner. Also enable <strong>View Information</strong> in the same menu to view the number of primitives (vertices + indices) rendered in the bottom-right corner.</p>
+<p>If mesh LOD is working correctly in your scene and your camera is far away enough from the mesh, you should notice the number of drawn primitives decreasing and FPS increasing when mesh LOD is left enabled (unless you are CPU-bottlenecked).</p>
+<p>To see mesh LOD decimation in action, change the debug draw mode to <strong>Display Wireframe</strong> in the menu specified above, then adjust the <strong>Rendering &gt; Mesh LOD &gt; LOD Change &gt; Threshold Pixels</strong> project setting.</p>
+<h2 id="configuring-mesh-lod-performance-and-quality">Configuring mesh LOD performance and quality</h2>
+<p>You can adjust how aggressive mesh LOD transitions should be in the root viewport by changing the <strong>Rendering &gt; Mesh LOD &gt; LOD Change &gt; Threshold Pixels</strong> project setting. To change this value at runtime, set <code>mesh_lod_threshold</code> on the root viewport as follows:</p>
+<pre class="gdscript"><code>get_tree().root.mesh_lod_threshold = 4.0</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">GetTree</span><span class="op">().</span><span class="fu">Root</span><span class="op">.</span><span class="fu">MeshLodThreshold</span> <span class="op">=</span> <span class="fl">4.0f</span><span class="op">;</span></span></code></pre></div>
+<p>Each viewport has its own <code>mesh_lod_threshold</code> property, which can be set independently from other viewports.</p>
+<p>The default mesh LOD threshold of 1 pixel is tuned to look <em>perceptually</em> lossless; it provides a significant performance gain with an unnoticeable loss in quality. Higher values will make LOD transitions happen sooner when the camera moves away, resulting in higher performance, but lower quality.</p>
+<p>If you need to perform per-object adjustments to mesh LOD, you can adjust how aggressive LOD transitions should be by adjusting the <strong>LOD Bias</strong> property on any node that inherits from GeometryInstance3D. Values <em>above</em> <code>1.0</code> will make LOD transitions happen later than usual (resulting in higher quality, but lower performance). Values <em>below</em> <code>1.0</code> will make LOD transitions happen sooner than usual (resulting in lower quality, but higher performance).</p>
+<p>Additionally, ReflectionProbe nodes have their own <strong>Mesh LOD Threshold</strong> property that can be adjusted to improve rendering performance when the reflection probe updates. This is especially important for ReflectionProbes that use the <strong>Always</strong> update mode.</p>
+<blockquote>
+<p><strong>Note:</strong> When rendering the scene, mesh LOD selection uses a screen-space metric. This means it automatically takes camera field of view and viewport resolution into account. Higher camera FOV and lower viewport resolutions will make LOD selection more aggressive; the engine will display heavily decimated models earlier when the camera moves away.</p>
+<p>As a result, unlike <code>doc_visibility_ranges</code>, you don't need to do anything specific in your project to take camera FOV and viewport resolution into account.</p>
+</blockquote>
+<h2 id="using-mesh-lod-with-multimesh-and-particles">Using mesh LOD with MultiMesh and particles</h2>
+<p>For LOD selection, the point of the node's <code>AABB (Axis-Aligned Bounding Box)</code> that is the closest to the camera is used as a basis. This applies to any kind of mesh LOD (including for individual MeshInstance3D)s, but this has some implications for nodes that display multiple meshes at once, such as MultiMeshInstance3D, CPUParticles3D, and GPUParticles3D. Most importantly, this means that all instances will be drawn with the same LOD level at a given time.</p>
+<p>If you are noticing incorrect LOD selection with GPUParticles3D, make sure the node's visibility AABB is configured by selecting the GPUParticles3D node and using <strong>GPUParticles3D &gt; Generate AABB</strong> at the top of the 3D viewport.</p>
+<p>If you have instances in a MultiMesh that are far away from each other, they should be placed in a separate MultiMeshInstance3D node. Doing so will also improve rendering performance, as frustum and occlusion culling will be able to cull individual nodes (while they can't cull individual instances in a MultiMesh).</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>High-level multiplayer — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="high-level-multiplayer">High-level multiplayer</h1>
+<h2 id="high-level-vs-low-level-api">High-level vs low-level API</h2>
+<p>The following explains the differences of high- and low-level networking in Godot as well as some fundamentals. If you want to jump in head-first and add networking to your first nodes, skip to <a href="#initializing-the-network">Initializing the network</a> below. But make sure to read the rest later on!</p>
+<p>Godot always supported standard low-level networking via <code>UDP (User Datagram Protocol)</code>, <code>TCP (Transmission Control Protocol)</code> and some higher-level protocols such as <code>HTTP (Hypertext Transfer Protocol)</code> and <code>SSL (Secure Sockets Layer)</code>. These protocols are flexible and can be used for almost anything. However, using them to synchronize game state manually can be a large amount of work. Sometimes that work can't be avoided or is worth it, for example when working with a custom server implementation on the backend. But in most cases, it's worthwhile to consider Godot's high-level networking API, which sacrifices some of the fine-grained control of low-level networking for greater ease of use.</p>
+<p>This is due to the inherent limitations of the low-level protocols:</p>
+<ul>
+<li>TCP ensures packets will always arrive reliably and in order, but latency is generally higher due to error correction. It's also quite a complex protocol because it understands what a "connection" is, and optimizes for goals that often don't suit applications like multiplayer games. Packets are buffered to be sent in larger batches, trading less per-packet overhead for higher latency. This can be useful for things like HTTP, but generally not for games. Some of this can be configured and disabled (e.g. by disabling "Nagle's algorithm" for the TCP connection).</li>
+<li>UDP is a simpler protocol, which only sends packets (and has no concept of a "connection"). No error correction makes it pretty quick (low latency), but packets may be lost along the way or received in the wrong order. Added to that, the MTU (maximum packet size) for UDP is generally low (only a few hundred bytes), so transmitting larger packets means splitting them, reorganizing them and retrying if a part fails.</li>
+</ul>
+<p>In general, TCP can be thought of as reliable, ordered, and slow; UDP as unreliable, unordered and fast. Because of the large difference in performance, it often makes sense to re-build the parts of TCP wanted for games (optional reliability and packet order), while avoiding the unwanted parts (congestion/traffic control features, Nagle's algorithm, etc). Due to this, most game engines come with such an implementation, and Godot is no exception.</p>
+<p>In summary, you can use the low-level networking API for maximum control and implement everything on top of bare network protocols or use the high-level API based on ref that does most of the heavy lifting behind the scenes in a generally optimized way.</p>
+<blockquote>
+<p><strong>Note:</strong> Most of Godot's supported platforms offer all or most of the mentioned high- and low-level networking features. As networking is always largely hardware and operating system dependent, however, some features may change or not be available on some target platforms. Most notably, the HTML5 platform currently offers WebSockets and WebRTC support but lacks some of the higher-level features, as well as raw access to low-level protocols like TCP and UDP.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> More about TCP/IP, UDP, and networking: <a href="https://gafferongames.com/post/udp_vs_tcp/">https://gafferongames.com/post/udp_vs_tcp/</a></p>
+<p>Gaffer On Games has a lot of useful articles about networking in Games (<a href="https://gafferongames.com/categories/game-networking/">here</a>), including the comprehensive <a href="https://gafferongames.com/post/what_every_programmer_needs_to_know_about_game_networking/">introduction to networking models in games</a>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Adding networking to your game comes with some responsibility. It can make your application vulnerable if done wrong and may lead to cheats or exploits. It may even allow an attacker to compromise the machines your application runs on and use your servers to send spam, attack others or steal your users' data if they play your game.</p>
+<p>This is always the case when networking is involved and has nothing to do with Godot. You can of course experiment, but when you release a networked application, always take care of any possible security concerns.</p>
+</blockquote>
+<h2 id="mid-level-abstraction">Mid-level abstraction</h2>
+<p>Before going into how we would like to synchronize a game across the network, it can be helpful to understand how the base network API for synchronization works.</p>
+<p>Godot uses a mid-level object ref. This object is not meant to be created directly, but is designed so that several C++ implementations can provide it.</p>
+<p>This object extends from ref, so it inherits all the useful methods for serializing, sending and receiving data. On top of that, it adds methods to set a peer, transfer mode, etc. It also includes signals that will let you know when peers connect or disconnect.</p>
+<p>This class interface can abstract most types of network layers, topologies and libraries. By default, Godot provides an implementation based on ENet (ref), one based on WebRTC (ref), and one based on WebSocket (ref), but this could be used to implement mobile APIs (for ad hoc WiFi, Bluetooth) or custom device/console-specific networking APIs.</p>
+<p>For most common cases, using this object directly is discouraged, as Godot provides even higher level networking facilities. This object is still made available in case a game has specific needs for a lower-level API.</p>
+<h2 id="hosting-considerations">Hosting considerations</h2>
+<p>When hosting a server, clients on your <code>LAN (Local Area Network)</code> can connect using the internal IP address which is usually of the form <code>192.168.*.*</code>. This internal IP address is <strong>not</strong> reachable by non-LAN/Internet clients.</p>
+<p>On Windows, you can find your internal IP address by opening a command prompt and entering <code>ipconfig</code>. On macOS, open a Terminal and enter <code>ifconfig</code>. On Linux, open a terminal and enter <code>ip addr</code>.</p>
+<p>If you're hosting a server on your own machine and want non-LAN clients to connect to it, you'll probably have to <em>forward</em> the server port on your router. This is required to make your server reachable from the Internet since most residential connections use a <a href="https://en.wikipedia.org/wiki/Network_address_translation">NAT</a>. Godot's high-level multiplayer API only uses UDP, so you must forward the port in UDP, not just TCP.</p>
+<p>After forwarding a UDP port and making sure your server uses that port, you can use <a href="https://icanhazip.com/">this website</a> to find your public IP address. Then give this public IP address to any Internet clients that wish to connect to your server.</p>
+<p>Godot's high-level multiplayer API uses a modified version of ENet which allows for full IPv6 support.</p>
+<h2 id="initializing-the-network">Initializing the network</h2>
+<p>High-level networking in Godot is managed by the ref.</p>
+<p>Each node has a <code>multiplayer</code> property, which is a reference to the <code>MultiplayerAPI</code> instance configured for it by the scene tree. Initially, every node is configured with the same default <code>MultiplayerAPI</code> object.</p>
+<p>It is possible to create a new <code>MultiplayerAPI</code> object and assign it to a <code>NodePath</code> in the scene tree, which will override <code>multiplayer</code> for the node at that path and all of its descendants. This allows sibling nodes to be configured with different peers, which makes it possible to run a server and a client simultaneously in one instance of Godot.</p>
+<pre class="gdscript"><code># By default, these expressions are interchangeable.
+multiplayer # Get the MultiplayerAPI object configured for this node.
+get_tree().get_multiplayer() # Get the default MultiplayerAPI object.</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// By default, these expressions are interchangeable.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>Multiplayer<span class="op">;</span> <span class="co">// Get the MultiplayerAPI object configured for this node.</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">GetTree</span><span class="op">().</span><span class="fu">GetMultiplayer</span><span class="op">();</span> <span class="co">// Get the default MultiplayerAPI object.</span></span></code></pre></div>
+<p>To initialize networking, a <code>MultiplayerPeer</code> object must be created, initialized as a server or client, and passed to the <code>MultiplayerAPI</code>.</p>
+<pre class="gdscript"><code># Create client.
+var peer = ENetMultiplayerPeer.new()
+peer.create_client(IP_ADDRESS, PORT)
+multiplayer.multiplayer_peer = peer
+
+# Create server.
+var peer = ENetMultiplayerPeer.new()
+peer.create_server(PORT, MAX_CLIENTS)
+multiplayer.multiplayer_peer = peer</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Create client.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> peer <span class="op">=</span> <span class="kw">new</span> <span class="fu">ENetMultiplayerPeer</span><span class="op">();</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>peer<span class="op">.</span><span class="fu">CreateClient</span><span class="op">(</span>IPAddress<span class="op">,</span> Port<span class="op">);</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>Multiplayer<span class="op">.</span><span class="fu">MultiplayerPeer</span> <span class="op">=</span> peer<span class="op">;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Create server.</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> peer <span class="op">=</span> <span class="kw">new</span> <span class="fu">ENetMultiplayerPeer</span><span class="op">();</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>peer<span class="op">.</span><span class="fu">CreateServer</span><span class="op">(</span>Port<span class="op">,</span> MaxClients<span class="op">);</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>Multiplayer<span class="op">.</span><span class="fu">MultiplayerPeer</span> <span class="op">=</span> peer<span class="op">;</span></span></code></pre></div>
+<p>To terminate networking:</p>
+<pre class="gdscript"><code>multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>Multiplayer<span class="op">.</span><span class="fu">MultiplayerPeer</span> <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></span></code></pre></div>
+<blockquote>
+<p><strong>Warning:</strong> When exporting to Android, make sure to enable the <code>INTERNET</code> permission in the Android export preset before exporting the project or using one-click deploy. Otherwise, network communication of any kind will be blocked by Android.</p>
+</blockquote>
+<h2 id="managing-connections">Managing connections</h2>
+<p>Every peer is assigned a unique ID. The server's ID is always 1, and clients are assigned a random positive integer.</p>
+<p>Responding to connections or disconnections is possible by connecting to <code>MultiplayerAPI</code>'s signals:</p>
+<ul>
+<li><code>peer_connected(id: int)</code> This signal is emitted with the newly connected peer's ID on each other peer, and on the new peer multiple times, once with each other peer's ID.</li>
+<li><code>peer_disconnected(id: int)</code> This signal is emitted on every remaining peer when one disconnects.</li>
+</ul>
+<p>The rest are only emitted on clients:</p>
+<ul>
+<li><code>connected_to_server()</code></li>
+<li><code>connection_failed()</code></li>
+<li><code>server_disconnected()</code></li>
+</ul>
+<p>To get the unique ID of the associated peer:</p>
+<pre class="gdscript"><code>multiplayer.get_unique_id()</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>Multiplayer<span class="op">.</span><span class="fu">GetUniqueId</span><span class="op">();</span></span></code></pre></div>
+<p>To check whether the peer is server or client:</p>
+<pre class="gdscript"><code>multiplayer.is_server()</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>Multiplayer<span class="op">.</span><span class="fu">IsServer</span><span class="op">();</span></span></code></pre></div>
+<h2 id="remote-procedure-calls">Remote procedure calls</h2>
+<p>Remote procedure calls, or RPCs, are functions that can be called on other peers. To create one, use the <code>@rpc</code> annotation before a function definition. To call an RPC, use <code>Callable</code>'s method <code>rpc()</code> to call in every peer, or <code>rpc_id()</code> to call in a specific peer.</p>
+<pre class="gdscript"><code>func _ready():
+    if multiplayer.is_server():
+        print_once_per_client.rpc()
+
+@rpc
+func print_once_per_client():
+    print(&quot;I will be printed to the console once per each connected client.&quot;)</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>Multiplayer<span class="op">.</span><span class="fu">IsServer</span><span class="op">())</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">Rpc</span><span class="op">(</span>MethodName<span class="op">.</span><span class="fu">PrintOncePerClient</span><span class="op">);</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Rpc<span class="op">]</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">PrintOncePerClient</span><span class="op">()</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;I will be printed to the console once per each connected client.&quot;</span><span class="op">);</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>RPCs will not serialize Objects or Callables.</p>
+<p>For a remote call to be successful, the sending and receiving node need to have the same <code>NodePath</code>, which means they must have the same name. When using <code>add_child()</code> for nodes which are expected to use RPCs, set the argument <code>force_readable_name</code> to <code>true</code>.</p>
+<blockquote>
+<p><strong>Warning:</strong> If a function is annotated with <code>@rpc</code> on the client script (resp. server script), then this function must also be declared on the server script (resp. client script). Both RPCs must have the same signature which is evaluated with a checksum of <strong>all RPCs</strong>. All RPCs in a script are checked at once, and all RPCs must be declared on both the client scripts and the server scripts, <strong>even functions that are currently not in use</strong>.</p>
+<p>The signature of the RPC includes the <code>@rpc()</code> declaration, the function, return type, <strong>and</strong> the NodePath. If an RPC resides in a script attached to <code>/root/Main/Node1</code>, then it must reside in precisely the same path and node on both the client script and the server script. Function arguments are not checked for matching between the server and client code (example: <code>func sendstuff():</code> and <code>func sendstuff(arg1, arg2):</code> <strong>will pass</strong> signature matching).</p>
+<p>If these conditions are not met (if all RPCs do not pass signature matching), the script may print an error or cause unwanted behavior. The error message may be unrelated to the RPC function you are currently building and testing.</p>
+<p>See further explanation and troubleshooting on <a href="https://github.com/godotengine/godot/issues/57869#issuecomment-1034215138">this post</a>.</p>
+</blockquote>
+<p>The annotation can take a number of arguments, which have default values. <code>@rpc</code> is equivalent to:</p>
+<pre class="gdscript"><code>@rpc(&quot;authority&quot;, &quot;call_remote&quot;, &quot;reliable&quot;, 0)</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="op">[</span><span class="fu">Rpc</span><span class="op">(</span>MultiplayerApi<span class="op">.</span><span class="fu">RpcMode</span><span class="op">.</span><span class="fu">Authority</span><span class="op">,</span> CallLocal <span class="op">=</span> <span class="kw">false</span><span class="op">,</span> TransferMode <span class="op">=</span> MultiplayerPeer<span class="op">.</span><span class="fu">TransferModeEnum</span><span class="op">.</span><span class="fu">Reliable</span><span class="op">,</span> TransferChannel <span class="op">=</span> <span class="dv">0</span><span class="op">)]</span></span></code></pre></div>
+<p>The parameters and their functions are as follows:</p>
+<p><code>mode</code>:</p>
+<ul>
+<li><code>"authority"</code>: Only the multiplayer authority can call remotely. The authority is the server by default, but can be changed per-node using ref.</li>
+<li><code>"any_peer"</code>: Clients are allowed to call remotely. Useful for transferring user input.</li>
+</ul>
+<p><code>sync</code>:</p>
+<ul>
+<li><code>"call_remote"</code>: The function will not be called on the local peer.</li>
+<li><code>"call_local"</code>: The function can be called on the local peer. Useful when the server is also a player.</li>
+</ul>
+<p><code>transfer_mode</code>:</p>
+<ul>
+<li><code>"unreliable"</code> Packets are not acknowledged, can be lost, and can arrive at any order.</li>
+<li><code>"unreliable_ordered"</code> Packets are received in the order they were sent in. This is achieved by ignoring packets that arrive later if another that was sent after them has already been received. Can cause packet loss if used incorrectly.</li>
+<li><code>"reliable"</code> Resend attempts are sent until packets are acknowledged, and their order is preserved. Has a significant performance penalty.</li>
+</ul>
+<p><code>transfer_channel</code> is the channel index.</p>
+<p>The first 3 can be passed in any order, but <code>transfer_channel</code> must always be last.</p>
+<p>The function <code>multiplayer.get_remote_sender_id()</code> can be used to get the unique id of an rpc sender, when used within the function called by rpc.</p>
+<pre class="gdscript"><code>func _on_some_input(): # Connected to some input.
+    transfer_some_input.rpc_id(1) # Send the input only to the server.
+
+
+# Call local is required if the server is also a player.
+@rpc(&quot;any_peer&quot;, &quot;call_local&quot;, &quot;reliable&quot;)
+func transfer_some_input():
+    # The server knows who sent the input.
+    var sender_id = multiplayer.get_remote_sender_id()
+    # Process the input and affect game logic.</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnSomeInput</span><span class="op">()</span> <span class="co">// Connected to some input.</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">RpcId</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> MethodName<span class="op">.</span><span class="fu">TransferSomeInput</span><span class="op">);</span> <span class="co">// Send the input only to the server.</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Call local is required if the server is also a player.</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="op">[</span><span class="fu">Rpc</span><span class="op">(</span>MultiplayerApi<span class="op">.</span><span class="fu">RpcMode</span><span class="op">.</span><span class="fu">AnyPeer</span><span class="op">,</span> CallLocal <span class="op">=</span> <span class="kw">true</span><span class="op">,</span> TransferMode <span class="op">=</span> MultiplayerPeer<span class="op">.</span><span class="fu">TransferModeEnum</span><span class="op">.</span><span class="fu">Reliable</span><span class="op">)]</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">TransferSomeInput</span><span class="op">()</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// The server knows who sent the input.</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> senderId <span class="op">=</span> Multiplayer<span class="op">.</span><span class="fu">GetRemoteSenderId</span><span class="op">();</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Process the input and affect game logic.</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> RPC methods must be defined on <code>class_Node</code>-derived classes. Attempting to use high-level RPC calls on methods defined only in non-Node classes (such as Resource) will result in runtime errors.</p>
+</blockquote>
+<h2 id="channels">Channels</h2>
+<p>Modern networking protocols support channels, which are separate connections within the connection. This allows for multiple streams of packets that do not interfere with each other.</p>
+<p>For example, game chat related messages and some of the core gameplay messages should all be sent reliably, but a gameplay message should not wait for a chat message to be acknowledged. This can be achieved by using different channels.</p>
+<p>Channels are also useful when used with the unreliable ordered transfer mode. Sending packets of variable size with this transfer mode can cause packet loss, since packets which are slower to arrive are ignored. Separating them into multiple streams of homogeneous packets by using channels allows ordered transfer with little packet loss, and without the latency penalty caused by reliable mode.</p>
+<p>The default channel with index 0 is actually three different channels - one for each transfer mode.</p>
+<h2 id="example-lobby-implementation">Example lobby implementation</h2>
+<p>This is an example lobby that can handle peers joining and leaving, notify UI scenes through signals, and start the game after all clients have loaded the game scene.</p>
+<pre class="gdscript"><code>extends Node
+
+# Autoload named Lobby
+
+# These signals can be connected to by a UI lobby scene or the game scene.
+signal player_connected(peer_id, player_info)
+signal player_disconnected(peer_id)
+signal server_disconnected
+
+const PORT = 7000
+const DEFAULT_SERVER_IP = &quot;127.0.0.1&quot; # IPv4 localhost
+const MAX_CONNECTIONS = 20
+
+# This will contain player info for every player,
+# with the keys being each player&#39;s unique IDs.
+var players = {}
+
+# This is the local player info. This should be modified locally
+# before the connection is made. It will be passed to every other peer.
+# For example, the value of &quot;name&quot; can be set to something the player
+# entered in a UI scene.
+var player_info = {&quot;name&quot;: &quot;Name&quot;}
+
+var players_loaded = 0
+
+
+
+func _ready():
+    multiplayer.peer_connected.connect(_on_player_connected)
+    multiplayer.peer_disconnected.connect(_on_player_disconnected)
+    multiplayer.connected_to_server.connect(_on_connected_ok)
+    multiplayer.connection_failed.connect(_on_connected_fail)
+    multiplayer.server_disconnected.connect(_on_server_disconnected)
+
+
+func join_game(address = &quot;&quot;):
+    if address.is_empty():
+        address = DEFAULT_SERVER_IP
+    var peer = ENetMultiplayerPeer.new()
+    var error = peer.create_client(address, PORT)
+    if error:
+        return error
+    multiplayer.multiplayer_peer = peer
+
+
+func create_game():
+    var peer = ENetMultiplayerPeer.new()
+    var error = peer.create_server(PORT, MAX_CONNECTIONS)
+    if error:
+        return error
+    multiplayer.multiplayer_peer = peer
+
+    players[1] = player_info
+    player_connected.emit(1, player_info)
+
+
+func remove_multiplayer_peer():
+    multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+    players.clear()
+
+
+# When the server decides to start the game from a UI scene,
+# do Lobby.load_game.rpc(filepath)
+@rpc(&quot;call_local&quot;, &quot;reliable&quot;)
+func load_game(game_scene_path):
+    get_tree().change_scene_to_file(game_scene_path)
+
+
+# Every peer will call this when they have loaded the game scene.
+@rpc(&quot;any_peer&quot;, &quot;call_local&quot;, &quot;reliable&quot;)
+func player_loaded():
+    if multiplayer.is_server():
+        players_loaded += 1
+        if players_loaded == players.size():
+            $/root/Game.start_game()
+            players_loaded = 0
+
+
+# When a peer connects, send them my player info.
+# This allows transfer of all desired data for each player, not only the unique ID.
+func _on_player_connected(id):
+    _register_player.rpc_id(id, player_info)
+
+
+@rpc(&quot;any_peer&quot;, &quot;reliable&quot;)
+func _register_player(new_player_info):
+    var new_player_id = multiplayer.get_remote_sender_id()
+    players[new_player_id] = new_player_info
+    player_connected.emit(new_player_id, new_player_info)
+
+
+func _on_player_disconnected(id):
+    players.erase(id)
+    player_disconnected.emit(id)
+
+
+func _on_connected_ok():
+    var peer_id = multiplayer.get_unique_id()
+    players[peer_id] = player_info
+    player_connected.emit(peer_id, player_info)
+
+
+func _on_connected_fail():
+    remove_multiplayer_peer()
+
+
+func _on_server_disconnected():
+    remove_multiplayer_peer()
+    players.clear()
+    server_disconnected.emit()</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> Lobby <span class="op">:</span> Node</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">static</span> Lobby Instance <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">private</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// These signals can be connected to by a UI lobby scene or the game scene.</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">PlayerConnectedEventHandler</span><span class="op">(</span><span class="dt">int</span> peerId<span class="op">,</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">string</span><span class="op">&gt;</span> playerInfo<span class="op">);</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">PlayerDisconnectedEventHandler</span><span class="op">(</span><span class="dt">int</span> peerId<span class="op">);</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">ServerDisconnectedEventHandler</span><span class="op">();</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">const</span> <span class="dt">int</span> Port <span class="op">=</span> <span class="dv">7000</span><span class="op">;</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">const</span> <span class="dt">string</span> DefaultServerIP <span class="op">=</span> <span class="st">&quot;127.0.0.1&quot;</span><span class="op">;</span> <span class="co">// IPv4 localhost</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">const</span> <span class="dt">int</span> MaxConnections <span class="op">=</span> <span class="dv">20</span><span class="op">;</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// This will contain player info for every player,</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// with the keys being each player&#39;s unique IDs.</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">long</span><span class="op">,</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">string</span><span class="op">&gt;&gt;</span> _players <span class="op">=</span> <span class="kw">new</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">long</span><span class="op">,</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">string</span><span class="op">&gt;&gt;();</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>    <span class="co">// This is the local player info. This should be modified locally</span></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">// before the connection is made. It will be passed to every other peer.</span></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>    <span class="co">// For example, the value of &quot;name&quot; can be set to something the player</span></span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>    <span class="co">// entered in a UI scene.</span></span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">string</span><span class="op">&gt;</span> _playerInfo <span class="op">=</span> <span class="kw">new</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">string</span><span class="op">&gt;()</span></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;Name&quot;</span><span class="op">,</span> <span class="st">&quot;PlayerName&quot;</span> <span class="op">},</span></span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">int</span> _playersLoaded <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>        Instance <span class="op">=</span> <span class="kw">this</span><span class="op">;</span></span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>        Multiplayer<span class="op">.</span><span class="fu">PeerConnected</span> <span class="op">+=</span> OnPlayerConnected<span class="op">;</span></span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>        Multiplayer<span class="op">.</span><span class="fu">PeerDisconnected</span> <span class="op">+=</span> OnPlayerDisconnected<span class="op">;</span></span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a>        Multiplayer<span class="op">.</span><span class="fu">ConnectedToServer</span> <span class="op">+=</span> OnConnectOk<span class="op">;</span></span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a>        Multiplayer<span class="op">.</span><span class="fu">ConnectionFailed</span> <span class="op">+=</span> OnConnectionFail<span class="op">;</span></span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a>        Multiplayer<span class="op">.</span><span class="fu">ServerDisconnected</span> <span class="op">+=</span> OnServerDisconnected<span class="op">;</span></span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Error <span class="fu">JoinGame</span><span class="op">(</span><span class="dt">string</span> address <span class="op">=</span> <span class="st">&quot;&quot;</span><span class="op">)</span></span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span><span class="dt">string</span><span class="op">.</span><span class="fu">IsNullOrEmpty</span><span class="op">(</span>address<span class="op">))</span></span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a>            address <span class="op">=</span> DefaultServerIP<span class="op">;</span></span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb18-50"><a href="#cb18-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> peer <span class="op">=</span> <span class="kw">new</span> <span class="fu">ENetMultiplayerPeer</span><span class="op">();</span></span>
+<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a>        Error error <span class="op">=</span> peer<span class="op">.</span><span class="fu">CreateClient</span><span class="op">(</span>address<span class="op">,</span> Port<span class="op">);</span></span>
+<span id="cb18-53"><a href="#cb18-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-54"><a href="#cb18-54" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>error <span class="op">!=</span> Error<span class="op">.</span><span class="fu">Ok</span><span class="op">)</span></span>
+<span id="cb18-55"><a href="#cb18-55" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb18-56"><a href="#cb18-56" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span> error<span class="op">;</span></span>
+<span id="cb18-57"><a href="#cb18-57" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb18-58"><a href="#cb18-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-59"><a href="#cb18-59" aria-hidden="true" tabindex="-1"></a>        Multiplayer<span class="op">.</span><span class="fu">MultiplayerPeer</span> <span class="op">=</span> peer<span class="op">;</span></span>
+<span id="cb18-60"><a href="#cb18-60" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> Error<span class="op">.</span><span class="fu">Ok</span><span class="op">;</span></span>
+<span id="cb18-61"><a href="#cb18-61" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-62"><a href="#cb18-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-63"><a href="#cb18-63" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Error <span class="fu">CreateGame</span><span class="op">()</span></span>
+<span id="cb18-64"><a href="#cb18-64" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-65"><a href="#cb18-65" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> peer <span class="op">=</span> <span class="kw">new</span> <span class="fu">ENetMultiplayerPeer</span><span class="op">();</span></span>
+<span id="cb18-66"><a href="#cb18-66" aria-hidden="true" tabindex="-1"></a>        Error error <span class="op">=</span> peer<span class="op">.</span><span class="fu">CreateServer</span><span class="op">(</span>Port<span class="op">,</span> MaxConnections<span class="op">);</span></span>
+<span id="cb18-67"><a href="#cb18-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-68"><a href="#cb18-68" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>error <span class="op">!=</span> Error<span class="op">.</span><span class="fu">Ok</span><span class="op">)</span></span>
+<span id="cb18-69"><a href="#cb18-69" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb18-70"><a href="#cb18-70" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span> error<span class="op">;</span></span>
+<span id="cb18-71"><a href="#cb18-71" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb18-72"><a href="#cb18-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-73"><a href="#cb18-73" aria-hidden="true" tabindex="-1"></a>        Multiplayer<span class="op">.</span><span class="fu">MultiplayerPeer</span> <span class="op">=</span> peer<span class="op">;</span></span>
+<span id="cb18-74"><a href="#cb18-74" aria-hidden="true" tabindex="-1"></a>        _players<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">=</span> _playerInfo<span class="op">;</span></span>
+<span id="cb18-75"><a href="#cb18-75" aria-hidden="true" tabindex="-1"></a>        <span class="fu">EmitSignal</span><span class="op">(</span>SignalName<span class="op">.</span><span class="fu">PlayerConnected</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> _playerInfo<span class="op">);</span></span>
+<span id="cb18-76"><a href="#cb18-76" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> Error<span class="op">.</span><span class="fu">Ok</span><span class="op">;</span></span>
+<span id="cb18-77"><a href="#cb18-77" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-78"><a href="#cb18-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-79"><a href="#cb18-79" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">RemoveMultiplayerPeer</span><span class="op">()</span></span>
+<span id="cb18-80"><a href="#cb18-80" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-81"><a href="#cb18-81" aria-hidden="true" tabindex="-1"></a>        Multiplayer<span class="op">.</span><span class="fu">MultiplayerPeer</span> <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb18-82"><a href="#cb18-82" aria-hidden="true" tabindex="-1"></a>        _players<span class="op">.</span><span class="fu">Clear</span><span class="op">();</span></span>
+<span id="cb18-83"><a href="#cb18-83" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-84"><a href="#cb18-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-85"><a href="#cb18-85" aria-hidden="true" tabindex="-1"></a>    <span class="co">// When the server decides to start the game from a UI scene,</span></span>
+<span id="cb18-86"><a href="#cb18-86" aria-hidden="true" tabindex="-1"></a>    <span class="co">// do Rpc(Lobby.MethodName.LoadGame, filePath);</span></span>
+<span id="cb18-87"><a href="#cb18-87" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span><span class="fu">Rpc</span><span class="op">(</span>CallLocal <span class="op">=</span> <span class="kw">true</span><span class="op">,</span>TransferMode <span class="op">=</span> MultiplayerPeer<span class="op">.</span><span class="fu">TransferModeEnum</span><span class="op">.</span><span class="fu">Reliable</span><span class="op">)]</span></span>
+<span id="cb18-88"><a href="#cb18-88" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">LoadGame</span><span class="op">(</span><span class="dt">string</span> gameScenePath<span class="op">)</span></span>
+<span id="cb18-89"><a href="#cb18-89" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-90"><a href="#cb18-90" aria-hidden="true" tabindex="-1"></a>        <span class="fu">GetTree</span><span class="op">().</span><span class="fu">ChangeSceneToFile</span><span class="op">(</span>gameScenePath<span class="op">);</span></span>
+<span id="cb18-91"><a href="#cb18-91" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-92"><a href="#cb18-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-93"><a href="#cb18-93" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Every peer will call this when they have loaded the game scene.</span></span>
+<span id="cb18-94"><a href="#cb18-94" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span><span class="fu">Rpc</span><span class="op">(</span>MultiplayerApi<span class="op">.</span><span class="fu">RpcMode</span><span class="op">.</span><span class="fu">AnyPeer</span><span class="op">,</span>CallLocal <span class="op">=</span> <span class="kw">true</span><span class="op">,</span>TransferMode <span class="op">=</span> MultiplayerPeer<span class="op">.</span><span class="fu">TransferModeEnum</span><span class="op">.</span><span class="fu">Reliable</span><span class="op">)]</span></span>
+<span id="cb18-95"><a href="#cb18-95" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">PlayerLoaded</span><span class="op">()</span></span>
+<span id="cb18-96"><a href="#cb18-96" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-97"><a href="#cb18-97" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>Multiplayer<span class="op">.</span><span class="fu">IsServer</span><span class="op">())</span></span>
+<span id="cb18-98"><a href="#cb18-98" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb18-99"><a href="#cb18-99" aria-hidden="true" tabindex="-1"></a>            _playersLoaded <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb18-100"><a href="#cb18-100" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>_playersLoaded <span class="op">==</span> _players<span class="op">.</span><span class="fu">Count</span><span class="op">)</span></span>
+<span id="cb18-101"><a href="#cb18-101" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb18-102"><a href="#cb18-102" aria-hidden="true" tabindex="-1"></a>                GetNode<span class="op">&lt;</span>Game<span class="op">&gt;(</span><span class="st">&quot;/root/Game&quot;</span><span class="op">).</span><span class="fu">StartGame</span><span class="op">();</span></span>
+<span id="cb18-103"><a href="#cb18-103" aria-hidden="true" tabindex="-1"></a>                _playersLoaded <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb18-104"><a href="#cb18-104" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb18-105"><a href="#cb18-105" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb18-106"><a href="#cb18-106" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-107"><a href="#cb18-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-108"><a href="#cb18-108" aria-hidden="true" tabindex="-1"></a>    <span class="co">// When a peer connects, send them my player info.</span></span>
+<span id="cb18-109"><a href="#cb18-109" aria-hidden="true" tabindex="-1"></a>    <span class="co">// This allows transfer of all desired data for each player, not only the unique ID.</span></span>
+<span id="cb18-110"><a href="#cb18-110" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnPlayerConnected</span><span class="op">(</span><span class="dt">long</span> id<span class="op">)</span></span>
+<span id="cb18-111"><a href="#cb18-111" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-112"><a href="#cb18-112" aria-hidden="true" tabindex="-1"></a>        <span class="fu">RpcId</span><span class="op">(</span>id<span class="op">,</span> MethodName<span class="op">.</span><span class="fu">RegisterPlayer</span><span class="op">,</span> _playerInfo<span class="op">);</span></span>
+<span id="cb18-113"><a href="#cb18-113" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-114"><a href="#cb18-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-115"><a href="#cb18-115" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span><span class="fu">Rpc</span><span class="op">(</span>MultiplayerApi<span class="op">.</span><span class="fu">RpcMode</span><span class="op">.</span><span class="fu">AnyPeer</span><span class="op">,</span>TransferMode <span class="op">=</span> MultiplayerPeer<span class="op">.</span><span class="fu">TransferModeEnum</span><span class="op">.</span><span class="fu">Reliable</span><span class="op">)]</span></span>
+<span id="cb18-116"><a href="#cb18-116" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">RegisterPlayer</span><span class="op">(</span>Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">string</span><span class="op">&gt;</span> newPlayerInfo<span class="op">)</span></span>
+<span id="cb18-117"><a href="#cb18-117" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-118"><a href="#cb18-118" aria-hidden="true" tabindex="-1"></a>        <span class="dt">int</span> newPlayerId <span class="op">=</span> Multiplayer<span class="op">.</span><span class="fu">GetRemoteSenderId</span><span class="op">();</span></span>
+<span id="cb18-119"><a href="#cb18-119" aria-hidden="true" tabindex="-1"></a>        _players<span class="op">[</span>newPlayerId<span class="op">]</span> <span class="op">=</span> newPlayerInfo<span class="op">;</span></span>
+<span id="cb18-120"><a href="#cb18-120" aria-hidden="true" tabindex="-1"></a>        <span class="fu">EmitSignal</span><span class="op">(</span>SignalName<span class="op">.</span><span class="fu">PlayerConnected</span><span class="op">,</span> newPlayerId<span class="op">,</span> newPlayerInfo<span class="op">);</span></span>
+<span id="cb18-121"><a href="#cb18-121" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-122"><a href="#cb18-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-123"><a href="#cb18-123" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnPlayerDisconnected</span><span class="op">(</span><span class="dt">long</span> id<span class="op">)</span></span>
+<span id="cb18-124"><a href="#cb18-124" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-125"><a href="#cb18-125" aria-hidden="true" tabindex="-1"></a>        _players<span class="op">.</span><span class="fu">Remove</span><span class="op">(</span>id<span class="op">);</span></span>
+<span id="cb18-126"><a href="#cb18-126" aria-hidden="true" tabindex="-1"></a>        <span class="fu">EmitSignal</span><span class="op">(</span>SignalName<span class="op">.</span><span class="fu">PlayerDisconnected</span><span class="op">,</span> id<span class="op">);</span></span>
+<span id="cb18-127"><a href="#cb18-127" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-128"><a href="#cb18-128" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-129"><a href="#cb18-129" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnConnectOk</span><span class="op">()</span></span>
+<span id="cb18-130"><a href="#cb18-130" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-131"><a href="#cb18-131" aria-hidden="true" tabindex="-1"></a>        <span class="dt">int</span> peerId <span class="op">=</span> Multiplayer<span class="op">.</span><span class="fu">GetUniqueId</span><span class="op">();</span></span>
+<span id="cb18-132"><a href="#cb18-132" aria-hidden="true" tabindex="-1"></a>        _players<span class="op">[</span>peerId<span class="op">]</span> <span class="op">=</span> _playerInfo<span class="op">;</span></span>
+<span id="cb18-133"><a href="#cb18-133" aria-hidden="true" tabindex="-1"></a>        <span class="fu">EmitSignal</span><span class="op">(</span>SignalName<span class="op">.</span><span class="fu">PlayerConnected</span><span class="op">,</span> peerId<span class="op">,</span> _playerInfo<span class="op">);</span></span>
+<span id="cb18-134"><a href="#cb18-134" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-135"><a href="#cb18-135" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-136"><a href="#cb18-136" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnConnectionFail</span><span class="op">()</span></span>
+<span id="cb18-137"><a href="#cb18-137" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-138"><a href="#cb18-138" aria-hidden="true" tabindex="-1"></a>        Multiplayer<span class="op">.</span><span class="fu">MultiplayerPeer</span> <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb18-139"><a href="#cb18-139" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-140"><a href="#cb18-140" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-141"><a href="#cb18-141" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnServerDisconnected</span><span class="op">()</span></span>
+<span id="cb18-142"><a href="#cb18-142" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-143"><a href="#cb18-143" aria-hidden="true" tabindex="-1"></a>        Multiplayer<span class="op">.</span><span class="fu">MultiplayerPeer</span> <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb18-144"><a href="#cb18-144" aria-hidden="true" tabindex="-1"></a>        _players<span class="op">.</span><span class="fu">Clear</span><span class="op">();</span></span>
+<span id="cb18-145"><a href="#cb18-145" aria-hidden="true" tabindex="-1"></a>        <span class="fu">EmitSignal</span><span class="op">(</span>SignalName<span class="op">.</span><span class="fu">ServerDisconnected</span><span class="op">);</span></span>
+<span id="cb18-146"><a href="#cb18-146" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-147"><a href="#cb18-147" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The game scene's root node should be named Game. In the script attached to it:</p>
+<pre class="gdscript"><code>extends Node3D # Or Node2D.
+
+
+
+func _ready():
+    # Preconfigure game.
+
+    Lobby.player_loaded.rpc_id(1) # Tell the server that this peer has loaded.
+
+
+# Called only on the server.
+func start_game():
+    # All peers are ready to receive RPCs in this scene.</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> Game <span class="op">:</span> Node3D <span class="co">// Or Node2D.</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Preconfigure game.</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>        Lobby<span class="op">.</span><span class="fu">Instance</span><span class="op">.</span><span class="fu">RpcId</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> Lobby<span class="op">.</span><span class="fu">MethodName</span><span class="op">.</span><span class="fu">PlayerLoaded</span><span class="op">);</span> <span class="co">// Tell the server that this peer has loaded.</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Called only on the server.</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">StartGame</span><span class="op">()</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// All peers are ready to receive RPCs in this scene.</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="exporting-for-dedicated-servers">Exporting for dedicated servers</h2>
+<p>Once you've made a multiplayer game, you may want to export it to run it on a dedicated server with no GPU available. See <code>doc_exporting_for_dedicated_servers</code> for more information.</p>
+<blockquote>
+<p><strong>Note:</strong> The code samples on this page aren't designed to run on a dedicated server. You'll have to modify them so the server isn't considered to be a player. You'll also have to modify the game starting mechanism so that the first player who joins can start the game.</p>
+</blockquote>
+<h2 id="authentication">Authentication</h2>
+<p>Before hosting your game online to a public audience, you may want to consider adding authentication and protecting your RPCs against unauthenticated access. You can use the ref's built-in authentication mechanism for this.</p>
+<p>On the server:</p>
+<pre class="gdscript"><code># This goes after `multiplayer.multiplayer_peer = peer`.
+multiplayer.auth_timout = 3
+multiplayer.auth_callback = func(peer_id: int, payload: PackedByteArray):
+    var auth_data: Dictionary = JSON.parse_string(payload.get_string_from_utf8())
+    # Your authentication logic (such as checking the supplied username/password against a database)
+
+    # Tell the MultiplayerAPI that the authentication was successful
+    if authentication_successful:
+        multiplayer.complete_auth(peer_id)</code></pre>
+<p>On the client:</p>
+<pre class="gdscript"><code># This goes after `multiplayer.multiplayer_peer = peer`.
+multiplayer.auth_callback = func:
+    # We have to set this on the client for the `peer_authenticating`
+    # signal to emit.
+    pass
+multiplayer.peer_authenticating.connect(func(peer_id: int):
+        var auth_data = {
+            &quot;username&quot;: &quot;username&quot;,
+            &quot;password&quot;: &quot;password&quot;,
+        }
+        multiplayer.send_auth(1, JSON.stringify(auth_data).to_utf8_buffer())
+
+        # Tell the MultiplayerAPI that the authentication was successful.
+        multiplayer.complete_auth(peer_id)</code></pre>
+<p>As soon as both the client's and the server's ref methods have been called, the connection is considered to be established and the <code>connected_to_server</code> and <code>peer_connected</code> signals fire.</p>
+<h2 id="secure-multiplayer-design">Secure multiplayer design</h2>
+<p>Godot's high-level multiplayer API makes it easier to build networked games, but it does not automatically make gameplay logic secure. For competitive or persistent multiplayer games, treat all client input as untrusted.</p>
+<p>A common mistake is to let clients authoritatively decide important game states, such as player position, combat results, inventory changes, or match outcomes. This can make cheating much easier, and result in more frequent desynchronization ("desync").</p>
+<p>In general, prefer the following patterns:</p>
+<ul>
+<li>Use server-authoritative logic for gameplay-critical decisions.</li>
+<li>Validate RPC arguments before applying them to the game state.</li>
+<li>Avoid trusting client-reported positions, timers, cooldowns, or resource values without checks.</li>
+<li>Add safety checks and rate limits to actions that can be triggered frequently.</li>
+</ul>
+<p>In short, you should design your networking so that the server remains the source of truth for important states.</p>
+<p>For example, instead of accepting a client's final position directly, consider sending player input or movement intent to the authority/server, then validating and applying the result there. This comes with some tradeoffs (such as server-side performance and complexity due to the need for client-side prediction), but will make it much harder for attackers to cheat by sending falsified data.</p>
+<p>See <a href="https://mas-bandwidth.com/choosing-the-right-network-model-for-your-multiplayer-game/">Choosing the right network model for your multiplayer game</a> for more information on different multiplayer models and their security implications.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

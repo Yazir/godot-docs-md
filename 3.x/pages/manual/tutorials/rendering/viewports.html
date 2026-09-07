@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using Viewports — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-viewports">Using Viewports</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Think of a ref as a screen onto which the game is projected. In order to see the game, we need to have a surface on which to draw it; that surface is the Root ref.</p>
+<p>ref can also be added to the scene so that there are multiple surfaces to draw on. When we are drawing to a ref that is not the Root, we call it a render target. We can access the contents of a render target by accessing its corresponding ref. By using a ref as a render target, we can either render multiple scenes simultaneously or we can render to a ref which is applied to an object in the scene, for example a dynamic skybox.</p>
+<p>ref have a variety of use cases, including:</p>
+<ul>
+<li>Rendering 3D objects within a 2D game</li>
+<li>Rendering 2D elements in a 3D game</li>
+<li>Rendering dynamic textures</li>
+<li>Generating procedural textures at runtime</li>
+<li>Rendering multiple cameras in the same scene</li>
+</ul>
+<p>What all these use cases have in common is that you are given the ability to draw objects to a texture as if it were another screen and can then choose what to do with the resulting texture.</p>
+<h2 id="input">Input</h2>
+<p>ref are also responsible for delivering properly adjusted and scaled input events to all their children nodes. Typically, input is received by the nearest ref in the tree, but you can set ref not to receive input by checking 'Disable Input' to 'on'; this will allow the next nearest ref in the tree to capture the input.</p>
+<p>For more information on how Godot handles input, please read the ref.</p>
+<h2 id="listener">Listener</h2>
+<p>Godot supports 3D sound (in both 2D and 3D nodes); more on this can be found in the ref. For this type of sound to be audible, the ref needs to be enabled as a listener (for 2D or 3D). If you are using a custom ref to display your ref, don't forget to enable this!</p>
+<h2 id="cameras-2d--3d">Cameras (2D &amp; 3D)</h2>
+<p>When using a ref / ref, cameras will always display on the closest parent ref (going towards the root). For example, in the following hierarchy:</p>
+<p>CameraA will display on the Root ref and it will draw MeshA. CameraB will be captured by the ref Node along with MeshB. Even though MeshB is in the scene hierarchy, it will still not be drawn to the Root ref. Similarly MeshA will not be visible from the ref node because ref nodes only capture nodes below them in the hierarchy.</p>
+<p>There can only be one active camera per ref, so if there is more than one, make sure that the desired one has the "current" property set, or make it the current camera by calling:</p>
+<pre><code>camera.make_current()</code></pre>
+<p>By default, cameras will render all objects in their world. In 3D, cameras can use their ref property combined with the ref ref property to restrict which objects are rendered.</p>
+<h2 id="scale--stretching">Scale &amp; stretching</h2>
+<p>ref have a "size" property, which represents the size of the ref in pixels. For ref which are children of ref, these values are overridden, but for all others, this sets their resolution.</p>
+<p>It is also possible to scale the 2D content and make the ref resolution different from the one specified in size, by calling:</p>
+<pre><code>viewport.set_size_override(true, Vector2(width, height)) # Custom size for 2D.
+viewport.set_size_override_stretch(true) # Enable stretch for custom size.</code></pre>
+<p>The root ref uses this for the stretch options in the project settings. For more information on scaling and stretching visit the ref</p>
+<h2 id="worlds">Worlds</h2>
+<p>For 3D, a ref will contain a ref. This is basically the universe that links physics and rendering together. Spatial-based nodes will register using the ref of the closest ref. By default, newly created ref do not contain a ref but use the same as their parent ref (the root ref always contains a ref, which is the one objects are rendered to by default). A ref can be set in a ref using the "world" property, and that will separate all children nodes of that ref from interacting with the parent ref ref. This is especially useful in scenarios where, for example, you might want to show a separate character in 3D imposed over the game (like in StarCraft).</p>
+<p>As a helper for situations where you want to create ref that display single objects and don't want to create a ref, ref has the option to use its own ref. This is useful when you want to instance 3D characters or objects in a 2D ref.</p>
+<p>For 2D, each ref always contains its own ref. This suffices in most cases, but in case sharing them may be desired, it is possible to do so by setting the ref ref manually.</p>
+<p>For an example of how this works, see the demo projects <a href="https://github.com/godotengine/godot-demo-projects/tree/3.5/viewport/3d_in_2d">3D in 2D</a> and <a href="https://github.com/godotengine/godot-demo-projects/tree/3.5/viewport/2d_in_3d">2D in 3D</a> respectively.</p>
+<h2 id="capture">Capture</h2>
+<p>It is possible to query a capture of the ref contents. For the root ref, this is effectively a screen capture. This is done with the following code:</p>
+<pre><code># Retrieve the captured Image using get_data().
+var img = get_viewport().get_texture().get_data()
+# Flip on the Y axis.
+# You can also set &quot;V Flip&quot; to true if not on the root Viewport.
+img.flip_y()
+# Convert Image to ImageTexture.
+var tex = ImageTexture.new()
+tex.create_from_image(img)
+# Set Sprite Texture.
+$sprite.texture = tex</code></pre>
+<p>But if you use this in <code>_ready()</code> or from the first frame of the ref initialization, you will get an empty texture because there is nothing to get as texture. You can deal with it using (for example):</p>
+<pre><code># Wait until the frame has finished before getting the texture.
+yield(VisualServer, &quot;frame_post_draw&quot;)
+# You can get the image after this.</code></pre>
+<h2 id="viewport-container">Viewport Container</h2>
+<p>If the ref is a child of a ref, it will become active and display anything it has inside. The layout looks like this:</p>
+<p>The ref will cover the area of its parent ref completely if ref is set to <code>true</code> in ref. Note: The size of the ref cannot be smaller than the size of the ref.</p>
+<h2 id="rendering">Rendering</h2>
+<p>Due to the fact that the ref is an entryway into another rendering surface, it exposes a few rendering properties that can be different from the project settings. The first is MSAA; you can choose to use a different level of MSAA for each ref; the default behavior is DISABLED. You can also set the ref to use HDR, HDR is very useful for when you want to store values in the texture that are outside the range 0.0 - 1.0.</p>
+<p>If you know how the ref is going to be used, you can set its Usage to either 3D or 2D. Godot will then restrict how the ref is drawn to in accordance with your choice; default is 3D. The 2D usage mode is slightly faster and uses less memory compared to the 3D one. It's a good idea to set the ref's Usage property to 2D if your viewport doesn't render anything in 3D.</p>
+<blockquote>
+<p><strong>Note:</strong> If you need to render 3D shadows in the viewport, make sure to set the viewport's <em>Shadow Atlas Size</em> property to a value higher than 0. Otherwise, shadows won't be rendered. For reference, the Project Settings define it to 4096 by default.</p>
+</blockquote>
+<p>Godot also provides a way of customizing how everything is drawn inside ref using “Debug Draw”. Debug Draw allows you to specify one of four options for how the ref will display things drawn inside it. Debug Draw is disabled by default.</p>
+<p><em>A scene drawn with Debug Draw disabled</em></p>
+<p>The other three options are Unshaded, Overdraw, and Wireframe. Unshaded draws the scene without using lighting information so all the objects appear flatly colored the color of their albedo.</p>
+<p><em>The same scene with Debug Draw set to Unshaded</em></p>
+<p>Overdraw draws the meshes semi-transparent with an additive blend so you can see how the meshes overlap.</p>
+<p><em>The same scene with Debug Draw set to Overdraw</em></p>
+<p>Lastly, Wireframe draws the scene using only the edges of triangles in the meshes.</p>
+<blockquote>
+<p><strong>Note:</strong> The effects of the Wireframe mode are only visible in the editor, not while the project is running.</p>
+</blockquote>
+<h2 id="render-target">Render target</h2>
+<p>When rendering to a ref, whatever is inside will not be visible in the scene editor. To display the contents, you have to draw the ref ref somewhere. This can be requested via code using (for example):</p>
+<pre><code># This gives us the ViewportTexture.
+var rtt = viewport.get_texture()
+sprite.texture = rtt</code></pre>
+<p>Or it can be assigned in the editor by selecting "New ViewportTexture"</p>
+<p>and then selecting the ref you want to use.</p>
+<p>Every frame, the ref's texture is cleared away with the default clear color (or a transparent color if ref is set to <code>true</code>). This can be changed by setting ref to Never or Next Frame. As the name implies, Never means the texture will never be cleared, while next frame will clear the texture on the next frame and then set itself to Never.</p>
+<p>By default, re-rendering of the ref happens when the ref's ref has been drawn in a frame. If visible, it will be rendered; otherwise, it will not. This behavior can be changed to manual rendering (once), or always render, no matter if visible or not. This flexibility allows users to render an image once and then use the texture without incurring the cost of rendering every frame.</p>
+<p>Make sure to check the Viewport demos! Viewport folder in the demos archive available to download, or <a href="https://github.com/godotengine/godot-demo-projects/tree/3.5/viewport">https://github.com/godotengine/godot-demo-projects/tree/3.5/viewport</a></p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

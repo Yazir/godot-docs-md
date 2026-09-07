@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thread-safe APIs — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="thread-safe-apis">Thread-safe APIs</h1>
+<h2 id="threads">Threads</h2>
+<p>Threads are used to balance processing power across CPUs and cores. Godot supports multithreading, but not in the whole engine.</p>
+<p>Below is a list of ways multithreading can be used in different areas of Godot.</p>
+<h2 id="global-scope">Global scope</h2>
+<p>ref singletons are all thread-safe. Accessing servers from threads is supported (for VisualServer and Physics servers, ensure threaded or thread-safe operation is enabled in the project settings!).</p>
+<p>This makes them ideal for code that creates dozens of thousands of instances in servers and controls them from threads. Of course, it requires a bit more code, as this is used directly and not within the scene tree.</p>
+<h2 id="scene-tree">Scene tree</h2>
+<p>Interacting with the active scene tree is <strong>NOT</strong> thread-safe. Make sure to use mutexes when sending data between threads. If you want to call functions from a thread, the <em>call_deferred</em> function may be used:</p>
+<pre><code># Unsafe:
+node.add_child(child_node)
+# Safe:
+node.call_deferred(&quot;add_child&quot;, child_node)</code></pre>
+<p>However, creating scene chunks (nodes in tree arrangement) outside the active tree is fine. This way, parts of a scene can be built or instantiated in a thread, then added in the main thread:</p>
+<pre><code>var enemy_scene = load(&quot;res://enemy_scene.scn&quot;)
+var enemy = enemy_scene.instance()
+enemy.add_child(weapon) # Set a weapon.
+world.call_deferred(&quot;add_child&quot;, enemy)</code></pre>
+<p>Still, this is only really useful if you have <strong>one</strong> thread loading data. Attempting to load or create scene chunks from multiple threads may work, but you risk resources (which are only loaded once in Godot) tweaked by the multiple threads, resulting in unexpected behaviors or crashes.</p>
+<p>Only use more than one thread to generate scene data if you <em>really</em> know what you are doing and you are sure that a single resource is not being used or set in multiple ones. Otherwise, you are safer just using the servers API (which is fully thread-safe) directly and not touching scene or resources.</p>
+<h2 id="rendering">Rendering</h2>
+<p>Instancing nodes that render anything in 2D or 3D (such as Sprite) is <em>not</em> thread-safe by default. To make rendering thread-safe, set the <strong>Rendering &gt; Threads &gt; Thread Model</strong> project setting to <strong>Multi-Threaded</strong>.</p>
+<p>Note that the Multi-Threaded thread model has several known bugs, so it may not be usable in all scenarios.</p>
+<h2 id="gdscript-arrays-dictionaries">GDScript arrays, dictionaries</h2>
+<p>In GDScript, reading and writing elements from multiple threads is OK, but anything that changes the container size (resizing, adding or removing elements) requires locking a mutex.</p>
+<h2 id="resources">Resources</h2>
+<p>Modifying a unique resource from multiple threads is not supported. However handling references on multiple threads is supported, hence loading resources on a thread is as well - scenes, textures, meshes, etc - can be loaded and manipulated on a thread and then added to the active scene on the main thread. The limitation here is as described above, one must be careful not to load the same resource from multiple threads at once, therefore it is easiest to use <strong>one</strong> thread for loading and modifying resources, and then the main thread for adding them.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

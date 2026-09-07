@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>When to use scenes versus scripts — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="when-to-use-scenes-versus-scripts">When to use scenes versus scripts</h1>
+<p>We've already covered how scenes and scripts are different. Scripts define an engine class extension with imperative code, scenes with declarative code.</p>
+<p>Each system's capabilities are different as a result. Scenes can define how an extended class initializes, but not what its behavior actually is. Scenes are often used in conjunction with a script so that the scene acts as an extension of the scripts declarative code.</p>
+<h2 id="anonymous-types">Anonymous types</h2>
+<p>It <em>is</em> possible to completely define a scenes' contents using a script alone. This is, in essence, what the Godot Editor does, only in the C++ constructor of its objects.</p>
+<p>But, choosing which one to use can be a dilemma. Creating script instances is identical to creating in-engine classes whereas handling scenes requires a change in API:</p>
+<pre class="gdscript"><code>const MyNode = preload(&quot;my_node.gd&quot;)
+const MyScene = preload(&quot;my_scene.tscn&quot;)
+var node = Node.new()
+var my_node = MyNode.new() # Same method call
+var my_scene = MyScene.instance() # Different method call
+var my_inherited_scene = MyScene.instance(PackedScene.GEN_EDIT_STATE_MAIN) # Create scene inheriting from MyScene</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Game <span class="op">:</span> Node</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">readonly</span> Script MyNodeScr <span class="op">=</span> <span class="op">(</span>Script<span class="op">)</span>ResourceLoader<span class="op">.</span><span class="fu">Load</span><span class="op">(</span><span class="st">&quot;MyNode.cs&quot;</span><span class="op">);</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">readonly</span> PackedScene MySceneScn <span class="op">=</span> <span class="op">(</span>PackedScene<span class="op">)</span>ResourceLoader<span class="op">.</span><span class="fu">Load</span><span class="op">(</span><span class="st">&quot;MyScene.tscn&quot;</span><span class="op">);</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Node ANode<span class="op">;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Node MyNode<span class="op">;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Node MyScene<span class="op">;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Node MyInheritedScene<span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="fu">Game</span><span class="op">()</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        ANode <span class="op">=</span> <span class="kw">new</span> <span class="fu">Node</span><span class="op">();</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        MyNode <span class="op">=</span> <span class="kw">new</span> <span class="fu">MyNode</span><span class="op">();</span> <span class="co">// Same syntax</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        MyScene <span class="op">=</span> MySceneScn<span class="op">.</span><span class="fu">Instance</span><span class="op">();</span> <span class="co">// Different. Instantiated from a PackedScene</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        MyInheritedScene <span class="op">=</span> MySceneScn<span class="op">.</span><span class="fu">Instance</span><span class="op">(</span>PackedScene<span class="op">.</span><span class="fu">GenEditState</span><span class="op">.</span><span class="fu">Main</span><span class="op">);</span> <span class="co">// Create scene inheriting from MyScene</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Also, scripts will operate a little slower than scenes due to the speed differences between engine and script code. The larger and more complex the node, the more reason there is to build it as a scene.</p>
+<h2 id="named-types">Named types</h2>
+<p>In some cases, a user can register a script as a new type within the editor itself. This displays it as a new type in the node or resource creation dialog with an optional icon. In these cases, the user's ability to use the script is much more streamlined. Rather than having to...</p>
+<ol type="1">
+<li>Know the base type of the script they would like to use.</li>
+<li>Create an instance of that base type.</li>
+<li>Add the script to the node.
+<ol type="1">
+<li>(Drag-n-drop method)
+<ol type="1">
+<li>Find the script in the FileSystem dock.</li>
+<li>Drag and drop the script onto the node in the Scene dock.</li>
+</ol></li>
+<li>(Property method)
+<ol type="1">
+<li>Scroll down to the bottom of the Inspector to find the <code>script</code> property and select it.</li>
+<li>Select "Load" from the dropdown.</li>
+<li>Select the script from the file dialog.</li>
+</ol></li>
+</ol></li>
+</ol>
+<p>With a registered script, the scripted type instead becomes a creation option like the other nodes and resources in the system. One need not do any of the above work. The creation dialog even has a search bar to look up the type by name.</p>
+<p>There are two systems for registering types...</p>
+<ul>
+<li><p>ref</p>
+<blockquote>
+<ul>
+<li>Editor-only. Typenames are not accessible at runtime.</li>
+<li>Does not support inherited custom types.</li>
+<li>An initializer tool. Creates the node with the script. Nothing more.</li>
+<li>Editor has no type-awareness of the script or its relationship to other engine types or scripts.</li>
+<li>Allows users to define an icon.</li>
+<li>Works for all scripting languages because it deals with Script resources in abstract.</li>
+<li>Set up using ref.</li>
+</ul>
+</blockquote></li>
+<li><p>ref</p>
+<blockquote>
+<ul>
+<li>Editor and runtime accessible.</li>
+<li>Displays inheritance relationships in full.</li>
+<li>Creates the node with the script, but can also change types or extend the type from the editor.</li>
+<li>Editor is aware of inheritance relationships between scripts, script classes, and engine C++ classes.</li>
+<li>Allows users to define an icon.</li>
+<li>Engine developers must add support for languages manually (both name exposure and runtime accessibility).</li>
+<li>Godot 3.1+ only.</li>
+<li>The Editor scans project folders and registers any exposed names for all scripting languages. Each scripting language must implement its own support for exposing this information.</li>
+</ul>
+</blockquote></li>
+</ul>
+<p>Both methodologies add names to the creation dialog, but script classes, in particular, also allow for users to access the typename without loading the script resource. Creating instances and accessing constants or static methods is viable from anywhere.</p>
+<p>With features like these, one may wish their type to be a script without a scene due to the ease of use it grants users. Those developing plugins or creating in-house tools for designers to use will find an easier time of things this way.</p>
+<p>On the downside, it also means having to use largely imperative programming.</p>
+<h2 id="performance-of-script-vs-packedscene">Performance of Script vs PackedScene</h2>
+<p>One last aspect to consider when choosing scenes and scripts is execution speed.</p>
+<p>As the size of objects increases, the scripts' necessary size to create and initialize them grows much larger. Creating node hierarchies demonstrates this. Each Node's logic could be several hundred lines of code in length.</p>
+<p>The code example below creates a new <code>Node</code>, changes its name, assigns a script to it, sets its future parent as its owner so it gets saved to disk along with it, and finally adds it as a child of the <code>Main</code> node:</p>
+<pre class="gdscript"><code># Main.gd
+extends Node
+
+func _init():
+    var child = Node.new()
+    child.name = &quot;Child&quot;
+    child.script = preload(&quot;Child.gd&quot;)
+    child.owner = self
+    add_child(child)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Main <span class="op">:</span> Resource</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Node Child <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="fu">Main</span><span class="op">()</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        Child <span class="op">=</span> <span class="kw">new</span> <span class="fu">Node</span><span class="op">();</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        Child<span class="op">.</span><span class="fu">Name</span> <span class="op">=</span> <span class="st">&quot;Child&quot;</span><span class="op">;</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        Child<span class="op">.</span><span class="fu">Script</span> <span class="op">=</span> ResourceLoader<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Script<span class="op">&gt;(</span><span class="st">&quot;child.gd&quot;</span><span class="op">);</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        Child<span class="op">.</span><span class="fu">Owner</span> <span class="op">=</span> <span class="kw">this</span><span class="op">;</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">AddChild</span><span class="op">(</span>Child<span class="op">);</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Script code like this is much slower than engine-side C++ code. Each instruction makes a call to the scripting API which leads to many "lookups" on the back-end to find the logic to execute.</p>
+<p>Scenes help to avoid this performance issue. ref, the base type that scenes inherit from, defines resources that use serialized data to create objects. The engine can process scenes in batches on the back-end and provide much better performance than scripts.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>In the end, the best approach is to consider the following:</p>
+<ul>
+<li>If one wishes to create a basic tool that is going to be reused in several different projects and which people of all skill levels will likely use (including those who don't label themselves as "programmers"), then chances are that it should probably be a script, likely one with a custom name/icon.</li>
+<li>If one wishes to create a concept that is particular to their game, then it should always be a scene. Scenes are easier to track/edit and provide more security than scripts.</li>
+<li>If one would like to give a name to a scene, then they can still sort of do this in 3.1 by declaring a script class and giving it a scene as a constant. The script becomes, in effect, a namespace:</li>
+</ul>
+<pre class="gdscript"><code># game.gd
+extends Reference
+class_name Game # extends Reference, so it won&#39;t show up in the node creation dialog
+const MyScene = preload(&quot;my_scene.tscn&quot;)
+
+# main.gd
+extends Node
+func _ready():
+    add_child(Game.MyScene.instance())</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

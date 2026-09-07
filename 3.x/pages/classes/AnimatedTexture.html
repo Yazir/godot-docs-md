@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnimatedTexture — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="animatedtexture">AnimatedTexture</h1>
+<p><em>Inherits: <a href="Texture.html">Texture</a> &lt; <a href="Resource.html">Resource</a> &lt; <a href="Reference.html">Reference</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Proxy texture for simple frame-based animations.</p>
+<h2 id="description">Description</h2>
+<p><strong>AnimatedTexture</strong> is a resource format for frame-based animations, where multiple textures can be chained automatically with a predefined delay for each frame. Unlike <a href="AnimationPlayer.html">AnimationPlayer</a> or <a href="AnimatedSprite.html">AnimatedSprite</a>, it isn't a <a href="Node.html">Node</a>, but has the advantage of being usable anywhere a <a href="Texture.html">Texture</a> resource can be used, e.g. in a <a href="TileSet.html">TileSet</a>.</p>
+<p>The playback of the animation is controlled by the <code>fps</code> property as well as each frame's optional delay (see <code>set_frame_delay</code>). The animation loops, i.e. it will restart at frame 0 automatically after playing the last frame.</p>
+<p><strong>AnimatedTexture</strong> currently requires all frame textures to have the same size, otherwise the bigger ones will be cropped to match the smallest one.</p>
+<p><strong>Note:</strong> AnimatedTexture doesn't support using <a href="AtlasTexture.html">AtlasTexture</a> s. Each frame needs to be a separate <a href="Texture.html">Texture</a>.</p>
+<h2 id="properties">Properties</h2>
+<h3 id="int-current_frame"><code>int current_frame</code></h3>
+<ul>
+<li>Setter: <code>set_current_frame(value: int)</code></li>
+<li>Getter: <code>get_current_frame()</code></li>
+</ul>
+<p>Sets the currently visible frame of the texture.</p>
+<h3 id="float-fps--40"><code>float fps = 4.0</code></h3>
+<ul>
+<li>Setter: <code>set_fps(value: float)</code></li>
+<li>Getter: <code>get_fps()</code></li>
+</ul>
+<p>Animation speed in frames per second. This value defines the default time interval between two frames of the animation, and thus the overall duration of the animation loop based on the <code>frames</code> property. A value of 0 means no predefined number of frames per second, the animation will play according to each frame's frame delay (see <code>set_frame_delay</code>).</p>
+<p>For example, an animation with 8 frames, no frame delay and a <code>fps</code> value of 2 will run for 4 seconds, with each frame lasting 0.5 seconds.</p>
+<h3 id="int-frames--1"><code>int frames = 1</code></h3>
+<ul>
+<li>Setter: <code>set_frames(value: int)</code></li>
+<li>Getter: <code>get_frames()</code></li>
+</ul>
+<p>Number of frames to use in the animation. While you can create the frames independently with <code>set_frame_texture</code>, you need to set this value for the animation to take new frames into account. The maximum number of frames is <code>MAX_FRAMES</code>.</p>
+<h3 id="bool-oneshot--false"><code>bool oneshot = false</code></h3>
+<ul>
+<li>Setter: <code>set_oneshot(value: bool)</code></li>
+<li>Getter: <code>get_oneshot()</code></li>
+</ul>
+<p>If <code>true</code>, the animation will only play once and will not loop back to the first frame after reaching the end. Note that reaching the end will not set <code>pause</code> to <code>true</code>.</p>
+<h3 id="bool-pause--false"><code>bool pause = false</code></h3>
+<ul>
+<li>Setter: <code>set_pause(value: bool)</code></li>
+<li>Getter: <code>get_pause()</code></li>
+</ul>
+<p>If <code>true</code>, the animation will pause where it currently is (i.e. at <code>current_frame</code>). The animation will continue from where it was paused when changing this property to <code>false</code>.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="float-get_frame_delayframe-int-const"><code>float get_frame_delay(frame: int) const</code></h3>
+<p>Returns the given frame's delay value.</p>
+<h3 id="texture-get_frame_textureframe-int-const"><code>Texture get_frame_texture(frame: int) const</code></h3>
+<p>Returns the given frame's <a href="Texture.html">Texture</a>.</p>
+<h3 id="void-set_frame_delayframe-int-delay-float"><code>void set_frame_delay(frame: int, delay: float)</code></h3>
+<p>Sets an additional delay (in seconds) between this frame and the next one, that will be added to the time interval defined by <code>fps</code>. By default, frames have no delay defined. If a delay value is defined, the final time interval between this frame and the next will be <code>1.0 / fps + delay</code>.</p>
+<p>For example, for an animation with 3 frames, 2 FPS and a frame delay on the second frame of 1.2, the resulting playback will be:</p>
+<pre class="gdscript"><code>Frame 0: 0.5 s (1 / fps)
+Frame 1: 1.7 s (1 / fps + 1.2)
+Frame 2: 0.5 s (1 / fps)
+Total duration: 2.7 s</code></pre>
+<h3 id="void-set_frame_textureframe-int-texture-texture"><code>void set_frame_texture(frame: int, texture: Texture)</code></h3>
+<p>Assigns a <a href="Texture.html">Texture</a> to the given frame. Frame IDs start at 0, so the first frame has ID 0, and the last frame of the animation has ID <code>frames</code> - 1.</p>
+<p>You can define any number of textures up to <code>MAX_FRAMES</code>, but keep in mind that only frames from 0 to <code>frames</code> - 1 will be part of the animation.</p>
+<h2 id="constants">Constants</h2>
+<h3 id="max_frames--256"><code>MAX_FRAMES = 256</code></h3>
+<p>The maximum number of frames supported by <strong>AnimatedTexture</strong>. If you need more frames in your animation, use <a href="AnimationPlayer.html">AnimationPlayer</a> or <a href="AnimatedSprite.html">AnimatedSprite</a>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

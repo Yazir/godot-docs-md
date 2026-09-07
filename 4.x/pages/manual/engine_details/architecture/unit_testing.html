@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unit testing — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="unit-testing">Unit testing</h1>
+<p>Godot Engine allows to write unit tests directly in C++. The engine integrates the <a href="https://github.com/doctest/doctest">doctest</a> unit testing framework which gives ability to write test suites and test cases next to production code, but since the tests in Godot go through a different <code>main</code> entry point, the tests reside in a dedicated <code>tests/</code> directory instead, which is located at the root of the engine source code.</p>
+<h2 id="platform-and-target-support">Platform and target support</h2>
+<p>C++ unit tests can be run on Linux, macOS, and Windows operating systems.</p>
+<p>Tests can only be run with editor <code>tools</code> enabled, which means that export templates cannot be tested currently.</p>
+<h2 id="running-tests">Running tests</h2>
+<p>Before tests can be actually run, the engine must be compiled with the <code>tests</code> build option enabled (and any other build option you typically use), as the tests are not compiled as part of the engine by default:</p>
+<pre class="shell"><code>scons tests=yes</code></pre>
+<p>Once the build is done, run the tests with a <code>--test</code> command-line option:</p>
+<pre class="shell"><code>./bin/&lt;godot_binary&gt; --test</code></pre>
+<p>The test run can be configured with the various doctest-specific command-line options. To retrieve the full list of supported options, run the <code>--test</code> command with the <code>--help</code> option:</p>
+<pre class="shell"><code>./bin/&lt;godot_binary&gt; --test --help</code></pre>
+<p>Any other options and arguments after the <code>--test</code> command are treated as arguments for doctest.</p>
+<blockquote>
+<p><strong>Note:</strong> Tests are compiled automatically if you use the <code>dev_mode=yes</code> SCons option. <code>dev_mode=yes</code> is recommended if you plan on contributing to the engine development as it will automatically treat compilation warnings as errors. The continuous integration system will fail if any compilation warnings are detected, so you should strive to fix all warnings before opening a pull request.</p>
+</blockquote>
+<h3 id="filtering-tests">Filtering tests</h3>
+<p>By default, all tests are run if you don't supply any extra arguments after the <code>--test</code> command. But if you're writing new tests or would like to see the successful assertions output coming from those tests for debugging purposes, you can run the tests of interest with the various filtering options provided by doctest.</p>
+<p>The wildcard syntax <code>*</code> is supported for matching any number of characters in test suites, test cases, and source file names:</p>
+<table>
+<tbody>
+<tr class="odd">
+<td><strong>Filter options</strong></td>
+<td><strong>Shorthand</strong></td>
+<td><strong>Examples</strong></td>
+</tr>
+<tr class="even">
+<td><code>--test-suite</code></td>
+<td><code>-ts</code></td>
+<td><code>-ts="*[GDScript]*"</code></td>
+</tr>
+<tr class="odd">
+<td><code>--test-case</code></td>
+<td><code>-tc</code></td>
+<td><code>-tc="*[String]*"</code></td>
+</tr>
+<tr class="even">
+<td><code>--source-file</code></td>
+<td><code>-sf</code></td>
+<td><code>-sf="*test_color*"</code></td>
+</tr>
+</tbody>
+</table>
+<p>For instance, to run only the <code>String</code> unit tests, run:</p>
+<pre class="shell"><code>./bin/&lt;godot_binary&gt; --test --test-case=&quot;*[String]*&quot;</code></pre>
+<p>Successful assertions output can be enabled with the <code>--success</code> (<code>-s</code>) option, and can be combined with any combination of filtering options above, for instance:</p>
+<pre class="shell"><code>./bin/&lt;godot_binary&gt; --test --source-file=&quot;*test_color*&quot; --success</code></pre>
+<p>Specific tests can be skipped with corresponding <code>-exclude</code> options. As of now, some tests include random stress tests which take a while to execute. In order to skip those kinds of tests, run the following command:</p>
+<pre class="shell"><code>./bin/&lt;godot_binary&gt; --test --test-case-exclude=&quot;*[Stress]*&quot;</code></pre>
+<h2 id="writing-tests">Writing tests</h2>
+<p>Test suites represent C++ implementation files which must include the <code>TEST_FORCE_LINK()</code> macro. Most test suites are located directly under <code>tests/</code> directory.</p>
+<p>All test files are prefixed with <code>test_</code>, and this is a naming convention which the Godot build system relies on to detect tests throughout the engine.</p>
+<p>Here's a minimal working test suite with a single test case written:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;tests/test_macros.h&quot;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>TEST_FORCE_LINK<span class="op">(</span>test_string<span class="op">)</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> TestString <span class="op">{</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>TEST_CASE<span class="op">(</span><span class="st">&quot;[String] Hello World!&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    String hello <span class="op">=</span> <span class="st">&quot;Hello World!&quot;</span><span class="op">;</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    CHECK<span class="op">(</span>hello <span class="op">==</span> <span class="st">&quot;Hello World!&quot;</span><span class="op">);</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="co">// namespace TestString</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> You can quickly generate new tests using the <code>create_test.py</code> script found in the <code>tests/</code> directory. This script automatically creates a new test file with the required boilerplate code in the appropriate location. To view usage instructions, run the script with the <code>-h</code> flag.</p>
+</blockquote>
+<p>The <code>tests/test_macros.h</code> header encapsulates everything which is needed for writing C++ unit tests in Godot. It includes doctest assertion and logging macros such as <code>CHECK</code> as seen above, and of course the definitions for writing test cases themselves.</p>
+<blockquote>
+<p><strong>See also:</strong> <a href="https://github.com/godotengine/godot/blob/master/tests/test_macros.h">tests/test_macros.h</a> source code for currently implemented macros and aliases for them.</p>
+</blockquote>
+<p>Test cases are created using <code>TEST_CASE</code> function-like macro. Each test case must have a brief description written in parentheses, optionally including custom tags which allow to filter the tests at runtime, such as <code>[String]</code>, <code>[Stress]</code> etc.</p>
+<p>Test cases are written in a dedicated namespace. This is not required, but allows to prevent naming collisions for when other static helper functions are written to accommodate the repeating testing procedures such as populating common test data for each test, or writing parameterized tests.</p>
+<p>Godot supports writing tests per C++ module. For instructions on how to write module tests, refer to <code>doc_custom_module_unit_tests</code>.</p>
+<h3 id="subcases">Subcases</h3>
+<p>In situations where you have a common setup for several test cases with only slight variations, subcases can be very helpful. Here's an example:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>TEST_CASE<span class="op">(</span><span class="st">&quot;[SceneTree][Node] Testing node operations with a very simple scene tree&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ... common setup (e.g. creating a scene tree with a few nodes)</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    SUBCASE<span class="op">(</span><span class="st">&quot;Move node to specific index&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ... setup and checks for moving a node</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    SUBCASE<span class="op">(</span><span class="st">&quot;Remove node at specific index&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ... setup and checks for removing a node</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Each <code>SUBCASE</code> causes the <code>TEST_CASE</code> to be executed from the beginning. Subcases can be nested to an arbitrary depth, but it is advised to limit nesting to no more than one level deep.</p>
+<h3 id="assertions">Assertions</h3>
+<p>A list of all commonly used assertions used throughout the Godot tests, sorted by severity.</p>
+<table>
+<tbody>
+<tr class="odd">
+<td><strong>Assertion</strong></td>
+<td><strong>Description</strong></td>
+</tr>
+<tr class="even">
+<td><code>REQUIRE</code></td>
+<td>Test if condition holds true. Fails the entire test immediately if the condition does not hold true.</td>
+</tr>
+<tr class="odd">
+<td><code>REQUIRE_FALSE</code></td>
+<td>Test if condition does not hold true. Fails the entire test immediately if the condition holds true.</td>
+</tr>
+<tr class="even">
+<td><code>CHECK</code></td>
+<td>Test if condition holds true. Marks the test run as failing, but allow to run other assertions.</td>
+</tr>
+<tr class="odd">
+<td><code>CHECK_FALSE</code></td>
+<td>Test if condition does not hold true. Marks the test run as failing, but allow to run other assertions.</td>
+</tr>
+<tr class="even">
+<td><code>WARN</code></td>
+<td>Test if condition holds true. Does not fail the test under any circumstance, but logs a warning if something does not hold true.</td>
+</tr>
+<tr class="odd">
+<td><code>WARN_FALSE</code></td>
+<td>Test if condition does not hold true. Does not fail the test under any circumstance, but logs a warning if something holds true.</td>
+</tr>
+</tbody>
+</table>
+<p>All of the above assertions have corresponding <code>*_MESSAGE</code> macros, which allow to print optional message with rationale of what should happen.</p>
+<p>Prefer to use <code>CHECK</code> for self-explanatory assertions and <code>CHECK_MESSAGE</code> for more complex ones if you think that it deserves a better explanation.</p>
+<blockquote>
+<p><strong>See also:</strong> <a href="https://github.com/doctest/doctest/blob/master/doc/markdown/assertions.md">doctest: Assertion macros</a>.</p>
+</blockquote>
+<h3 id="logging">Logging</h3>
+<p>The test output is handled by doctest itself, and does not rely on Godot printing or logging functionality at all, so it's recommended to use dedicated macros which allow to log test output in a format written by doctest.</p>
+<table>
+<tbody>
+<tr class="odd">
+<td><strong>Macro</strong></td>
+<td><strong>Description</strong></td>
+</tr>
+<tr class="even">
+<td><code>MESSAGE</code></td>
+<td>Prints a message.</td>
+</tr>
+<tr class="odd">
+<td><code>FAIL_CHECK</code></td>
+<td>Marks the test as failing, but continue the execution. Can be wrapped in conditionals for complex checks.</td>
+</tr>
+<tr class="even">
+<td><code>FAIL</code></td>
+<td>Fails the test immediately. Can be wrapped in conditionals for complex checks.</td>
+</tr>
+</tbody>
+</table>
+<p>Different reporters can be chosen at runtime. For instance, here's how the output can be redirected to an XML file:</p>
+<pre class="shell"><code>./bin/&lt;godot_binary&gt; --test --source-file=&quot;*test_validate*&quot; --success --reporters=xml --out=doctest.txt</code></pre>
+<blockquote>
+<p><strong>See also:</strong> <a href="https://github.com/doctest/doctest/blob/master/doc/markdown/logging.md">doctest: Logging macros</a>.</p>
+</blockquote>
+<h3 id="testing-failure-paths">Testing failure paths</h3>
+<p>Sometimes, it's not always feasible to test for an <em>expected</em> result. With the Godot development philosophy of that the engine should not crash and should gracefully recover whenever a non-fatal error occurs, it's important to check that those failure paths are indeed safe to execute without crashing the engine.</p>
+<p><em>Unexpected</em> behavior can be tested in the same way as anything else. The only problem this creates is that the error printing shall unnecessarily pollute the test output with errors coming from the engine itself (even if the end result is successful).</p>
+<p>To alleviate this problem, use <code>ERR_PRINT_OFF</code> and <code>ERR_PRINT_ON</code> macros directly within test cases to temporarily disable the error output coming from the engine, for instance:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>TEST_CASE<span class="op">(</span><span class="st">&quot;[Color] Constructor methods&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    ERR_PRINT_OFF<span class="op">;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    Color html_invalid <span class="op">=</span> Color<span class="op">::</span>html<span class="op">(</span><span class="st">&quot;invalid&quot;</span><span class="op">);</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    ERR_PRINT_ON<span class="op">;</span> <span class="co">// Don&#39;t forget to re-enable!</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    CHECK_MESSAGE<span class="op">(</span>html_invalid<span class="op">.</span>is_equal_approx<span class="op">(</span>Color<span class="op">()),</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Invalid HTML notation should result in a Color with the default values.&quot;</span><span class="op">);</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="special-tags-in-test-case-names">Special tags in test case names</h3>
+<p>These tags can be added to the test case name to modify or extend the test environment:</p>
+<table>
+<tbody>
+<tr class="odd">
+<td><strong>Tag</strong></td>
+<td><strong>Description</strong></td>
+</tr>
+<tr class="even">
+<td><code>[SceneTree]</code></td>
+<td>Required for test cases that rely on a scene tree with MessageQueue to be available. It also enables a mock rendering server and ref. |</td>
+</tr>
+<tr class="odd">
+<td><code>[Editor]</code></td>
+<td>Like <code>[SceneTree]</code>, but with additional editor-related infrastructure available, such as ref. |</td>
+</tr>
+<tr class="even">
+<td><code>[Audio]</code></td>
+<td>Initializes the ref using a mock audio driver. |</td>
+</tr>
+<tr class="odd">
+<td><code>[Navigation2D]</code></td>
+<td>Creates the default 2D navigation server and makes it available for testing.</td>
+</tr>
+<tr class="even">
+<td><code>[Navigation3D]</code></td>
+<td>Creates the default 3D navigation server and makes it available for testing.</td>
+</tr>
+</tbody>
+</table>
+<p>You can use them together to combine multiple test environment extensions.</p>
+<h3 id="testing-signals">Testing signals</h3>
+<p>The following macros can be use to test signals:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Macro</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>SIGNAL_WATCH(object, "signal_name")</code></td>
+<td>Starts watching the specified signal on the given object.</td>
+</tr>
+<tr class="even">
+<td><code>SIGNAL_UNWATCH(object, "signal_name")</code></td>
+<td>Stops watching the specified signal on the given object.</td>
+</tr>
+<tr class="odd">
+<td><code>SIGNAL_CHECK("signal_name", Vector&lt;Vector&lt;Variant&gt;&gt;)</code></td>
+<td>Checks the arguments of all fired signals. The outer vector contains each fired signal, while the inner vector contains the list of arguments for that signal. The order of signals is significant.</td>
+</tr>
+<tr class="even">
+<td><code>SIGNAL_CHECK_FALSE("signal_name")</code></td>
+<td>Checks if the specified signal was not fired.</td>
+</tr>
+<tr class="odd">
+<td><code>SIGNAL_DISCARD("signal_name")</code></td>
+<td>Discards all records of the specified signal.</td>
+</tr>
+</tbody>
+</table>
+<p>Below is an example demonstrating the use of these macros:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">//...</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>SUBCASE<span class="op">(</span><span class="st">&quot;[Timer] Timer process timeout signal must be emitted&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    SIGNAL_WATCH<span class="op">(</span>test_timer<span class="op">,</span> SNAME<span class="op">(</span><span class="st">&quot;timeout&quot;</span><span class="op">));</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    test_timer<span class="op">-&gt;</span>start<span class="op">(</span><span class="fl">0.1</span><span class="op">);</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    SceneTree<span class="op">::</span>get_singleton<span class="op">()-&gt;</span>process<span class="op">(</span><span class="fl">0.2</span><span class="op">);</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    Array signal_args<span class="op">;</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    signal_args<span class="op">.</span>push_back<span class="op">(</span>Array<span class="op">());</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    SIGNAL_CHECK<span class="op">(</span>SNAME<span class="op">(</span><span class="st">&quot;timeout&quot;</span><span class="op">),</span> signal_args<span class="op">);</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    SIGNAL_UNWATCH<span class="op">(</span>test_timer<span class="op">,</span> SNAME<span class="op">(</span><span class="st">&quot;timeout&quot;</span><span class="op">));</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="co">//...</span></span></code></pre></div>
+<h2 id="test-tools">Test tools</h2>
+<p>Test tools are advanced methods which allow you to run arbitrary procedures to facilitate the process of manual testing and debugging the engine internals.</p>
+<p>These tools can be run by supplying the name of a tool after the <code>--test</code> command-line option. For instance, the GDScript module implements and registers several tools to help the debugging of the tokenizer, parser, and compiler:</p>
+<pre class="shell"><code>./bin/&lt;godot_binary&gt; --test gdscript-tokenizer test.gd
+./bin/&lt;godot_binary&gt; --test gdscript-parser test.gd
+./bin/&lt;godot_binary&gt; --test gdscript-compiler test.gd</code></pre>
+<p>If any such tool is detected, then the rest of the unit tests are skipped.</p>
+<p>Test tools can be registered anywhere throughout the engine as the registering mechanism closely resembles of what doctest provides while registering test cases using dynamic initialization technique, but usually these can be registered at corresponding <code>register_types.cpp</code> sources (per module or core).</p>
+<p>Here's an example of how GDScript registers test tools in <code>modules/gdscript/register_types.cpp</code>:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifdef TESTS_ENABLED</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> test_tokenizer<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    TestGDScript<span class="op">::</span>test<span class="op">(</span>TestGDScript<span class="op">::</span>TestType<span class="op">::</span>TEST_TOKENIZER<span class="op">);</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> test_parser<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    TestGDScript<span class="op">::</span>test<span class="op">(</span>TestGDScript<span class="op">::</span>TestType<span class="op">::</span>TEST_PARSER<span class="op">);</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> test_compiler<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    TestGDScript<span class="op">::</span>test<span class="op">(</span>TestGDScript<span class="op">::</span>TestType<span class="op">::</span>TEST_COMPILER<span class="op">);</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>REGISTER_TEST_COMMAND<span class="op">(</span><span class="st">&quot;gdscript-tokenizer&quot;</span><span class="op">,</span> <span class="op">&amp;</span>test_tokenizer<span class="op">);</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>REGISTER_TEST_COMMAND<span class="op">(</span><span class="st">&quot;gdscript-parser&quot;</span><span class="op">,</span> <span class="op">&amp;</span>test_parser<span class="op">);</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>REGISTER_TEST_COMMAND<span class="op">(</span><span class="st">&quot;gdscript-compiler&quot;</span><span class="op">,</span> <span class="op">&amp;</span>test_compiler<span class="op">);</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<p>The custom command-line parsing can be performed by a test tool itself with the help of OS ref method.</p>
+<h2 id="integration-tests-for-gdscript">Integration tests for GDScript</h2>
+<p>Godot uses doctest to prevent regressions in GDScript during development. There are several types of test scripts which can be written:</p>
+<ul>
+<li>tests for expected errors;</li>
+<li>tests for warnings;</li>
+<li>tests for features.</li>
+</ul>
+<p>Therefore, the process of writing integration tests for GDScript is the following:</p>
+<ol type="1">
+<li><p>Pick a type of a test script you'd like to write, and create a new GDScript file under the <code>modules/gdscript/tests/scripts</code> directory within corresponding sub-directory.</p></li>
+<li><p>Write GDScript code. The test script must have a function called <code>test()</code> which takes no arguments. Such function will be called by the test runner. The test should not have any dependency unless it's part of the test too. Global classes (using <code>class_name</code>) are registered before the runner starts, so those should work if needed.</p>
+<p>Here's an example test script:</p>
+<pre><code>func test():
+    if true # Missing colon here.
+        print(&quot;true&quot;)</code></pre></li>
+<li><p>Change directory to the Godot source repository root.</p>
+<pre class="shell"><code>cd godot</code></pre></li>
+<li><p>Generate <code>*.out</code> files to update the expected results from the output:</p>
+<pre class="shell"><code>bin/&lt;godot_binary&gt; --gdscript-generate-tests modules/gdscript/tests/scripts</code></pre></li>
+</ol>
+<p>You may add the <code>--print-filenames</code> option to see filenames as their test outputs are generated. If you are working on a new feature that is causing hard crashes, you can use this option to quickly find which test file causes the crash and debug from there.</p>
+<ol start="5" type="1">
+<li><p>Run GDScript tests with:</p>
+<pre class="shell"><code>./bin/&lt;godot_binary&gt; --test --test-suite=&quot;*GDScript*&quot;</code></pre></li>
+</ol>
+<p>This also accepts the <code>--print-filenames</code> option (see above).</p>
+<p>If no errors are printed and everything goes well, you're done!</p>
+<blockquote>
+<p><strong>Warning:</strong> Make sure the output does have the expected values before submitting a pull request. If <code>--gdscript-generate-tests</code> produces <code>*.out</code> files which are unrelated to newly added tests, you should revert those files back and only commit <code>*.out</code> files for new tests.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> The GDScript test runner is meant for testing the GDScript implementation, not for testing user scripts nor testing the engine using scripts. We recommend writing new tests for already resolved <a href="https://github.com/godotengine/godot/issues?q=is%3Aissue+label%3Atopic%3Agdscript+is%3Aclosed">issues related to GDScript at GitHub</a>, or writing tests for currently working features.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> If your test case requires that there is no <code>test()</code> function present inside the script file, you can disable the runtime section of the test by naming the script file so that it matches the pattern <code>*.notest.gd</code>. For example, "test_empty_file.notest.gd".</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

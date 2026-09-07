@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Running code in the editor — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="running-code-in-the-editor">Running code in the editor</h1>
+<h2 id="what-is-tool">What is <code>tool</code>?</h2>
+<p><code>tool</code> is a powerful line of code that, when added at the top of your script, makes it execute in the editor. You can also decide which parts of the script execute in the editor, which in game, and which in both.</p>
+<p>You can use it for doing many things, but it is mostly useful in level design for visually presenting things that are hard to predict ourselves. Here are some use cases:</p>
+<ul>
+<li>If you have a cannon that shoots cannonballs affected by physics (gravity), you can draw the cannonball's trajectory in the editor, making level design a lot easier.</li>
+<li>If you have jumppads with varying jump heights, you can draw the maximum jump height a player would reach if it jumped on one, also making level design easier.</li>
+<li>If your player doesn't use a sprite, but draws itself using code, you can make that drawing code execute in the editor to see your player.</li>
+</ul>
+<blockquote>
+<p><strong>Danger:</strong> <code>tool</code> scripts run inside the editor, and let you access the scene tree of the currently edited scene. This is a powerful feature which also comes with caveats, as the editor does not include protections for potential misuse of <code>tool</code> scripts. Be <strong>extremely</strong> cautious when manipulating the scene tree, especially via ref, as it can cause crashes if you free a node while the editor runs logic involving it.</p>
+</blockquote>
+<h2 id="how-to-use-it">How to use it</h2>
+<p>To turn a script into a tool, add the keyword <code>tool</code> at the top of your code.</p>
+<p>To check if you are currently in the editor, use: <code>Engine.editor_hint</code>.</p>
+<p>For example, if you want to execute some code only in the editor, use:</p>
+<pre class="gdscript"><code>if Engine.editor_hint:
+    # Code to execute when in editor.</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>Engine<span class="op">.</span><span class="fu">EditorHint</span><span class="op">)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Code to execute when in editor.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>On the other hand, if you want to execute code only in game, simply negate the same statement:</p>
+<pre class="gdscript"><code>if not Engine.editor_hint:
+    # Code to execute when in game.</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(!</span>Engine<span class="op">.</span><span class="fu">EditorHint</span><span class="op">)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Code to execute when in game.</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Pieces of code that do not have either of the 2 conditions above will run both in-editor and in-game.</p>
+<p>Here is how a <code>_process()</code> function might look for you:</p>
+<pre class="gdscript"><code>func _process(delta):
+    if Engine.editor_hint:
+        # Code to execute in editor.
+
+    if not Engine.editor_hint:
+        # Code to execute in game.
+
+    # Code to execute both in editor and in game.</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>Engine<span class="op">.</span><span class="fu">EditorHint</span><span class="op">)</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Code to execute in editor.</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(!</span>Engine<span class="op">.</span><span class="fu">EditorHint</span><span class="op">)</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Code to execute in game.</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Code to execute both in editor and in game.</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> Modifications in editor are permanent. For example, in the following case, when we remove the script, the node will keep its rotation. Be careful to avoid making unwanted modifications.</p>
+</blockquote>
+<h2 id="try-it-out">Try it out</h2>
+<p>Add a <code>Sprite</code> node to your scene and set the texture to Godot icon. Attach and open a script, and change it to this:</p>
+<pre class="gdscript"><code>tool
+extends Sprite
+
+func _process(delta):
+    rotation_degrees += 180 * delta</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> MySprite <span class="op">:</span> Sprite</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        RotationDegrees <span class="op">+=</span> <span class="dv">180</span> <span class="op">*</span> delta<span class="op">;</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Save the script and return to the editor. You should now see your object rotate. If you run the game, it will also rotate.</p>
+<blockquote>
+<p><strong>Note:</strong> If you don't see the changes, reload the scene (close it and open it again).</p>
+</blockquote>
+<p>Now let's choose which code runs when. Modify your <code>_process()</code> function to look like this:</p>
+<pre class="gdscript"><code>func _process(delta):
+    if Engine.editor_hint:
+        rotation_degrees += 180 * delta
+    else:
+        rotation_degrees -= 180 * delta</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>Engine<span class="op">.</span><span class="fu">EditorHint</span><span class="op">)</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        RotationDegrees <span class="op">+=</span> <span class="dv">180</span> <span class="op">*</span> delta<span class="op">;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        RotationDegrees <span class="op">-=</span> <span class="dv">180</span> <span class="op">*</span> delta<span class="op">;</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Save the script. Now the object will spin clockwise in the editor, but if you run the game, it will spin counter-clockwise.</p>
+<h2 id="editing-variables">Editing variables</h2>
+<p>Add and export a variable speed to the script. The function set_speed after "setget" is executed with your input to change the variable. Modify <code>_process()</code> to include the rotation speed.</p>
+<pre class="gdscript"><code>tool
+extends Sprite
+
+
+export var speed = 1 setget set_speed
+
+
+# Update speed and reset the rotation.
+func set_speed(new_speed):
+    speed = new_speed
+    rotation_degrees = 0
+
+
+func _process(delta):
+    rotation_degrees += 180 * delta * speed</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> MySprite <span class="op">:</span> Sprite</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> speed <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">float</span> Speed <span class="op">{</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        get <span class="op">=&gt;</span> speed<span class="op">;</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        set <span class="op">=&gt;</span> <span class="fu">SetSpeed</span><span class="op">(</span>value<span class="op">);</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Update speed and reset the rotation.</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">SetSpeed</span><span class="op">(</span><span class="dt">float</span> newSpeed<span class="op">)</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        speed <span class="op">=</span> newSpeed<span class="op">;</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>        RotationDegrees <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>        RotationDegrees <span class="op">+=</span> <span class="dv">180</span> <span class="op">*</span> delta <span class="op">*</span> speed<span class="op">;</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> Code from other nodes doesn't run in the editor. Your access to other nodes is limited. You can access the tree and nodes, and their default properties, but you can't access user variables. If you want to do so, other nodes have to run in the editor too. AutoLoad nodes cannot be accessed in the editor at all.</p>
+</blockquote>
+<h2 id="instancing-scenes">Instancing scenes</h2>
+<p>You can instantiate packed scenes normally and add them to the scene currently opened in the editor. By default, nodes or scenes added with ref are <strong>not</strong> visible in the Scene tree dock and are <strong>not</strong> persisted to disk. If you wish the node or scene to be visible in the scene tree dock and persisted to disk when saving the scene, you need to set the child node's ref property to the currently edited scene root.</p>
+<p>If you are using <code>tool</code>:</p>
+<pre class="gdscript"><code>func _ready():
+    var node = Spatial.new()
+    add_child(node) # Parent could be any node in the scene
+
+    # The line below is required to make the node visible in the Scene tree dock
+    # and persist changes made by the tool script to the saved scene file.
+    node.set_owner(get_tree().edited_scene_root)</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> node <span class="op">=</span> <span class="kw">new</span> <span class="fu">Spatial</span><span class="op">();</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">AddChild</span><span class="op">(</span>node<span class="op">);</span> <span class="co">// Parent could be any node in the scene</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// The line below is required to make the node visible in the Scene tree dock</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// and persist changes made by the tool script to the saved scene file.</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    node<span class="op">.</span><span class="fu">Owner</span> <span class="op">=</span> <span class="fu">GetTree</span><span class="op">().</span><span class="fu">EditedSceneRoot</span><span class="op">;</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>If you are using ref:</p>
+<pre class="gdscript"><code>func _run():
+    var parent = get_scene().find_node(&quot;Parent&quot;) # Parent could be any node in the scene
+    var node = Spatial.new()
+    parent.add_child(node)
+
+    # The line below is required to make the node visible in the Scene tree dock
+    # and persist changes made by the tool script to the saved scene file.
+    node.set_owner(get_scene())</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Run</span><span class="op">()</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> parent <span class="op">=</span> <span class="fu">GetScene</span><span class="op">().</span><span class="fu">FindNode</span><span class="op">(</span><span class="st">&quot;Parent&quot;</span><span class="op">);</span> <span class="co">// Parent could be any node in the scene</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> node <span class="op">=</span> <span class="kw">new</span> <span class="fu">Spatial</span><span class="op">();</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    parent<span class="op">.</span><span class="fu">AddChild</span><span class="op">(</span>node<span class="op">);</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// The line below is required to make the node visible in the Scene tree dock</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// and persist changes made by the tool script to the saved scene file.</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    node<span class="op">.</span><span class="fu">Owner</span> <span class="op">=</span> <span class="fu">GetScene</span><span class="op">();</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Warning:</strong> Using <code>tool</code> improperly can yield many errors. It is advised to first write the code how you want it, and only then add the <code>tool</code> keyword to the top. Also, make sure to separate code that runs in-editor from code that runs in-game. This way, you can find bugs more easily.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

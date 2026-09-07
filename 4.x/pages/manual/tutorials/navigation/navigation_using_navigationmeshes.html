@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using navigation meshes — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-navigation-meshes">Using navigation meshes</h1>
+<p>2D and 3D versions of the navigation mesh are available as ref and ref respectively.</p>
+<blockquote>
+<p><strong>Note:</strong> A navigation mesh only describes a traversable area for an agent's center position. Any radius values an agent may have are ignored. If you want pathfinding to account for an agent's (collision) size you need to shrink the navigation mesh accordingly.</p>
+</blockquote>
+<p>Navigation works independently from other engine parts like rendering or physics. Navigation meshes are the only things considered when doing pathfinding, e.g. visuals and collision shapes for example are completely ignored by the navigation system. If you need to take other data (like visuals for example) into account when doing pathfinding, you need to adapt your navigation meshes accordingly. The process of factoring in navigation restrictions in navigation meshes is commonly referred to as navigation mesh baking.</p>
+<p><em>Image: Navigation mesh polygon convex vs concave comparison</em></p>
+<p>A navigation mesh describes a surface that an agent can stand on safely with its center compared to physics shapes that describe outer collision bounds.</p>
+<p>If you experience clipping or collision problems while following navigation paths, always remember that you need to tell the navigation system what your intentions are through an appropriate navigation mesh. By itself the navigation system will never know "this is a tree / rock / wall collision shape or visual mesh" because it only knows that "here I was told I can path safely because it is on a navigation mesh".</p>
+<p>Navigation mesh baking can be done either by using a ref or ref, or by using the ref and ref API directly.</p>
+<h2 id="baking-a-navigation-mesh-with-a-navigationregion">Baking a navigation mesh with a NavigationRegion</h2>
+<p><em>Image: Navigation mesh baking steps</em></p>
+<p>Baking a navigation mesh with agent radius offset from geometry.</p>
+<p>The navigation mesh baking is made more accessible with the NavigationRegion node. When baking with a NavigationRegion node, the individual parsing, baking, and region update steps are all combined into one function.</p>
+<p>The nodes are available in 2D and 3D as ref and ref respectively.</p>
+<blockquote>
+<p><strong>Tip:</strong> The navigation mesh <code>source_geometry_mode</code> can be switched to parse specific node group names so nodes that should be baked can be placed anywhere in the scene.</p>
+</blockquote>
+<p><strong>Baking with a NavigationRegion2D</strong></p>
+<p>When a NavigationRegion2D node is selected in the Editor, bake options as well as polygon draw tools appear in the top bar of the Editor.</p>
+<p><em>Image: image</em></p>
+<p>In order for the region to work a ref resource needs to be added.</p>
+<p>The properties to parse and bake a navigation mesh are then part of the used resource and can be found in the resource Inspector.</p>
+<p><em>Image: image</em></p>
+<p>The result of the source geometry parsing can be influenced with the following properties.</p>
+<ul>
+<li>The <code>parsed_geometry_type</code> that filters if visual objects or physics objects or both should be parsed from the ref. For more details on what objects are parsed and how, see the section about parsing source geometry below.</li>
+<li>The <code>collision_mask</code> filters which physics collision objects are included when the <code>parsed_geometry_type</code> includes static colliders.</li>
+<li>The <code>source_geometry_mode</code> that defines on which node(s) to start the parsing, and how to traverse the ref.</li>
+<li>The <code>source_geometry_group_name</code> is used when only a certain node group should be parsed. Depends on the selected <code>source_geometry_mode</code>.</li>
+</ul>
+<p>With the source geometry added, the result of the baking can be controlled with the following properties.</p>
+<ul>
+<li>The <code>cell_size</code> sets the rasterization grid size and should match the navigation map size.</li>
+<li>The <code>agent_radius</code> shrinks the baked navigation mesh to have enough margin for the agent (collision) size.</li>
+</ul>
+<p>The NavigationRegion2D baking can also be used at runtime with scripts.</p>
+<p>var on_thread: bool = true bake_navigation_polygon(on_thread)</p>
+<p>csharp</p>
+<p>bool onThread = true; BakeNavigationPolygon(onThread);</p>
+<p>To quickly test the 2D baking with default settings:</p>
+<ul>
+<li>Add a ref.</li>
+<li>Add a ref resource to the NavigationRegion2D.</li>
+<li>Add a ref below the NavigationRegion2D.</li>
+<li>Draw 1 NavigationPolygon outline with the selected NavigationRegion2D draw tool.</li>
+<li>Draw 1 Polygon2D outline inside the NavigationPolygon outline with the selected Polygon2D draw tool.</li>
+<li>Hit the Editor bake button and a navigation mesh should appear.</li>
+</ul>
+<p><em>Image: image</em></p>
+<p><em>Image: image</em></p>
+<p><strong>Baking with a NavigationRegion3D</strong></p>
+<p>When a NavigationRegion3D node is selected in the Editor, bake options appear in the top bar of the Editor.</p>
+<p><em>Image: image</em></p>
+<p>In order for the region to work a ref resource needs to be added.</p>
+<p>The properties to parse and bake a navigation mesh are then part of the used resource and can be found in the resource Inspector.</p>
+<p><em>Image: image</em></p>
+<p>The result of the source geometry parsing can be influenced with the following properties.</p>
+<ul>
+<li>The <code>parsed_geometry_type</code> that filters if visual objects or physics objects or both should be parsed from the ref. For more details on what objects are parsed and how, see the section about parsing source geometry below.</li>
+<li>The <code>collision_mask</code> filters which physics collision objects are included when the <code>parsed_geometry_type</code> includes static colliders.</li>
+<li>The <code>source_geometry_mode</code> that defines on which node(s) to start the parsing, and how to traverse the ref.</li>
+<li>The <code>source_geometry_group_name</code> is used when only a certain node group should be parsed. Depends on the selected <code>source_geometry_mode</code>.</li>
+</ul>
+<p>With the source geometry added, the result of the baking can be controlled with the following properties.</p>
+<ul>
+<li>The <code>cell_size</code> and <code>cell_height</code> sets the rasterization voxel grid size and should match the navigation map size.</li>
+<li>The <code>agent_radius</code> shrinks the baked navigation mesh to have enough margin for the agent (collision) size.</li>
+<li>The <code>agent_height</code> excludes areas from the navigation mesh where the agent is too tall to fit in.</li>
+<li>The <code>agent_max_climb</code> and <code>agent_max_slope</code> removes areas where the height difference between neighboring voxels is too large, or where their surface is too steep.</li>
+</ul>
+<blockquote>
+<p><strong>Warning:</strong> A too small <code>cell_size</code> or <code>cell_height</code> can create so many voxels that it has the potential to freeze the game or even crash.</p>
+</blockquote>
+<p>The NavigationRegion3D baking can also be used at runtime with scripts.</p>
+<p>var on_thread: bool = true bake_navigation_mesh(on_thread)</p>
+<p>csharp</p>
+<p>bool onThread = true; BakeNavigationMesh(onThread);</p>
+<p>To quickly test the 3D baking with default settings:</p>
+<ul>
+<li>Add a ref.</li>
+<li>Add a ref resource to the NavigationRegion3D.</li>
+<li>Add a ref below the NavigationRegion3D.</li>
+<li>Add a ref to the MeshInstance3D.</li>
+<li>Hit the Editor bake button and a navigation mesh should appear.</li>
+</ul>
+<p><em>Image: image</em></p>
+<p><em>Image: image</em></p>
+<h2 id="baking-a-navigation-mesh-with-the-navigationserver">Baking a navigation mesh with the NavigationServer</h2>
+<p>The ref and ref have API functions to call each step of the navigation mesh baking process individually.</p>
+<ul>
+<li><code>parse_source_geometry_data()</code> can be used to parse source geometry to a reusable and serializable resource.</li>
+<li><code>bake_from_source_geometry_data()</code> can be used to bake a navigation mesh from already parsed data e.g. to avoid runtime performance issues with (redundant) parsing.</li>
+<li><code>bake_from_source_geometry_data_async()</code> is the same but bakes the navigation mesh deferred with threads, not blocking the main thread.</li>
+</ul>
+<p>Compared to a NavigationRegion, the NavigationServer offers finer control over the navigation mesh baking process. In turn it is more complex to use but also provides more advanced options.</p>
+<p>Some other advantages of the NavigationServer over a NavigationRegion are:</p>
+<ul>
+<li>The server can parse source geometry without baking, e.g. to cache it for later use.</li>
+<li>The server allows selecting the root node at which to start the source geometry parsing manually.</li>
+<li>The server can accept and bake from procedurally generated source geometry data.</li>
+<li>The server can bake multiple navigation meshes in sequence while (re)using the same source geometry data.</li>
+</ul>
+<p>To bake navigation meshes with the NavigationServer, source geometry is required. Source geometry is geometry data that should be considered in a navigation mesh baking process. Both navigation meshes for 2D and 3D are created by baking them from source geometry.</p>
+<p>2D and 3D versions of the source geometry resources are available as ref and ref respectively.</p>
+<p>Source geometry can be geometry parsed from visual meshes, from physics collision, or procedural created arrays of data, like outlines (2D) and triangle faces (3D). For convenience, source geometry is commonly parsed directly from node setups in the SceneTree. For runtime navigation mesh (re)bakes, be aware that the geometry parsing always happens on the main thread.</p>
+<blockquote>
+<p><strong>Note:</strong> The SceneTree is not thread-safe. Parsing source geometry from the SceneTree can only be done on the main thread.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> The data from visual meshes and polygons needs to be received from the GPU, stalling the RenderingServer in the process. For runtime (re)baking prefer using physics shapes as parsed source geometry.</p>
+</blockquote>
+<p>Source geometry is stored inside resources so the created geometry can be reused for multiple bakes. E.g. baking multiple navigation meshes for different agent sizes from the same source geometry. This also allows to save source geometry to disk so it can be loaded later, e.g. to avoid the overhead of parsing it again at runtime.</p>
+<p>The geometry data should be in general kept very simple. As many edges as are required but as few as possible. Especially in 2D duplicated and nested geometry should be avoided as it forces polygon hole calculation that can result in flipped polygons. An example for nested geometry would be a smaller StaticBody2D shape placed completely inside the bounds of another StaticBody2D shape.</p>
+<h2 id="baking-navigation-mesh-chunks-for-large-worlds">Baking navigation mesh chunks for large worlds</h2>
+<p><em>Image: Building navigation mesh chunks</em></p>
+<p>Building and updating individual navigation mesh chunks at runtime.</p>
+<blockquote>
+<p><strong>See also:</strong> You can see the navigation mesh chunk baking in action in the <a href="https://github.com/godotengine/godot-demo-projects/tree/master/2d/navigation_mesh_chunks">Navigation Mesh Chunks 2D</a> and <a href="https://github.com/godotengine/godot-demo-projects/tree/master/3d/navigation_mesh_chunks">Navigation Mesh Chunks 3D</a> demo projects.</p>
+</blockquote>
+<p>To avoid misaligned edges between different region chunks the navigation meshes have two important properties for the navigation mesh baking process. The baking bound and the border size. Together they can be used to ensure perfectly aligned edges between region chunks.</p>
+<p><em>Image: Navigation mesh chunk with bake bound and border size</em></p>
+<p>Navigation mesh chunk baked with bake bound or baked with additional border size.</p>
+<p>The baking bound, which is an axis-aligned ref for 2D and ref for 3D, limits the used source geometry by discarding all the geometry that is outside of the bounds.</p>
+<p>The ref properties <code>baking_rect</code> and <code>baking_rect_offset</code> can be used to create and place the 2D baking bound.</p>
+<p>The ref properties <code>filter_baking_aabb</code> and <code>filter_baking_aabb_offset</code> can be used to create and place the 3D baking bound.</p>
+<p>With only the baking bound set another problem still exists. The resulting navigation mesh will inevitably be affected by necessary offsets like the <code>agent_radius</code> which makes the edges not align properly.</p>
+<p><em>Image: Navigation mesh chunks with gaps</em></p>
+<p>Navigation mesh chunks with noticeable gaps due to baked agent radius offset.</p>
+<p>This is where the <code>border_size</code> property for navigation mesh comes in. The border size is an inward margin from the baking bound. The important characteristic of the border size is that it is unaffected by most offsets and postprocessing like the <code>agent_radius</code>.</p>
+<p>Instead of discarding source geometry, the border size discards parts of the final surface of the baked navigation mesh. If the baking bound is large enough the border size can remove the problematic surface parts so that only the intended chunk size is left.</p>
+<p><em>Image: Navigation mesh chunks without gaps</em></p>
+<p>Navigation mesh chunks with aligned edges and without gaps.</p>
+<blockquote>
+<p><strong>Note:</strong> The baking bounds need to be large enough to include a reasonable amount of source geometry from all the neighboring chunks.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> In 3D the functionality of the border size is limited to the xz-axis.</p>
+</blockquote>
+<h2 id="navigation-mesh-baking-common-problems">Navigation mesh baking common problems</h2>
+<p>There are some common user problems and important caveats to consider when creating or baking navigation meshes.</p>
+<ul>
+<li><p>Navigation mesh baking creates frame rate problems at runtime The navigation mesh baking is by default done on a background thread, so as long as the platform supports threads, the actual baking is rarely the source of any performance issues (assuming a reasonably sized and complex geometry for runtime rebakes).</p>
+<p>The common source for performance issues at runtime is the parsing step for source geometry that involves nodes and the SceneTree. The SceneTree is not thread-safe so all the nodes need to be parsed on the main thread. Some nodes with a lot of data can be very heavy and slow to parse at runtime, e.g. a TileMap has one or more polygons for every single used cell and TileMapLayer to parse. Nodes that hold meshes need to request the data from the RenderingServer stalling the rendering in the process.</p>
+<p>To improve performance, use more optimized shapes, e.g. collision shapes over detailed visual meshes, and merge and simplify as much geometry as possible upfront. If nothing helps, don't parse the SceneTree and add the source geometry procedural with scripts. If only pure data arrays are used as source geometry, the entire baking process can be done on a background thread.</p></li>
+<li><p>Navigation mesh creates unintended holes in 2D. The navigation mesh baking in 2D is done by doing polygon clipping operations based on outline paths. Polygons with "holes" are a necessary evil to create more complex 2D polygons but can become unpredictable for users with many complex shapes involved.</p>
+<p>To avoid any unexpected problems with polygon hole calculations, avoid nesting any outlines inside other outlines of the same type (traversable / obstruction). This includes the parsed shapes from nodes. E.g. placing a smaller StaticBody2D shape inside a larger StaticBody2D shape can result in the resulting polygon being flipped.</p></li>
+<li><p>Navigation mesh appears inside geometry in 3D. The navigation mesh baking in 3D has no concept of "inside". The voxel cells used to rasterize the geometry are either occupied or not. Remove the geometry that is on the ground inside the other geometry. If that is not possible, add smaller "dummy" geometry inside with as few triangles as possible so the cells are occupied with something.</p>
+<p>A ref shape set to bake with navigation mesh can be used to discard geometry as well.</p></li>
+</ul>
+<p><em>Image: NavigationObstacle3D unwanted geometry discard</em></p>
+<p>A NavigationObstacle3D shape can be used to discard unwanted navigation mesh parts.</p>
+<h2 id="navigation-mesh-script-templates">Navigation mesh script templates</h2>
+<p>The following script uses the NavigationServer to parse source geometry from the scene tree, bakes a navigation mesh, and updates a navigation region with the updated navigation mesh.</p>
+<pre class="gdscript"><code>extends Node2D
+
+var navigation_mesh: NavigationPolygon
+var source_geometry : NavigationMeshSourceGeometryData2D
+var callback_parsing : Callable
+var callback_baking : Callable
+var region_rid: RID
+
+func _ready() -&gt; void:
+    navigation_mesh = NavigationPolygon.new()
+    navigation_mesh.agent_radius = 10.0
+    source_geometry = NavigationMeshSourceGeometryData2D.new()
+    callback_parsing = on_parsing_done
+    callback_baking = on_baking_done
+    region_rid = NavigationServer2D.region_create()
+
+    # Enable the region and set it to the default navigation map.
+    NavigationServer2D.region_set_enabled(region_rid, true)
+    NavigationServer2D.region_set_map(region_rid, get_world_2d().get_navigation_map())
+
+    # Some mega-nodes like TileMap are often not ready on the first frame.
+    # Also the parsing needs to happen on the main-thread.
+    # So do a deferred call to avoid common parsing issues.
+    parse_source_geometry.call_deferred()
+
+func parse_source_geometry() -&gt; void:
+    source_geometry.clear()
+    var root_node: Node2D = self
+
+    # Parse the obstruction outlines from all child nodes of the root node by default.
+    NavigationServer2D.parse_source_geometry_data(
+        navigation_mesh,
+        source_geometry,
+        root_node,
+        callback_parsing
+    )
+
+func on_parsing_done() -&gt; void:
+    # If we did not parse a TileMap with navigation mesh cells we may now only
+    # have obstruction outlines so add at least one traversable outline
+    # so the obstructions outlines have something to &quot;cut&quot; into.
+    source_geometry.add_traversable_outline(PackedVector2Array([
+        Vector2(0.0, 0.0),
+        Vector2(500.0, 0.0),
+        Vector2(500.0, 500.0),
+        Vector2(0.0, 500.0)
+    ]))
+
+    # Bake the navigation mesh on a thread with the source geometry data.
+    NavigationServer2D.bake_from_source_geometry_data_async(
+        navigation_mesh,
+        source_geometry,
+        callback_baking
+    )
+
+func on_baking_done() -&gt; void:
+    # Update the region with the updated navigation mesh.
+    NavigationServer2D.region_set_navigation_polygon(region_rid, navigation_mesh)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2D <span class="op">:</span> Node2D</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> NavigationPolygon _navigationMesh<span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> NavigationMeshSourceGeometryData2D _sourceGeometry<span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Callable _callbackParsing<span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Callable _callbackBaking<span class="op">;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Rid _regionRid<span class="op">;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        _navigationMesh <span class="op">=</span> <span class="kw">new</span> <span class="fu">NavigationPolygon</span><span class="op">();</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        _navigationMesh<span class="op">.</span><span class="fu">AgentRadius</span> <span class="op">=</span> <span class="fl">10.0f</span><span class="op">;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        _sourceGeometry <span class="op">=</span> <span class="kw">new</span> <span class="fu">NavigationMeshSourceGeometryData2D</span><span class="op">();</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        _callbackParsing <span class="op">=</span> Callable<span class="op">.</span><span class="fu">From</span><span class="op">(</span>OnParsingDone<span class="op">);</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        _callbackBaking <span class="op">=</span> Callable<span class="op">.</span><span class="fu">From</span><span class="op">(</span>OnBakingDone<span class="op">);</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        _regionRid <span class="op">=</span> NavigationServer2D<span class="op">.</span><span class="fu">RegionCreate</span><span class="op">();</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Enable the region and set it to the default navigation map.</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">RegionSetEnabled</span><span class="op">(</span>_regionRid<span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">RegionSetMap</span><span class="op">(</span>_regionRid<span class="op">,</span> <span class="fu">GetWorld2D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">);</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Some mega-nodes like TileMap are often not ready on the first frame.</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Also the parsing needs to happen on the main-thread.</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        <span class="co">// So do a deferred call to avoid common parsing issues.</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        <span class="fu">CallDeferred</span><span class="op">(</span>MethodName<span class="op">.</span><span class="fu">ParseSourceGeometry</span><span class="op">);</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">ParseSourceGeometry</span><span class="op">()</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>        _sourceGeometry<span class="op">.</span><span class="fu">Clear</span><span class="op">();</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>        Node2D rootNode <span class="op">=</span> <span class="kw">this</span><span class="op">;</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Parse the obstruction outlines from all child nodes of the root node by default.</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">ParseSourceGeometryData</span><span class="op">(</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>            _navigationMesh<span class="op">,</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>            _sourceGeometry<span class="op">,</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>            rootNode<span class="op">,</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>            _callbackParsing</span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnParsingDone</span><span class="op">()</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>        <span class="co">// If we did not parse a TileMap with navigation mesh cells we may now only</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>        <span class="co">// have obstruction outlines so add at least one traversable outline</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>        <span class="co">// so the obstructions outlines have something to &quot;cut&quot; into.</span></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>        _sourceGeometry<span class="op">.</span><span class="fu">AddTraversableOutline</span><span class="op">(</span></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>        <span class="op">[</span></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">0.0f</span><span class="op">,</span> <span class="fl">0.0f</span><span class="op">),</span></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">500.0f</span><span class="op">,</span> <span class="fl">0.0f</span><span class="op">),</span></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">500.0f</span><span class="op">,</span> <span class="fl">500.0f</span><span class="op">),</span></span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">0.0f</span><span class="op">,</span> <span class="fl">500.0f</span><span class="op">),</span></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>        <span class="op">]);</span></span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Bake the navigation mesh on a thread with the source geometry data.</span></span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">BakeFromSourceGeometryDataAsync</span><span class="op">(</span>_navigationMesh<span class="op">,</span> _sourceGeometry<span class="op">,</span> _callbackBaking<span class="op">);</span></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnBakingDone</span><span class="op">()</span></span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Update the region with the updated navigation mesh.</span></span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">RegionSetNavigationPolygon</span><span class="op">(</span>_regionRid<span class="op">,</span> _navigationMesh<span class="op">);</span></span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="gdscript"><code>extends Node3D
+
+var navigation_mesh: NavigationMesh
+var source_geometry : NavigationMeshSourceGeometryData3D
+var callback_parsing : Callable
+var callback_baking : Callable
+var region_rid: RID
+
+func _ready() -&gt; void:
+    navigation_mesh = NavigationMesh.new()
+    navigation_mesh.agent_radius = 0.5
+    source_geometry = NavigationMeshSourceGeometryData3D.new()
+    callback_parsing = on_parsing_done
+    callback_baking = on_baking_done
+    region_rid = NavigationServer3D.region_create()
+
+    # Enable the region and set it to the default navigation map.
+    NavigationServer3D.region_set_enabled(region_rid, true)
+    NavigationServer3D.region_set_map(region_rid, get_world_3d().get_navigation_map())
+
+    # Some mega-nodes like GridMap are often not ready on the first frame.
+    # Also the parsing needs to happen on the main-thread.
+    # So do a deferred call to avoid common parsing issues.
+    parse_source_geometry.call_deferred()
+
+func parse_source_geometry() -&gt; void:
+    source_geometry.clear()
+    var root_node: Node3D = self
+
+    # Parse the geometry from all mesh child nodes of the root node by default.
+    NavigationServer3D.parse_source_geometry_data(
+        navigation_mesh,
+        source_geometry,
+        root_node,
+        callback_parsing
+    )
+
+func on_parsing_done() -&gt; void:
+    # Bake the navigation mesh on a thread with the source geometry data.
+    NavigationServer3D.bake_from_source_geometry_data_async(
+        navigation_mesh,
+        source_geometry,
+        callback_baking
+    )
+
+func on_baking_done() -&gt; void:
+    # Update the region with the updated navigation mesh.
+    NavigationServer3D.region_set_navigation_mesh(region_rid, navigation_mesh)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode3D <span class="op">:</span> Node3D</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> NavigationMesh _navigationMesh<span class="op">;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> NavigationMeshSourceGeometryData3D _sourceGeometry<span class="op">;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Callable _callbackParsing<span class="op">;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Callable _callbackBaking<span class="op">;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Rid _regionRid<span class="op">;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        _navigationMesh <span class="op">=</span> <span class="kw">new</span> <span class="fu">NavigationMesh</span><span class="op">();</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        _navigationMesh<span class="op">.</span><span class="fu">AgentRadius</span> <span class="op">=</span> <span class="fl">0.5f</span><span class="op">;</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        _sourceGeometry <span class="op">=</span> <span class="kw">new</span> <span class="fu">NavigationMeshSourceGeometryData3D</span><span class="op">();</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        _callbackParsing <span class="op">=</span> Callable<span class="op">.</span><span class="fu">From</span><span class="op">(</span>OnParsingDone<span class="op">);</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        _callbackBaking <span class="op">=</span> Callable<span class="op">.</span><span class="fu">From</span><span class="op">(</span>OnBakingDone<span class="op">);</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        _regionRid <span class="op">=</span> NavigationServer3D<span class="op">.</span><span class="fu">RegionCreate</span><span class="op">();</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Enable the region and set it to the default navigation map.</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">RegionSetEnabled</span><span class="op">(</span>_regionRid<span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">RegionSetMap</span><span class="op">(</span>_regionRid<span class="op">,</span> <span class="fu">GetWorld3D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">);</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Some mega-nodes like GridMap are often not ready on the first frame.</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Also the parsing needs to happen on the main-thread.</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>        <span class="co">// So do a deferred call to avoid common parsing issues.</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        <span class="fu">CallDeferred</span><span class="op">(</span>MethodName<span class="op">.</span><span class="fu">ParseSourceGeometry</span><span class="op">);</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">ParseSourceGeometry</span> <span class="op">()</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>        _sourceGeometry<span class="op">.</span><span class="fu">Clear</span><span class="op">();</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>        Node3D rootNode <span class="op">=</span> <span class="kw">this</span><span class="op">;</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Parse the geometry from all mesh child nodes of the root node by default.</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">ParseSourceGeometryData</span><span class="op">(</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>            _navigationMesh<span class="op">,</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>            _sourceGeometry<span class="op">,</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>            rootNode<span class="op">,</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>            _callbackParsing</span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnParsingDone</span><span class="op">()</span></span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Bake the navigation mesh on a thread with the source geometry data.</span></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">BakeFromSourceGeometryDataAsync</span><span class="op">(</span>_navigationMesh<span class="op">,</span> _sourceGeometry<span class="op">,</span> _callbackBaking<span class="op">);</span></span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnBakingDone</span><span class="op">()</span></span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Update the region with the updated navigation mesh.</span></span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">RegionSetNavigationMesh</span><span class="op">(</span>_regionRid<span class="op">,</span> _navigationMesh<span class="op">);</span></span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The following script uses the NavigationServer to update a navigation region with procedurally generated navigation mesh data.</p>
+<pre class="gdscript"><code>extends Node2D
+
+var navigation_mesh: NavigationPolygon
+var region_rid: RID
+
+func _ready() -&gt; void:
+    navigation_mesh = NavigationPolygon.new()
+    region_rid = NavigationServer2D.region_create()
+
+    # Enable the region and set it to the default navigation map.
+    NavigationServer2D.region_set_enabled(region_rid, true)
+    NavigationServer2D.region_set_map(region_rid, get_world_2d().get_navigation_map())
+
+    # Add vertices for a convex polygon.
+    navigation_mesh.vertices = PackedVector2Array([
+        Vector2(0.0, 0.0),
+        Vector2(100.0, 0.0),
+        Vector2(100.0, 100.0),
+        Vector2(0.0, 100.0),
+    ])
+
+    # Add indices for the polygon.
+    navigation_mesh.add_polygon(
+        PackedInt32Array([0, 1, 2, 3])
+    )
+
+    NavigationServer2D.region_set_navigation_polygon(region_rid, navigation_mesh)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2D <span class="op">:</span> Node2D</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> NavigationPolygon _navigationMesh<span class="op">;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Rid _regionRid<span class="op">;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        _navigationMesh <span class="op">=</span> <span class="kw">new</span> <span class="fu">NavigationPolygon</span><span class="op">();</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        _regionRid <span class="op">=</span> NavigationServer2D<span class="op">.</span><span class="fu">RegionCreate</span><span class="op">();</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Enable the region and set it to the default navigation map.</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">RegionSetEnabled</span><span class="op">(</span>_regionRid<span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">RegionSetMap</span><span class="op">(</span>_regionRid<span class="op">,</span> <span class="fu">GetWorld2D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">);</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Add vertices for a convex polygon.</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>        _navigationMesh<span class="op">.</span><span class="fu">Vertices</span> <span class="op">=</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">[</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">100.0f</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="fl">100.0f</span><span class="op">,</span> <span class="fl">100.0f</span><span class="op">),</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="fl">100.0f</span><span class="op">),</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>        <span class="op">];</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Add indices for the polygon.</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>        _navigationMesh<span class="op">.</span><span class="fu">AddPolygon</span><span class="op">([</span><span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span><span class="op">]);</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">RegionSetNavigationPolygon</span><span class="op">(</span>_regionRid<span class="op">,</span> _navigationMesh<span class="op">);</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="gdscript"><code>extends Node3D
+
+var navigation_mesh: NavigationMesh
+var region_rid: RID
+
+func _ready() -&gt; void:
+    navigation_mesh = NavigationMesh.new()
+    region_rid = NavigationServer3D.region_create()
+
+    # Enable the region and set it to the default navigation map.
+    NavigationServer3D.region_set_enabled(region_rid, true)
+    NavigationServer3D.region_set_map(region_rid, get_world_3d().get_navigation_map())
+
+    # Add vertices for a convex polygon.
+    navigation_mesh.vertices = PackedVector3Array([
+        Vector3(-1.0, 0.0, 1.0),
+        Vector3(1.0, 0.0, 1.0),
+        Vector3(1.0, 0.0, -1.0),
+        Vector3(-1.0, 0.0, -1.0),
+    ])
+
+    # Add indices for the polygon.
+    navigation_mesh.add_polygon(
+        PackedInt32Array([0, 1, 2, 3])
+    )
+
+    NavigationServer3D.region_set_navigation_mesh(region_rid, navigation_mesh)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode3D <span class="op">:</span> Node3D</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> NavigationMesh _navigationMesh<span class="op">;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Rid _regionRid<span class="op">;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        _navigationMesh <span class="op">=</span> <span class="kw">new</span> <span class="fu">NavigationMesh</span><span class="op">();</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        _regionRid <span class="op">=</span> NavigationServer3D<span class="op">.</span><span class="fu">RegionCreate</span><span class="op">();</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Enable the region and set it to the default navigation map.</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">RegionSetEnabled</span><span class="op">(</span>_regionRid<span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">RegionSetMap</span><span class="op">(</span>_regionRid<span class="op">,</span> <span class="fu">GetWorld3D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">);</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Add vertices for a convex polygon.</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        _navigationMesh<span class="op">.</span><span class="fu">Vertices</span> <span class="op">=</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">[</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(-</span><span class="fl">1.0f</span><span class="op">,</span> <span class="fl">0.0f</span><span class="op">,</span> <span class="fl">1.0f</span><span class="op">),</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="fl">1.0f</span><span class="op">,</span> <span class="fl">0.0f</span><span class="op">,</span> <span class="fl">1.0f</span><span class="op">),</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="fl">1.0f</span><span class="op">,</span> <span class="fl">0.0f</span><span class="op">,</span> <span class="op">-</span><span class="fl">1.0f</span><span class="op">),</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(-</span><span class="fl">1.0f</span><span class="op">,</span> <span class="fl">0.0f</span><span class="op">,</span> <span class="op">-</span><span class="fl">1.0f</span><span class="op">),</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>        <span class="op">];</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Add indices for the polygon.</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>        _navigationMesh<span class="op">.</span><span class="fu">AddPolygon</span><span class="op">([</span><span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span><span class="op">]);</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">RegionSetNavigationMesh</span><span class="op">(</span>_regionRid<span class="op">,</span> _navigationMesh<span class="op">);</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

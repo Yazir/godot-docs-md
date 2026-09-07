@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UPNP — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="upnp">UPNP</h1>
+<p><em>Inherits: <a href="Reference.html">Reference</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Universal Plug and Play (UPnP) functions for network device discovery, querying and port forwarding.</p>
+<h2 id="description">Description</h2>
+<p>This class can be used to discover compatible <a href="UPNPDevice.html">UPNPDevice</a> s on the local network and execute commands on them, like managing port mappings (for port forwarding/NAT traversal) and querying the local and remote network IP address. Note that methods on this class are synchronous and block the calling thread.</p>
+<p>To forward a specific port (here <code>7777</code>, note both <code>discover</code> and <code>add_port_mapping</code> can return errors that should be checked):</p>
+<pre class="gdscript"><code>var upnp = UPNP.new()
+upnp.discover()
+upnp.add_port_mapping(7777)</code></pre>
+<p>To close a specific port (e.g. after you have finished using it):</p>
+<pre class="gdscript"><code>upnp.delete_port_mapping(port)</code></pre>
+<p><strong>Note:</strong> UPnP discovery blocks the current thread. To perform discovery without blocking the main thread, use <a href="Thread.html">Thread</a> s like this:</p>
+<pre class="gdscript"><code># Emitted when UPnP port mapping setup is completed (regardless of success or failure).
+signal upnp_completed(error)
+
+# Replace this with your own server port number between 1024 and 65535.
+const SERVER_PORT = 3928
+var thread = null
+
+func _upnp_setup(server_port):
+    # UPNP queries take some time.
+    var upnp = UPNP.new()
+    var err = upnp.discover()
+
+    if err != OK:
+        push_error(str(err))
+        emit_signal(&quot;upnp_completed&quot;, err)
+        return
+
+    if upnp.get_gateway() and upnp.get_gateway().is_valid_gateway():
+        upnp.add_port_mapping(server_port, server_port, ProjectSettings.get_setting(&quot;application/config/name&quot;), &quot;UDP&quot;)
+        upnp.add_port_mapping(server_port, server_port, ProjectSettings.get_setting(&quot;application/config/name&quot;), &quot;TCP&quot;)
+        emit_signal(&quot;upnp_completed&quot;, OK)
+
+func _ready():
+    thread = Thread.new()
+    thread.start(self, &quot;_upnp_setup&quot;, SERVER_PORT)
+
+func _exit_tree():
+    # Wait for thread finish here to handle game exit while the thread is running.
+    thread.wait_to_finish()</code></pre>
+<p><strong>Terminology:</strong> In the context of UPnP networking, "gateway" (or "internet gateway device", short IGD) refers to network devices that allow computers in the local network to access the internet ("wide area network", WAN). These gateways are often also called "routers".</p>
+<p><strong>Pitfalls:</strong></p>
+<ul>
+<li><p>As explained above, these calls are blocking and shouldn't be run on the main thread, especially as they can block for multiple seconds at a time. Use threading!</p></li>
+<li><p>Networking is physical and messy. Packets get lost in transit or get filtered, addresses, free ports and assigned mappings change, and devices may leave or join the network at any time. Be mindful of this, be diligent when checking and handling errors, and handle these gracefully if you can: add clear error UI, timeouts and re-try handling.</p></li>
+<li><p>Port mappings may change (and be removed) at any time, and the remote/external IP address of the gateway can change likewise. You should consider re-querying the external IP and try to update/refresh the port mapping periodically (for example, every 5 minutes and on networking failures).</p></li>
+<li><p>Not all devices support UPnP, and some users disable UPnP support. You need to handle this (e.g. documenting and requiring the user to manually forward ports, or adding alternative methods of NAT traversal, like a relay/mirror server, or NAT hole punching, STUN/TURN, etc.).</p></li>
+<li><p>Consider what happens on mapping conflicts. Maybe multiple users on the same network would like to play your game at the same time, or maybe another application uses the same port. Make the port configurable, and optimally choose a port automatically (re-trying with a different port on failure).</p></li>
+</ul>
+<p><strong>Further reading:</strong> If you want to know more about UPnP (and the Internet Gateway Device (IGD) and Port Control Protocol (PCP) specifically), <a href="https://en.wikipedia.org/wiki/Universal_Plug_and_Play">Wikipedia</a> is a good first stop, the specification can be found at the <a href="https://openconnectivity.org/developer/specifications/upnp-resources/upnp/">Open Connectivity Foundation</a> and Godot's implementation is based on the <a href="https://github.com/miniupnp/miniupnp">MiniUPnP client</a>.</p>
+<h2 id="properties">Properties</h2>
+<h3 id="bool-discover_ipv6--false"><code>bool discover_ipv6 = false</code></h3>
+<ul>
+<li>Setter: <code>set_discover_ipv6(value: bool)</code></li>
+<li>Getter: <code>is_discover_ipv6()</code></li>
+</ul>
+<p>If <code>true</code>, IPv6 is used for <a href="UPNPDevice.html">UPNPDevice</a> discovery.</p>
+<h3 id="int-discover_local_port--0"><code>int discover_local_port = 0</code></h3>
+<ul>
+<li>Setter: <code>set_discover_local_port(value: int)</code></li>
+<li>Getter: <code>get_discover_local_port()</code></li>
+</ul>
+<p>If <code>0</code>, the local port to use for discovery is chosen automatically by the system. If <code>1</code>, discovery will be done from the source port 1900 (same as destination port). Otherwise, the value will be used as the port.</p>
+<h3 id="string-discover_multicast_if--"><code>String discover_multicast_if = ""</code></h3>
+<ul>
+<li>Setter: <code>set_discover_multicast_if(value: String)</code></li>
+<li>Getter: <code>get_discover_multicast_if()</code></li>
+</ul>
+<p>Multicast interface to use for discovery. Uses the default multicast interface if empty.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-add_devicedevice-upnpdevice"><code>void add_device(device: UPNPDevice)</code></h3>
+<p>Adds the given <a href="UPNPDevice.html">UPNPDevice</a> to the list of discovered devices.</p>
+<h3 id="int-add_port_mappingport-int-port_internal0-int-desc-string-protoudp-string-duration0-int-const"><code>int add_port_mapping(port: int, port_internal=0: int, desc="": String, proto="UDP": String, duration=0: int) const</code></h3>
+<p>Adds a mapping to forward the external <code>port</code> (between 1 and 65535, although recommended to use port 1024 or above) on the default gateway (see <code>get_gateway</code>) to the <code>internal_port</code> on the local machine for the given protocol <code>proto</code> (either <code>TCP</code> or <code>UDP</code>, with UDP being the default). If a port mapping for the given port and protocol combination already exists on that gateway device, this method tries to overwrite it. If that is not desired, you can retrieve the gateway manually with <code>get_gateway</code> and call <code>add_port_mapping</code> on it, if any. Note that forwarding a well-known port (below 1024) with UPnP may fail depending on the device.</p>
+<p>Depending on the gateway device, if a mapping for that port already exists, it will either be updated or it will refuse this command due to that conflict, especially if the existing mapping for that port wasn't created via UPnP or points to a different network address (or device) than this one.</p>
+<p>If <code>internal_port</code> is <code>0</code> (the default), the same port number is used for both the external and the internal port (the <code>port</code> value).</p>
+<p>The description (<code>desc</code>) is shown in some routers management UIs and can be used to point out which application added the mapping.</p>
+<p>The mapping's lease <code>duration</code> can be limited by specifying a duration in seconds. The default of <code>0</code> means no duration, i.e. a permanent lease and notably some devices only support these permanent leases. Note that whether permanent or not, this is only a request and the gateway may still decide at any point to remove the mapping (which usually happens on a reboot of the gateway, when its external IP address changes, or on some models when it detects a port mapping has become inactive, i.e. had no traffic for multiple minutes). If not <code>0</code> (permanent), the allowed range according to spec is between <code>120</code> (2 minutes) and <code>86400</code> seconds (24 hours).</p>
+<p>See <code>UPNPResult</code> for possible return values.</p>
+<h3 id="void-clear_devices"><code>void clear_devices()</code></h3>
+<p>Clears the list of discovered devices.</p>
+<h3 id="int-delete_port_mappingport-int-protoudp-string-const"><code>int delete_port_mapping(port: int, proto="UDP": String) const</code></h3>
+<p>Deletes the port mapping for the given port and protocol combination on the default gateway (see <code>get_gateway</code>) if one exists. <code>port</code> must be a valid port between 1 and 65535, <code>proto</code> can be either <code>TCP</code> or <code>UDP</code>. May be refused for mappings pointing to addresses other than this one, for well-known ports (below 1024), or for mappings not added via UPnP. See <code>UPNPResult</code> for possible return values.</p>
+<h3 id="int-discovertimeout2000-int-ttl2-int-device_filterinternetgatewaydevice-string"><code>int discover(timeout=2000: int, ttl=2: int, device_filter="InternetGatewayDevice": String)</code></h3>
+<p>Discovers local <a href="UPNPDevice.html">UPNPDevice</a> s. Clears the list of previously discovered devices.</p>
+<p>Filters for IGD (InternetGatewayDevice) type devices by default, as those manage port forwarding. <code>timeout</code> is the time to wait for responses in milliseconds. <code>ttl</code> is the time-to-live; only touch this if you know what you're doing.</p>
+<p>See <code>UPNPResult</code> for possible return values.</p>
+<h3 id="upnpdevice-get_deviceindex-int-const"><code>UPNPDevice get_device(index: int) const</code></h3>
+<p>Returns the <a href="UPNPDevice.html">UPNPDevice</a> at the given <code>index</code>.</p>
+<h3 id="int-get_device_count-const"><code>int get_device_count() const</code></h3>
+<p>Returns the number of discovered <a href="UPNPDevice.html">UPNPDevice</a> s.</p>
+<h3 id="upnpdevice-get_gateway-const"><code>UPNPDevice get_gateway() const</code></h3>
+<p>Returns the default gateway. That is the first discovered <a href="UPNPDevice.html">UPNPDevice</a> that is also a valid IGD (InternetGatewayDevice).</p>
+<h3 id="string-query_external_address-const"><code>String query_external_address() const</code></h3>
+<p>Returns the external <a href="IP.html">IP</a> address of the default gateway (see <code>get_gateway</code>) as string. Returns an empty string on error.</p>
+<h3 id="void-remove_deviceindex-int"><code>void remove_device(index: int)</code></h3>
+<p>Removes the device at <code>index</code> from the list of discovered devices.</p>
+<h3 id="void-set_deviceindex-int-device-upnpdevice"><code>void set_device(index: int, device: UPNPDevice)</code></h3>
+<p>Sets the device at <code>index</code> from the list of discovered devices to <code>device</code>.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-upnpresult"><code>enum UPNPResult</code></h3>
+<ul>
+<li><p><code>UPNP_RESULT_SUCCESS = 0</code></p>
+<p>UPNP command or discovery was successful.</p></li>
+<li><p><code>UPNP_RESULT_NOT_AUTHORIZED = 1</code></p>
+<p>Not authorized to use the command on the <a href="UPNPDevice.html">UPNPDevice</a>. May be returned when the user disabled UPNP on their router.</p></li>
+<li><p><code>UPNP_RESULT_PORT_MAPPING_NOT_FOUND = 2</code></p>
+<p>No port mapping was found for the given port, protocol combination on the given <a href="UPNPDevice.html">UPNPDevice</a>.</p></li>
+<li><p><code>UPNP_RESULT_INCONSISTENT_PARAMETERS = 3</code></p>
+<p>Inconsistent parameters.</p></li>
+<li><p><code>UPNP_RESULT_NO_SUCH_ENTRY_IN_ARRAY = 4</code></p>
+<p>No such entry in array. May be returned if a given port, protocol combination is not found on an <a href="UPNPDevice.html">UPNPDevice</a>.</p></li>
+<li><p><code>UPNP_RESULT_ACTION_FAILED = 5</code></p>
+<p>The action failed.</p></li>
+<li><p><code>UPNP_RESULT_SRC_IP_WILDCARD_NOT_PERMITTED = 6</code></p>
+<p>The <a href="UPNPDevice.html">UPNPDevice</a> does not allow wildcard values for the source IP address.</p></li>
+<li><p><code>UPNP_RESULT_EXT_PORT_WILDCARD_NOT_PERMITTED = 7</code></p>
+<p>The <a href="UPNPDevice.html">UPNPDevice</a> does not allow wildcard values for the external port.</p></li>
+<li><p><code>UPNP_RESULT_INT_PORT_WILDCARD_NOT_PERMITTED = 8</code></p>
+<p>The <a href="UPNPDevice.html">UPNPDevice</a> does not allow wildcard values for the internal port.</p></li>
+<li><p><code>UPNP_RESULT_REMOTE_HOST_MUST_BE_WILDCARD = 9</code></p>
+<p>The remote host value must be a wildcard.</p></li>
+<li><p><code>UPNP_RESULT_EXT_PORT_MUST_BE_WILDCARD = 10</code></p>
+<p>The external port value must be a wildcard.</p></li>
+<li><p><code>UPNP_RESULT_NO_PORT_MAPS_AVAILABLE = 11</code></p>
+<p>No port maps are available. May also be returned if port mapping functionality is not available.</p></li>
+<li><p><code>UPNP_RESULT_CONFLICT_WITH_OTHER_MECHANISM = 12</code></p>
+<p>Conflict with other mechanism. May be returned instead of <code>UPNP_RESULT_CONFLICT_WITH_OTHER_MAPPING</code> if a port mapping conflicts with an existing one.</p></li>
+<li><p><code>UPNP_RESULT_CONFLICT_WITH_OTHER_MAPPING = 13</code></p>
+<p>Conflict with an existing port mapping.</p></li>
+<li><p><code>UPNP_RESULT_SAME_PORT_VALUES_REQUIRED = 14</code></p>
+<p>External and internal port values must be the same.</p></li>
+<li><p><code>UPNP_RESULT_ONLY_PERMANENT_LEASE_SUPPORTED = 15</code></p>
+<p>Only permanent leases are supported. Do not use the <code>duration</code> parameter when adding port mappings.</p></li>
+<li><p><code>UPNP_RESULT_INVALID_GATEWAY = 16</code></p>
+<p>Invalid gateway.</p></li>
+<li><p><code>UPNP_RESULT_INVALID_PORT = 17</code></p>
+<p>Invalid port.</p></li>
+<li><p><code>UPNP_RESULT_INVALID_PROTOCOL = 18</code></p>
+<p>Invalid protocol.</p></li>
+<li><p><code>UPNP_RESULT_INVALID_DURATION = 19</code></p>
+<p>Invalid duration.</p></li>
+<li><p><code>UPNP_RESULT_INVALID_ARGS = 20</code></p>
+<p>Invalid arguments.</p></li>
+<li><p><code>UPNP_RESULT_INVALID_RESPONSE = 21</code></p>
+<p>Invalid response.</p></li>
+<li><p><code>UPNP_RESULT_INVALID_PARAM = 22</code></p>
+<p>Invalid parameter.</p></li>
+<li><p><code>UPNP_RESULT_HTTP_ERROR = 23</code></p>
+<p>HTTP error.</p></li>
+<li><p><code>UPNP_RESULT_SOCKET_ERROR = 24</code></p>
+<p>Socket error.</p></li>
+<li><p><code>UPNP_RESULT_MEM_ALLOC_ERROR = 25</code></p>
+<p>Error allocating memory.</p></li>
+<li><p><code>UPNP_RESULT_NO_GATEWAY = 26</code></p>
+<p>No gateway available. You may need to call <code>discover</code> first, or discovery didn't detect any valid IGDs (InternetGatewayDevices).</p></li>
+<li><p><code>UPNP_RESULT_NO_DEVICES = 27</code></p>
+<p>No devices available. You may need to call <code>discover</code> first, or discovery didn't detect any valid <a href="UPNPDevice.html">UPNPDevice</a> s.</p></li>
+<li><p><code>UPNP_RESULT_UNKNOWN_ERROR = 28</code></p>
+<p>Unknown error.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

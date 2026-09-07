@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProximityGroup — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="proximitygroup">ProximityGroup</h1>
+<p><em>Inherits: <a href="Spatial.html">Spatial</a> &lt; <a href="Node.html">Node</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>General-purpose 3D proximity detection node.</p>
+<h2 id="description">Description</h2>
+<p>General-purpose proximity detection node. <strong>ProximityGroup</strong> can be used for <em>approximate</em> distance checks, which are faster than exact distance checks using <code>Vector3.distance_to</code> or <code>Vector3.distance_squared_to</code>.</p>
+<p><strong>ProximityGroup</strong> nodes are automatically grouped together, as long as they share the same <code>group_name</code> and intersect with each other. By calling the <code>broadcast</code>, you can invoke a specified method with various parameters to all intersecting members.</p>
+<p><strong>ProximityGroup</strong> is cuboid-shaped and consists of a cluster of <a href="Vector3.html">Vector3</a> coordinates. The coordinates are automatically calculated by calling <code>grid_radius</code>. To allow <strong>ProximityGroup</strong> to find its peers (and perform automatic grouping), you need to define its <code>group_name</code> to a non-empty <a href="String.html">String</a>. As soon as this object's shape intersects with another <strong>ProximityGroup</strong> object' shape, and both share the same <code>group_name</code>, they will belong together for as long as they intersect.</p>
+<p>Since <strong>ProximityGroup</strong> doesn't rely the physics engine, you don't need to add any other node as a child (unlike <a href="PhysicsBody.html">PhysicsBody</a>).</p>
+<p>The <strong>ProximityGroup</strong> uses the <a href="SceneTree.html">SceneTree</a> groups in the background by calling the method <code>Node.add_to_group</code> internally. The <a href="SceneTree.html">SceneTree</a> group names are constructed by combining the <code>group_name</code> with its coordinates, which are calculated using the <code>grid_radius</code> you defined beforehand.</p>
+<p><strong>Example:</strong> A <strong>ProximityGroup</strong> node named <code>"PlanetEarth"</code> at position <code>Vector3(6, 6, 6)</code> with a <code>group_name</code> set to <code>"planets"</code> and a <code>grid_radius</code> of <code>Vector3(1, 2, 3)</code> will create the following <a href="SceneTree.html">SceneTree</a> group names:</p>
+<pre class="gdscript"><code>- &quot;planets|5|4|3&quot;
+- &quot;planets|5|4|4&quot;
+- &quot;planets|5|4|5&quot;
+- &quot;planets|5|4|6&quot;
+- &quot;planets|5|4|7&quot;
+- &quot;planets|5|4|8&quot;
+- &quot;planets|5|4|9&quot;
+- ...</code></pre>
+<p>If there is another <strong>ProximityGroup</strong> named <code>"PlanetMars"</code> with group name <code>"planets"</code>, and one of its coordinates is <code>Vector3(5, 4, 7)</code>, it would normally create the <a href="SceneTree.html">SceneTree</a> group called <code>"planets|5|4|7"</code>. However, since this group name already exists, this <strong>ProximityGroup</strong> object will be <em>added</em> to the existing one. <code>"PlanetEarth"</code> is already in this group. As long as both nodes don't change their transform and stop intersecting (or exit the scene tree), they are grouped together. As long as this intersection exists, any call to <code>broadcast</code> will affect <em>both</em> <strong>ProximityGroup</strong> nodes.</p>
+<p>There are 3 caveats to keep in mind when using <strong>ProximityGroup</strong>:</p>
+<ul>
+<li><p>The larger the grid radius, the more coordinates and the more <a href="SceneTree.html">SceneTree</a> groups are created. This can have a performance impact if too many groups are created.</p></li>
+<li><p>If the <strong>ProximityGroup</strong> node is transformed in any way (or is removed from the scene tree), the groupings will have to be recalculated. This can also have a performance impact.</p></li>
+<li><p>If your <code>grid_radius</code> is smaller than <code>Vector3(1, 1, 1)</code>, it will be rounded up to <code>Vector3(1, 1, 1)</code>. Therefore, small grid radius values may lead to unwanted groupings.</p></li>
+</ul>
+<p><strong>Note:</strong> <strong>ProximityGroup</strong> will be removed in Godot 4.0 in favor of more effective and faster <a href="VisibilityNotifier.html">VisibilityNotifier</a> functionality. For most use cases, <code>Vector3.distance_to</code> or <code>Vector3.distance_squared_to</code> are fast enough too, especially if you call them less often using a <a href="Timer.html">Timer</a> node.</p>
+<h2 id="properties">Properties</h2>
+<h3 id="dispatchmode-dispatch_mode--0">``DispatchMode<code> dispatch_mode = 0</code></h3>
+<ul>
+<li>Setter: <code>set_dispatch_mode(value: </code>DispatchMode<code>)</code></li>
+<li>Getter: <code>get_dispatch_mode()</code></li>
+</ul>
+<p>Specifies which node gets contacted on a call of method <code>broadcast</code>.</p>
+<h3 id="vector3-grid_radius--vector3-1-1-1-"><code>Vector3 grid_radius = Vector3( 1, 1, 1 )</code></h3>
+<ul>
+<li>Setter: <code>set_grid_radius(value: Vector3)</code></li>
+<li>Getter: <code>get_grid_radius()</code></li>
+</ul>
+<p>The size of the space in 3D units. This also sets the amount of coordinates required to calculate whether two <strong>ProximityGroup</strong> nodes are intersecting or not. Smaller <code>grid_radius</code> values can be used for more precise proximity checks at the cost of performance, since more groups will be created.</p>
+<h3 id="string-group_name--"><code>String group_name = ""</code></h3>
+<ul>
+<li>Setter: <code>set_group_name(value: String)</code></li>
+<li>Getter: <code>get_group_name()</code></li>
+</ul>
+<p>Specify the common group name, to let other <strong>ProximityGroup</strong> nodes know, if they should be auto-grouped with this node in case they intersect with each other.</p>
+<p>For example, if you have a <strong>ProximityGroup</strong> node named <code>"Earth"</code> and another called <code>"Mars"</code>, with both nodes having <code>"planet"</code> as their <code>group_name</code>. Give both planets a significantly larger <code>grid_radius</code> than their actual radius, position them close enough and they'll be automatically grouped.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-broadcastmethod-string-parameters-variant"><code>void broadcast(method: String, parameters: Variant)</code></h3>
+<p>Calls on all intersecting <strong>ProximityGroup</strong> the given method and parameters.</p>
+<p>If the <code>dispatch_mode</code> is set to <code>MODE_PROXY</code> (the default), all calls are delegated to their respective parent <a href="Node.html">Node</a>.</p>
+<h2 id="signals">Signals</h2>
+<h3 id="broadcastmethod-string-parameters-array"><code>broadcast(method: String, parameters: Array)</code></h3>
+<p>Emitted when the user calls the <code>broadcast</code> method and has set <code>dispatch_mode</code> to <code>MODE_SIGNAL</code>.</p>
+<p>The given method and its parameters are passed on to the listeners who connected to this signal of this object, as well as any <strong>ProximityGroup</strong> node this node is grouped together with.</p>
+<p><strong>Note:</strong> This signal is <em>not</em> emitted by default, as the default <code>dispatch_mode</code> is <code>MODE_PROXY</code>.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-dispatchmode"><code>enum DispatchMode</code></h3>
+<ul>
+<li><p><code>MODE_PROXY = 0</code></p>
+<p>This <strong>ProximityGroup</strong>'s parent will be target of <code>broadcast</code>.</p></li>
+<li><p><code>MODE_SIGNAL = 1</code></p>
+<p>This <strong>ProximityGroup</strong> will emit the <code>broadcast</code> <em>signal</em> when calling the <code>broadcast</code> <em>method</em>.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

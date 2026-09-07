@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Static typing in GDScript — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="static-typing-in-gdscript">Static typing in GDScript</h1>
+<p>In this guide, you will learn:</p>
+<ul>
+<li>how to use static typing in GDScript;</li>
+<li>that static types can help you avoid bugs;</li>
+<li>that static typing improves your experience with the editor.</li>
+</ul>
+<p>Where and how you use this language feature is entirely up to you: you can use it only in some sensitive GDScript files, use it everywhere, or don't use it at all.</p>
+<p>Static types can be used on variables, constants, functions, parameters, and return types.</p>
+<h2 id="a-brief-look-at-static-typing">A brief look at static typing</h2>
+<p>With static typing, GDScript can detect more errors without even running the code. Also type hints give you and your teammates more information as you're working, as the arguments' types show up when you call a method. Static typing improves editor autocompletion and ref of your scripts.</p>
+<p>Imagine you're programming an inventory system. You code an <code>Item</code> class, then an <code>Inventory</code>. To add items to the inventory, the people who work with your code should always pass an <code>Item</code> to the <code>Inventory.add()</code> method. With types, you can enforce this:</p>
+<pre><code>class_name Inventory
+
+func add(reference: Item, amount: int = 1):
+    var item := find_item(reference)
+    if not item:
+        item = _instance_item_from_db(reference)
+    item.amount += amount</code></pre>
+<p>Static types also give you better code completion options. Below, you can see the difference between a dynamic and a static typed completion options.</p>
+<p>You've probably encountered a lack of autocomplete suggestions after a dot:</p>
+<p><em>Image: Completion options for dynamic typed code.</em></p>
+<p>This is due to dynamic code. Godot cannot know what value type you're passing to the function. If you write the type explicitly however, you will get all methods, properties, constants, etc. from the value:</p>
+<p><em>Image: Completion options for static typed code.</em></p>
+<blockquote>
+<p><strong>Tip:</strong> If you prefer static typing, we recommend enabling the <strong>Text Editor &gt; Completion &gt; Add Type Hints</strong> editor setting. Also consider enabling <a href="#warning-system">some warnings</a> that are disabled by default.</p>
+</blockquote>
+<p>Also, typed GDScript improves performance by using optimized opcodes when operand/argument types are known at compile time. More GDScript optimizations are planned in the future, such as JIT/AOT compilation.</p>
+<p>Overall, typed programming gives you a more structured experience. It helps prevent errors and improves the self-documenting aspect of your scripts. This is especially helpful when you're working in a team or on a long-term project: studies have shown that developers spend most of their time reading other people's code, or scripts they wrote in the past and forgot about. The clearer and the more structured the code, the faster it is to understand, the faster you can move forward.</p>
+<h2 id="how-to-use-static-typing">How to use static typing</h2>
+<p>To define the type of a variable, parameter, or constant, write a colon after the name, followed by its type. E.g. <code>var health: int</code>. This forces the variable's type to always stay the same:</p>
+<pre><code>var damage: float = 10.5
+const MOVE_SPEED: float = 50.0
+func sum(a: float = 0.0, b: float = 0.0) -&gt; float:
+    return a + b</code></pre>
+<p>Godot will try to infer types if you write a colon, but you omit the type:</p>
+<pre><code>var damage := 10.5
+const MOVE_SPEED := 50.0
+func sum(a := 0.0, b := 0.0) -&gt; float:
+    return a + b</code></pre>
+<blockquote>
+<p><strong>Note:</strong></p>
+<ol type="1">
+<li>There is no difference between <code>=</code> and <code>:=</code> for constants.</li>
+<li>You don't need to write type hints for constants, as Godot sets it automatically from the assigned value. But you can still do so to make the intent of your code clearer. Also, this is useful for typed arrays (like <code>const A: Array[int] = [1, 2, 3]</code>), since untyped arrays are used by default.</li>
+</ol>
+</blockquote>
+<h3 id="what-can-be-a-type-hint">What can be a type hint</h3>
+<p>Here is a complete list of what can be used as a type hint:</p>
+<ol type="1">
+<li><code>Variant</code>. Any type. In most cases this is not much different from an untyped declaration, but increases readability. As a return type, forces the function to explicitly return some value.</li>
+<li><em>(Only return type)</em> <code>void</code>. Indicates that the function does not return any value.</li>
+<li>ref.</li>
+<li>Native classes (<code>Object</code>, <code>Node</code>, <code>Area2D</code>, <code>Camera2D</code>, etc.).</li>
+<li>ref.</li>
+<li>ref.</li>
+<li>Global, native and custom named enums. Note that an enum type is just an <code>int</code>, there is no guarantee that the value belongs to the set of enum values.</li>
+<li>Constants (including local ones) if they contain a preloaded class or enum.</li>
+</ol>
+<p>You can use any class, including your custom classes, as types. There are two ways to use them in scripts. The first method is to preload the script you want to use as a type in a constant:</p>
+<pre><code>const Rifle = preload(&quot;res://player/weapons/rifle.gd&quot;)
+var my_rifle: Rifle</code></pre>
+<p>The second method is to use the <code>class_name</code> keyword when you create the script. For the example above, your <code>rifle.gd</code> would look like this:</p>
+<pre><code>class_name Rifle
+extends Node2D</code></pre>
+<p>If you use <code>class_name</code>, Godot registers the <code>Rifle</code> type globally in the editor, and you can use it anywhere, without having to preload it into a constant:</p>
+<pre><code>var my_rifle: Rifle</code></pre>
+<h3 id="specify-the-return-type-of-a-function-with-the-arrow--">Specify the return type of a function with the arrow <code>-&gt;</code></h3>
+<p>To define the return type of a function, write a dash and a right angle bracket <code>-&gt;</code> after its declaration, followed by the return type:</p>
+<pre><code>func _process(delta: float) -&gt; void:
+    pass</code></pre>
+<p>The type <code>void</code> means the function does not return anything. You can use any type, as with variables:</p>
+<pre><code>func hit(damage: float) -&gt; bool:
+    health_points -= damage
+    return health_points &lt;= 0</code></pre>
+<p>You can also use your own classes as return types:</p>
+<pre><code># Adds an item to the inventory and returns it.
+func add(reference: Item, amount: int) -&gt; Item:
+    var item: Item = find_item(reference)
+    if not item:
+        item = ItemDatabase.get_instance(reference)
+
+    item.amount += amount
+    return item</code></pre>
+<h3 id="covariance-and-contravariance">Covariance and contravariance</h3>
+<p>When inheriting base class methods, you should follow the <a href="https://en.wikipedia.org/wiki/Liskov_substitution_principle">Liskov substitution principle</a>.</p>
+<p><strong>Covariance:</strong> When you inherit a method, you can specify a return type that is more specific (<strong>subtype</strong>) than the parent method.</p>
+<p><strong>Contravariance:</strong> When you inherit a method, you can specify a parameter type that is less specific (<strong>supertype</strong>) than the parent method.</p>
+<p>Example:</p>
+<pre><code>class_name Parent
+
+func get_property(param: Label) -&gt; Node:
+    # ...
+
+class_name Child extends Parent
+
+# `Control` is a supertype of `Label`.
+# `Node2D` is a subtype of `Node`.
+func get_property(param: Control) -&gt; Node2D:
+    # ...</code></pre>
+<h3 id="specify-the-element-type-of-an-array">Specify the element type of an <code>Array</code></h3>
+<p>To define the type of an <code>Array</code>, enclose the type name in <code>[]</code>.</p>
+<p>An array's type applies to <code>for</code> loop variables, as well as some operators like <code>[]</code>, <code>[...] =</code> (assignment), and <code>+</code>. Array methods (such as <code>push_back</code>) and other operators (such as <code>==</code>) are still untyped. Built-in types, native and custom classes, and enums may be used as element types. Nested array types (like <code>Array[Array[int]]</code>) are not supported.</p>
+<pre><code>var scores: Array[int] = [10, 20, 30]
+var vehicles: Array[Node] = [$Car, $Plane]
+var items: Array[Item] = [Item.new()]
+var array_of_arrays: Array[Array] = [[], []]
+# var arrays: Array[Array[int]] -- disallowed
+
+for score in scores:
+    # score has type `int`
+
+# The following would be errors:
+scores += vehicles
+var s: String = scores[0]
+scores[0] = &quot;lots&quot;</code></pre>
+<p>Since Godot 4.2, you can also specify a type for the loop variable in a <code>for</code> loop. For instance, you can write:</p>
+<pre><code>var names = [&quot;John&quot;, &quot;Marta&quot;, &quot;Samantha&quot;, &quot;Jimmy&quot;]
+for name: String in names:
+    pass</code></pre>
+<p>The array will remain untyped, but the <code>name</code> variable within the <code>for</code> loop will always be of <code>String</code> type.</p>
+<h3 id="specify-the-element-type-of-a-dictionary">Specify the element type of a <code>Dictionary</code></h3>
+<p>To define the type of a <code>Dictionary</code>'s keys and values, enclose the type name in <code>[]</code> and separate the key and value type with a comma.</p>
+<p>A dictionary's value type applies to <code>for</code> loop variables, as well as some operators like <code>[]</code> and <code>[...] =</code> (assignment). Dictionary methods that return values and other operators (such as <code>==</code>) are still untyped. Built-in types, native and custom classes, and enums may be used as element types. Nested typed collections (like <code>Dictionary[String, Dictionary[String, int]]</code>) are not supported.</p>
+<pre><code>var fruit_costs: Dictionary[String, int] = { &quot;apple&quot;: 5, &quot;orange&quot;: 10 }
+var vehicles: Dictionary[String, Node] = { &quot;car&quot;: $Car, &quot;plane&quot;: $Plane }
+var item_tiles: Dictionary[Vector2i, Item] = { Vector2i(0, 0): Item.new(), Vector2i(0, 1): Item.new() }
+var dictionary_of_dictionaries: Dictionary[String, Dictionary] = { { } }
+# var dicts: Dictionary[String, Dictionary[String, int]] -- disallowed
+
+for fruit in fruit_costs:
+    # `fruit` has type `String`
+
+# The following would be errors:
+fruit_costs[&quot;pear&quot;] += vehicles
+var s: String = fruit_costs[&quot;apple&quot;]
+fruit_costs[&quot;orange&quot;] = &quot;lots&quot;</code></pre>
+<h3 id="type-casting">Type casting</h3>
+<p>Type casting is an important concept in typed languages. Casting is the conversion of a value from one type to another.</p>
+<p>Imagine an <code>Enemy</code> in your game, that <code>extends Area2D</code>. You want it to collide with the <code>Player</code>, a <code>CharacterBody2D</code> with a script called <code>PlayerController</code> attached to it. You use the <code>body_entered</code> signal to detect the collision. With typed code, the body you detect is going to be a generic <code>PhysicsBody2D</code>, and not your <code>PlayerController</code> on the <code>_on_body_entered</code> callback.</p>
+<p>You can check if this <code>PhysicsBody2D</code> is your <code>Player</code> with the <code>as</code> keyword, and using the colon <code>:</code> again to force the variable to use this type. This forces the variable to stick to the <code>PlayerController</code> type:</p>
+<pre><code>func _on_body_entered(body: PhysicsBody2D) -&gt; void:
+    var player := body as PlayerController
+    if not player:
+        return
+
+    player.damage()</code></pre>
+<p>As we're dealing with a custom type, if the <code>body</code> doesn't extend <code>PlayerController</code>, the <code>player</code> variable will be set to <code>null</code>. We can use this to check if the body is the player or not. We will also get full autocompletion on the player variable thanks to that cast.</p>
+<blockquote>
+<p><strong>Note:</strong> The <code>as</code> keyword silently casts the variable to <code>null</code> in case of a type mismatch at runtime, without an error/warning. While this may be convenient in some cases, it can also lead to bugs. Use the <code>as</code> keyword only if this behavior is intended. A safer alternative is to use the <code>is</code> keyword:</p>
+<pre><code>if not (body is PlayerController):
+    push_error(&quot;Bug: body is not PlayerController.&quot;)
+
+var player: PlayerController = body
+if not player:
+    return
+
+player.damage()</code></pre>
+<p>You can also simplify the code by using the <code>is not</code> operator:</p>
+<pre><code>if body is not PlayerController:
+    push_error(&quot;Bug: body is not PlayerController&quot;)</code></pre>
+<p>Alternatively, you can use the <code>assert()</code> statement:</p>
+<pre><code>assert(body is PlayerController, &quot;Bug: body is not PlayerController.&quot;)
+
+var player: PlayerController = body
+if not player:
+    return
+
+player.damage()</code></pre>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> If you try to cast with a built-in type and it fails, Godot will throw an error.</p>
+</blockquote>
+<h4 id="safe-lines">Safe lines</h4>
+<p>You can also use casting to ensure safe lines. Safe lines are a tool to tell you when ambiguous lines of code are type-safe. As you can mix and match typed and dynamic code, at times, Godot doesn't have enough information to know if an instruction will trigger an error or not at runtime.</p>
+<p>This happens when you get a child node. Let's take a timer for example: with dynamic code, you can get the node with <code>$Timer</code>. GDScript supports <a href="https://stackoverflow.com/a/4205163/8125343">duck-typing</a>, so even if your timer is of type <code>Timer</code>, it is also a <code>Node</code> and an <code>Object</code>, two classes it extends. With dynamic GDScript, you also don't care about the node's type as long as it has the methods you need to call.</p>
+<p>You can use casting to tell Godot the type you expect when you get a node: <code>($Timer as Timer)</code>, <code>($Player as CharacterBody2D)</code>, etc. Godot will ensure the type works and if so, the line number will turn green at the left of the script editor.</p>
+<p><em>Image: Unsafe vs Safe Line</em></p>
+<p>Unsafe line (line 7) vs Safe Lines (line 6 and 8)</p>
+<blockquote>
+<p><strong>Note:</strong> Safe lines do not always mean better or more reliable code. See the note above about the <code>as</code> keyword. For example:</p>
+<pre><code>@onready var node_1 := $Node1 as Type1 # Safe line.
+@onready var node_2: Type2 = $Node2 # Unsafe line.</code></pre>
+<p>Even though <code>node_2</code> declaration is marked as an unsafe line, it is more reliable than <code>node_1</code> declaration. Because if you change the node type in the scene and accidentally forget to change it in the script, the error will be detected immediately when the scene is loaded. Unlike <code>node_1</code>, which will be silently cast to <code>null</code> and the error will be detected later.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> You can turn off safe lines or change their color in the editor settings.</p>
+</blockquote>
+<h2 id="typed-or-dynamic-stick-to-one-style">Typed or dynamic: stick to one style</h2>
+<p>Typed GDScript and dynamic GDScript can coexist in the same project. But it's recommended to stick to either style for consistency in your codebase, and for your peers. It's easier for everyone to work together if you follow the same guidelines, and faster to read and understand other people's code.</p>
+<p>Typed code takes a little more writing, but you get the benefits we discussed above. Here's an example of the same, empty script, in a dynamic style:</p>
+<pre><code>extends Node
+
+func _ready():
+    pass
+
+func _process(delta):
+    pass</code></pre>
+<p>And with static typing:</p>
+<pre><code>extends Node
+
+func _ready() -&gt; void:
+    pass
+
+func _process(delta: float) -&gt; void:
+    pass</code></pre>
+<p>As you can see, you can also use types with the engine's virtual methods. Signal callbacks, like any methods, can also use types. Here's a <code>body_entered</code> signal in a dynamic style:</p>
+<pre><code>func _on_area_2d_body_entered(body):
+    pass</code></pre>
+<p>And the same callback, with type hints:</p>
+<pre><code>func _on_area_2d_body_entered(body: PhysicsBody2D) -&gt; void:
+    pass</code></pre>
+<h2 id="warning-system">Warning system</h2>
+<blockquote>
+<p><strong>Note:</strong> Detailed documentation about the GDScript warning system has been moved to <code>doc_gdscript_warning_system</code>.</p>
+</blockquote>
+<p>Godot gives you warnings about your code as you write it. The engine identifies sections of your code that may lead to issues at runtime, but lets you decide whether or not you want to leave the code as it is.</p>
+<p>We have a number of warnings aimed specifically at users of typed GDScript. By default, these warnings are disabled, you can enable them in Project Settings (<strong>Debug &gt; GDScript</strong>, make sure <strong>Advanced Settings</strong> is enabled).</p>
+<p>You can enable the <code>UNTYPED_DECLARATION</code> warning if you want to always use static types. Additionally, you can enable the <code>INFERRED_DECLARATION</code> warning if you prefer a more readable and reliable, but more verbose syntax.</p>
+<p><code>UNSAFE_*</code> warnings make unsafe operations more noticeable, than unsafe lines. Currently, <code>UNSAFE_*</code> warnings do not cover all cases that unsafe lines cover.</p>
+<h2 id="common-unsafe-operations-and-their-safe-counterparts">Common unsafe operations and their safe counterparts</h2>
+<h3 id="global-scope-methods">Global scope methods</h3>
+<p>The following global scope methods are not statically typed, but they have typed counterparts available. These methods return statically typed values:</p>
+<table>
+<colgroup>
+<col style="width: 39%" />
+<col style="width: 60%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Statically typed equivalents</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td colspan="2"><dl>
+<dt>ref | | ref, |</dt>
+<dd>
+<p>  ref |<br />
+| ref, |<br />
+  ref |<br />
+| ref, |<br />
+  ref |<br />
+| ref, |<br />
+  ref |</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="even">
+<td colspan="2"><dl>
+<dt>ref | | ref, |</dt>
+<dd>
+<p>  ref |<br />
+| ref |<br />
+| ref |<br />
+| ref |</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="odd">
+<td colspan="2"><dl>
+<dt>ref | | ref, |</dt>
+<dd>
+<p>  ref |<br />
+| ref, |<br />
+  ref |<br />
+| ref, |<br />
+  ref |<br />
+| ref, |<br />
+  ref |<br />
+| ref |<br />
+| (untyped <code>clamp()</code> does not work on Color)</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="even">
+<td colspan="2"><dl>
+<dt>ref | | ref, |</dt>
+<dd>
+<p>  ref |<br />
+| ref |<br />
+| ref |<br />
+| ref |</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="odd">
+<td colspan="2"><dl>
+<dt>ref | | ref |</dt>
+<dd>
+<p>| ref |<br />
+| ref |<br />
+| ref |<br />
+| ref |<br />
+| ref |<br />
+| ref |<br />
+| ref |<br />
+| ref |</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="even">
+<td colspan="2"><dl>
+<dt>ref | | ref, |</dt>
+<dd>
+<p>  ref |<br />
+| ref |<br />
+| ref |<br />
+| ref |</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="odd">
+<td colspan="2"><dl>
+<dt>ref | | ref |</dt>
+<dd>
+<p>| ref |<br />
+| ref, |<br />
+  ref |<br />
+| ref, |<br />
+  ref |<br />
+| ref, |<br />
+  ref |</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="even">
+<td colspan="2"><dl>
+<dt>ref | | ref |</dt>
+<dd>
+<p>| ref |<br />
+| ref, |<br />
+  ref |<br />
+| ref, |<br />
+  ref |<br />
+| ref, |<br />
+  ref |</p>
+</dd>
+</dl></td>
+</tr>
+</tbody>
+</table>
+
+<p>When using static typing, use the typed global scope methods whenever possible. This ensures you have safe lines and benefit from typed instructions for better performance.</p>
+<h3 id="unsafe_property_access-and-unsafe_method_access-warnings"><code>UNSAFE_PROPERTY_ACCESS</code> and <code>UNSAFE_METHOD_ACCESS</code> warnings</h3>
+<p>In this example, we aim to set a property and call a method on an object that has a script attached with <code>class_name MyScript</code> and that <code>extends Node2D</code>. If we have a reference to the object as a <code>Node2D</code> (for instance, as it was passed to us by the physics system), we can first check if the property and method exist and then set and call them if they do:</p>
+<pre><code>if &quot;some_property&quot; in node_2d:
+    node_2d.some_property = 20  # Produces UNSAFE_PROPERTY_ACCESS warning.
+
+if node_2d.has_method(&quot;some_function&quot;):
+    node_2d.some_function()  # Produces UNSAFE_METHOD_ACCESS warning.</code></pre>
+<p>However, this code will produce <code>UNSAFE_PROPERTY_ACCESS</code> and <code>UNSAFE_METHOD_ACCESS</code> warnings as the property and method are not present in the referenced type - in this case a <code>Node2D</code>. To make these operations safe, you can first check if the object is of type <code>MyScript</code> using the <code>is</code> keyword and then declare a variable with the type <code>MyScript</code> on which you can set its properties and call its methods:</p>
+<pre><code>if node_2d is MyScript:
+    var my_script: MyScript = node_2d
+    my_script.some_property = 20
+    my_script.some_function()</code></pre>
+<p>Alternatively, you can declare a variable and use the <code>as</code> operator to try to cast the object. You'll then want to check whether the cast was successful by confirming that the variable was assigned:</p>
+<pre><code>var my_script := node_2d as MyScript
+if my_script != null:
+    my_script.some_property = 20
+    my_script.some_function()</code></pre>
+<h3 id="unsafe_cast-warning"><code>UNSAFE_CAST</code> warning</h3>
+<p>In this example, we would like the label connected to an object entering our collision area to show the area's name. Once the object enters the collision area, the physics system sends a signal with a <code>Node2D</code> object, and the most straightforward (but not statically typed) solution to do what we want could be achieved like this:</p>
+<pre><code>func _on_body_entered(body: Node2D) -&gt; void:
+    body.label.text = name  # Produces UNSAFE_PROPERTY_ACCESS warning.</code></pre>
+<p>This piece of code produces an <code>UNSAFE_PROPERTY_ACCESS</code> warning because <code>label</code> is not defined in <code>Node2D</code>. To solve this, we could first check if the <code>label</code> property exist and cast it to type <code>Label</code> before settings its text property like so:</p>
+<pre><code>func _on_body_entered(body: Node2D) -&gt; void:
+    if &quot;label&quot; in body:
+        (body.label as Label).text = name  # Produces UNSAFE_CAST warning.</code></pre>
+<p>However, this produces an <code>UNSAFE_CAST</code> warning because <code>body.label</code> is of a <code>Variant</code> type. To safely get the property in the type you want, you can use the <code>Object.get()</code> method which returns the object as a <code>Variant</code> value or returns <code>null</code> if the property doesn't exist. You can then determine whether the property contains an object of the right type using the <code>is</code> keyword, and finally declare a statically typed variable with the object:</p>
+<pre><code>func _on_body_entered(body: Node2D) -&gt; void:
+    var label_variant: Variant = body.get(&quot;label&quot;)
+    if label_variant is Label:
+        var label: Label = label_variant
+        label.text = name</code></pre>
+<h2 id="cases-where-you-cant-specify-types">Cases where you can't specify types</h2>
+<p>To wrap up this introduction, let's mention cases where you can't use type hints. This will trigger a <strong>syntax error</strong>.</p>
+<ol type="1">
+<li>You can't specify the type of individual elements in an array or a dictionary:</li>
+</ol>
+<!-- -->
+
+<pre><code>var enemies: Array = [$Goblin: Enemy, $Zombie: Enemy]
+var character: Dictionary = {
+    name: String = &quot;Richard&quot;,
+    money: int = 1000,
+    inventory: Inventory = $Inventory,
+}</code></pre>
+<ol start="2" type="1">
+<li>Nested types are not currently supported:</li>
+</ol>
+<!-- -->
+
+<pre><code>var teams: Array[Array[Character]] = []</code></pre>
+<h2 id="summary">Summary</h2>
+<p>Typed GDScript is a powerful tool. It helps you write more structured code, avoid common errors, and create scalable and reliable systems. Static types improve GDScript performance and more optimizations are planned for the future.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

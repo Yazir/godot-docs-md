@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoomManager — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="roommanager">RoomManager</h1>
+<p><em>Inherits: <a href="Spatial.html">Spatial</a> &lt; <a href="Node.html">Node</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>The RoomManager node is used to control the portal culling system.</p>
+<h2 id="description">Description</h2>
+<p>In order to utilize the portal occlusion culling system, you must build your level using <a href="Room.html">Room</a> s and <a href="Portal.html">Portal</a> s. Before these can be used at runtime, they must undergo a short conversion process to build the <code>room graph</code>, runtime data needed for portal culling. The <code>room graph</code> is controlled by the <strong>RoomManager</strong> node, and the <strong>RoomManager</strong> also contains settings that are common throughout the portal system.</p>
+<h2 id="properties">Properties</h2>
+<h3 id="bool-active--true"><code>bool active = true</code></h3>
+<ul>
+<li>Getter: <code>rooms_get_active()</code></li>
+</ul>
+<p>Switches the portal culling system on and off.</p>
+<p>It is important to note that when portal culling is active, it is responsible for <strong>all</strong> the 3d culling. Some editor visual debugging helpers may not be available when active, so switching the active flag is intended to be used to ensure your <a href="Room.html">Room</a> / <a href="Portal.html">Portal</a> layout works within the editor.</p>
+<p>Switching to <code>active</code> will have no effect when the <code>room graph</code> is unloaded (the rooms have not yet been converted).</p>
+<p><strong>Note:</strong> For efficiency, the portal system is designed to work with only the core visual object types. In particular, only nodes derived from <a href="VisualInstance.html">VisualInstance</a> are expected to show when the system is active.</p>
+<h3 id="bool-debug_sprawl--false"><code>bool debug_sprawl = false</code></h3>
+<ul>
+<li>Setter: <code>set_debug_sprawl(value: bool)</code></li>
+<li>Getter: <code>get_debug_sprawl()</code></li>
+</ul>
+<p>Large objects can 'sprawl' over (be present in) more than one room. It can be useful to visualize which objects are sprawling outside the current room.</p>
+<p>Toggling this setting turns this debug view on and off.</p>
+<h3 id="float-default_portal_margin--10"><code>float default_portal_margin = 1.0</code></h3>
+<ul>
+<li>Setter: <code>set_default_portal_margin(value: float)</code></li>
+<li>Getter: <code>get_default_portal_margin()</code></li>
+</ul>
+<p>Usually we don't want objects that only <strong>just</strong> cross a boundary into an adjacent <a href="Room.html">Room</a> to sprawl into that room. To prevent this, each <a href="Portal.html">Portal</a> has an extra margin, or tolerance zone where objects can enter without sprawling to a neighbouring room.</p>
+<p>In most cases you can set this here for all portals. It is possible to override the margin for each portal.</p>
+<h3 id="bool-gameplay_monitor--false"><code>bool gameplay_monitor = false</code></h3>
+<ul>
+<li>Setter: <code>set_gameplay_monitor_enabled(value: bool)</code></li>
+<li>Getter: <code>get_gameplay_monitor_enabled()</code></li>
+</ul>
+<p>When using a partial or full PVS, the gameplay monitor allows you to receive callbacks when roaming objects or rooms enter or exit the <strong>gameplay area</strong>. The gameplay area is defined as either the primary, or secondary PVS.</p>
+<p>These callbacks allow you to, for example, reduce processing for objects that are far from the player, or turn on and off AI.</p>
+<p>You can either choose to receive callbacks as notifications through the <code>_notification</code> function, or as signals.</p>
+<p><code>NOTIFICATION_ENTER_GAMEPLAY</code></p>
+<p><code>NOTIFICATION_EXIT_GAMEPLAY</code></p>
+<p>Signals: <code>"gameplay_entered"</code>, <code>"gameplay_exited"</code></p>
+<h3 id="bool-merge_meshes--false"><code>bool merge_meshes = false</code></h3>
+<ul>
+<li>Setter: <code>set_merge_meshes(value: bool)</code></li>
+<li>Getter: <code>get_merge_meshes()</code></li>
+</ul>
+<p>If enabled, the system will attempt to merge similar meshes (particularly in terms of materials) within <a href="Room.html">Room</a> s during conversion. This can significantly reduce the number of drawcalls and state changes required during rendering, albeit at a cost of reduced culling granularity.</p>
+<p><strong>Note:</strong> This operates at runtime during the conversion process, and will only operate on exported or running projects, in order to prevent accidental alteration to the scene and loss of data.</p>
+<h3 id="int-overlap_warning_threshold--1"><code>int overlap_warning_threshold = 1</code></h3>
+<ul>
+<li>Setter: <code>set_overlap_warning_threshold(value: int)</code></li>
+<li>Getter: <code>get_overlap_warning_threshold()</code></li>
+</ul>
+<p>When converting rooms, the editor will warn you if overlap is detected between rooms. Overlap can interfere with determining the room that cameras and objects are within. A small amount can be acceptable, depending on your level. Here you can alter the threshold at which the editor warning appears. There are no other side effects.</p>
+<h3 id="int-portal_depth_limit--16"><code>int portal_depth_limit = 16</code></h3>
+<ul>
+<li>Setter: <code>set_portal_depth_limit(value: int)</code></li>
+<li>Getter: <code>get_portal_depth_limit()</code></li>
+</ul>
+<p>Portal rendering is recursive - each time a portal is seen through an earlier portal there is some cost. For this reason, and to prevent the possibility of infinite loops, this setting provides a hard limit on the recursion depth.</p>
+<p><strong>Note:</strong> This value is unused when using <code>Full</code> PVS mode.</p>
+<h3 id="nodepath-preview_camera--nodepath"><code>NodePath preview_camera = NodePath("")</code></h3>
+<ul>
+<li>Setter: <code>set_preview_camera_path(value: NodePath)</code></li>
+<li>Getter: <code>get_preview_camera_path()</code></li>
+</ul>
+<p>Portal culling normally operates using the current <a href="Camera.html">Camera</a> / <a href="Camera.html">Camera</a> s, however for debugging purposes within the editor, you can use this setting to override this behavior and force it to use a particular camera to get a better idea of what the occlusion culling is doing.</p>
+<h3 id="pvsmode-pvs_mode--1">``PVSMode<code> pvs_mode = 1</code></h3>
+<ul>
+<li>Setter: <code>set_pvs_mode(value: </code>PVSMode<code>)</code></li>
+<li>Getter: <code>get_pvs_mode()</code></li>
+</ul>
+<p>Optionally during conversion the potentially visible set (PVS) of rooms that are potentially visible from each room can be calculated. This can be used either to aid in dynamic portal culling, or to totally replace portal culling.</p>
+<p>In <code>Full</code> PVS Mode, all objects within the potentially visible rooms will be frustum culled, and rendered if they are within the view frustum.</p>
+<h3 id="float-roaming_expansion_margin--10"><code>float roaming_expansion_margin = 1.0</code></h3>
+<ul>
+<li>Setter: <code>set_roaming_expansion_margin(value: float)</code></li>
+<li>Getter: <code>get_roaming_expansion_margin()</code></li>
+</ul>
+<p>In order to reduce processing for roaming objects, an expansion is applied to their AABB as they move. This expanded volume is used to calculate which rooms the roaming object is within. If the object's exact AABB is still within this expanded volume on the next move, there is no need to reprocess the object, which can save considerable CPU.</p>
+<p>The downside is that if the expansion is too much, the object may end up unexpectedly sprawling into neighbouring rooms and showing up where it might otherwise be culled.</p>
+<p>In order to balance roaming performance against culling accuracy, this expansion margin can be customized by the user. It will typically depend on your room and object sizes, and movement speeds. The default value should work reasonably in most circumstances.</p>
+<h3 id="float-room_simplify--05"><code>float room_simplify = 0.5</code></h3>
+<ul>
+<li>Setter: <code>set_room_simplify(value: float)</code></li>
+<li>Getter: <code>get_room_simplify()</code></li>
+</ul>
+<p>During the conversion process, the geometry of objects within <a href="Room.html">Room</a> s, or a custom specified manual bound, are used to generate a <strong>convex hull bound</strong>.</p>
+<p>This convex hull is <strong>required</strong> in the visibility system, and is used for many purposes. Most importantly, it is used to decide whether the <a href="Camera.html">Camera</a> (or an object) is within a <a href="Room.html">Room</a>. The convex hull generating algorithm is good, but occasionally it can create too many (or too few) planes to give a good representation of the room volume.</p>
+<p>The <code>room_simplify</code> value can be used to gain fine control over this process. It determines how similar planes can be for them to be considered the same (and duplicates removed). The value can be set between 0 (no simplification) and 1 (maximum simplification).</p>
+<p>The value set here is the default for all rooms, but individual rooms can override this value if desired.</p>
+<p>The room convex hulls are shown as a wireframe in the editor.</p>
+<h3 id="nodepath-roomlist--nodepath"><code>NodePath roomlist = NodePath("")</code></h3>
+<ul>
+<li>Setter: <code>set_roomlist_path(value: NodePath)</code></li>
+<li>Getter: <code>get_roomlist_path()</code></li>
+</ul>
+<p>For the <a href="Room.html">Room</a> conversion process to succeed, you must point the <strong>RoomManager</strong> to the parent <a href="Node.html">Node</a> of your <a href="Room.html">Room</a> s and <a href="RoomGroup.html">RoomGroup</a> s, which we refer to as the <code>roomlist</code> (the roomlist is not a special node type, it is normally just a <a href="Spatial.html">Spatial</a>).</p>
+<h3 id="bool-show_margins--true"><code>bool show_margins = true</code></h3>
+<ul>
+<li>Setter: <code>set_show_margins(value: bool)</code></li>
+<li>Getter: <code>get_show_margins()</code></li>
+</ul>
+<p>Shows the <a href="Portal.html">Portal</a> margins when the portal gizmo is used in the editor.</p>
+<h3 id="bool-use_secondary_pvs--false"><code>bool use_secondary_pvs = false</code></h3>
+<ul>
+<li>Setter: <code>set_use_secondary_pvs(value: bool)</code></li>
+<li>Getter: <code>get_use_secondary_pvs()</code></li>
+</ul>
+<p>When receiving gameplay callbacks when objects enter and exit gameplay, the <strong>gameplay area</strong> can be defined by either the primary PVS (potentially visible set) of <a href="Room.html">Room</a> s, or the secondary PVS (the primary PVS and their neighbouring <a href="Room.html">Room</a> s).</p>
+<p>Sometimes using the larger gameplay area of the secondary PVS may be preferable.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-rooms_clear"><code>void rooms_clear()</code></h3>
+<p>This function clears all converted data from the <strong>room graph</strong>. Use this before unloading a level, when transitioning from level to level, or returning to a main menu.</p>
+<h3 id="void-rooms_convert"><code>void rooms_convert()</code></h3>
+<p>This is the most important function in the whole portal culling system. Without it, the system cannot function.</p>
+<p>First it goes through every <a href="Room.html">Room</a> that is a child of the <code>room list</code> node (and <a href="RoomGroup.html">RoomGroup</a> s within) and converts and adds it to the <code>room graph</code>.</p>
+<p>This works for both <a href="Room.html">Room</a> nodes, and <a href="Spatial.html">Spatial</a> nodes that follow a special naming convention. They should begin with the prefix <em>'Room_'</em>, followed by the name you wish to give the room, e.g. <em>'Room_lounge'</em>. This will automatically convert such <a href="Spatial.html">Spatial</a> s to <a href="Room.html">Room</a> nodes for you. This is useful if you want to build you entire room system in e.g. Blender, and reimport multiple times as you work on the level.</p>
+<p>The conversion will try to assign <a href="VisualInstance.html">VisualInstance</a> s that are children and grandchildren of the <a href="Room.html">Room</a> to the room. These should be given a suitable <code>portal mode</code> (see the <a href="CullInstance.html">CullInstance</a> documentation). The default <code>portal mode</code> is <code>STATIC</code> - objects which are not expected to move while the level is played, which will typically be most objects.</p>
+<p>The conversion will usually use the geometry of these <a href="VisualInstance.html">VisualInstance</a> s (and the <a href="Portal.html">Portal</a> s) to calculate a convex hull bound for the room. These bounds will be shown in the editor with a wireframe. Alternatively you can specify a manual custom bound for any room, see the <a href="Room.html">Room</a> documentation.</p>
+<p>By definition, <a href="Camera.html">Camera</a> s within a room can see everything else within the room (that is one advantage to using convex hulls). However, in order to see from one room into adjacent rooms, you must place <a href="Portal.html">Portal</a> s, which represent openings that the camera can see through, like windows and doors.</p>
+<p><a href="Portal.html">Portal</a> s are really just specialized <a href="MeshInstance.html">MeshInstance</a> s. In fact you will usually first create a portal by creating a <a href="MeshInstance.html">MeshInstance</a>, especially a <code>plane</code> mesh instance. You would move the plane in the editor to cover a window or doorway, with the front face pointing outward from the room. To let the conversion process know you want this mesh to be a portal, again we use a special naming convention. <a href="MeshInstance.html">MeshInstance</a> s to be converted to a <a href="Portal.html">Portal</a> should start with the prefix <em>'Portal_'</em>.</p>
+<p>You now have a choice - you can leave the name as <em>'Portal_'</em> and allow the system to automatically detect the nearest <a href="Room.html">Room</a> to link. In most cases this will work fine.</p>
+<p>An alternative method is to specify the <a href="Room.html">Room</a> to link to manually, appending a suffix to the portal name, which should be the name of the room you intend to link to. For example <em>'Portal_lounge'</em> will attempt to link to the room named <em>'Room_lounge'</em>.</p>
+<p>There is a special case here - Godot does not allow two nodes to share the same name. What if you want to manually have more than one portal leading into the same room? Surely they will need to both be called, e.g. <em>'Portal_lounge'</em>?</p>
+<p>The solution is a wildcard character. After the room name, if you use the character <em>'*'</em>, this character and anything following it will be ignored. So you can use for example <em>'Portal_lounge*0'</em>, <em>'Portal_lounge*1'</em> etc.</p>
+<p>Note that <a href="Portal.html">Portal</a> s that have already been converted to <a href="Portal.html">Portal</a> nodes (rather than <a href="MeshInstance.html">MeshInstance</a> s) still need to follow the same naming convention, as they will be relinked each time during conversion.</p>
+<p>It is recommended that you only place objects in rooms that are desired to stay within those rooms - i.e. <code>portal mode</code> s <code>STATIC</code> or <code>DYNAMIC</code> (not crossing portals). <code>GLOBAL</code> and <code>ROAMING</code> objects are best placed in another part of the scene tree, to avoid confusion. See <a href="CullInstance.html">CullInstance</a> for a full description of portal modes.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-pvsmode"><code>enum PVSMode</code></h3>
+<ul>
+<li><p><code>PVS_MODE_DISABLED = 0</code></p>
+<p>Use only <a href="Portal.html">Portal</a> s at runtime to determine visibility. PVS will not be generated at <a href="Room.html">Room</a> s conversion, and gameplay notifications cannot be used.</p></li>
+<li><p><code>PVS_MODE_PARTIAL = 1</code></p>
+<p>Use a combination of PVS and <a href="Portal.html">Portal</a> s to determine visibility (this is usually fastest and most accurate).</p></li>
+<li><p><code>PVS_MODE_FULL = 2</code></p>
+<p>Use only the PVS (potentially visible set) of <a href="Room.html">Room</a> s to determine visibility.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C# Variant — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="c-variant">C# Variant</h1>
+<p>For a detailed explanation of Variant in general, see the ref documentation page.</p>
+<p><code>Godot.Variant</code> is used to represent Godot's native ref type. Any ref can be converted from/to it. We recommend avoiding <code>Godot.Variant</code> unless it is necessary to interact with untyped engine APIs. Take advantage of C#'s type safety when possible.</p>
+<p>Converting from a Variant-compatible C# type to <code>Godot.Variant</code> can be done using implicit conversions. There are also <code>CreateFrom</code> method overloads and the generic <code>Variant.From&lt;T&gt;</code> methods. Only the syntax is different: the behavior is the same.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> x <span class="op">=</span> <span class="dv">42</span><span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>Variant numberVariant <span class="op">=</span> x<span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>Variant helloVariant <span class="op">=</span> <span class="st">&quot;Hello, World!&quot;</span><span class="op">;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>Variant numberVariant2 <span class="op">=</span> Variant<span class="op">.</span><span class="fu">CreateFrom</span><span class="op">(</span>x<span class="op">);</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>Variant numberVariant3 <span class="op">=</span> Variant<span class="op">.</span><span class="fu">From</span><span class="op">(</span>x<span class="op">);</span></span></code></pre></div>
+<p>Implicit conversions to <code>Godot.Variant</code> make passing variants as method arguments very convenient. For example, the third argument of ref specifying the final color of the tween is a <code>Godot.Variant</code>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>Tween tween <span class="op">=</span> <span class="fu">CreateTween</span><span class="op">();</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>tween<span class="op">.</span><span class="fu">TweenProperty</span><span class="op">(</span><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Sprite&quot;</span><span class="op">),</span> <span class="st">&quot;modulate&quot;</span><span class="op">,</span> Colors<span class="op">.</span><span class="fu">Red</span><span class="op">,</span> <span class="fl">1.0f</span><span class="op">);</span></span></code></pre></div>
+<p>Converting from <code>Godot.Variant</code> to a C# type can be done using explicit conversions. There are also <code>Variant.As{TYPE}</code> methods and the generic <code>Variant.As&lt;T&gt;</code> method. All of these behave the same.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> number <span class="op">=</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>numberVariant<span class="op">;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="dt">string</span> hello <span class="op">=</span> <span class="op">(</span><span class="dt">string</span><span class="op">)</span>helloVariant<span class="op">;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> number2 <span class="op">=</span> numberVariant<span class="op">.</span><span class="fu">As</span><span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;();</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> number3 <span class="op">=</span> numberVariant<span class="op">.</span><span class="fu">AsInt32</span><span class="op">();</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> The <code>Variant.As{TYPE}</code> methods are typically named after C# types (<code>Int32</code>), not C# keywords (<code>int</code>).</p>
+</blockquote>
+<p>If the Variant type doesn't match the conversion target type, the consequences vary depending on the source and target values.</p>
+<ul>
+<li>The conversion may examine the value and return a similar but potentially unexpected value of the target type. For example, the string <code>"42a"</code> may be converted to the integer <code>42</code>.</li>
+<li>The default value of the target type may be returned.</li>
+<li>An empty array may be returned.</li>
+<li>An exception may be thrown.</li>
+</ul>
+<p>Converting to the correct type avoids complicated behavior and should be preferred.</p>
+<p>The <code>Variant.Obj</code> property returns a C# <code>object</code> with the correct value for any variant. This may be useful when the type of Variant is completely unknown. However, when possible, prefer more specific conversions. <code>Variant.Obj</code> evaluates a <code>switch</code> on <code>Variant.VariantType</code> and it may not be necessary. Also, if the result is a value type, it is boxed.</p>
+<p>For example, if the potential for <code>Variant.As&lt;MyNode&gt;()</code> to throw an invalid cast exception isn't acceptable, consider using a <code>Variant.As&lt;GodotObject&gt;() is MyNode n</code> type pattern instead.</p>
+<blockquote>
+<p><strong>Note:</strong> Since the Variant type in C# is a struct, it can't be null. To create a "null" Variant, use the <code>default</code> keyword or the <code>Godot.Variant</code> parameterless constructor.</p>
+</blockquote>
+<h2 id="variant-compatible-types">Variant-compatible types</h2>
+<p>A Variant-compatible type can be converted to and from a <code>Godot.Variant</code>. These C# types are Variant-compatible:</p>
+<ul>
+<li>All the <a href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/built-in-types-table">built-in value types</a>, except <code>decimal</code>, <code>nint</code> and <code>nuint</code>.</li>
+<li><code>string</code>.</li>
+<li>Classes derived from ref.</li>
+<li>Collections types defined in the <code>Godot.Collections</code> namespace.</li>
+</ul>
+<p>Full list of Variant types and their equivalent C# type:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Variant.Type</th>
+<th>C# Type</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Nil</code></td>
+<td><code>null</code> (Not a type)</td>
+</tr>
+<tr class="even">
+<td><code>Bool</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr class="odd">
+<td><code>Int</code></td>
+<td><code>long</code> (Godot stores 64-bit integers in Variant)</td>
+</tr>
+<tr class="even">
+<td><code>Float</code></td>
+<td><code>double</code> (Godot stores 64-bit floats in Variant)</td>
+</tr>
+<tr class="odd">
+<td><code>String</code></td>
+<td><code>string</code></td>
+</tr>
+<tr class="even">
+<td><code>Vector2</code></td>
+<td><code>Godot.Vector2</code></td>
+</tr>
+<tr class="odd">
+<td><code>Vector2I</code></td>
+<td><code>Godot.Vector2I</code></td>
+</tr>
+<tr class="even">
+<td><code>Rect2</code></td>
+<td><code>Godot.Rect2</code></td>
+</tr>
+<tr class="odd">
+<td><code>Rect2I</code></td>
+<td><code>Godot.Rect2I</code></td>
+</tr>
+<tr class="even">
+<td><code>Vector3</code></td>
+<td><code>Godot.Vector3</code></td>
+</tr>
+<tr class="odd">
+<td><code>Vector3I</code></td>
+<td><code>Godot.Vector3I</code></td>
+</tr>
+<tr class="even">
+<td><code>Transform2D</code></td>
+<td><code>Godot.Transform2D</code></td>
+</tr>
+<tr class="odd">
+<td><code>Vector4</code></td>
+<td><code>Godot.Vector4</code></td>
+</tr>
+<tr class="even">
+<td><code>Vector4I</code></td>
+<td><code>Godot.Vector4I</code></td>
+</tr>
+<tr class="odd">
+<td><code>Plane</code></td>
+<td><code>Godot.Plane</code></td>
+</tr>
+<tr class="even">
+<td><code>Quaternion</code></td>
+<td><code>Godot.Quaternion</code></td>
+</tr>
+<tr class="odd">
+<td><code>Aabb</code></td>
+<td><code>Godot.Aabb</code></td>
+</tr>
+<tr class="even">
+<td><code>Basis</code></td>
+<td><code>Godot.Basis</code></td>
+</tr>
+<tr class="odd">
+<td><code>Transform3D</code></td>
+<td><code>Godot.Transform3D</code></td>
+</tr>
+<tr class="even">
+<td><code>Projection</code></td>
+<td><code>Godot.Projection</code></td>
+</tr>
+<tr class="odd">
+<td><code>Color</code></td>
+<td><code>Godot.Color</code></td>
+</tr>
+<tr class="even">
+<td><code>StringName</code></td>
+<td><code>Godot.StringName</code></td>
+</tr>
+<tr class="odd">
+<td><code>NodePath</code></td>
+<td><code>Godot.NodePath</code></td>
+</tr>
+<tr class="even">
+<td><code>Rid</code></td>
+<td><code>Godot.Rid</code></td>
+</tr>
+<tr class="odd">
+<td><code>Object</code></td>
+<td><code>Godot.GodotObject</code> or any derived type.</td>
+</tr>
+<tr class="even">
+<td><code>Callable</code></td>
+<td><code>Godot.Callable</code></td>
+</tr>
+<tr class="odd">
+<td><code>Signal</code></td>
+<td><code>Godot.Signal</code></td>
+</tr>
+<tr class="even">
+<td><code>Dictionary</code></td>
+<td><code>Godot.Collections.Dictionary</code></td>
+</tr>
+<tr class="odd">
+<td><code>Array</code></td>
+<td><code>Godot.Collections.Array</code></td>
+</tr>
+<tr class="even">
+<td><code>PackedByteArray</code></td>
+<td><code>byte[]</code></td>
+</tr>
+<tr class="odd">
+<td><code>PackedInt32Array</code></td>
+<td><code>int[]</code></td>
+</tr>
+<tr class="even">
+<td><code>PackedInt64Array</code></td>
+<td><code>long[]</code></td>
+</tr>
+<tr class="odd">
+<td><code>PackedFloat32Array</code></td>
+<td><code>float[]</code></td>
+</tr>
+<tr class="even">
+<td><code>PackedFloat64Array</code></td>
+<td><code>double[]</code></td>
+</tr>
+<tr class="odd">
+<td><code>PackedStringArray</code></td>
+<td><code>string[]</code></td>
+</tr>
+<tr class="even">
+<td><code>PackedVector2Array</code></td>
+<td><code>Godot.Vector2[]</code></td>
+</tr>
+<tr class="odd">
+<td><code>PackedVector3Array</code></td>
+<td><code>Godot.Vector3[]</code></td>
+</tr>
+<tr class="even">
+<td><code>PackedVector4Array</code></td>
+<td><code>Godot.Vector4[]</code></td>
+</tr>
+<tr class="odd">
+<td><code>PackedColorArray</code></td>
+<td><code>Godot.Color[]</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Warning:</strong> Godot uses 64-bit integers and floats in Variant. Smaller integer and float types such as <code>int</code>, <code>short</code> and <code>float</code> are supported since they can fit in the bigger type. Be aware that when a conversion is performed, using the wrong type will result in potential precision loss.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Enums are supported by <code>Godot.Variant</code> since their underlying type is an integer type which are all compatible. However, implicit conversions don't exist, enums must be manually converted to their underlying integer type before they can converted to/from <code>Godot.Variant</code> or use the generic <code>Variant.As&lt;T&gt;</code> and <code>Variant.From&lt;T&gt;</code> methods to convert them.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">enum</span> MyEnum <span class="op">{</span> A<span class="op">,</span> B<span class="op">,</span> C <span class="op">}</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>Variant variant1 <span class="op">=</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>MyEnum<span class="op">.</span><span class="fu">A</span><span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>MyEnum enum1 <span class="op">=</span> <span class="op">(</span>MyEnum<span class="op">)(</span><span class="dt">int</span><span class="op">)</span>variant1<span class="op">;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>Variant variant2 <span class="op">=</span> Variant<span class="op">.</span><span class="fu">From</span><span class="op">(</span>MyEnum<span class="op">.</span><span class="fu">A</span><span class="op">);</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>MyEnum enum2 <span class="op">=</span> variant2<span class="op">.</span><span class="fu">As</span><span class="op">&lt;</span>MyEnum<span class="op">&gt;();</span></span></code></pre></div>
+</blockquote>
+<h2 id="using-variant-in-a-generic-context">Using Variant in a generic context</h2>
+<p>When using generics, you may be interested in restricting the generic <code>T</code> type to be only one of the Variant-compatible types. This can be achieved using the <code>[MustBeVariant]</code> attribute.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> MethodThatOnlySupportsVariants<span class="op">&lt;[</span>MustBeVariant<span class="op">]</span> T<span class="op">&gt;(</span>T onlyVariant<span class="op">)</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Do something with the Variant-compatible value.</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Combined with the generic <code>Variant.From&lt;T&gt;</code> allows you to obtain an instance of <code>Godot.Variant</code> from an instance of a generic <code>T</code> type. Then it can be used in any API that only supports the <code>Godot.Variant</code> struct.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> Method1<span class="op">&lt;[</span>MustBeVariant<span class="op">]</span> T<span class="op">&gt;(</span>T variantCompatible<span class="op">)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    Variant variant <span class="op">=</span> Variant<span class="op">.</span><span class="fu">From</span><span class="op">(</span>variantCompatible<span class="op">);</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Method2</span><span class="op">(</span>variant<span class="op">);</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">Method2</span><span class="op">(</span>Variant variant<span class="op">)</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Do something with variant.</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In order to invoke a method with a generic parameter annotated with the <code>[MustBeVariant]</code> attribute, the value must be a Variant-compatible type or a generic <code>T</code> type annotated with the <code>[MustBeVariant]</code> attribute as well.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> ObjectDerivedClass <span class="op">:</span> GodotObject <span class="op">{</span> <span class="op">}</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> NonObjectDerivedClass <span class="op">{</span> <span class="op">}</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> Main<span class="op">&lt;[</span>MustBeVariant<span class="op">]</span> T1<span class="op">,</span> T2<span class="op">&gt;(</span>T1 someGeneric1<span class="op">,</span> T2 someGeneric2<span class="op">)</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">MyMethod</span><span class="op">(</span><span class="dv">42</span><span class="op">);</span> <span class="co">// Works because `int` is a Variant-compatible type.</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">MyMethod</span><span class="op">(</span><span class="kw">new</span> <span class="fu">ObjectDerivedClass</span><span class="op">());</span> <span class="co">// Works because any type that derives from `GodotObject` is a Variant-compatible type.</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">MyMethod</span><span class="op">(</span><span class="kw">new</span> <span class="fu">NonObjectDerivedClass</span><span class="op">());</span> <span class="co">// Does NOT work because the type is not Variant-compatible.</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">MyMethod</span><span class="op">(</span>someGeneric1<span class="op">);</span> <span class="co">// Works because `T1` is annotated with the `[MustBeVariant]` attribute.</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">MyMethod</span><span class="op">(</span>someGeneric2<span class="op">);</span> <span class="co">// Does NOT work because `T2` is NOT annotated with the `[MustBeVariant]` attribute.</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> MyMethod<span class="op">&lt;[</span>MustBeVariant<span class="op">]</span> T<span class="op">&gt;(</span>T variant<span class="op">)</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Do something with variant.</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NavigationMeshGenerator — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="navigationmeshgenerator">NavigationMeshGenerator</h1>
+<p><em>Inherits: <a href="Object.html">Object</a></em></p>
+<p>Helper class for creating and clearing navigation meshes.</p>
+<h2 id="description">Description</h2>
+<p>This class is responsible for creating and clearing 3D navigation meshes used as <a href="NavigationMesh.html">NavigationMesh</a> resources inside <a href="NavigationMeshInstance.html">NavigationMeshInstance</a>. The <strong>NavigationMeshGenerator</strong> has very limited to no use for 2D as the navigation mesh baking process expects 3D node types and 3D source geometry to parse.</p>
+<p>The entire navigation mesh baking is best done in a separate thread as the voxelization, collision tests and mesh optimization steps involved are very performance and time hungry operations.</p>
+<p>Navigation mesh baking happens in multiple steps and the result depends on 3D source geometry and properties of the <a href="NavigationMesh.html">NavigationMesh</a> resource. In the first step, starting from a root node and depending on <a href="NavigationMesh.html">NavigationMesh</a> properties all valid 3D source geometry nodes are collected from the <a href="SceneTree.html">SceneTree</a>. Second, all collected nodes are parsed for their relevant 3D geometry data and a combined 3D mesh is build. Due to the many different types of parsable objects, from normal <a href="MeshInstance.html">MeshInstance</a> s to <a href="CSGShape.html">CSGShape</a> s or various <a href="CollisionObject.html">CollisionObject</a> s, some operations to collect geometry data can trigger <a href="VisualServer.html">VisualServer</a> and <a href="PhysicsServer.html">PhysicsServer</a> synchronizations. Server synchronization can have a negative effect on baking time or framerate as it often involves <a href="Mutex.html">Mutex</a> locking for thread security. Many parsable objects and the continuous synchronization with other threaded Servers can increase the baking time significantly. On the other hand only a few but very large and complex objects will take some time to prepare for the Servers which can noticeably stall the next frame render. As a general rule the total amount of parsable objects and their individual size and complexity should be balanced to avoid framerate issues or very long baking times. The combined mesh is then passed to the Recast Navigation Object to test the source geometry for walkable terrain suitable to <a href="NavigationMesh.html">NavigationMesh</a> agent properties by creating a voxel world around the meshes bounding area.</p>
+<p>The finalized navigation mesh is then returned and stored inside the <a href="NavigationMesh.html">NavigationMesh</a> for use as a resource inside <a href="NavigationMeshInstance.html">NavigationMeshInstance</a> nodes.</p>
+<p><strong>Note:</strong> Using meshes to not only define walkable surfaces but also obstruct navigation baking does not always work. The navigation baking has no concept of what is a geometry "inside" when dealing with mesh source geometry and this is intentional. Depending on current baking parameters, as soon as the obstructing mesh is large enough to fit a navigation mesh area inside, the baking will generate navigation mesh areas that are inside the obstructing source geometry mesh.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-bakenav_mesh-navigationmesh-root_node-node"><code>void bake(nav_mesh: NavigationMesh, root_node: Node)</code></h3>
+<p>Bakes navigation data to the provided <code>nav_mesh</code> by parsing child nodes under the provided <code>root_node</code> or a specific group of nodes for potential source geometry. The parse behavior can be controlled with the <code>NavigationMesh.geometry_parsed_geometry_type</code> and <code>NavigationMesh.geometry_source_geometry_mode</code> properties on the <a href="NavigationMesh.html">NavigationMesh</a> resource.</p>
+<h3 id="void-clearnav_mesh-navigationmesh"><code>void clear(nav_mesh: NavigationMesh)</code></h3>
+<p>Removes all polygons and vertices from the provided <code>nav_mesh</code> resource.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Viewport and canvas transforms — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="viewport-and-canvas-transforms">Viewport and canvas transforms</h1>
+<h2 id="introduction">Introduction</h2>
+<p>This is an overview of the 2D transforms going on for nodes from the moment they draw their content locally to the time they are drawn onto the screen. This overview discusses very low-level details of the engine.</p>
+<p>The goal of this tutorial is to teach a way for feeding input events to the Input with a position in the correct coordinate system.</p>
+<p>A more extensive description of all coordinate systems and 2d transforms is available in <code>doc_2d_coordinate_systems</code>.</p>
+<h2 id="canvas-transform">Canvas transform</h2>
+<p>As mentioned in the previous tutorial, <code>doc_canvas_layers</code>, every CanvasItem node (remember that Node2D and Control based nodes use CanvasItem as their common root) will reside in a <em>Canvas Layer</em>. Every canvas layer has a transform (translation, rotation, scale, etc.) that can be accessed as a ref.</p>
+<p>Also covered in the previous tutorial, nodes are drawn by default in Layer 0, in the built-in canvas. To put nodes in a different layer, a ref node can be used.</p>
+<h2 id="global-canvas-transform">Global canvas transform</h2>
+<p>Viewports also have a Global Canvas transform (also a ref). This is the master transform and affects all individual <em>Canvas Layer</em> transforms. Generally, this is primarily used in Godot's CanvasItem Editor.</p>
+<h2 id="stretch-transform">Stretch transform</h2>
+<p>Finally, viewports have a <em>Stretch Transform</em>, which is used when resizing or stretching the screen. This transform is used internally (as described in <code>doc_multiple_resolutions</code>), but can also be manually set on each viewport.</p>
+<p>Input events are multiplied by this transform, but lack the ones above. To convert InputEvent coordinates to local CanvasItem coordinates, the ref function was added for convenience.</p>
+<h2 id="window-transform">Window transform</h2>
+<p>The root viewport is a ref. In order to scale and position the <em>Window's</em> content as described in <code>doc_multiple_resolutions</code>, each ref contains a <em>window transform</em>. It is for example responsible for the black bars at the <em>Window's</em> sides so that the <em>Viewport</em> is displayed with a fixed aspect ratio.</p>
+<h2 id="transform-order">Transform order</h2>
+<p>To convert a CanvasItem local coordinate to an actual screen coordinate, the following chain of transforms must be applied:</p>
+<h2 id="transform-functions">Transform functions</h2>
+<p>The above graphic shows some available transform functions. All transforms are directed from right to left, this means multiplying a transform with a coordinate results in a coordinate system further to the left, multiplying the ref of a transform results in a coordinate system further to the right:</p>
+<pre class="gdscript"><code># Called from a CanvasItem.
+canvas_pos = get_global_transform() * local_pos
+local_pos = get_global_transform().affine_inverse() * canvas_pos</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Called from a CanvasItem.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>canvasPos <span class="op">=</span> <span class="fu">GetGlobalTransform</span><span class="op">()</span> <span class="op">*</span> localPos<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>localPos <span class="op">=</span> <span class="fu">GetGlobalTransform</span><span class="op">().</span><span class="fu">AffineInverse</span><span class="op">()</span> <span class="op">*</span> canvasPos<span class="op">;</span></span></code></pre></div>
+<p>Finally, then, to convert a CanvasItem local coordinates to screen coordinates, just multiply in the following order:</p>
+<pre class="gdscript"><code>var screen_coord = get_viewport().get_screen_transform() * get_global_transform_with_canvas() * local_pos</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> screenCoord <span class="op">=</span> <span class="fu">GetViewport</span><span class="op">().</span><span class="fu">GetScreenTransform</span><span class="op">()</span> <span class="op">*</span> <span class="fu">GetGlobalTransformWithCanvas</span><span class="op">()</span> <span class="op">*</span> localPos<span class="op">;</span></span></code></pre></div>
+<p>Keep in mind, however, that it is generally not desired to work with screen coordinates. The recommended approach is to simply work in Canvas coordinates (<code>CanvasItem.get_global_transform()</code>), to allow automatic screen resolution resizing to work properly.</p>
+<h2 id="feeding-custom-input-events">Feeding custom input events</h2>
+<p>It is often desired to feed custom input events to the game. With the above knowledge, to correctly do this in the focused window, it must be done the following way:</p>
+<pre class="gdscript"><code>var local_pos = Vector2(10, 20) # Local to Control/Node2D.
+var ie = InputEventMouseButton.new()
+ie.button_index = MOUSE_BUTTON_LEFT
+ie.position = get_viewport().get_screen_transform() * get_global_transform_with_canvas() * local_pos
+Input.parse_input_event(ie)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> localPos <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">10</span><span class="op">,</span><span class="dv">20</span><span class="op">);</span> <span class="co">// Local to Control/Node2D.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> ie <span class="op">=</span> <span class="kw">new</span> <span class="fu">InputEventMouseButton</span><span class="op">()</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    ButtonIndex <span class="op">=</span> MouseButton<span class="op">.</span><span class="fu">Left</span><span class="op">,</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    Position <span class="op">=</span> <span class="fu">GetViewport</span><span class="op">().</span><span class="fu">GetScreenTransform</span><span class="op">()</span> <span class="op">*</span> <span class="fu">GetGlobalTransformWithCanvas</span><span class="op">()</span> <span class="op">*</span> localPos<span class="op">,</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>Input<span class="op">.</span><span class="fu">ParseInputEvent</span><span class="op">(</span>ie<span class="op">);</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instancing with signals — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="instancing-with-signals">Instancing with signals</h1>
+<p>Signals provide a way to decouple game objects, allowing you to avoid forcing a fixed arrangement of nodes. One sign that a signal might be called for is when you find yourself using <code>get_parent()</code>. Referring directly to a node's parent means that you can't easily move that node to another location in the scene tree. This can be especially problematic when you are instancing objects at runtime and may want to place them in an arbitrary location in the running scene tree.</p>
+<p>Below we'll consider an example of such a situation: firing bullets.</p>
+<h2 id="shooting-example">Shooting example</h2>
+<p>Consider a player character that can rotate and shoot towards the mouse. Every time the mouse button is clicked, we create an instance of the bullet at the player's location. See <code>doc_instancing</code> for details.</p>
+<p>We'll use an <code>Area2D</code> for the bullet, which moves in a straight line at a given velocity:</p>
+<pre class="gdscript"><code>extends Area2D
+
+var velocity = Vector2.ZERO
+
+func _physics_process(delta):
+    position += velocity * delta</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Bullet <span class="op">:</span> Area2D</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    Vector2 Velocity <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">();</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_PhysicsProcess</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        Position <span class="op">+=</span> Velocity <span class="op">*</span> delta<span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>However, if the bullets are added as children of the player, then they will remain "attached" to the player as it rotates:</p>
+<p>Instead, we need the bullets to be independent of the player's movement - once fired, they should continue traveling in a straight line and the player can no longer affect them. Instead of being added to the scene tree as a child of the player, it makes more sense to add the bullet as a child of the "main" game scene, which may be the player's parent or even further up the tree.</p>
+<p>You could do this by adding the bullet to the main scene directly:</p>
+<pre class="gdscript"><code>var bullet_instance = Bullet.instance()
+get_parent().add_child(bullet_instance)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>Node bulletInstance <span class="op">=</span> Bullet<span class="op">.</span><span class="fu">Instance</span><span class="op">();</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">GetParent</span><span class="op">().</span><span class="fu">AddChild</span><span class="op">(</span>bulletInstance<span class="op">);</span></span></code></pre></div>
+<p>However, this will lead to a different problem. Now if you try to test your "Player" scene independently, it will crash on shooting, because there is no parent node to access. This makes it a lot harder to test your player code independently and also means that if you decide to change your main scene's node structure, the player's parent may no longer be the appropriate node to receive the bullets.</p>
+<p>The solution to this is to use a signal to "emit" the bullets from the player. The player then has no need to "know" what happens to the bullets after that -whatever node is connected to the signal can "receive" the bullets and take the appropriate action to spawn them.</p>
+<p>Here is the code for the player using signals to emit the bullet:</p>
+<pre class="gdscript"><code>extends Sprite
+
+signal shoot(bullet, direction, location)
+
+var Bullet = preload(&quot;res://Bullet.tscn&quot;)
+
+func _input(event):
+    if event is InputEventMouseButton:
+        if event.button_index == BUTTON_LEFT and event.pressed:
+            emit_signal(&quot;shoot&quot;, Bullet, rotation, position)
+
+func _process(delta):
+    look_at(get_global_mouse_position())</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Player <span class="op">:</span> Sprite</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">Shoot</span><span class="op">(</span>PackedScene bullet<span class="op">,</span> Vector2 direction<span class="op">,</span> Vector2 location<span class="op">);</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> PackedScene _bullet <span class="op">=</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>PackedScene<span class="op">&gt;(</span><span class="st">&quot;res://Bullet.tscn&quot;</span><span class="op">);</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Input</span><span class="op">(</span>InputEvent <span class="kw">event</span><span class="op">)</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>input <span class="kw">is</span> InputEventMouseButton mouseButton<span class="op">)</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>mouseButton<span class="op">.</span><span class="fu">ButtonIndex</span> <span class="op">==</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>ButtonList<span class="op">.</span><span class="fu">Left</span> <span class="op">&amp;&amp;</span> mouseButton<span class="op">.</span><span class="fu">Pressed</span><span class="op">)</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>                <span class="fu">EmitSignal</span><span class="op">(</span><span class="fu">nameof</span><span class="op">(</span>Shoot<span class="op">),</span> _bullet<span class="op">,</span> Rotation<span class="op">,</span> Position<span class="op">);</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">LookAt</span><span class="op">(</span><span class="fu">GetGlobalMousePosition</span><span class="op">());</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In the main scene, we then connect the player's signal (it will appear in the "Node" tab).</p>
+<pre class="gdscript"><code>func _on_Player_shoot(Bullet, direction, location):
+    var b = Bullet.instance()
+    add_child(b)
+    b.rotation = direction
+    b.position = location
+    b.velocity = b.velocity.rotated(direction)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">_on_Player_Shoot</span><span class="op">(</span>PackedScene bullet<span class="op">,</span> Vector2 direction<span class="op">,</span> Vector2 location<span class="op">)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> bulletInstance <span class="op">=</span> <span class="op">(</span>Bullet<span class="op">)</span>bullet<span class="op">.</span><span class="fu">Instance</span><span class="op">();</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">AddChild</span><span class="op">(</span>bulletInstance<span class="op">);</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    bulletInstance<span class="op">.</span><span class="fu">Rotation</span> <span class="op">=</span> direction<span class="op">;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    bulletInstance<span class="op">.</span><span class="fu">Position</span> <span class="op">=</span> location<span class="op">;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    bulletInstance<span class="op">.</span><span class="fu">Velocity</span> <span class="op">=</span> bulletInstance<span class="op">.</span><span class="fu">Velocity</span><span class="op">.</span><span class="fu">Rotated</span><span class="op">(</span>direction<span class="op">);</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Now the bullets will maintain their own movement independent of the player's rotation:</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

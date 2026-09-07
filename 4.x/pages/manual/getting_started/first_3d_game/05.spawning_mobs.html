@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spawning monsters — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="spawning-monsters">Spawning monsters</h1>
+<p>In this part, we're going to spawn monsters along a path randomly. By the end, you will have monsters roaming the game board.</p>
+<p><em>Image: image0</em></p>
+<p>Double-click on <code>main.tscn</code> in the <em>FileSystem</em> dock to open the <code>Main</code> scene.</p>
+<p>Before drawing the path, we're going to change the game resolution. Our game has a default window size of <code>1152x648</code>. We're going to set it to <code>720x540</code>, a nice little box.</p>
+<p>Go to <em>Project -&gt; Project Settings</em>.</p>
+<p><em>Image: image1</em></p>
+<p>If you still have <em>Input Map</em> open, switch to the <em>General</em> tab.</p>
+<p>In the left menu, navigate down to <em>Display -&gt; Window</em>. On the right, set the <em>Viewport Width</em> to <code>720</code> and the <em>Viewport Height</em> to <code>540</code>.</p>
+<p><em>Image: image2</em></p>
+<h2 id="creating-the-spawn-path">Creating the spawn path</h2>
+<p>Like you did in the 2D game tutorial, you're going to design a path and use a ref node to sample random locations on it.</p>
+<p>In 3D though, it's a bit more complicated to draw the path. We want it to be around the game view so monsters appear right outside the screen. But if we draw a path, we won't see it from the camera preview.</p>
+<p>To find the view's limits, we can use some placeholder meshes. Your viewport should still be split into two parts, with the camera preview at the bottom. If that isn't the case, press <code>Ctrl + 2</code> (<code>Cmd + 2</code> on macOS) to split the view into two. Select the ref node and click the <em>Preview</em> checkbox in the bottom viewport.</p>
+<p><em>Image: image3</em></p>
+<h3 id="adding-placeholder-cylinders">Adding placeholder cylinders</h3>
+<p>Let's add the placeholder meshes. Add a new ref as a child of the <code>Main</code> node and name it <code>Cylinders</code>. We'll use it to group the cylinders. Select <code>Cylinders</code> and add a child node ref</p>
+<p><em>Image: image4</em></p>
+<p>In the <em>Inspector</em>, assign a <em>CylinderMesh</em> to the <em>Mesh</em> property.</p>
+<p><em>Image: image5</em></p>
+<p>Set the top viewport to the top orthogonal view using the menu in the viewport's top-left corner. Alternatively, you can press the keypad's 7 key.</p>
+<p><em>Image: image6</em></p>
+<p>The grid may be distracting. You can toggle it by going to the <em>View</em> menu in the toolbar and clicking <em>View Grid</em>.</p>
+<p><em>Image: image7</em></p>
+<p>You now want to move the cylinder along the ground plane, looking at the camera preview in the bottom viewport. I recommend using grid snap to do so. You can toggle it by clicking the magnet icon in the toolbar or pressing Y.</p>
+<p><em>Image: image8</em></p>
+<p>Move the cylinder so it's right outside the camera's view in the top-left corner.</p>
+<p><em>Image: image9</em></p>
+<p>We're going to create copies of the mesh and place them around the game area. Press <code>Ctrl + D</code> (<code>Cmd + D</code> on macOS) to duplicate the node. You can also right-click the node in the <em>Scene</em> dock and select <em>Duplicate</em>. Move the copy down along the blue Z axis until it's right outside the camera's preview.</p>
+<p>Select both cylinders by pressing the <code>Shift</code> key and clicking on the unselected one and duplicate them.</p>
+<p><em>Image: image10</em></p>
+<p>Move them to the right by dragging the red X axis.</p>
+<p><em>Image: image11</em></p>
+<p>They're a bit hard to see in white, aren't they? Let's make them stand out by giving them a new material.</p>
+<p>In 3D, materials define a surface's visual properties like its color, how it reflects light, and more. We can use them to change the color of a mesh.</p>
+<p>We can update all four cylinders at once. Select all the mesh instances in the <em>Scene</em> dock. To do so, you can click on the first one and Shift click on the last one.</p>
+<p><em>Image: image12</em></p>
+<p>In the <em>Inspector</em>, expand the <em>Material</em> section and assign a ref to slot <em>0</em>.</p>
+<p><em>Image: image13</em></p>
+<p>Click the sphere icon to open the material resource. You get a preview of the material and a long list of sections filled with properties. You can use these to create all sorts of surfaces, from metal to rock or water.</p>
+<p>Expand the <em>Albedo</em> section.</p>
+<p>Set the color to something that contrasts with the background, like a bright orange.</p>
+<p><em>Image: image14</em></p>
+<p>We can now use the cylinders as guides. Fold them in the <em>Scene</em> dock by clicking the grey arrow next to them. Moving forward, you can also toggle their visibility by clicking the eye icon next to <em>Cylinders</em>.</p>
+<p><em>Image: image15</em></p>
+<p>Add a child node ref to <code>Main</code> node. In the toolbar, four icons appear. Click the <em>Add Point</em> tool, the icon with the green "+" sign.</p>
+<p><em>Image: image16</em></p>
+<blockquote>
+<p><strong>Note:</strong> You can hover any icon to see a tooltip describing the tool.</p>
+</blockquote>
+<p>Click in the center of each cylinder to create a point. Then, click the <em>Close Curve</em> icon in the toolbar to close the path. If any point is a bit off, you can click and drag on it to reposition it.</p>
+<p><em>Image: image17</em></p>
+<p>Your path should look like this.</p>
+<p><em>Image: image18</em></p>
+<p>To sample random positions on it, we need a ref node. Add a ref as a child of the <code>Path3D</code>. Rename the two nodes to <code>SpawnLocation</code> and <code>SpawnPath</code>, respectively. It's more descriptive of what we'll use them for.</p>
+<p><em>Image: image19</em></p>
+<p>With that, we're ready to code the spawn mechanism.</p>
+<h2 id="spawning-monsters-randomly">Spawning monsters randomly</h2>
+<p>Right-click on the <code>Main</code> node and attach a new script to it.</p>
+<p>We first export a variable to the <em>Inspector</em> so that we can assign <code>mob.tscn</code> or any other monster to it.</p>
+<pre class="gdscript"><code>extends Node
+
+@export var mob_scene: PackedScene</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> Main <span class="op">:</span> Node</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Don&#39;t forget to rebuild the project so the editor knows about the new export variable.</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> PackedScene MobScene <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>We want to spawn mobs at regular time intervals. To do this, we need to go back to the scene and add a timer. Before that, though, we need to assign the <code>mob.tscn</code> file to the <code>mob_scene</code> property above (otherwise it's null!)</p>
+<p>Head back to the 3D screen and select the <code>Main</code> node. Drag <code>mob.tscn</code> from the <em>FileSystem</em> dock to the <em>Mob Scene</em> slot in the <em>Inspector</em>.</p>
+<p><em>Image: image20</em></p>
+<p>Add a new ref node as a child of <code>Main</code>. Name it <code>MobTimer</code>.</p>
+<p><em>Image: image21</em></p>
+<p>In the <em>Inspector</em>, set its <em>Wait Time</em> to <code>0.5</code> seconds and turn on <em>Autostart</em> so it automatically starts when we run the game.</p>
+<p><em>Image: image22</em></p>
+<p>Timers emit a <code>timeout</code> signal every time they reach the end of their <em>Wait Time</em>. By default, they restart automatically, emitting the signal in a cycle. We can connect to this signal from the <em>Main</em> node to spawn monsters every <code>0.5</code> seconds.</p>
+<p>With the <em>MobTimer</em> still selected, head to the <em>Signals</em> dock on the right, and double-click the <code>timeout</code> signal.</p>
+<p><em>Image: image23</em></p>
+<p>Connect it to the <em>Main</em> node.</p>
+<p><em>Image: image24</em></p>
+<p>This will take you back to the script, with a new empty <code>_on_mob_timer_timeout()</code> function.</p>
+<p>Let's code the mob spawning logic. We're going to:</p>
+<ol type="1">
+<li>Instantiate the mob scene.</li>
+<li>Sample a random position on the spawn path.</li>
+<li>Get the player's position.</li>
+<li>Call the mob's <code>initialize()</code> method, passing it the random position and the player's position.</li>
+<li>Add the mob as a child of the <em>Main</em> node.</li>
+</ol>
+<pre class="gdscript"><code>func _on_mob_timer_timeout():
+    # Create a new instance of the Mob scene.
+    var mob = mob_scene.instantiate()
+
+    # Choose a random location on the SpawnPath.
+    # We store the reference to the SpawnLocation node.
+    var mob_spawn_location = get_node(&quot;SpawnPath/SpawnLocation&quot;)
+    # And give it a random offset.
+    mob_spawn_location.progress_ratio = randf()
+
+    var player_position = $Player.position
+    mob.initialize(mob_spawn_location.position, player_position)
+
+    # Spawn the mob by adding it to the Main scene.
+    add_child(mob)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// We also specified this function name in PascalCase in the editor&#39;s connection window.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnMobTimerTimeout</span><span class="op">()</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Create a new instance of the Mob scene.</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    Mob mob <span class="op">=</span> MobScene<span class="op">.</span><span class="fu">Instantiate</span><span class="op">&lt;</span>Mob<span class="op">&gt;();</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Choose a random location on the SpawnPath.</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We store the reference to the SpawnLocation node.</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> mobSpawnLocation <span class="op">=</span> GetNode<span class="op">&lt;</span>PathFollow3D<span class="op">&gt;(</span><span class="st">&quot;SpawnPath/SpawnLocation&quot;</span><span class="op">);</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// And give it a random offset.</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    mobSpawnLocation<span class="op">.</span><span class="fu">ProgressRatio</span> <span class="op">=</span> GD<span class="op">.</span><span class="fu">Randf</span><span class="op">();</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    Vector3 playerPosition <span class="op">=</span> GetNode<span class="op">&lt;</span>Player<span class="op">&gt;(</span><span class="st">&quot;Player&quot;</span><span class="op">).</span><span class="fu">Position</span><span class="op">;</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    mob<span class="op">.</span><span class="fu">Initialize</span><span class="op">(</span>mobSpawnLocation<span class="op">.</span><span class="fu">Position</span><span class="op">,</span> playerPosition<span class="op">);</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Spawn the mob by adding it to the Main scene.</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">AddChild</span><span class="op">(</span>mob<span class="op">);</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Above, <code>randf()</code> produces a random value between <code>0</code> and <code>1</code>, which is what the <em>PathFollow</em> node's <code>progress_ratio</code> expects: 0 is the start of the path, 1 is the end of the path. The path we have set is around the camera's viewport, so any random value between 0 and 1 is a random position alongside the edges of the viewport!</p>
+<p>Note that if you remove the <code>Player</code> from the main scene, the following line</p>
+<pre class="gdscript"><code>var player_position = $Player.position</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>Vector3 playerPosition <span class="op">=</span> GetNode<span class="op">&lt;</span>Player<span class="op">&gt;(</span><span class="st">&quot;Player&quot;</span><span class="op">).</span><span class="fu">Position</span><span class="op">;</span></span></code></pre></div>
+<p>gives an error because there is no $Player!</p>
+<p>Here is the complete <code>main.gd</code> script so far, for reference.</p>
+<pre class="gdscript"><code>extends Node
+
+@export var mob_scene: PackedScene
+
+
+func _on_mob_timer_timeout():
+    # Create a new instance of the Mob scene.
+    var mob = mob_scene.instantiate()
+
+    # Choose a random location on the SpawnPath.
+    # We store the reference to the SpawnLocation node.
+    var mob_spawn_location = get_node(&quot;SpawnPath/SpawnLocation&quot;)
+    # And give it a random offset.
+    mob_spawn_location.progress_ratio = randf()
+
+    var player_position = $Player.position
+    mob.initialize(mob_spawn_location.position, player_position)
+
+    # Spawn the mob by adding it to the Main scene.
+    add_child(mob)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> Main <span class="op">:</span> Node</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> PackedScene MobScene <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnMobTimerTimeout</span><span class="op">()</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Create a new instance of the Mob scene.</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        Mob mob <span class="op">=</span> MobScene<span class="op">.</span><span class="fu">Instantiate</span><span class="op">&lt;</span>Mob<span class="op">&gt;();</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Choose a random location on the SpawnPath.</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// We store the reference to the SpawnLocation node.</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> mobSpawnLocation <span class="op">=</span> GetNode<span class="op">&lt;</span>PathFollow3D<span class="op">&gt;(</span><span class="st">&quot;SpawnPath/SpawnLocation&quot;</span><span class="op">);</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">// And give it a random offset.</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        mobSpawnLocation<span class="op">.</span><span class="fu">ProgressRatio</span> <span class="op">=</span> GD<span class="op">.</span><span class="fu">Randf</span><span class="op">();</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>        Vector3 playerPosition <span class="op">=</span> GetNode<span class="op">&lt;</span>Player<span class="op">&gt;(</span><span class="st">&quot;Player&quot;</span><span class="op">).</span><span class="fu">Position</span><span class="op">;</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        mob<span class="op">.</span><span class="fu">Initialize</span><span class="op">(</span>mobSpawnLocation<span class="op">.</span><span class="fu">Position</span><span class="op">,</span> playerPosition<span class="op">);</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Spawn the mob by adding it to the Main scene.</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>        <span class="fu">AddChild</span><span class="op">(</span>mob<span class="op">);</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>You can test the scene by pressing <code>F6</code> (<code>Cmd + R</code> on macOS). You should see the monsters spawn and move in a straight line.</p>
+<p><em>Image: image25</em></p>
+<p>For now, they bump and slide against one another when their paths cross. We'll address this in the next part.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

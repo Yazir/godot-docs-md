@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Troubleshooting physics issues — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="troubleshooting-physics-issues">Troubleshooting physics issues</h1>
+<p>When working with a physics engine, you may encounter unexpected results.</p>
+<p>While many of these issues can be resolved through configuration, some of them are the result of engine bugs. For known issues related to the physics engine, see <a href="https://github.com/godotengine/godot/issues?q=is%3Aopen+is%3Aissue+label%3Atopic%3Aphysics">open physics-related issues on GitHub</a>. Looking through <a href="https://github.com/godotengine/godot/issues?q=+is%3Aclosed+is%3Aissue+label%3Atopic%3Aphysics">closed issues</a> can also help answer questions related to physics engine behavior.</p>
+<h2 id="objects-are-passing-through-each-other-at-high-speeds">Objects are passing through each other at high speeds</h2>
+<p>This is known as <em>tunneling</em>. Enabling <strong>Continuous CD</strong> (Continuous Collision Detection) in the RigidBody properties can sometimes resolve this issue. If this does not help, there are other solutions you can try:</p>
+<ul>
+<li>Make your static collision shapes thicker. For example, if you have a thin floor that the player can't get below in some way, you can make the collider thicker than the floor's visual representation.</li>
+<li>Modify your fast-moving object's collision shape depending on its movement speed. The faster the object moves, the larger the collision shape should extend outside of the object to ensure it can collide with thin walls more reliably.</li>
+<li>Increase ref in the advanced Project Settings. While this has other benefits (such as more stable simulation and reduced input lag), this increases CPU utilization and may not be viable for mobile/web platforms. Multipliers of the default value of <code>60</code> (such as <code>120</code>, <code>180</code> or <code>240</code>) should be preferred for a smooth appearance on most displays.</li>
+</ul>
+<h2 id="stacked-objects-are-unstable-and-wobbly">Stacked objects are unstable and wobbly</h2>
+<p>Despite seeming like a simple problem, stable RigidBody simulation with stacked objects is difficult to implement in a physics engine. This is caused by integrating forces going against each other. The more stacked objects are present, the stronger the forces will be against each other. This eventually causes the simulation to become wobbly, making the objects unable to rest on top of each other without moving.</p>
+<p>Increasing the physics simulation rate can help alleviate this issue. To do so, increase ref in the advanced Project Settings. Note that doing this increases CPU utilization and may not be viable for mobile/web platforms. Multipliers of the default value of <code>60</code> (such as <code>120</code>, <code>180</code> or <code>240</code>) should be preferred for a smooth appearance on most displays.</p>
+<p>In 3D, switching the physics engine from the default GodotPhysics to Jolt can also improve stability. See <code>doc_using_jolt_physics</code> for more information.</p>
+<h2 id="scaled-physics-bodies-or-collision-shapes-do-not-collide-correctly">Scaled physics bodies or collision shapes do not collide correctly</h2>
+<p>Godot does not currently support scaling of physics bodies or collision shapes. As a workaround, change the collision shape's extents instead of changing its scale. If you want the visual representation's scale to change as well, change the scale of the underlying visual representation (Sprite2D, MeshInstance3D, …) and change the collision shape's extents separately. Make sure the collision shape is not a child of the visual representation in this case.</p>
+<p>Since resources are shared by default, you'll have to make the collision shape resource unique if you don't want the change to be applied to all nodes using the same collision shape resource in the scene. This can be done in two ways:</p>
+<ul>
+<li>In the editor, by clicking <code>Make Unique</code> in the CollisionShape resource dropdown in the inspector, then changing its size.</li>
+<li>In a script, by calling <code>duplicate()</code> in a script on the collision shape resource <em>before</em> changing its size.</li>
+</ul>
+<h2 id="thin-objects-are-wobbly-when-resting-on-the-floor">Thin objects are wobbly when resting on the floor</h2>
+<p>This can be due to one of two causes:</p>
+<ul>
+<li>The floor's collision shape is too thin.</li>
+<li>The RigidBody's collision shape is too thin.</li>
+</ul>
+<p>In the first case, this can be alleviated by making the floor's collision shape thicker. For example, if you have a thin floor that the player can't get below in some way, you can make the collider thicker than the floor's visual representation.</p>
+<p>In the second case, this can usually only be resolved by increasing the physics simulation rate (as making the shape thicker would cause a disconnect between the RigidBody's visual representation and its collision).</p>
+<p>In both cases, increasing the physics simulation rate can also help alleviate this issue. To do so, increase ref in the advanced Project Settings. Note that this increases CPU utilization and may not be viable for mobile/web platforms. Multipliers of the default value of <code>60</code> (such as <code>120</code>, <code>180</code> or <code>240</code>) should be preferred for a smooth appearance on most displays.</p>
+<h2 id="cylinder-collision-shapes-are-unstable">Cylinder collision shapes are unstable</h2>
+<p>Switching the physics engine from the default GodotPhysics to Jolt should make cylinder collision shapes more reliable. See <code>doc_using_jolt_physics</code> for more information.</p>
+<p>During the transition from Bullet to GodotPhysics in Godot 4, cylinder collision shapes had to be reimplemented from scratch. However, cylinder collision shapes are one of the most difficult shapes to support, which is why many other physics engines don't provide any support for them. There are several known bugs with cylinder collision shapes currently.</p>
+<p>If you are sticking to GodotPhysics, we recommend using box or capsule collision shapes for characters for now. Boxes generally provide the best reliability, but have the downside of making the character take more space diagonally. Capsule collision shapes do not have this downside, but their shape can make precision platforming more difficult.</p>
+<h2 id="vehiclebody-simulation-is-unstable-especially-at-high-speeds">VehicleBody simulation is unstable, especially at high speeds</h2>
+<p>When a physics body moves at a high speed, it travels a large distance between each physics step. For instance, when using the 1 unit = 1 meter convention in 3D, a vehicle moving at 360 km/h will travel 100 units per second. With the default physics simulation rate of 60 Hz, the vehicle moves by ~1.67 units each physics tick. This means that small objects may be ignored entirely by the vehicle (due to tunneling), but also that the simulation has little data to work with in general at such a high speed.</p>
+<p>Fast-moving vehicles can benefit a lot from an increased physics simulation rate. To do so, increase ref in the advanced Project Settings. Note that this increases CPU utilization and may not be viable for mobile/web platforms. Multipliers of the default value of <code>60</code> (such as <code>120</code>, <code>180</code> or <code>240</code>) should be preferred for a smooth appearance on most displays.</p>
+<h2 id="collision-results-in-bumps-when-an-object-moves-across-tiles">Collision results in bumps when an object moves across tiles</h2>
+<p>This is a known issue in the physics engine caused by the object bumping on a shape's edges, even though that edge is covered by another shape. This can occur in both 2D and 3D.</p>
+<p>The best way to work around this issue is to create a "composite" collider. This means that instead of individual tiles having their collision, you create a single collision shape representing the collision for a group of tiles. Typically, you should split composite colliders on a per-island basis (which means each group of touching tiles gets its own collider).</p>
+<p>Using a composite collider can also improve physics simulation performance in certain cases. However, since the composite collision shape is much more complex, this may not be a net performance win in all cases.</p>
+<blockquote>
+<p><strong>Tip:</strong> In Godot 4.5 and later, creating a composite collider is automatically done when using a TileMapLayer node. The chunk size (<code>16</code> tiles on each axis by default) can be set using the <strong>Physics Quadrant Size</strong> property in the TileMapLayer inspector. Larger values provide more reliable collision, at the cost of slower updates when the TileMap is changed.</p>
+</blockquote>
+<h2 id="framerate-drops-when-an-object-touches-another-object">Framerate drops when an object touches another object</h2>
+<p>This is likely due to one of the objects using a collision shape that is too complex. Convex collision shapes should use a number of shapes as low as possible for performance reasons. When relying on Godot's automatic generation, it's possible that you ended up with dozens if not hundreds of shapes created for a single convex shape collision resource.</p>
+<p>In some cases, replacing a convex collider with a couple of primitive collision shapes (box, sphere, or capsule) can deliver better performance.</p>
+<p>This issue can also occur with StaticBodies that use very detailed trimesh (concave) collisions. In this case, use a simplified representation of the level geometry as a collider. Not only this will improve physics simulation performance significantly, but this can also improve stability by letting you remove small fixtures and crevices from being considered by collision.</p>
+<p>In 3D, switching the physics engine from the default GodotPhysics to Jolt can also improve performance. See <code>doc_using_jolt_physics</code> for more information.</p>
+<h2 id="framerate-suddenly-drops-to-a-very-low-value-beyond-a-certain-amount-of-physics-simulation">Framerate suddenly drops to a very low value beyond a certain amount of physics simulation</h2>
+<p>This occurs because the physics engine can't keep up with the expected simulation rate. In this case, the framerate will start dropping, but the engine is only allowed to simulate a certain number of physics steps per rendered frame. This snowballs into a situation where framerate keeps dropping until it reaches a very low framerate (typically 1-2 FPS) and is called the <em>physics spiral of death</em>.</p>
+<p>To avoid this, you should check for situations in your project that can cause excessive number of physics simulations to occur at the same time (or with excessively complex collision shapes). If these situations cannot be avoided, you can increase the <strong>Max Physics Steps per Frame</strong> project setting and/or reduce <strong>Physics Ticks per Second</strong> to alleviate this.</p>
+<h2 id="physics-simulation-is-unreliable-when-far-away-from-the-world-origin">Physics simulation is unreliable when far away from the world origin</h2>
+<p>This is caused by floating-point precision errors, which become more pronounced as the physics simulation occurs further away from the world origin. This issue also affects rendering, which results in wobbly camera movement when far away from the world origin. See <code>doc_large_world_coordinates</code> for more information.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Designing the mob scene — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="designing-the-mob-scene">Designing the mob scene</h1>
+<p>In this part, you're going to code the monsters, which we'll call mobs. In the next lesson, we'll spawn them randomly around the playable area.</p>
+<p>Let's design the monsters themselves in a new scene. The node structure is going to be similar to the <em>Player</em> scene.</p>
+<p>Create a scene with, once again, a <em>KinematicBody</em> node as its root. Name it <em>Mob</em>. Add a <em>Spatial</em> node as a child of it, name it <em>Pivot</em>. And drag and drop the file <code>mob.glb</code> from the <em>FileSystem</em> dock onto the <em>Pivot</em> to add the monster's 3D model to the scene. You can rename the newly created <em>mob</em> node into <em>Character</em>.</p>
+<p><em>Image: image0</em></p>
+<p>We need a collision shape for our body to work. Right-click on the <em>Mob</em> node, the scene's root, and click <em>Add Child Node</em>.</p>
+<p><em>Image: image1</em></p>
+<p>Add a <em>CollisionShape</em>.</p>
+<p><em>Image: image2</em></p>
+<p>In the <em>Inspector</em>, assign a <em>BoxShape</em> to the <em>Shape</em> property.</p>
+<p><em>Image: image3</em></p>
+<p>We should change its size to fit the 3D model better. You can do so interactively by clicking and dragging on the orange dots.</p>
+<p>The box should touch the floor and be a little thinner than the model. Physics engines work in such a way that if the player's sphere touches even the box's corner, a collision will occur. If the box is a little too big compared to the 3D model, you may die at a distance from the monster, and the game will feel unfair to the players.</p>
+<p><em>Image: image4</em></p>
+<p>Notice that my box is taller than the monster. It is okay in this game because we're looking at the scene from above and using a fixed perspective. Collision shapes don't have to match the model exactly. It's the way the game feels when you test it that should dictate their form and size.</p>
+<h2 id="removing-monsters-off-screen">Removing monsters off-screen</h2>
+<p>We're going to spawn monsters at regular time intervals in the game level. If we're not careful, their count could increase to infinity, and we don't want that. Each mob instance has both a memory and a processing cost, and we don't want to pay for it when the mob's outside the screen.</p>
+<p>Once a monster leaves the screen, we don't need it anymore, so we can delete it. Godot has a node that detects when objects leave the screen, <em>VisibilityNotifier</em>, and we're going to use it to destroy our mobs.</p>
+<blockquote>
+<p><strong>Note:</strong> When you keep instancing an object in games, there's a technique you can use to avoid the cost of creating and destroying instances all the time called pooling. It consists of pre-creating an array of objects and reusing them over and over.</p>
+<p>When working with GDScript, you don't need to worry about this. The main reason to use pools is to avoid freezes with garbage-collected languages like C# or Lua. GDScript uses a different technique to manage memory, reference counting, which doesn't have that caveat. You can learn more about that here <code>doc_gdscript_basics_memory_management</code>.</p>
+</blockquote>
+<p>Select the <em>Mob</em> node and add a <em>VisibilityNotifier</em> as a child of it. Another box, pink this time, appears. When this box completely leaves the screen, the node will emit a signal.</p>
+<p><em>Image: image5</em></p>
+<p>Resize it using the orange dots until it covers the entire 3D model.</p>
+<p><em>Image: image6</em></p>
+<h3 id="coding-the-mobs-movement">Coding the mob's movement</h3>
+<p>Let's implement the monster's motion. We're going to do this in two steps. First, we'll write a script on the <em>Mob</em> that defines a function to initialize the monster. We'll then code the randomized spawn mechanism in the <em>Main</em> scene and call the function from there.</p>
+<p>Attach a script to the <em>Mob</em>.</p>
+<p><em>Image: image7</em></p>
+<p>Here's the movement code to start with. We define two properties, <code>min_speed</code> and <code>max_speed</code>, to define a random speed range. We then define and initialize the <code>velocity</code>.</p>
+<pre class="gdscript"><code>extends KinematicBody
+
+# Minimum speed of the mob in meters per second.
+export var min_speed = 10
+# Maximum speed of the mob in meters per second.
+export var max_speed = 18
+
+var velocity = Vector3.ZERO
+
+
+func _physics_process(_delta):
+    move_and_slide(velocity)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Mob <span class="op">:</span> KinematicBody</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Don&#39;t forget to rebuild the project so the editor knows about the new export variable.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Minimum speed of the mob in meters per second</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> MinSpeed <span class="op">=</span> <span class="dv">10</span><span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Maximum speed of the mob in meters per second</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> MaxSpeed <span class="op">=</span> <span class="dv">18</span><span class="op">;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector3 _velocity <span class="op">=</span> Vector3<span class="op">.</span><span class="fu">Zero</span><span class="op">;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_PhysicsProcess</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">MoveAndSlide</span><span class="op">(</span>_velocity<span class="op">);</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Similarly to the player, we move the mob every frame by calling <code>KinematicBody</code>'s <code>move_and_slide()</code> method. This time, we don't update the <code>velocity</code> every frame: we want the monster to move at a constant speed and leave the screen, even if it were to hit an obstacle.</p>
+<p>You may see a warning in GDScript that the return value from <code>move_and_slide()</code> is unused. This is expected. You can simply ignore the warning or, if you want to hide it entirely, add the comment <code># warning-ignore:return_value_discarded</code> just above the <code>move_and_slide(velocity)</code> line. To read more about the GDScript warning system, see <code>doc_gdscript_warning_system</code>.</p>
+<p>We need to define another function to calculate the start velocity. This function will turn the monster towards the player and randomize both its angle of motion and its velocity.</p>
+<p>The function will take a <code>start_position</code>, the mob's spawn position, and the <code>player_position</code> as its arguments.</p>
+<p>We position the mob at <code>start_position</code> and turn it towards the player using the <code>look_at_from_position()</code> method, and randomize the angle by rotating a random amount around the Y axis. Below, <code>rand_range()</code> outputs a random value between <code>-PI / 4</code> radians and <code>PI / 4</code> radians.</p>
+<pre class="gdscript"><code># We will call this function from the Main scene.
+func initialize(start_position, player_position):
+    # We position the mob and turn it so that it looks at the player.
+    look_at_from_position(start_position, player_position, Vector3.UP)
+    # And rotate it randomly so it doesn&#39;t move exactly toward the player.
+    rotate_y(rand_range(-PI / 4, PI / 4))</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// We will call this function from the Main scene</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">Initialize</span><span class="op">(</span>Vector3 startPosition<span class="op">,</span> Vector3 playerPosition<span class="op">)</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We position the mob and turn it so that it looks at the player.</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">LookAtFromPosition</span><span class="op">(</span>startPosition<span class="op">,</span> playerPosition<span class="op">,</span> Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">);</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// And rotate it randomly so it doesn&#39;t move exactly toward the player.</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">RotateY</span><span class="op">((</span><span class="dt">float</span><span class="op">)</span>GD<span class="op">.</span><span class="fu">RandRange</span><span class="op">(-</span>Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">/</span> <span class="fl">4.0</span><span class="op">,</span> Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">/</span> <span class="fl">4.0</span><span class="op">));</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>We then calculate a random speed using <code>rand_range()</code> once again and we use it to calculate the velocity.</p>
+<p>We start by creating a 3D vector pointing forward, multiply it by our <code>random_speed</code>, and finally rotate it using the <code>Vector3</code> class's <code>rotated()</code> method.</p>
+<pre class="gdscript"><code>func initialize(start_position, player_position):
+    # ...
+
+    # We calculate a random speed.
+    var random_speed = rand_range(min_speed, max_speed)
+    # We calculate a forward velocity that represents the speed.
+    velocity = Vector3.FORWARD * random_speed
+    # We then rotate the vector based on the mob&#39;s Y rotation to move in the direction it&#39;s looking.
+    velocity = velocity.rotated(Vector3.UP, rotation.y)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">Initialize</span><span class="op">(</span>Vector3 startPosition<span class="op">,</span> Vector3 playerPosition<span class="op">)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ...</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We calculate a random speed.</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> randomSpeed <span class="op">=</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>GD<span class="op">.</span><span class="fu">RandRange</span><span class="op">(</span>MinSpeed<span class="op">,</span> MaxSpeed<span class="op">);</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We calculate a forward velocity that represents the speed.</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    _velocity <span class="op">=</span> Vector3<span class="op">.</span><span class="fu">Forward</span> <span class="op">*</span> randomSpeed<span class="op">;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We then rotate the vector based on the mob&#39;s Y rotation to move in the direction it&#39;s looking</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    _velocity <span class="op">=</span> _velocity<span class="op">.</span><span class="fu">Rotated</span><span class="op">(</span>Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span> Rotation<span class="op">.</span><span class="fu">y</span><span class="op">);</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="leaving-the-screen">Leaving the screen</h3>
+<p>We still have to destroy the mobs when they leave the screen. To do so, we'll connect our <em>VisibilityNotifier</em> node's <code>screen_exited</code> signal to the <em>Mob</em>.</p>
+<p>Head back to the 3D viewport by clicking on the <em>3D</em> label at the top of the editor. You can also press <code>Ctrl + F2</code> (<code>Alt + 2</code> on macOS).</p>
+<p><em>Image: image8</em></p>
+<p>Select the <em>VisibilityNotifier</em> node and on the right side of the interface, navigate to the <em>Node</em> dock. Double-click the <em>screen_exited()</em> signal.</p>
+<p><em>Image: image9</em></p>
+<p>Connect the signal to the <em>Mob</em>.</p>
+<p><em>Image: image10</em></p>
+<p>This will take you back to the script editor and add a new function for you, <code>_on_VisibilityNotifier_screen_exited()</code>. From it, call the <code>queue_free()</code> method. This will destroy the mob instance when the <em>VisibilityNotifier</em> 's box leaves the screen.</p>
+<pre class="gdscript"><code>func _on_VisibilityNotifier_screen_exited():
+    queue_free()</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// We also specified this function name in PascalCase in the editor&#39;s connection window</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnVisibilityNotifierScreenExited</span><span class="op">()</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">QueueFree</span><span class="op">();</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Our monster is ready to enter the game! In the next part, you will spawn monsters in the game level.</p>
+<p>Here is the complete <code>Mob.gd</code> script for reference.</p>
+<pre class="gdscript"><code>extends KinematicBody
+
+# Minimum speed of the mob in meters per second.
+export var min_speed = 10
+# Maximum speed of the mob in meters per second.
+export var max_speed = 18
+
+var velocity = Vector3.ZERO
+
+
+func _physics_process(_delta):
+    move_and_slide(velocity)
+
+func initialize(start_position, player_position):
+    look_at_from_position(start_position, player_position, Vector3.UP)
+    rotate_y(rand_range(-PI / 4, PI / 4))
+
+    var random_speed = rand_range(min_speed, max_speed)
+    velocity = Vector3.FORWARD * random_speed
+    velocity = velocity.rotated(Vector3.UP, rotation.y)
+
+
+func _on_VisibilityNotifier_screen_exited():
+    queue_free()</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Mob <span class="op">:</span> KinematicBody</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Minimum speed of the mob in meters per second</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> MinSpeed <span class="op">=</span> <span class="dv">10</span><span class="op">;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Maximum speed of the mob in meters per second</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> MaxSpeed <span class="op">=</span> <span class="dv">18</span><span class="op">;</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Vector3 _velocity <span class="op">=</span> Vector3<span class="op">.</span><span class="fu">Zero</span><span class="op">;</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_PhysicsProcess</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">MoveAndSlide</span><span class="op">(</span>_velocity<span class="op">);</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We will call this function from the Main scene</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">Initialize</span><span class="op">(</span>Vector3 startPosition<span class="op">,</span> Vector3 playerPosition<span class="op">)</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>        <span class="fu">LookAtFromPosition</span><span class="op">(</span>startPosition<span class="op">,</span> playerPosition<span class="op">,</span> Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">);</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">RotateY</span><span class="op">((</span><span class="dt">float</span><span class="op">)</span>GD<span class="op">.</span><span class="fu">RandRange</span><span class="op">(-</span>Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">/</span> <span class="fl">4.0</span><span class="op">,</span> Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">/</span> <span class="fl">4.0</span><span class="op">));</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> randomSpeed <span class="op">=</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>GD<span class="op">.</span><span class="fu">RandRange</span><span class="op">(</span>MinSpeed<span class="op">,</span> MaxSpeed<span class="op">);</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>        _velocity <span class="op">=</span> Vector3<span class="op">.</span><span class="fu">Forward</span> <span class="op">*</span> randomSpeed<span class="op">;</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>        _velocity <span class="op">=</span> _velocity<span class="op">.</span><span class="fu">Rotated</span><span class="op">(</span>Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span> Rotation<span class="op">.</span><span class="fu">y</span><span class="op">);</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We also specified this function name in PascalCase in the editor&#39;s connection window</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnVisibilityNotifierScreenExited</span><span class="op">()</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>        <span class="fu">QueueFree</span><span class="op">();</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

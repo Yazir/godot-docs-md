@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screen-reading shaders — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="screen-reading-shaders">Screen-reading shaders</h1>
+<h2 id="introduction">Introduction</h2>
+<p>It is often desired to make a shader that reads from the same screen to which it's writing. 3D APIs, such as OpenGL or DirectX, make this very difficult because of internal hardware limitations. GPUs are extremely parallel, so reading and writing causes all sorts of cache and coherency problems. As a result, not even the most modern hardware supports this properly.</p>
+<p>The workaround is to make a copy of the screen, or a part of the screen, to a back-buffer and then read from it while drawing. Godot provides a few tools that make this process easy.</p>
+<h2 id="screen-texture">Screen texture</h2>
+<p>Godot <code>doc_shading_language</code> has a special texture to access the already rendered contents of the screen. It is used by specifying a hint when declaring a <code>sampler2D</code> uniform: <code>hint_screen_texture</code>. A special built-in varying <code>SCREEN_UV</code> can be used to obtain the UV relative to the screen for the current fragment. As a result, this canvas_item fragment shader results in an invisible object, because it only shows what lies behind:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>shader_type canvas_item<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">sampler2D</span> screen_texture <span class="op">:</span> hint_screen_texture<span class="op">,</span> repeat_disable<span class="op">,</span> filter_nearest<span class="op">;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    COLOR <span class="op">=</span> <span class="bu">textureLod</span><span class="op">(</span>screen_texture<span class="op">,</span> SCREEN_UV<span class="op">,</span> <span class="fl">0.0</span><span class="op">);</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>textureLod</code> is used here as we only want to read from the bottom mipmap. If you want to read from a blurred version of the texture instead, you can increase the third argument to <code>textureLod</code> and change the hint <code>filter_nearest</code> to <code>filter_nearest_mipmap</code> (or any other filter with mipmaps enabled). If using a filter with mipmaps, Godot will automatically calculate the blurred texture for you.</p>
+<blockquote>
+<p><strong>Warning:</strong> If the filter mode is not changed to a filter mode that contains <code>mipmap</code> in its name, <code>textureLod</code> with an LOD parameter greater than <code>0.0</code> will have the same appearance as with the <code>0.0</code> LOD parameter.</p>
+</blockquote>
+<h2 id="screen-texture-example">Screen texture example</h2>
+<p>The screen texture can be used for many things. There is a special demo for <em>Screen Space Shaders</em>, that you can download to see and learn. One example is a simple shader to adjust brightness, contrast and saturation:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>shader_type canvas_item<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">sampler2D</span> screen_texture <span class="op">:</span> hint_screen_texture<span class="op">,</span> repeat_disable<span class="op">,</span> filter_nearest<span class="op">;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> brightness <span class="op">=</span> <span class="fl">1.0</span><span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> contrast <span class="op">=</span> <span class="fl">1.0</span><span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> saturation <span class="op">=</span> <span class="fl">1.0</span><span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vec3</span> c <span class="op">=</span> <span class="bu">textureLod</span><span class="op">(</span>screen_texture<span class="op">,</span> SCREEN_UV<span class="op">,</span> <span class="fl">0.0</span><span class="op">).</span><span class="fu">rgb</span><span class="op">;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    c<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> <span class="bu">mix</span><span class="op">(</span><span class="dt">vec3</span><span class="op">(</span><span class="fl">0.0</span><span class="op">),</span> c<span class="op">.</span><span class="fu">rgb</span><span class="op">,</span> brightness<span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    c<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> <span class="bu">mix</span><span class="op">(</span><span class="dt">vec3</span><span class="op">(</span><span class="fl">0.5</span><span class="op">),</span> c<span class="op">.</span><span class="fu">rgb</span><span class="op">,</span> contrast<span class="op">);</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    c<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> <span class="bu">mix</span><span class="op">(</span><span class="dt">vec3</span><span class="op">(</span><span class="bu">dot</span><span class="op">(</span><span class="dt">vec3</span><span class="op">(</span><span class="fl">1.0</span><span class="op">),</span> c<span class="op">.</span><span class="fu">rgb</span><span class="op">)</span> <span class="op">*</span> <span class="fl">0.33333</span><span class="op">),</span> c<span class="op">.</span><span class="fu">rgb</span><span class="op">,</span> saturation<span class="op">);</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    COLOR<span class="op">.</span><span class="fu">rgb</span> <span class="op">=</span> c<span class="op">;</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="behind-the-scenes">Behind the scenes</h2>
+<p>While this seems magical, it's not. In 2D, when <code>hint_screen_texture</code> is first found in a node that is about to be drawn, Godot does a full-screen copy to a back-buffer. Subsequent nodes that use it in shaders will not have the screen copied for them, because this ends up being inefficient. In 3D, the screen is copied after the opaque geometry pass, but before the transparent geometry pass, so transparent objects will not be captured in the screen texture.</p>
+<p>As a result, in 2D, if shaders that use <code>hint_screen_texture</code> overlap, the second one will not use the result of the first one, resulting in unexpected visuals:</p>
+<p>In the above image, the second sphere (top right) is using the same source for the screen texture as the first one below, so the first one "disappears", or is not visible.</p>
+<p>In 2D, this can be corrected via the ref node, which can be instantiated between both spheres. BackBufferCopy can work by either specifying a screen region or the whole screen:</p>
+<p>With correct back-buffer copying, the two spheres blend correctly:</p>
+<blockquote>
+<p><strong>Warning:</strong> In 3D, materials that use <code>hint_screen_texture</code> are considered transparent themselves and will not appear in the resulting screen texture of other materials. If you plan to instance a scene that uses a material with <code>hint_screen_texture</code>, you will need to use a BackBufferCopy node.</p>
+</blockquote>
+<p>In 3D, there is less flexibility to solve this particular issue because the screen texture is only captured once. Be careful when using the screen texture in 3D as it won't capture transparent objects and may capture some opaque objects that are in front of the object using the screen texture.</p>
+<p>You can reproduce the back-buffer logic in 3D by creating a ref with a camera in the same position as your object, and then use the ref texture instead of the screen texture.</p>
+<h2 id="back-buffer-logic">Back-buffer logic</h2>
+<p>So, to make it clearer, here's how the backbuffer copying logic works in 2D in Godot:</p>
+<ul>
+<li>If a node uses <code>hint_screen_texture</code>, the entire screen is copied to the back buffer before drawing that node. This only happens the first time; subsequent nodes do not trigger this.</li>
+<li>If a BackBufferCopy node was processed before the situation in the point above (even if <code>hint_screen_texture</code> was not used), the behavior described in the point above does not happen. In other words, automatic copying of the entire screen only happens if <code>hint_screen_texture</code> is used in a node for the first time and no BackBufferCopy node (not disabled) was found before in tree-order.</li>
+<li>BackBufferCopy can copy either the entire screen or a region. If set to only a region (not the whole screen) and your shader uses pixels not in the region copied, the result of that read is undefined (most likely garbage from previous frames). In other words, it's possible to use BackBufferCopy to copy back a region of the screen and then read the screen texture from a different region. Avoid this behavior!</li>
+</ul>
+<h2 id="depth-texture">Depth texture</h2>
+<p>For 3D shaders, it's also possible to access the screen depth buffer. For this, the <code>hint_depth_texture</code> hint is used. This texture is not linear; it must be converted using the inverse projection matrix.</p>
+<p>The following code retrieves the 3D position below the pixel being drawn:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">sampler2D</span> depth_texture <span class="op">:</span> hint_depth_texture<span class="op">,</span> repeat_disable<span class="op">,</span> filter_nearest<span class="op">;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> depth <span class="op">=</span> <span class="bu">textureLod</span><span class="op">(</span>depth_texture<span class="op">,</span> SCREEN_UV<span class="op">,</span> <span class="fl">0.0</span><span class="op">).</span><span class="fu">r</span><span class="op">;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vec4</span> upos <span class="op">=</span> INV_PROJECTION_MATRIX <span class="op">*</span> <span class="dt">vec4</span><span class="op">(</span>SCREEN_UV <span class="op">*</span> <span class="fl">2.0</span> <span class="op">-</span> <span class="fl">1.0</span><span class="op">,</span> depth<span class="op">,</span> <span class="fl">1.0</span><span class="op">);</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vec3</span> pixel_position <span class="op">=</span> upos<span class="op">.</span><span class="fu">xyz</span> <span class="op">/</span> upos<span class="op">.</span><span class="fu">w</span><span class="op">;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="normal-roughness-texture">Normal-roughness texture</h2>
+<blockquote>
+<p><strong>Note:</strong> Normal-roughness texture is only supported in the Forward+ rendering method, not Mobile or Compatibility.</p>
+</blockquote>
+<p>Similarly, the normal-roughness texture can be used to read the normals and roughness of objects rendered in the depth prepass. The normal is stored in the <code>.xyz</code> channels (mapped to the 0-1 range) while the roughness is stored in the <code>.w</code> channel.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">sampler2D</span> normal_roughness_texture <span class="op">:</span> hint_normal_roughness_texture<span class="op">,</span> repeat_disable<span class="op">,</span> filter_nearest<span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> screen_roughness <span class="op">=</span> <span class="bu">texture</span><span class="op">(</span>normal_roughness_texture<span class="op">,</span> SCREEN_UV<span class="op">).</span><span class="fu">w</span><span class="op">;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vec3</span> screen_normal <span class="op">=</span> <span class="bu">texture</span><span class="op">(</span>normal_roughness_texture<span class="op">,</span> SCREEN_UV<span class="op">).</span><span class="fu">xyz</span><span class="op">;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    screen_normal <span class="op">=</span> screen_normal <span class="op">*</span> <span class="fl">2.0</span> <span class="op">-</span> <span class="fl">1.0</span><span class="op">;</span></span></code></pre></div>
+<h2 id="redefining-screen-textures">Redefining screen textures</h2>
+<p>The screen texture hints (<code>hint_screen_texture</code>, <code>hint_depth_texture</code>, and <code>hint_normal_roughness_texture</code>) can be used with multiple uniforms. For example, you may want to read from the texture multiple times with a different repeat flag or filter flag.</p>
+<p>The following example shows a shader that reads the screen space normal with linear filtering, but reads the screen space roughness using nearest neighbor filtering.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">sampler2D</span> normal_roughness_texture <span class="op">:</span> hint_normal_roughness_texture<span class="op">,</span> repeat_disable<span class="op">,</span> filter_nearest<span class="op">;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">sampler2D</span> normal_roughness_texture2 <span class="op">:</span> hint_normal_roughness_texture<span class="op">,</span> repeat_enable<span class="op">,</span> filter_linear<span class="op">;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> screen_roughness <span class="op">=</span> <span class="bu">texture</span><span class="op">(</span>normal_roughness_texture<span class="op">,</span> SCREEN_UV<span class="op">).</span><span class="fu">w</span><span class="op">;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vec3</span> screen_normal <span class="op">=</span> <span class="bu">texture</span><span class="op">(</span>normal_roughness_texture2<span class="op">,</span> SCREEN_UV<span class="op">).</span><span class="fu">xyz</span><span class="op">;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    screen_normal <span class="op">=</span> screen_normal <span class="op">*</span> <span class="fl">2.0</span> <span class="op">-</span> <span class="fl">1.0</span><span class="op">;</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

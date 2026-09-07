@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custom resource format loaders — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="custom-resource-format-loaders">Custom resource format loaders</h1>
+<h2 id="introduction">Introduction</h2>
+<p>ResourceFormatLoader is a factory interface for loading file assets. Resources are primary containers. When load is called on the same file path again, the previous loaded Resource will be referenced. Naturally, loaded resources must be stateless.</p>
+<p>This guide assumes the reader knows how to create C++ modules and Godot data types. If not, refer to this guide: <code>doc_custom_modules_in_cpp</code></p>
+<h3 id="references">References</h3>
+<ul>
+<li>ref</li>
+<li><a href="https://github.com/godotengine/godot/blob/master/core/io/resource_loader.cpp">core/io/resource_loader.cpp</a></li>
+</ul>
+<h2 id="what-for">What for?</h2>
+<ul>
+<li>Adding new support for many file formats</li>
+<li>Audio formats</li>
+<li>Video formats</li>
+<li>Machine learning models</li>
+</ul>
+<h2 id="what-not">What not?</h2>
+<ul>
+<li>Raster images</li>
+</ul>
+<p>ImageFormatLoader should be used to load images.</p>
+<h3 id="references-1">References</h3>
+<ul>
+<li><a href="https://github.com/godotengine/godot/blob/master/core/io/image_loader.h">core/io/image_loader.h</a></li>
+</ul>
+<h2 id="creating-a-resourceformatloader">Creating a ResourceFormatLoader</h2>
+<p>Each file format consist of a data container and a <code>ResourceFormatLoader</code>.</p>
+<p>ResourceFormatLoaders are classes which return all the necessary metadata for supporting new extensions in Godot. The class must return the format name and the extension string.</p>
+<p>In addition, ResourceFormatLoaders must convert file paths into resources with the <code>load</code> function. To load a resource, <code>load</code> must read and handle data serialization.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma once</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;core/io/resource_loader.h&quot;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ResourceFormatLoaderJson <span class="op">:</span> <span class="kw">public</span> ResourceFormatLoader <span class="op">{</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    GDCLASS<span class="op">(</span>ResourceFormatLoaderJson<span class="op">,</span> ResourceFormatLoader<span class="op">);</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> RES load<span class="op">(</span><span class="at">const</span> String <span class="op">&amp;</span>p_path<span class="op">,</span> <span class="at">const</span> String <span class="op">&amp;</span>p_original_path<span class="op">,</span> Error <span class="op">*</span>r_error <span class="op">=</span> NULL<span class="op">);</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> get_recognized_extensions<span class="op">(</span>List<span class="op">&lt;</span>String<span class="op">&gt;</span> <span class="op">*</span>r_extensions<span class="op">)</span> <span class="at">const</span><span class="op">;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">bool</span> <span class="dt">handles_type</span><span class="op">(</span><span class="at">const</span> String <span class="op">&amp;</span><span class="dt">p_type</span><span class="op">)</span> <span class="at">const</span><span class="op">;</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> String <span class="dt">get_resource_type</span><span class="op">(</span><span class="at">const</span> String <span class="op">&amp;</span>p_path<span class="op">)</span> <span class="at">const</span><span class="op">;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;resource_loader_json.h&quot;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;resource_json.h&quot;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>RES ResourceFormatLoaderJson<span class="op">::</span>load<span class="op">(</span><span class="at">const</span> String <span class="op">&amp;</span>p_path<span class="op">,</span> <span class="at">const</span> String <span class="op">&amp;</span>p_original_path<span class="op">,</span> Error <span class="op">*</span>r_error<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>Ref<span class="op">&lt;</span>JsonResource<span class="op">&gt;</span> json <span class="op">=</span> memnew<span class="op">(</span>JsonResource<span class="op">);</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>r_error<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">*</span>r_error <span class="op">=</span> OK<span class="op">;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    Error err <span class="op">=</span> json<span class="op">-&gt;</span>load_file<span class="op">(</span>p_path<span class="op">);</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> json<span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> ResourceFormatLoaderJson<span class="op">::</span>get_recognized_extensions<span class="op">(</span>List<span class="op">&lt;</span>String<span class="op">&gt;</span> <span class="op">*</span>r_extensions<span class="op">)</span> <span class="at">const</span> <span class="op">{</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>r_extensions<span class="op">-&gt;</span>find<span class="op">(</span><span class="st">&quot;json&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        r_extensions<span class="op">-&gt;</span>push_back<span class="op">(</span><span class="st">&quot;json&quot;</span><span class="op">);</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>String ResourceFormatLoaderJson<span class="op">::</span><span class="dt">get_resource_type</span><span class="op">(</span><span class="at">const</span> String <span class="op">&amp;</span>p_path<span class="op">)</span> <span class="at">const</span> <span class="op">{</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="st">&quot;Resource&quot;</span><span class="op">;</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> ResourceFormatLoaderJson<span class="op">::</span><span class="dt">handles_type</span><span class="op">(</span><span class="at">const</span> String <span class="op">&amp;</span><span class="dt">p_type</span><span class="op">)</span> <span class="at">const</span> <span class="op">{</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ClassDB<span class="op">::</span>is_parent_class<span class="op">(</span><span class="dt">p_type</span><span class="op">,</span> <span class="st">&quot;Resource&quot;</span><span class="op">);</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="creating-a-resourceformatsaver">Creating a ResourceFormatSaver</h2>
+<p>If you'd like to be able to edit and save a resource, you can implement a <code>ResourceFormatSaver</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma once</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;core/io/resource_saver.h&quot;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ResourceFormatSaverJson <span class="op">:</span> <span class="kw">public</span> ResourceFormatSaver <span class="op">{</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    GDCLASS<span class="op">(</span>ResourceFormatSaverJson<span class="op">,</span> ResourceFormatSaver<span class="op">);</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> Error save<span class="op">(</span><span class="at">const</span> String <span class="op">&amp;</span>p_path<span class="op">,</span> <span class="at">const</span> RES <span class="op">&amp;</span>p_resource<span class="op">,</span> <span class="dt">uint32_t</span> p_flags <span class="op">=</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">bool</span> recognize<span class="op">(</span><span class="at">const</span> RES <span class="op">&amp;</span>p_resource<span class="op">)</span> <span class="at">const</span><span class="op">;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> get_recognized_extensions<span class="op">(</span><span class="at">const</span> RES <span class="op">&amp;</span>p_resource<span class="op">,</span> List<span class="op">&lt;</span>String<span class="op">&gt;</span> <span class="op">*</span>r_extensions<span class="op">)</span> <span class="at">const</span><span class="op">;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;resource_saver_json.h&quot;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;resource_json.h&quot;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;scene/resources/resource_format_text.h&quot;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>Error ResourceFormatSaverJson<span class="op">::</span>save<span class="op">(</span><span class="at">const</span> String <span class="op">&amp;</span>p_path<span class="op">,</span> <span class="at">const</span> RES <span class="op">&amp;</span>p_resource<span class="op">,</span> <span class="dt">uint32_t</span> p_flags<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    Ref<span class="op">&lt;</span>JsonResource<span class="op">&gt;</span> json <span class="op">=</span> memnew<span class="op">(</span>JsonResource<span class="op">);</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    Error error <span class="op">=</span> json<span class="op">-&gt;</span>save_file<span class="op">(</span>p_path<span class="op">,</span> p_resource<span class="op">);</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> error<span class="op">;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> ResourceFormatSaverJson<span class="op">::</span>recognize<span class="op">(</span><span class="at">const</span> RES <span class="op">&amp;</span>p_resource<span class="op">)</span> <span class="at">const</span> <span class="op">{</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> Object<span class="op">::</span>cast_to<span class="op">&lt;</span>JsonResource<span class="op">&gt;(*</span>p_resource<span class="op">)</span> <span class="op">!=</span> NULL<span class="op">;</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> ResourceFormatSaverJson<span class="op">::</span>get_recognized_extensions<span class="op">(</span><span class="at">const</span> RES <span class="op">&amp;</span>p_resource<span class="op">,</span> List<span class="op">&lt;</span>String<span class="op">&gt;</span> <span class="op">*</span>r_extensions<span class="op">)</span> <span class="at">const</span> <span class="op">{</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>Object<span class="op">::</span>cast_to<span class="op">&lt;</span>JsonResource<span class="op">&gt;(*</span>p_resource<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        r_extensions<span class="op">-&gt;</span>push_back<span class="op">(</span><span class="st">&quot;json&quot;</span><span class="op">);</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="creating-custom-data-types">Creating custom data types</h2>
+<p>Godot may not have a proper substitute within its <code>doc_core_types</code> or managed resources. Godot needs a new registered data type to understand additional binary formats such as machine learning models.</p>
+<p>Here is an example of creating a custom datatype:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma once</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;core/io/json.h&quot;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;core/variant_parser.h&quot;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> JsonResource <span class="op">:</span> <span class="kw">public</span> Resource <span class="op">{</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    GDCLASS<span class="op">(</span>JsonResource<span class="op">,</span> Resource<span class="op">);</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span><span class="op">:</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> _bind_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>        ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;set_dict&quot;</span><span class="op">,</span> <span class="st">&quot;dict&quot;</span><span class="op">),</span> <span class="op">&amp;</span>JsonResource<span class="op">::</span>set_dict<span class="op">);</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;get_dict&quot;</span><span class="op">),</span> <span class="op">&amp;</span>JsonResource<span class="op">::</span>get_dict<span class="op">);</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        ADD_PROPERTY<span class="op">(</span>PropertyInfo<span class="op">(</span>Variant<span class="op">::</span>DICTIONARY<span class="op">,</span> <span class="st">&quot;content&quot;</span><span class="op">),</span> <span class="st">&quot;set_dict&quot;</span><span class="op">,</span> <span class="st">&quot;get_dict&quot;</span><span class="op">);</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span><span class="op">:</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    Dictionary content<span class="op">;</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    Error load_file<span class="op">(</span><span class="at">const</span> String <span class="op">&amp;</span>p_path<span class="op">);</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    Error save_file<span class="op">(</span><span class="at">const</span> String <span class="op">&amp;</span>p_path<span class="op">,</span> <span class="at">const</span> RES <span class="op">&amp;</span>p_resource<span class="op">);</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> set_dict<span class="op">(</span><span class="at">const</span> Dictionary <span class="op">&amp;</span>p_dict<span class="op">);</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    Dictionary get_dict<span class="op">();</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;resource_json.h&quot;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>Error JsonResource<span class="op">::</span>load_file<span class="op">(</span><span class="at">const</span> String <span class="op">&amp;</span>p_path<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    Error error<span class="op">;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    FileAccess <span class="op">*</span>file <span class="op">=</span> FileAccess<span class="op">::</span>open<span class="op">(</span>p_path<span class="op">,</span> FileAccess<span class="op">::</span>READ<span class="op">,</span> <span class="op">&amp;</span>error<span class="op">);</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>error <span class="op">!=</span> OK<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>file<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>            file<span class="op">-&gt;</span>close<span class="op">();</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> error<span class="op">;</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    String json_string <span class="op">=</span> String<span class="op">(</span><span class="st">&quot;&quot;</span><span class="op">);</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="op">(!</span>file<span class="op">-&gt;</span>eof_reached<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        json_string <span class="op">+=</span> file<span class="op">-&gt;</span>get_line<span class="op">();</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    file<span class="op">-&gt;</span>close<span class="op">();</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    String error_string<span class="op">;</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> error_line<span class="op">;</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    JSON json<span class="op">;</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    Variant result<span class="op">;</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    error <span class="op">=</span> json<span class="op">.</span>parse<span class="op">(</span>json_string<span class="op">,</span> result<span class="op">,</span> error_string<span class="op">,</span> error_line<span class="op">);</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>error <span class="op">!=</span> OK<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>        file<span class="op">-&gt;</span>close<span class="op">();</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> error<span class="op">;</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>    content <span class="op">=</span> Dictionary<span class="op">(</span>result<span class="op">);</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> OK<span class="op">;</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>Error JsonResource<span class="op">::</span>save_file<span class="op">(</span><span class="at">const</span> String <span class="op">&amp;</span>p_path<span class="op">,</span> <span class="at">const</span> RES <span class="op">&amp;</span>p_resource<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>    Error error<span class="op">;</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>    FileAccess <span class="op">*</span>file <span class="op">=</span> FileAccess<span class="op">::</span>open<span class="op">(</span>p_path<span class="op">,</span> FileAccess<span class="op">::</span>WRITE<span class="op">,</span> <span class="op">&amp;</span>error<span class="op">);</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>error <span class="op">!=</span> OK<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>file<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>            file<span class="op">-&gt;</span>close<span class="op">();</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> error<span class="op">;</span></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>    Ref<span class="op">&lt;</span>JsonResource<span class="op">&gt;</span> json_ref <span class="op">=</span> p_resource<span class="op">.</span>get_ref_ptr<span class="op">();</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>    JSON json<span class="op">;</span></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>    file<span class="op">-&gt;</span>store_string<span class="op">(</span>json<span class="op">.</span>print<span class="op">(</span>json_ref<span class="op">-&gt;</span>get_dict<span class="op">(),</span> <span class="st">&quot;    &quot;</span><span class="op">));</span></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>    file<span class="op">-&gt;</span>close<span class="op">();</span></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> OK<span class="op">;</span></span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> JsonResource<span class="op">::</span>set_dict<span class="op">(</span><span class="at">const</span> Dictionary <span class="op">&amp;</span>p_dict<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>    content <span class="op">=</span> p_dict<span class="op">;</span></span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>Dictionary JsonResource<span class="op">::</span>get_dict<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> content<span class="op">;</span></span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="considerations">Considerations</h3>
+<p>Some libraries may not define certain common routines such as IO handling. Therefore, Godot call translations are required.</p>
+<p>For example, here is the code for translating <code>FileAccess</code> calls into <code>std::istream</code>.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;core/io/file_access.h&quot;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;istream&gt;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;streambuf&gt;</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> GodotFileInStreamBuf <span class="op">:</span> <span class="kw">public</span> <span class="bu">std::</span>streambuf <span class="op">{</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    GodotFileInStreamBuf<span class="op">(</span>FileAccess <span class="op">*</span>fa<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>        _file <span class="op">=</span> fa<span class="op">;</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> underflow<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>_file<span class="op">-&gt;</span>eof_reached<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> EOF<span class="op">;</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>            <span class="dt">size_t</span> pos <span class="op">=</span> _file<span class="op">-&gt;</span>get_position<span class="op">();</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>            <span class="dt">uint8_t</span> ret <span class="op">=</span> _file<span class="op">-&gt;</span>get_8<span class="op">();</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>            _file<span class="op">-&gt;</span>seek<span class="op">(</span>pos<span class="op">);</span> <span class="co">// Required since get_8() advances the read head.</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> ret<span class="op">;</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> uflow<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> _file<span class="op">-&gt;</span>eof_reached<span class="op">()</span> <span class="op">?</span> EOF <span class="op">:</span> _file<span class="op">-&gt;</span>get_8<span class="op">();</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span><span class="op">:</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    FileAccess <span class="op">*</span>_file<span class="op">;</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<h3 id="references-2">References</h3>
+<ul>
+<li><a href="https://cplusplus.com/reference/istream/istream/">istream</a></li>
+<li><a href="https://cplusplus.com/reference/streambuf/streambuf/?kw=streambuf">streambuf</a></li>
+<li><a href="https://github.com/godotengine/godot/blob/master/core/io/file_access.h">core/io/file_access.h</a></li>
+</ul>
+<h2 id="registering-the-new-file-format">Registering the new file format</h2>
+<p>Godot registers <code>ResourcesFormatLoader</code> with a <code>ResourceLoader</code> handler. The handler selects the proper loader automatically when <code>load</code> is called.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> register_json_types<span class="op">();</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> unregister_json_types<span class="op">();</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;register_types.h&quot;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;core/class_db.h&quot;</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;resource_loader_json.h&quot;</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;resource_saver_json.h&quot;</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;resource_json.h&quot;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="at">static</span> Ref<span class="op">&lt;</span>ResourceFormatLoaderJson<span class="op">&gt;</span> json_loader<span class="op">;</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="at">static</span> Ref<span class="op">&lt;</span>ResourceFormatSaverJson<span class="op">&gt;</span> json_saver<span class="op">;</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> register_json_types<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>register_class<span class="op">&lt;</span>JsonResource<span class="op">&gt;();</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    json_loader<span class="op">.</span>instantiate<span class="op">();</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    ResourceLoader<span class="op">::</span>add_resource_format_loader<span class="op">(</span>json_loader<span class="op">);</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    json_saver<span class="op">.</span>instantiate<span class="op">();</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    ResourceSaver<span class="op">::</span>add_resource_format_saver<span class="op">(</span>json_saver<span class="op">);</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> unregister_json_types<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    ResourceLoader<span class="op">::</span>remove_resource_format_loader<span class="op">(</span>json_loader<span class="op">);</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    json_loader<span class="op">.</span>unref<span class="op">();</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    ResourceSaver<span class="op">::</span>remove_resource_format_saver<span class="op">(</span>json_saver<span class="op">);</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    json_saver<span class="op">.</span>unref<span class="op">();</span></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="references-3">References</h3>
+<ul>
+<li><a href="https://github.com/godotengine/godot/blob/master/core/io/resource_loader.cpp">core/io/resource_loader.cpp</a></li>
+</ul>
+<h2 id="loading-it-on-gdscript">Loading it on GDScript</h2>
+<p>Save a file called <code>demo.json</code> with the following contents and place it in the project's root folder:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;savefilename&quot;</span><span class="fu">:</span> <span class="st">&quot;demo.json&quot;</span><span class="fu">,</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;demo&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;welcome&quot;</span><span class="ot">,</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;to&quot;</span><span class="ot">,</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;godot&quot;</span><span class="ot">,</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;resource&quot;</span><span class="ot">,</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;loaders&quot;</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Then attach the following script to any node:</p>
+<pre><code>extends Node
+
+@onready var json_resource = load(&quot;res://demo.json&quot;)
+
+func _ready():
+    print(json_resource.get_dict())</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

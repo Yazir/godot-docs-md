@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using the ArrayMesh — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-the-arraymesh">Using the ArrayMesh</h1>
+<p>This tutorial will present the basics of using an ref.</p>
+<p>To do so, we will use the function ref, which takes up to five parameters. The first two are required, while the last three are optional.</p>
+<p>The first parameter is the <code>PrimitiveType</code>, an OpenGL concept that instructs the GPU how to arrange the primitive based on the vertices given, i.e. whether they represent triangles, lines, points, etc. See ref for the options available.</p>
+<p>The second parameter, <code>arrays</code>, is the actual Array that stores the mesh information. The array is a normal Godot array that is constructed with empty brackets <code>[]</code>. It stores a <code>Packed**Array</code> (e.g. PackedVector3Array, PackedInt32Array, etc.) for each type of information that will be used to build the surface.</p>
+<p>Common elements of <code>arrays</code> are listed below, together with the position they must have within <code>arrays</code>. See ref for a full list.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Index</th>
+<th>Mesh.ArrayType Enum</th>
+<th>Array type</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td><code>ARRAY_VERTEX</code></td>
+<td>ref or ref</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td><code>ARRAY_NORMAL</code></td>
+<td>ref</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td><code>ARRAY_TANGENT</code></td>
+<td>ref or ref of groups of 4 floats. The first 3 floats determine the tangent, and the last float the binormal direction as -1 or 1.</td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td><code>ARRAY_COLOR</code></td>
+<td>ref</td>
+</tr>
+<tr class="odd">
+<td>4</td>
+<td><code>ARRAY_TEX_UV</code></td>
+<td>ref or ref</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td><code>ARRAY_TEX_UV2</code></td>
+<td>ref or ref</td>
+</tr>
+<tr class="odd">
+<td>10</td>
+<td><code>ARRAY_BONES</code></td>
+<td>ref of groups of 4 floats or ref of groups of 4 ints. Each group lists indexes of 4 bones that affects a given vertex.</td>
+</tr>
+<tr class="even">
+<td>11</td>
+<td><code>ARRAY_WEIGHTS</code></td>
+<td>ref or ref of groups of 4 floats. Each float lists the amount of weight the corresponding bone in <code>ARRAY_BONES</code> has on a given vertex.</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td><code>ARRAY_INDEX</code></td>
+<td>ref</td>
+</tr>
+</tbody>
+</table>
+<p>In most cases when creating a mesh, we define it by its vertex positions. So usually, the array of vertices (at index 0) is required, while the index array (at index 12) is optional and will only be used if included. It is also possible to create a mesh with only the index array and no vertex array, but that's beyond the scope of this tutorial.</p>
+<p>All the other arrays carry information about the vertices. They are optional and will only be used if included. Some of these arrays (e.g. <code>ARRAY_COLOR</code>) use one entry per vertex to provide extra information about vertices. They must have the same size as the vertex array. Other arrays (e.g. <code>ARRAY_TANGENT</code>) use four entries to describe a single vertex. These must be exactly four times larger than the vertex array.</p>
+<p>For normal usage, the last three parameters in ref are typically left empty.</p>
+<h2 id="setting-up-the-arraymesh">Setting up the ArrayMesh</h2>
+<p>In the editor, create a ref and add an ref to it in the Inspector. Normally, adding an ArrayMesh in the editor is not useful, but in this case it allows us to access the ArrayMesh from code without creating one.</p>
+<p>Next, add a script to the MeshInstance3D.</p>
+<p>Under <code>_ready()</code>, create a new Array.</p>
+<pre class="gdscript"><code>var surface_array = []</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Array</span> surfaceArray <span class="op">=</span> <span class="op">[];</span></span></code></pre></div>
+<p>This will be the array that we keep our surface information in - it will hold all the arrays of data that the surface needs. Godot will expect it to be of size <code>Mesh.ARRAY_MAX</code>, so resize it accordingly.</p>
+<pre class="gdscript"><code>var surface_array = []
+surface_array.resize(Mesh.ARRAY_MAX)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Array</span> surfaceArray <span class="op">=</span> <span class="op">[];</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>surfaceArray<span class="op">.</span><span class="fu">Resize</span><span class="op">((</span><span class="dt">int</span><span class="op">)</span>Mesh<span class="op">.</span><span class="fu">ArrayType</span><span class="op">.</span><span class="fu">Max</span><span class="op">);</span></span></code></pre></div>
+<p>Next create the arrays for each data type you will use.</p>
+<pre class="gdscript"><code>var verts = PackedVector3Array()
+var uvs = PackedVector2Array()
+var normals = PackedVector3Array()
+var indices = PackedInt32Array()</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>List<span class="op">&lt;</span>Vector3<span class="op">&gt;</span> verts <span class="op">=</span> <span class="op">[];</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>List<span class="op">&lt;</span>Vector2<span class="op">&gt;</span> uvs <span class="op">=</span> <span class="op">[];</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>List<span class="op">&lt;</span>Vector3<span class="op">&gt;</span> normals <span class="op">=</span> <span class="op">[];</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>List<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> indices <span class="op">=</span> <span class="op">[];</span></span></code></pre></div>
+<p>Once you have filled your data arrays with your geometry you can create a mesh by adding each array to <code>surface_array</code> and then committing to the mesh.</p>
+<pre class="gdscript"><code>surface_array[Mesh.ARRAY_VERTEX] = verts
+surface_array[Mesh.ARRAY_TEX_UV] = uvs
+surface_array[Mesh.ARRAY_NORMAL] = normals
+surface_array[Mesh.ARRAY_INDEX] = indices
+
+# No blendshapes, lods, or compression used.
+mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surface_array)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>surfaceArray<span class="op">[(</span><span class="dt">int</span><span class="op">)</span>Mesh<span class="op">.</span><span class="fu">ArrayType</span><span class="op">.</span><span class="fu">Vertex</span><span class="op">]</span> <span class="op">=</span> verts<span class="op">.</span><span class="fu">ToArray</span><span class="op">();</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>surfaceArray<span class="op">[(</span><span class="dt">int</span><span class="op">)</span>Mesh<span class="op">.</span><span class="fu">ArrayType</span><span class="op">.</span><span class="fu">TexUV</span><span class="op">]</span> <span class="op">=</span> uvs<span class="op">.</span><span class="fu">ToArray</span><span class="op">();</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>surfaceArray<span class="op">[(</span><span class="dt">int</span><span class="op">)</span>Mesh<span class="op">.</span><span class="fu">ArrayType</span><span class="op">.</span><span class="fu">Normal</span><span class="op">]</span> <span class="op">=</span> normals<span class="op">.</span><span class="fu">ToArray</span><span class="op">();</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>surfaceArray<span class="op">[(</span><span class="dt">int</span><span class="op">)</span>Mesh<span class="op">.</span><span class="fu">ArrayType</span><span class="op">.</span><span class="fu">Index</span><span class="op">]</span> <span class="op">=</span> indices<span class="op">.</span><span class="fu">ToArray</span><span class="op">();</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> arrMesh <span class="op">=</span> Mesh <span class="kw">as</span> ArrayMesh<span class="op">;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>arrMesh <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// No blendshapes, lods, or compression used.</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    arrMesh<span class="op">.</span><span class="fu">AddSurfaceFromArrays</span><span class="op">(</span>Mesh<span class="op">.</span><span class="fu">PrimitiveType</span><span class="op">.</span><span class="fu">Triangles</span><span class="op">,</span> surfaceArray<span class="op">);</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> In this example, we used <code>Mesh.PRIMITIVE_TRIANGLES</code>, but you can use any primitive type available from mesh.</p>
+</blockquote>
+<p>Put together, the full code looks like:</p>
+<pre class="gdscript"><code>extends MeshInstance3D
+
+func _ready():
+    var surface_array = []
+    surface_array.resize(Mesh.ARRAY_MAX)
+
+    # PackedVector**Arrays for mesh construction.
+    var verts = PackedVector3Array()
+    var uvs = PackedVector2Array()
+    var normals = PackedVector3Array()
+    var indices = PackedInt32Array()
+
+    #######################################
+    ## Insert code here to generate mesh ##
+    #######################################
+
+    # Assign arrays to surface array.
+    surface_array[Mesh.ARRAY_VERTEX] = verts
+    surface_array[Mesh.ARRAY_TEX_UV] = uvs
+    surface_array[Mesh.ARRAY_NORMAL] = normals
+    surface_array[Mesh.ARRAY_INDEX] = indices
+
+    # Create mesh surface from mesh array.
+    # No blendshapes, lods, or compression used.
+    mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surface_array)</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyMeshInstance3D <span class="op">:</span> MeshInstance3D</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Array</span> surfaceArray <span class="op">=</span> <span class="op">[];</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>        surfaceArray<span class="op">.</span><span class="fu">Resize</span><span class="op">((</span><span class="dt">int</span><span class="op">)</span>Mesh<span class="op">.</span><span class="fu">ArrayType</span><span class="op">.</span><span class="fu">Max</span><span class="op">);</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// C# arrays cannot be resized or expanded, so use Lists to create geometry.</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        List<span class="op">&lt;</span>Vector3<span class="op">&gt;</span> verts <span class="op">=</span> <span class="op">[];</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        List<span class="op">&lt;</span>Vector2<span class="op">&gt;</span> uvs <span class="op">=</span> <span class="op">[];</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        List<span class="op">&lt;</span>Vector3<span class="op">&gt;</span> normals <span class="op">=</span> <span class="op">[];</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        List<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> indices <span class="op">=</span> <span class="op">[];</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">/***********************************</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">        * Insert code here to generate mesh.</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co">        * *********************************/</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Convert Lists to arrays and assign to surface array</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>        surfaceArray<span class="op">[(</span><span class="dt">int</span><span class="op">)</span>Mesh<span class="op">.</span><span class="fu">ArrayType</span><span class="op">.</span><span class="fu">Vertex</span><span class="op">]</span> <span class="op">=</span> verts<span class="op">.</span><span class="fu">ToArray</span><span class="op">();</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>        surfaceArray<span class="op">[(</span><span class="dt">int</span><span class="op">)</span>Mesh<span class="op">.</span><span class="fu">ArrayType</span><span class="op">.</span><span class="fu">TexUV</span><span class="op">]</span> <span class="op">=</span> uvs<span class="op">.</span><span class="fu">ToArray</span><span class="op">();</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>        surfaceArray<span class="op">[(</span><span class="dt">int</span><span class="op">)</span>Mesh<span class="op">.</span><span class="fu">ArrayType</span><span class="op">.</span><span class="fu">Normal</span><span class="op">]</span> <span class="op">=</span> normals<span class="op">.</span><span class="fu">ToArray</span><span class="op">();</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>        surfaceArray<span class="op">[(</span><span class="dt">int</span><span class="op">)</span>Mesh<span class="op">.</span><span class="fu">ArrayType</span><span class="op">.</span><span class="fu">Index</span><span class="op">]</span> <span class="op">=</span> indices<span class="op">.</span><span class="fu">ToArray</span><span class="op">();</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> arrMesh <span class="op">=</span> Mesh <span class="kw">as</span> ArrayMesh<span class="op">;</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>arrMesh <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Create mesh surface from mesh array</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>            <span class="co">// No blendshapes, lods, or compression used.</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>            arrMesh<span class="op">.</span><span class="fu">AddSurfaceFromArrays</span><span class="op">(</span>Mesh<span class="op">.</span><span class="fu">PrimitiveType</span><span class="op">.</span><span class="fu">Triangles</span><span class="op">,</span> surfaceArray<span class="op">);</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The code that goes in the middle can be whatever you want. Below we will present some example code for generating shapes, starting with a rectangle.</p>
+<h2 id="generating-a-rectangle">Generating a rectangle</h2>
+<p>Since we are using <code>Mesh.PRIMITIVE_TRIANGLES</code> to render, we will construct a rectangle with triangles.</p>
+<p>A rectangle is formed by two triangles sharing four vertices. For our example, we will create a rectangle with its top left point at <code>(0, 0, 0)</code> with a width and length of one as shown below:</p>
+<p><em>Image: A rectangle made of two triangles sharing four vertices.</em></p>
+<p>To draw this rectangle, define the coordinates of each vertex in the <code>verts</code> array.</p>
+<pre class="gdscript"><code>verts = PackedVector3Array([
+        Vector3(0, 0, 0),
+        Vector3(0, 0, 1),
+        Vector3(1, 0, 0),
+        Vector3(1, 0, 1),
+    ])</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>verts<span class="op">.</span><span class="fu">AddRange</span><span class="op">(</span><span class="kw">new</span> Vector3<span class="op">[]</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">),</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">),</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<p>The <code>uvs</code> array helps describe where parts of a texture should go onto the mesh. The values range from 0 to 1. Depending on your texture, you may want to change these values.</p>
+<pre class="gdscript"><code>uvs = PackedVector2Array([
+        Vector2(0, 0),
+        Vector2(1, 0),
+        Vector2(0, 1),
+        Vector2(1, 1),
+    ])</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>uvs<span class="op">.</span><span class="fu">AddRange</span><span class="op">(</span><span class="kw">new</span> Vector2<span class="op">[]</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">),</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">),</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<p>The <code>normals</code> array is used to describe the direction the vertices face and is used in lighting calculations. For this example, we will default to the <code>Vector3.UP</code> direction.</p>
+<pre class="gdscript"><code>normals = PackedVector3Array([
+        Vector3.UP,
+        Vector3.UP,
+        Vector3.UP,
+        Vector3.UP,
+    ])</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>normals<span class="op">.</span><span class="fu">AddRange</span><span class="op">(</span><span class="kw">new</span> Vector3<span class="op">[]</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<p>The <code>indices</code> array defines the order vertices are drawn. Godot renders in a <em>clockwise</em> direction, meaning that we must specify the vertices of a triangle we want to draw in clockwise order.</p>
+<p>For example, to draw the first triangle, we will want to draw the vertices <code>(0, 0, 0)</code>, <code>(1, 0, 0)</code>, and <code>(0, 0, 1)</code> in that order. This is the same as drawing <code>vert[0]</code>, <code>vert[2]</code>, and <code>vert[1]</code>, i.e., indices 0, 2, and 1, in the <code>verts</code> array. These index values are what the <code>indices</code> array defines.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Index</th>
+<th><code>verts[Index]</code></th>
+<th><code>uvs[Index]</code></th>
+<th><code>normals[Index]</code></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>(0, 0, 0)</td>
+<td>(0, 0)</td>
+<td>Vector3.UP</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>(0, 0, 1)</td>
+<td>(1, 0)</td>
+<td>Vector3.UP</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td>(1, 0, 0)</td>
+<td>(0, 1)</td>
+<td>Vector3.UP</td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td>(1, 0, 1)</td>
+<td>(1, 1)</td>
+<td>Vector3.UP</td>
+</tr>
+</tbody>
+</table>
+<pre class="gdscript"><code>indices = PackedInt32Array([
+        0, 2, 1, # Draw the first triangle.
+        2, 3, 1, # Draw the second triangle.
+    ])</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>indices<span class="op">.</span><span class="fu">AddRange</span><span class="op">(</span><span class="kw">new</span> <span class="dt">int</span><span class="op">[]</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="dv">0</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="co">// Draw the first triangle.</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="co">// Draw the second triangle.</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<p>Put together, the rectangle generation code looks like:</p>
+<pre class="gdscript"><code>extends MeshInstance3D
+
+func _ready():
+
+  # Insert setting up the PackedVector**Arrays here.
+
+  verts = PackedVector3Array([
+          Vector3(0, 0, 0),
+          Vector3(0, 0, 1),
+          Vector3(1, 0, 0),
+          Vector3(1, 0, 1),
+      ])
+
+  uvs = PackedVector2Array([
+          Vector2(0, 0),
+          Vector2(1, 0),
+          Vector2(0, 1),
+          Vector2(1, 1),
+      ])
+
+  normals = PackedVector3Array([
+          Vector3.UP,
+          Vector3.UP,
+          Vector3.UP,
+          Vector3.UP,
+      ])
+
+  indices = PackedInt32Array([
+          0, 2, 1,
+          2, 3, 1,
+      ])
+
+  # Insert committing to the ArrayMesh here.</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Generic</span><span class="op">;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MeshInstance3d <span class="op">:</span> MeshInstance3D</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>      <span class="co">// Insert setting up the surface array and lists here.</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>      verts<span class="op">.</span><span class="fu">AddRange</span><span class="op">(</span><span class="kw">new</span> Vector3<span class="op">[]</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>      <span class="op">{</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>          <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>          <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">),</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>          <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>          <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">),</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>      <span class="op">});</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>      uvs<span class="op">.</span><span class="fu">AddRange</span><span class="op">(</span><span class="kw">new</span> Vector2<span class="op">[]</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>      <span class="op">{</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>          <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>          <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>          <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">),</span></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>          <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">),</span></span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>      <span class="op">});</span></span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>      normals<span class="op">.</span><span class="fu">AddRange</span><span class="op">(</span><span class="kw">new</span> Vector3<span class="op">[]</span></span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>      <span class="op">{</span></span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>          Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span></span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>          Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span></span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>          Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span></span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>          Vector3<span class="op">.</span><span class="fu">Up</span><span class="op">,</span></span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>      <span class="op">});</span></span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>      indices<span class="op">.</span><span class="fu">AddRange</span><span class="op">(</span><span class="kw">new</span> <span class="dt">int</span><span class="op">[]</span></span>
+<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>      <span class="op">{</span></span>
+<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a>          <span class="dv">0</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span></span>
+<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>          <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span></span>
+<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>      <span class="op">});</span></span>
+<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>      <span class="co">// Insert committing to the ArrayMesh here.</span></span>
+<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>For a more complex example, see the sphere generation section below.</p>
+<h2 id="generating-a-sphere">Generating a sphere</h2>
+<p>Here is sample code for generating a sphere. Although the code is presented in GDScript, there is nothing Godot specific about the approach to generating it. This implementation has nothing in particular to do with ArrayMeshes and is just a generic approach to generating a sphere. If you are having trouble understanding it or want to learn more about procedural geometry in general, you can use any tutorial that you find online.</p>
+<pre class="gdscript"><code>extends MeshInstance3D
+
+var rings = 50
+var radial_segments = 50
+var radius = 1
+
+func _ready():
+
+    # Insert setting up the PackedVector**Arrays here.
+
+    # Vertex indices.
+    var thisrow = 0
+    var prevrow = 0
+    var point = 0
+
+    # Loop over rings.
+    for i in range(rings + 1):
+        var v = float(i) / rings
+        var w = sin(PI * v)
+        var y = cos(PI * v)
+
+        # Loop over segments in ring.
+        for j in range(radial_segments + 1):
+            var u = float(j) / radial_segments
+            var x = sin(u * PI * 2.0)
+            var z = cos(u * PI * 2.0)
+            var vert = Vector3(x * radius * w, y * radius, z * radius * w)
+            verts.append(vert)
+            normals.append(vert.normalized())
+            uvs.append(Vector2(u, v))
+            point += 1
+
+            # Create triangles in ring using indices.
+            if i &gt; 0 and j &gt; 0:
+                indices.append(prevrow + j - 1)
+                indices.append(prevrow + j)
+                indices.append(thisrow + j - 1)
+
+                indices.append(prevrow + j)
+                indices.append(thisrow + j)
+                indices.append(thisrow + j - 1)
+
+        prevrow = thisrow
+        thisrow = point
+
+  # Insert committing to the ArrayMesh here.</code></pre>
+<div class="sourceCode" id="cb22"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyMeshInstance3D <span class="op">:</span> MeshInstance3D</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">int</span> _rings <span class="op">=</span> <span class="dv">50</span><span class="op">;</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">int</span> _radialSegments <span class="op">=</span> <span class="dv">50</span><span class="op">;</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> _radius <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Insert setting up the surface array and lists here.</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Vertex indices.</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> thisRow <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> prevRow <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> point <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Loop over rings.</span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">for</span> <span class="op">(</span><span class="dt">var</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> _rings <span class="op">+</span> <span class="dv">1</span><span class="op">;</span> i<span class="op">++)</span></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>            <span class="dt">var</span> v <span class="op">=</span> <span class="op">((</span><span class="dt">float</span><span class="op">)</span>i<span class="op">)</span> <span class="op">/</span> _rings<span class="op">;</span></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>            <span class="dt">var</span> w <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Sin</span><span class="op">(</span>Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">*</span> v<span class="op">);</span></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>            <span class="dt">var</span> y <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Cos</span><span class="op">(</span>Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">*</span> v<span class="op">);</span></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Loop over segments in ring.</span></span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>            <span class="kw">for</span> <span class="op">(</span><span class="dt">var</span> j <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> j <span class="op">&lt;</span> _radialSegments <span class="op">+</span> <span class="dv">1</span><span class="op">;</span> j<span class="op">++)</span></span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>                <span class="dt">var</span> u <span class="op">=</span> <span class="op">((</span><span class="dt">float</span><span class="op">)</span>j<span class="op">)</span> <span class="op">/</span> _radialSegments<span class="op">;</span></span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>                <span class="dt">var</span> x <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Sin</span><span class="op">(</span>u <span class="op">*</span> Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">*</span> <span class="dv">2</span><span class="op">);</span></span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>                <span class="dt">var</span> z <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Cos</span><span class="op">(</span>u <span class="op">*</span> Mathf<span class="op">.</span><span class="fu">Pi</span> <span class="op">*</span> <span class="dv">2</span><span class="op">);</span></span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a>                <span class="dt">var</span> vert <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span>x <span class="op">*</span> _radius <span class="op">*</span> w<span class="op">,</span> y <span class="op">*</span> _radius<span class="op">,</span> z <span class="op">*</span> _radius <span class="op">*</span> w<span class="op">);</span></span>
+<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a>                verts<span class="op">.</span><span class="fu">Add</span><span class="op">(</span>vert<span class="op">);</span></span>
+<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a>                normals<span class="op">.</span><span class="fu">Add</span><span class="op">(</span>vert<span class="op">.</span><span class="fu">Normalized</span><span class="op">());</span></span>
+<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a>                uvs<span class="op">.</span><span class="fu">Add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span>u<span class="op">,</span> v<span class="op">));</span></span>
+<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a>                point <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a>                <span class="co">// Create triangles in ring using indices.</span></span>
+<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>                <span class="kw">if</span> <span class="op">(</span>i <span class="op">&gt;</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> j <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a>                <span class="op">{</span></span>
+<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a>                    indices<span class="op">.</span><span class="fu">Add</span><span class="op">(</span>prevRow <span class="op">+</span> j <span class="op">-</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a>                    indices<span class="op">.</span><span class="fu">Add</span><span class="op">(</span>prevRow <span class="op">+</span> j<span class="op">);</span></span>
+<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a>                    indices<span class="op">.</span><span class="fu">Add</span><span class="op">(</span>thisRow <span class="op">+</span> j <span class="op">-</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-42"><a href="#cb22-42" aria-hidden="true" tabindex="-1"></a>                    indices<span class="op">.</span><span class="fu">Add</span><span class="op">(</span>prevRow <span class="op">+</span> j<span class="op">);</span></span>
+<span id="cb22-43"><a href="#cb22-43" aria-hidden="true" tabindex="-1"></a>                    indices<span class="op">.</span><span class="fu">Add</span><span class="op">(</span>thisRow <span class="op">+</span> j<span class="op">);</span></span>
+<span id="cb22-44"><a href="#cb22-44" aria-hidden="true" tabindex="-1"></a>                    indices<span class="op">.</span><span class="fu">Add</span><span class="op">(</span>thisRow <span class="op">+</span> j <span class="op">-</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb22-45"><a href="#cb22-45" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb22-46"><a href="#cb22-46" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb22-47"><a href="#cb22-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-48"><a href="#cb22-48" aria-hidden="true" tabindex="-1"></a>            prevRow <span class="op">=</span> thisRow<span class="op">;</span></span>
+<span id="cb22-49"><a href="#cb22-49" aria-hidden="true" tabindex="-1"></a>            thisRow <span class="op">=</span> point<span class="op">;</span></span>
+<span id="cb22-50"><a href="#cb22-50" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb22-51"><a href="#cb22-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-52"><a href="#cb22-52" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Insert committing to the ArrayMesh here.</span></span>
+<span id="cb22-53"><a href="#cb22-53" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb22-54"><a href="#cb22-54" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="saving">Saving</h2>
+<p>Finally, we can use the ref class to save the ArrayMesh. This is useful when you want to generate a mesh and then use it later without having to re-generate it.</p>
+<pre class="gdscript"><code># Saves mesh to a .tres file with compression enabled.
+ResourceSaver.save(mesh, &quot;res://sphere.tres&quot;, ResourceSaver.FLAG_COMPRESS)</code></pre>
+<div class="sourceCode" id="cb24"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Saves mesh to a .tres file with compression enabled.</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>ResourceSaver<span class="op">.</span><span class="fu">Save</span><span class="op">(</span>Mesh<span class="op">,</span> <span class="st">&quot;res://sphere.tres&quot;</span><span class="op">,</span> ResourceSaver<span class="op">.</span><span class="fu">SaverFlags</span><span class="op">.</span><span class="fu">Compress</span><span class="op">);</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

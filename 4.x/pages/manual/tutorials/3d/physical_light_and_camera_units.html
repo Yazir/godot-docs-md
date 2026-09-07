@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Physical light and camera units — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="physical-light-and-camera-units">Physical light and camera units</h1>
+<h2 id="why-use-physical-light-and-camera-units">Why use physical light and camera units?</h2>
+<p>Godot uses arbitrary units for many physical properties that apply to light like color, energy, camera field of view, and exposure. By default, these properties use arbitrary units, because using accurate physical units comes with a few tradeoffs that aren't worth it for many games. As Godot favors ease of use by default, physical light units are disabled by default.</p>
+<h3 id="advantages-of-physical-units">Advantages of physical units</h3>
+<p>If you aim for photorealism in your project, using real world units as a basis can help make things easier to adjust. References for real world materials, lights and scene brightness are wildly available on websites such as <a href="https://physicallybased.info/">Physically Based</a>.</p>
+<p>Using real world units in Godot can also be useful when porting a scene from other 3D software that uses physical light units (such as Blender).</p>
+<h3 id="disadvantages-of-physical-units">Disadvantages of physical units</h3>
+<p>The biggest disadvantage of using physical light units is you will have to pay close attention to the dynamic range in use at a given time. You can run into floating point precision errors when mixing very high light intensities with very low light intensities.</p>
+<p>In practice, this means that you will have to manually manage your exposure settings to ensure that you aren't over-exposing or under-exposing your scene too much. Auto-exposure can help you balance the light in a scene to bring it into a normal range, but it can't recover lost precision from a dynamic range that is too high.</p>
+<p>Using physical light and camera units will not automatically make your project look <em>better</em>. Sometimes, moving away from realism can actually make a scene look better to the human eye. Also, using physical units requires a greater amount of rigor compared to non-physical units. Most benefits of physical units can only be obtained if the units are correctly set to match real world reference.</p>
+<blockquote>
+<p><strong>Note:</strong> Physical light units are only available in 3D rendering, not 2D.</p>
+</blockquote>
+<h2 id="setting-up-physical-light-units">Setting up physical light units</h2>
+<p>Physical light units can be enabled separately from physical camera units.</p>
+<p>To enable physical light units correctly, there are 4 steps required:</p>
+<ol type="1">
+<li>Enable the project setting.</li>
+<li>Configure the camera.</li>
+<li>Configure the environment.</li>
+<li>Configure Light3D nodes.</li>
+</ol>
+<p>Since physical light and camera units only require a handful of calculations to handle unit conversion, enabling them doesn't have any noticeable performance impact on the CPU. However, on the GPU side, physical camera units currently enforce depth of field. This has a moderate performance impact. To alleviate this performance impact, depth of field quality can be decreased in the advanced Project Settings.</p>
+<h3 id="enable-the-project-setting">Enable the project setting</h3>
+<p>Open the Project Settings, enable the <strong>Advanced</strong> toggle then enable <strong>Rendering &gt; Lights And Shadows &gt; Use Physical Light Units</strong>. Restart the editor.</p>
+<h3 id="configure-the-camera">Configure the camera</h3>
+<blockquote>
+<p><strong>Warning:</strong> When physical light units are enabled and if you have a WorldEnvironment node in your scene (i.e. the editor Environment is disabled), you <strong>must</strong> have a <code>class_CameraAttributes</code> resource assigned to the WorldEnvironment node. Otherwise, the 3D editor viewport will appear extremely bright if you have a visible DirectionalLight3D node.</p>
+</blockquote>
+<p>On the Camera3D node, you can add a <code>class_CameraAttributes</code> resource to its <strong>Attributes</strong> property. This resource is used to control the camera's depth of field and exposure. When using <code>class_CameraAttributesPhysical</code>, its focal length property is also used to adjust the camera's field of view.</p>
+<p>When physical light units are enabled, the following additional properties become available in CameraAttributesPhysical's <strong>Exposure</strong> section:</p>
+<ul>
+<li><strong>Aperture:</strong> The size of the aperture of the camera, measured in f-stops. An f-stop is a unitless ratio between the focal length of the camera and the diameter of the aperture. A high aperture setting will result in a smaller aperture which leads to a dimmer image and sharper focus. A low aperture results in a wide aperture which lets in more light resulting in a brighter, less-focused image.</li>
+<li><strong>Shutter Speed:</strong> The time for shutter to open and close, measured in <em>inverse seconds</em> (<code>1/N</code>). A lower value will let in more light leading to a brighter image, while a higher value will let in less light leading to a darker image. <em>When getting or setting this property with a script, the unit is in seconds instead of inverse seconds.</em></li>
+<li><strong>Sensitivity:</strong> The sensitivity of camera sensors, measured in ISO. A higher sensitivity results in a brighter image. When auto exposure is enabled, this can be used as a method of exposure compensation. Doubling the value will increase the exposure value (measured in EV100) by 1 stop.</li>
+<li><strong>Multiplier:</strong> A <em>non-physical</em> exposure multiplier. Higher values will increase the scene's brightness. This can be used for post-processing adjustments or for animation purposes.</li>
+</ul>
+<p>The default <strong>Aperture</strong> value of 16 f-stops is appropriate for outdoors at daytime (i.e. for use with a default DirectionalLight3D). For indoor lighting, a value between 2 and 4 is more appropriate.</p>
+<p>Typical shutter speed used in photography and movie production is 1/50 (0.02 seconds). Night-time photography generally uses a shutter around 1/10 (0.1 seconds), while sports photography uses a shutter speed between 1/250 (0.004 seconds) and 1/1000 (0.001 seconds) to reduce motion blur.</p>
+<p>In real life, sensitivity is usually set between 50 ISO and 400 ISO for daytime outdoor photography depending on weather conditions. Higher values are used for indoor or night-time photography.</p>
+<blockquote>
+<p><strong>Note:</strong> Unlike real life cameras, the adverse effects of increasing ISO sensitivity or decreasing shutter speed (such as visible grain or light trails) are not simulated in Godot.</p>
+</blockquote>
+<p>See <code>doc_physical_light_and_camera_units_setting_up_physical_camera_units</code> for a description of CameraAttributesPhysical properties that are also available when <strong>not</strong> using physical light units.</p>
+<h3 id="configure-the-environment">Configure the environment</h3>
+<blockquote>
+<p><strong>Warning:</strong> The default configuration is designed for daytime outdoor scenes. Night-time and indoor scenes will need adjustments to the DirectionalLight3D and WorldEnvironment background intensity to look correct. Otherwise, positional lights will be barely visible at their default intensity.</p>
+</blockquote>
+<p>If you haven't added a <code>class_WorldEnvironment</code> and <code>class_Camera3D</code> node to the current scene yet, do so now by clicking the 3 vertical dots at the top of the 3D editor viewport. Click <strong>Add Sun to Scene</strong>, open the dialog again then click <strong>Add Environment to Scene</strong>.</p>
+<p>After enabling physical light units, a new property becomes available to edit in the <code>class_Environment</code> resource:</p>
+<ul>
+<li><strong>Background Intensity:</strong> The background sky's intensity in <a href="https://en.wikipedia.org/wiki/Candela_per_square_metre">nits</a> (candelas per square meter). This also affects ambient and reflected light if their respective modes are set to <strong>Background</strong>. If a custom <strong>Background Energy</strong> is set, this energy is multiplied by the intensity.</li>
+</ul>
+<h3 id="configure-the-light-nodes">Configure the light nodes</h3>
+<p>After enabling physical light units, 2 new properties become available in Light3D nodes:</p>
+<ul>
+<li><strong>Intensity:</strong> The light's intensity in <a href="https://en.wikipedia.org/wiki/Lux">lux</a> (DirectionalLight3D) or <a href="https://en.wikipedia.org/wiki/Lumen_(unit)">lumens</a> (OmniLight3D/SpotLight3D/AreaLight3D). If a custom <strong>Energy</strong> is set, this energy is multiplied by the intensity.</li>
+<li><strong>Temperature:</strong> The light's <em>color temperature</em> defined in Kelvin. If a custom <strong>Color</strong> is set, this color is multiplied by the color temperature.</li>
+</ul>
+<p><strong>OmniLight3D/SpotLight3D/AreaLight3D intensity</strong></p>
+<p>Lumens are a measure of luminous flux, which is the total amount of visible light emitted by a light source per unit of time.</p>
+<p>For SpotLight3Ds, we assume that the area outside the visible cone is surrounded by a perfect light absorbing material. Accordingly, the apparent brightness of the cone area does <em>not</em> change as the cone increases and decreases in size.</p>
+<p>A typical household lightbulb can range from around 600 lumens to 1200 lumens. A candle is about 13 lumens, while a streetlight can be approximately 60000 lumens.</p>
+<p><strong>DirectionalLight3D intensity</strong></p>
+<p>Lux is a measure pf luminous flux per unit area, it is equal to one lumen per square metre. Lux is the measure of how much light hits a surface at a given time.</p>
+<p>With DirectionalLight3D, on a clear sunny day, a surface in direct sunlight may receive approximately 100000 lux. A typical room in a home may receive approximately 50 lux, while the moonlit ground may receive approximately 0.1 lux.</p>
+<p><strong>Color temperature</strong></p>
+<p>6500 Kelvin is white. Higher values result in colder (bluer) colors, while lower values result in warmer (more orange) colors.</p>
+<p>The sun on a cloudy day is approximately 6500 Kelvin. On a clear day, the sun is between 5500 to 6000 Kelvin. On a clear day at sunrise or sunset, the sun ranges to around 1850 Kelvin.</p>
+<p><em>Image: Color temperature chart from 1,000 Kelvin (left) to 12,500 Kelvin (right)</em></p>
+<p>Color temperature chart from 1,000 Kelvin (left) to 12,500 Kelvin (right)</p>
+<p>Other Light3D properties such as <strong>Energy</strong> and <strong>Color</strong> remain editable for animation purposes, and when you occasionally need to create lights with non-realistic properties.</p>
+<h2 id="setting-up-physical-camera-units">Setting up physical camera units</h2>
+<p>Physical camera units can be enabled separately from physical light units.</p>
+<p>After adding a <code>class_CameraAttributesPhysical</code> resource to the <strong>Camera Attributes</strong> property of a Camera3D node, some properties such as <strong>FOV</strong> will no longer be editable. Instead, these properties are now controlled by the CameraAttributesPhysical's properties, such as focal length and aperture.</p>
+<p>CameraAttributesPhysical offers the following properties in its <strong>Frustum</strong> section:</p>
+<ul>
+<li><strong>Focus Distance:</strong> Distance from camera of object that will be in focus, measured in meters. Internally, this will be clamped to be at least 1 millimeter larger than the <strong>Focal Length</strong>.</li>
+<li><strong>Focal Length:</strong> Distance between camera lens and camera aperture, measured in millimeters. Controls field of view and depth of field. A larger focal length will result in a smaller field of view and a narrower depth of field meaning fewer objects will be in focus. A smaller focal length will result in a wider field of view and a larger depth of field, which means more objects will be in focus. This property overrides the Camera3D's <strong>FOV</strong> and <strong>Keep Aspect</strong> properties, making them read-only in the inspector.</li>
+<li><strong>Near/Far:</strong> The near and far clip distances in meters. These behave the same as the Camera3D properties of the same name. Lower <strong>Near</strong> values allow the camera to display objects that are very close, at the cost of potential precision (Z-fighting) issues in the distance. Higher <strong>Far</strong> values allow the camera to see further away, also at the cost of potential precision (Z-fighting) issues in the distance.</li>
+</ul>
+<p>The default focal length of 35 mm corresponds to a wide angle lens. It still results in a field of view that is noticeably narrower compared to the default "practical" vertical FOV of 75 degrees. This is because non-gaming use cases such as filmmaking and photography favor using a narrower field of view for a more cinematic appearance.</p>
+<p>Common focal length values used in filmmaking and photography are:</p>
+<ul>
+<li><strong>Fisheye (ultrawide angle):</strong> Below 15 mm. Nearly no depth of field visible.</li>
+<li><strong>Wide angle:</strong> Between 15 mm and 50 mm. Reduced depth of field.</li>
+<li><strong>Standard:</strong> Between 50 mm and 100 mm. Standard depth of field.</li>
+<li><strong>Telephoto:</strong> Greater than 100 mm. Increased depth of field.</li>
+</ul>
+<p>Like when using the <strong>Keep Height</strong> aspect mode, the effective field of view depends on the viewport's aspect ratio, with wider aspect ratios automatically resulting in a wider <em>horizontal</em> field of view.</p>
+<p>Automatic exposure adjustment based on the camera's average brightness level can also be enabled in the <strong>Auto Exposure</strong> section, with the following properties:</p>
+<ul>
+<li><strong>Min Sensitivity:</strong> The darkest brightness the camera is allowed to get to, measured in EV100.</li>
+<li><strong>Max Sensitivity:</strong> The brightest the camera is allowed to get to, measured in EV100.</li>
+<li><strong>Speed:</strong> The speed of the auto exposure effect. Affects the time needed for the camera to perform auto exposure. Higher values allow for faster transitions, but the resulting adjustments may look distracting depending on the scene.</li>
+<li><strong>Scale:</strong> The scale of the auto exposure effect. Affects the intensity of auto exposure.</li>
+</ul>
+<p>EV100 is an exposure value (EV) measured at an ISO sensitivity of 100. See <a href="https://en.wikipedia.org/wiki/Exposure_value#Tabulated_exposure_values">this table</a> for common EV100 values found in real life.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

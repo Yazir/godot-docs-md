@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Random number generation — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="random-number-generation">Random number generation</h1>
+<p>Many games rely on randomness to implement core game mechanics. This page guides you through common types of randomness and how to implement them in Godot.</p>
+<p>After giving you a brief overview of useful functions that generate random numbers, you will learn how to get random elements from arrays, dictionaries, and how to use a noise generator in GDScript. Lastly, we'll take a look at cryptographically secure random number generation and how it differs from typical random number generation.</p>
+<blockquote>
+<p><strong>Note:</strong> Computers cannot generate "true" random numbers. Instead, they rely on <a href="https://en.wikipedia.org/wiki/Pseudorandom_number_generator">pseudorandom number generators</a> (PRNGs).</p>
+<p>Godot internally uses the <a href="https://www.pcg-random.org/">PCG Family</a> of pseudorandom number generators.</p>
+</blockquote>
+<h2 id="global-scope-versus-randomnumbergenerator-class">Global scope versus RandomNumberGenerator class</h2>
+<p>Godot exposes two ways to generate random numbers: via <em>global scope</em> methods or using the <code>class_RandomNumberGenerator</code> class.</p>
+<p>Global scope methods are easier to set up, but they don't offer as much control.</p>
+<p>RandomNumberGenerator requires more code to use, but allows creating multiple instances, each with their own seed and state. This is useful in certain scenarios like networked multiplayer, replay systems, games that feature rewind mechanics, and more.</p>
+<p>This tutorial uses global scope methods, except when the method only exists in the RandomNumberGenerator class.</p>
+<h2 id="random-seed-and-internal-state">Random seed and internal state</h2>
+<p>By default, Godot uses a random seed set according to the device's local time. This means that results will be different on every run. To get deterministic results, you can set a fixed seed using the ref method. The <em>seed</em> is an integer that initializes the random number generator's state. If you use the same seed, you'll get the same sequence of random numbers every run.</p>
+<pre class="gdscript"><code>func _ready():
+    seed(12345)
+    # To use a string as a seed, you can hash it to a number.
+    seed(&quot;Hello world&quot;.hash())</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Seed</span><span class="op">(</span><span class="dv">12345</span><span class="op">);</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// To use a string as a seed, you can hash it to a number.</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    GD<span class="op">.</span><span class="fu">Seed</span><span class="op">(</span><span class="st">&quot;Hello world&quot;</span><span class="op">.</span><span class="fu">Hash</span><span class="op">());</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>When using the RandomNumberGenerator class, you can set the ref property on individual instances:</p>
+<pre class="gdscript"><code>var random = RandomNumberGenerator.new()
+random.seed = 12345</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> random <span class="op">=</span> <span class="kw">new</span> <span class="fu">RandomNumberGenerator</span><span class="op">();</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>random<span class="op">.</span><span class="fu">Seed</span> <span class="op">=</span> <span class="dv">12345</span><span class="op">;</span></span></code></pre></div>
+<p>You can set the seed back to a randomly generated value using the ref global scope method. This is also available as the ref method on RandomNumberGenerator instances.</p>
+<p>Random number generators also feature an internal <em>state</em> that changes every time a random number is generated. This state is used to generate the next random number in the sequence.</p>
+<p>Unlike global scope random number generation, RandomNumberGenerator features a ref property. This is useful if you are performing multiple random number operations, and you want to return to a previous state of the random number generator without changing the seed. To do so, store the current state in a variable, and then set the state property back to that variable when needed:</p>
+<pre class="gdscript"><code>var random = RandomNumberGenerator.new()
+# Changing the seed will reset the state, so make sure to set the seed first.
+random.seed = 12345
+var previous_random_state = random.state
+# Each call to a random function on this instance alters its state.
+print(random.randi())
+
+random.state = previous_random_state
+# This will return the same value as the previous call,
+# even though we didn&#39;t change the seed.
+print(random.randi())</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> random <span class="op">=</span> <span class="kw">new</span> <span class="fu">RandomNumberGenerator</span><span class="op">();</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Changing the seed will reset the state, so make sure to set the seed first.</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>random<span class="op">.</span><span class="fu">Seed</span> <span class="op">=</span> <span class="dv">12345</span><span class="op">;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> previousRandomState <span class="op">=</span> random<span class="op">.</span><span class="fu">State</span><span class="op">;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">// Each call to a random function on this instance alters its state.</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>random<span class="op">.</span><span class="fu">Randi</span><span class="op">());</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>random<span class="op">.</span><span class="fu">State</span> <span class="op">=</span> previousRandomState<span class="op">;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co">// This will return the same value as the previous call,</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">// even though we didn&#39;t change the seed.</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>random<span class="op">.</span><span class="fu">Randi</span><span class="op">());</span></span></code></pre></div>
+<h2 id="getting-a-random-number">Getting a random number</h2>
+<p>Let's look at some of the most commonly used functions and methods to generate random numbers in Godot.</p>
+<p>The function ref returns a random number between <code>0</code> and <code>2^32 - 1</code>. Since the maximum value is huge, you most likely want to use the modulo operator (<code>%</code>) to bound the result between 0 and the denominator:</p>
+<pre class="gdscript"><code># Prints a random integer between 0 and 49.
+print(randi() % 50)
+
+# Prints a random integer between 10 and 60.
+print(randi() % 51 + 10)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Prints a random integer between 0 and 49.</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>GD<span class="op">.</span><span class="fu">Randi</span><span class="op">()</span> <span class="op">%</span> <span class="dv">50</span><span class="op">);</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Prints a random integer between 10 and 60.</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>GD<span class="op">.</span><span class="fu">Randi</span><span class="op">()</span> <span class="op">%</span> <span class="dv">51</span> <span class="op">+</span> <span class="dv">10</span><span class="op">);</span></span></code></pre></div>
+<p>ref returns a random floating-point number between 0 and 1. This is useful to implement a <code>doc_random_number_generation_weighted_random_probability</code> system, among other things.</p>
+<p>ref returns a random floating-point number following a <a href="https://en.wikipedia.org/wiki/Normal_distribution">normal distribution</a>. This means the returned value is more likely to be around the mean (0.0 by default), varying by the deviation (1.0 by default):</p>
+<pre class="gdscript"><code># Prints a random floating-point number from a normal distribution with a mean 0.0 and deviation 1.0.
+print(randfn(0.0, 1.0))</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Prints a random floating-point number from a normal distribution with a mean 0.0 and deviation 1.0.</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>GD<span class="op">.</span><span class="fu">Randfn</span><span class="op">(</span><span class="fl">0.0</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">));</span></span></code></pre></div>
+<p>ref takes two arguments <code>from</code> and <code>to</code>, and returns a random floating-point number between <code>from</code> and <code>to</code>:</p>
+<pre class="gdscript"><code># Prints a random floating-point number between -4 and 6.5.
+print(randf_range(-4, 6.5))</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Prints a random floating-point number between -4 and 6.5.</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>GD<span class="op">.</span><span class="fu">RandRange</span><span class="op">(-</span><span class="fl">4.0</span><span class="op">,</span> <span class="fl">6.5</span><span class="op">));</span></span></code></pre></div>
+<p>ref takes two arguments <code>from</code> and <code>to</code>, and returns a random integer between <code>from</code> and <code>to</code>:</p>
+<pre class="gdscript"><code># Prints a random integer between -10 and 10.
+print(randi_range(-10, 10))</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Prints a random integer number between -10 and 10.</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>GD<span class="op">.</span><span class="fu">RandRange</span><span class="op">(-</span><span class="dv">10</span><span class="op">,</span> <span class="dv">10</span><span class="op">));</span></span></code></pre></div>
+<h2 id="get-a-random-array-element">Get a random array element</h2>
+<p>We can use random integer generation to get a random element from an array, or use the ref method to do it for us:</p>
+<pre class="gdscript"><code>var _fruits = [&quot;apple&quot;, &quot;orange&quot;, &quot;pear&quot;, &quot;banana&quot;]
+
+func _ready():
+    for i in range(100):
+        # Pick 100 fruits randomly.
+        print(get_fruit())
+
+    for i in range(100):
+        # Pick 100 fruits randomly, this time using the `Array.pick_random()`
+        # helper method. This has the same behavior as `get_fruit()`.
+        print(_fruits.pick_random())
+
+func get_fruit():
+    var random_fruit = _fruits[randi() % _fruits.size()]
+    # Returns &quot;apple&quot;, &quot;orange&quot;, &quot;pear&quot;, or &quot;banana&quot; every time the code runs.
+    # We may get the same fruit multiple times in a row.
+    return random_fruit</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Use Godot&#39;s Array type instead of a BCL type so we can use `PickRandom()` on it.</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Array</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">&gt;</span> _fruits <span class="op">=</span> <span class="op">[</span><span class="st">&quot;apple&quot;</span><span class="op">,</span> <span class="st">&quot;orange&quot;</span><span class="op">,</span> <span class="st">&quot;pear&quot;</span><span class="op">,</span> <span class="st">&quot;banana&quot;</span><span class="op">];</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> <span class="dv">100</span><span class="op">;</span> i<span class="op">++)</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Pick 100 fruits randomly.</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="fu">GetFruit</span><span class="op">());</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> <span class="dv">100</span><span class="op">;</span> i<span class="op">++)</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Pick 100 fruits randomly, this time using the `Array.PickRandom()`</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// helper method. This has the same behavior as `GetFruit()`.</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>_fruits<span class="op">.</span><span class="fu">PickRandom</span><span class="op">());</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">string</span> <span class="fu">GetFruit</span><span class="op">()</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">string</span> randomFruit <span class="op">=</span> _fruits<span class="op">[</span>GD<span class="op">.</span><span class="fu">Randi</span><span class="op">()</span> <span class="op">%</span> _fruits<span class="op">.</span><span class="fu">Size</span><span class="op">()];</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Returns &quot;apple&quot;, &quot;orange&quot;, &quot;pear&quot;, or &quot;banana&quot; every time the code runs.</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We may get the same fruit multiple times in a row.</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> randomFruit<span class="op">;</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>To prevent the same fruit from being picked more than once in a row, we can add more logic to the above method. In this case, we can't use ref since it lacks a way to prevent repetition:</p>
+<pre class="gdscript"><code>var _fruits = [&quot;apple&quot;, &quot;orange&quot;, &quot;pear&quot;, &quot;banana&quot;]
+var _last_fruit = &quot;&quot;
+
+
+func _ready():
+    # Pick 100 fruits randomly.
+    for i in range(100):
+        print(get_fruit())
+
+
+func get_fruit():
+    var random_fruit = _fruits[randi() % _fruits.size()]
+    while random_fruit == _last_fruit:
+        # The last fruit was picked. Try again until we get a different fruit.
+        random_fruit = _fruits[randi() % _fruits.size()]
+
+    # Note: if the random element to pick is passed by reference,
+    # such as an array or dictionary,
+    # use `_last_fruit = random_fruit.duplicate()` instead.
+    _last_fruit = random_fruit
+
+    # Returns &quot;apple&quot;, &quot;orange&quot;, &quot;pear&quot;, or &quot;banana&quot; every time the code runs.
+    # The function will never return the same fruit more than once in a row.
+    return random_fruit</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">string</span><span class="op">[]</span> _fruits <span class="op">=</span> <span class="op">[</span><span class="st">&quot;apple&quot;</span><span class="op">,</span> <span class="st">&quot;orange&quot;</span><span class="op">,</span> <span class="st">&quot;pear&quot;</span><span class="op">,</span> <span class="st">&quot;banana&quot;</span><span class="op">];</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">string</span> _lastFruit <span class="op">=</span> <span class="st">&quot;&quot;</span><span class="op">;</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> <span class="dv">100</span><span class="op">;</span> i<span class="op">++)</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Pick 100 fruits randomly.</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="fu">GetFruit</span><span class="op">());</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">string</span> <span class="fu">GetFruit</span><span class="op">()</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">string</span> randomFruit <span class="op">=</span> _fruits<span class="op">[</span>GD<span class="op">.</span><span class="fu">Randi</span><span class="op">()</span> <span class="op">%</span> _fruits<span class="op">.</span><span class="fu">Length</span><span class="op">];</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">while</span> <span class="op">(</span>randomFruit <span class="op">==</span> _lastFruit<span class="op">)</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// The last fruit was picked. Try again until we get a different fruit.</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>        randomFruit <span class="op">=</span> _fruits<span class="op">[</span>GD<span class="op">.</span><span class="fu">Randi</span><span class="op">()</span> <span class="op">%</span> _fruits<span class="op">.</span><span class="fu">Length</span><span class="op">];</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>    _lastFruit <span class="op">=</span> randomFruit<span class="op">;</span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Returns &quot;apple&quot;, &quot;orange&quot;, &quot;pear&quot;, or &quot;banana&quot; every time the code runs.</span></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>    <span class="co">// The function will never return the same fruit more than once in a row.</span></span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> randomFruit<span class="op">;</span></span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This approach can be useful to make random number generation feel less repetitive. Still, it doesn't prevent results from "ping-ponging" between a limited set of values. To prevent this, use the ref pattern instead.</p>
+<h2 id="get-a-random-dictionary-value">Get a random dictionary value</h2>
+<p>We can apply similar logic from arrays to dictionaries as well:</p>
+<pre class="gdscript"><code>var _metals = {
+    &quot;copper&quot;: {&quot;quantity&quot;: 50, &quot;price&quot;: 50},
+    &quot;silver&quot;: {&quot;quantity&quot;: 20, &quot;price&quot;: 150},
+    &quot;gold&quot;: {&quot;quantity&quot;: 3, &quot;price&quot;: 500},
+}
+
+
+func _ready():
+    for i in range(20):
+        print(get_metal())
+
+
+func get_metal():
+    var random_metal = _metals.values()[randi() % metals.size()]
+    # Returns a random metal value dictionary every time the code runs.
+    # The same metal may be selected multiple times in succession.
+    return random_metal</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;&gt;</span> _metals <span class="op">=</span> <span class="kw">new</span><span class="op">()</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span><span class="st">&quot;copper&quot;</span><span class="op">,</span> <span class="kw">new</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;{{</span><span class="st">&quot;quantity&quot;</span><span class="op">,</span> <span class="dv">50</span><span class="op">},</span> <span class="op">{</span><span class="st">&quot;price&quot;</span><span class="op">,</span> <span class="dv">50</span><span class="op">}}},</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span><span class="st">&quot;silver&quot;</span><span class="op">,</span> <span class="kw">new</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;{{</span><span class="st">&quot;quantity&quot;</span><span class="op">,</span> <span class="dv">20</span><span class="op">},</span> <span class="op">{</span><span class="st">&quot;price&quot;</span><span class="op">,</span> <span class="dv">150</span><span class="op">}}},</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span><span class="st">&quot;gold&quot;</span><span class="op">,</span> <span class="kw">new</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;{{</span><span class="st">&quot;quantity&quot;</span><span class="op">,</span> <span class="dv">3</span><span class="op">},</span> <span class="op">{</span><span class="st">&quot;price&quot;</span><span class="op">,</span> <span class="dv">500</span><span class="op">}}},</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> <span class="dv">20</span><span class="op">;</span> i<span class="op">++)</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="fu">GetMetal</span><span class="op">());</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;</span> <span class="fu">GetMetal</span><span class="op">()</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">var</span> <span class="op">(</span>_<span class="op">,</span> randomMetal<span class="op">)</span> <span class="op">=</span> _metals<span class="op">.</span><span class="fu">ElementAt</span><span class="op">((</span><span class="dt">int</span><span class="op">)(</span>GD<span class="op">.</span><span class="fu">Randi</span><span class="op">()</span> <span class="op">%</span> _metals<span class="op">.</span><span class="fu">Count</span><span class="op">));</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Returns a random metal value dictionary every time the code runs.</span></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// The same metal may be selected multiple times in succession.</span></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> randomMetal<span class="op">;</span></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="weighted-random-probability">Weighted random probability</h2>
+<p>The ref method returns a floating-point number between 0.0 and 1.0. We can use this to create a "weighted" probability where different outcomes have different likelihoods:</p>
+<pre class="gdscript"><code>func _ready():
+    for i in range(100):
+        print(get_item_rarity())
+
+
+func get_item_rarity():
+    var random_float = randf()
+
+    if random_float &lt; 0.8:
+        # 80% chance of being returned.
+        return &quot;Common&quot;
+    elif random_float &lt; 0.95:
+        # 15% chance of being returned.
+        return &quot;Uncommon&quot;
+    else:
+        # 5% chance of being returned.
+        return &quot;Rare&quot;</code></pre>
+<div class="sourceCode" id="cb22"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> <span class="dv">100</span><span class="op">;</span> i<span class="op">++)</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="fu">GetItemRarity</span><span class="op">());</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">string</span> <span class="fu">GetItemRarity</span><span class="op">()</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> randomFloat <span class="op">=</span> GD<span class="op">.</span><span class="fu">Randf</span><span class="op">();</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>randomFloat <span class="op">&lt;</span> <span class="fl">0.8f</span><span class="op">)</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 80% chance of being returned.</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="st">&quot;Common&quot;</span><span class="op">;</span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span>randomFloat <span class="op">&lt;</span> <span class="fl">0.95f</span><span class="op">)</span></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 15% chance of being returned.</span></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="st">&quot;Uncommon&quot;</span><span class="op">;</span></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span></span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 5% chance of being returned.</span></span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="st">&quot;Rare&quot;</span><span class="op">;</span></span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>You can also get a weighted random <em>index</em> using the ref method on a RandomNumberGenerator instance. This returns a random integer between 0 and the size of the array that is passed as a parameter. Each value in the array is a floating-point number that represents the <em>relative</em> likelihood that it will be returned as an index. A higher value means the value is more likely to be returned as an index, while a value of <code>0</code> means it will never be returned as an index.</p>
+<p>For example, if <code>[0.5, 1, 1, 2]</code> is passed as a parameter, then the method is twice as likely to return <code>3</code> (the index of the value <code>2</code>) and twice as unlikely to return <code>0</code> (the index of the value <code>0.5</code>) compared to the indices <code>1</code> and <code>2</code>.</p>
+<p>Since the returned value matches the array's size, it can be used as an index to get a value from another array as follows:</p>
+<pre class="gdscript"><code># Prints a random element using the weighted index that is returned by `rand_weighted()`.
+# Here, &quot;apple&quot; will be returned twice as rarely as &quot;orange&quot; and &quot;pear&quot;.
+# &quot;banana&quot; is twice as common as &quot;orange&quot; and &quot;pear&quot;, and four times as common as &quot;apple&quot;.
+var fruits = [&quot;apple&quot;, &quot;orange&quot;, &quot;pear&quot;, &quot;banana&quot;]
+var probabilities = [0.5, 1, 1, 2];
+
+var random = RandomNumberGenerator.new()
+print(fruits[random.rand_weighted(probabilities)])</code></pre>
+<div class="sourceCode" id="cb24"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Prints a random element using the weighted index that is returned by `RandWeighted()`.</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Here, &quot;apple&quot; will be returned twice as rarely as &quot;orange&quot; and &quot;pear&quot;.</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co">// &quot;banana&quot; is twice as common as &quot;orange&quot; and &quot;pear&quot;, and four times as common as &quot;apple&quot;.</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="dt">string</span><span class="op">[]</span> fruits <span class="op">=</span> <span class="op">[</span><span class="st">&quot;apple&quot;</span><span class="op">,</span> <span class="st">&quot;orange&quot;</span><span class="op">,</span> <span class="st">&quot;pear&quot;</span><span class="op">,</span> <span class="st">&quot;banana&quot;</span><span class="op">];</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span><span class="op">[]</span> probabilities <span class="op">=</span> <span class="op">[</span><span class="fl">0.5f</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">];</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> random <span class="op">=</span> <span class="kw">new</span> <span class="fu">RandomNumberGenerator</span><span class="op">();</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>fruits<span class="op">[</span>random<span class="op">.</span><span class="fu">RandWeighted</span><span class="op">(</span>probabilities<span class="op">)]);</span></span></code></pre></div>
+<h2 id="better-randomness-using-shuffle-bags">"Better" randomness using shuffle bags</h2>
+<p>Taking the same example as above, we would like to pick fruits at random. However, relying on random number generation every time a fruit is selected can lead to a less <em>uniform</em> distribution. If the player is lucky (or unlucky), they could get the same fruit three or more times in a row.</p>
+<p>You can accomplish this using the <em>shuffle bag</em> pattern. It works by removing an element from the array after choosing it. After multiple selections, the array ends up empty. When that happens, you reinitialize it to its default value:</p>
+<pre class="gdscript"><code>var _fruits = [&quot;apple&quot;, &quot;orange&quot;, &quot;pear&quot;, &quot;banana&quot;]
+# A copy of the fruits array so we can restore the original value into `fruits`.
+var _fruits_full = []
+
+
+func _ready():
+    _fruits_full = _fruits.duplicate()
+    _fruits.shuffle()
+
+    for i in 100:
+        print(get_fruit())
+
+
+func get_fruit():
+    if _fruits.is_empty():
+        # Fill the fruits array again and shuffle it.
+        _fruits = _fruits_full.duplicate()
+        _fruits.shuffle()
+
+    # Get a random fruit, since we shuffled the array,
+    # and remove it from the `_fruits` array.
+    var random_fruit = _fruits.pop_front()
+    # Returns &quot;apple&quot;, &quot;orange&quot;, &quot;pear&quot;, or &quot;banana&quot; every time the code runs, removing it from the array.
+    # When all fruit are removed, it refills the array.
+    return random_fruit</code></pre>
+<div class="sourceCode" id="cb26"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Array</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">&gt;</span> _fruits <span class="op">=</span> <span class="op">[</span><span class="st">&quot;apple&quot;</span><span class="op">,</span> <span class="st">&quot;orange&quot;</span><span class="op">,</span> <span class="st">&quot;pear&quot;</span><span class="op">,</span> <span class="st">&quot;banana&quot;</span><span class="op">];</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co">// A copy of the fruits array so we can restore the original value into `fruits`.</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Array</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">&gt;</span> _fruitsFull<span class="op">;</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    _fruitsFull <span class="op">=</span> _fruits<span class="op">.</span><span class="fu">Duplicate</span><span class="op">();</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    _fruits<span class="op">.</span><span class="fu">Shuffle</span><span class="op">();</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> <span class="dv">100</span><span class="op">;</span> i<span class="op">++)</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="fu">GetFruit</span><span class="op">());</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">string</span> <span class="fu">GetFruit</span><span class="op">()</span></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span><span class="op">(</span>_fruits<span class="op">.</span><span class="fu">Count</span> <span class="op">==</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Fill the fruits array again and shuffle it.</span></span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>        _fruits <span class="op">=</span> _fruitsFull<span class="op">.</span><span class="fu">Duplicate</span><span class="op">();</span></span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>        _fruits<span class="op">.</span><span class="fu">Shuffle</span><span class="op">();</span></span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Get a random fruit, since we shuffled the array,</span></span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">string</span> randomFruit <span class="op">=</span> _fruits<span class="op">[</span><span class="dv">0</span><span class="op">];</span></span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">// and remove it from the `_fruits` array.</span></span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>    _fruits<span class="op">.</span><span class="fu">RemoveAt</span><span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Returns &quot;apple&quot;, &quot;orange&quot;, &quot;pear&quot;, or &quot;banana&quot; every time the code runs, removing it from the array.</span></span>
+<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>    <span class="co">// When all fruit are removed, it refills the array.</span></span>
+<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> randomFruit<span class="op">;</span></span>
+<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>When running the above code, there is a chance to get the same fruit twice in a row. Once we picked a fruit, it will no longer be a possible return value unless the array is now empty. When the array is empty, we reset it back to its default value, making it possible to have the same fruit again, but only once.</p>
+<h2 id="random-noise">Random noise</h2>
+<p>The random number generation shown above can show its limits when you need a value that <em>slowly</em> changes depending on the input. The input can be a position, time, or anything else.</p>
+<p>To achieve this, you can use random <em>noise</em> functions. Noise functions are especially popular in procedural generation to generate realistic-looking terrain. Godot provides <code>class_fastnoiselite</code> for this, which supports 1D, 2D and 3D noise. Here's an example with 1D noise:</p>
+<pre class="gdscript"><code>var _noise = FastNoiseLite.new()
+
+func _ready():
+    # Configure the FastNoiseLite instance.
+    _noise.noise_type = FastNoiseLite.NoiseType.TYPE_SIMPLEX_SMOOTH
+    _noise.seed = randi()
+    _noise.fractal_octaves = 4
+    _noise.frequency = 1.0 / 20.0
+
+    for i in 100:
+        # Prints a slowly-changing series of floating-point numbers
+        # between -1.0 and 1.0.
+        print(_noise.get_noise_1d(i))</code></pre>
+<div class="sourceCode" id="cb28"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> FastNoiseLite _noise <span class="op">=</span> <span class="kw">new</span> <span class="fu">FastNoiseLite</span><span class="op">();</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Configure the FastNoiseLite instance.</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    _noise<span class="op">.</span><span class="fu">NoiseType</span> <span class="op">=</span> FastNoiseLite<span class="op">.</span><span class="fu">NoiseTypeEnum</span><span class="op">.</span><span class="fu">SimplexSmooth</span><span class="op">;</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>    _noise<span class="op">.</span><span class="fu">Seed</span> <span class="op">=</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>GD<span class="op">.</span><span class="fu">Randi</span><span class="op">();</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>    _noise<span class="op">.</span><span class="fu">FractalOctaves</span> <span class="op">=</span> <span class="dv">4</span><span class="op">;</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>    _noise<span class="op">.</span><span class="fu">Frequency</span> <span class="op">=</span> <span class="fl">1.0f</span> <span class="op">/</span> <span class="fl">20.0f</span><span class="op">;</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> <span class="dv">100</span><span class="op">;</span> i<span class="op">++)</span></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>_noise<span class="op">.</span><span class="fu">GetNoise1D</span><span class="op">(</span>i<span class="op">));</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="cryptographically-secure-pseudorandom-number-generation">Cryptographically secure pseudorandom number generation</h2>
+<p>So far, the approaches mentioned above are <strong>not</strong> suitable for <em>cryptographically secure</em> pseudorandom number generation (CSPRNG). This is fine for games, but this is not sufficient for scenarios where encryption, authentication or signing is involved.</p>
+<p>Godot offers a <code>class_Crypto</code> class for this. This class can perform asymmetric key encryption/decryption, signing/verification, while also generating cryptographically secure random bytes, RSA keys, HMAC digests, and self-signed <code>class_X509Certificate</code>s.</p>
+<p>The downside of <code>CSPRNG (Cryptographically secure pseudorandom number generation)</code> is that it's much slower than standard pseudorandom number generation. Its API is also less convenient to use. As a result, <code>CSPRNG (Cryptographically secure pseudorandom number generation)</code> should be avoided for gameplay elements.</p>
+<p>Example of using the Crypto class to generate 2 random integers between <code>0</code> and <code>2^32 - 1</code> (inclusive):</p>
+<pre><code>var crypto := Crypto.new()
+# Request as many bytes as you need, but try to minimize the amount
+# of separate requests to improve performance.
+# Each 32-bit integer requires 4 bytes, so we request 8 bytes.
+var byte_array := crypto.generate_random_bytes(8)
+
+# Use the ``decode_u32()`` method from PackedByteArray to decode a 32-bit unsigned integer
+# from the beginning of `byte_array`. This method doesn&#39;t modify `byte_array`.
+var random_int_1 := byte_array.decode_u32(0)
+# Do the same as above, but with an offset of 4 bytes since we&#39;ve already decoded
+# the first 4 bytes previously.
+var random_int_2 := byte_array.decode_u32(4)
+
+prints(&quot;Random integers:&quot;, random_int_1, random_int_2)</code></pre>
+<blockquote>
+<p><strong>See also:</strong> See <code>class_PackedByteArray</code>'s documentation for other methods you can use to decode the generated bytes into various types of data, such as integers or floats.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

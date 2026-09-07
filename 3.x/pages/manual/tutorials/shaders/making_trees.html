@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Making trees — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="making-trees">Making trees</h1>
+<p>This is a short tutorial on how to make trees and other types of vegetation from scratch.</p>
+<p>The aim is to not focus on the modelling techniques (there are plenty of tutorials about that), but how to make them look good in Godot.</p>
+<h2 id="start-with-a-tree">Start with a tree</h2>
+<p>I took this tree from SketchFab:</p>
+<p><a href="https://sketchfab.com/models/ea5e6ed7f9d6445ba69589d503e8cebf">https://sketchfab.com/models/ea5e6ed7f9d6445ba69589d503e8cebf</a></p>
+<p>and opened it in Blender.</p>
+<h2 id="paint-with-vertex-colors">Paint with vertex colors</h2>
+<p>The first thing you may want to do is to use the vertex colors to paint how much the tree will sway when there is wind. Just use the vertex color painting tool of your favorite 3D modelling program and paint something like this:</p>
+<p>This is a bit exaggerated, but the idea is that color indicates how much sway affects every part of the tree. This scale here represents it better:</p>
+<h2 id="write-a-custom-shader-for-the-leaves">Write a custom shader for the leaves</h2>
+<p>This is a simple example of a shader for leaves:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>shader_type spatial<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>render_mode depth_draw_alpha_prepass<span class="op">,</span> cull_disabled<span class="op">,</span> world_vertex_coords<span class="op">;</span></span></code></pre></div>
+<p>This is a spatial shader. There is no front/back culling (so leaves can be seen from both sides), and alpha prepass is used, so there are less depth artifacts that result from using transparency (and leaves cast shadow). Finally, for the sway effect, world coordinates are recommended, so the tree can be duplicated, moved, etc. and it will still work together with other trees.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">sampler2D</span> texture_albedo <span class="op">:</span> hint_albedo<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">vec4</span> transmission <span class="op">:</span> hint_color<span class="op">;</span></span></code></pre></div>
+<p>Here, the texture is read, as well as a transmission color, which is used to add some back-lighting to the leaves, simulating subsurface scattering.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> sway_speed <span class="op">=</span> <span class="fl">1.0</span><span class="op">;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> sway_strength <span class="op">=</span> <span class="fl">0.05</span><span class="op">;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">uniform</span> <span class="dt">float</span> sway_phase_len <span class="op">=</span> <span class="fl">8.0</span><span class="op">;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">vertex</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> strength <span class="op">=</span> COLOR<span class="op">.</span><span class="fu">r</span> <span class="op">*</span> sway_strength<span class="op">;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    VERTEX<span class="op">.</span><span class="fu">x</span> <span class="op">+=</span> <span class="bu">sin</span><span class="op">(</span>VERTEX<span class="op">.</span><span class="fu">x</span> <span class="op">*</span> sway_phase_len <span class="op">*</span> <span class="fl">1.123</span> <span class="op">+</span> TIME <span class="op">*</span> sway_speed<span class="op">)</span> <span class="op">*</span> strength<span class="op">;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    VERTEX<span class="op">.</span><span class="fu">y</span> <span class="op">+=</span> <span class="bu">sin</span><span class="op">(</span>VERTEX<span class="op">.</span><span class="fu">y</span> <span class="op">*</span> sway_phase_len <span class="op">+</span> TIME <span class="op">*</span> sway_speed <span class="op">*</span> <span class="fl">1.12412</span><span class="op">)</span> <span class="op">*</span> strength<span class="op">;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    VERTEX<span class="op">.</span><span class="fu">z</span> <span class="op">+=</span> <span class="bu">sin</span><span class="op">(</span>VERTEX<span class="op">.</span><span class="fu">z</span> <span class="op">*</span> sway_phase_len <span class="op">*</span> <span class="fl">0.9123</span> <span class="op">+</span> TIME <span class="op">*</span> sway_speed <span class="op">*</span> <span class="fl">1.3123</span><span class="op">)</span> <span class="op">*</span> strength<span class="op">;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This is the code to create the sway of the leaves. It's basic (just uses a sinewave multiplying by the time and axis position, but works well). Notice that the strength is multiplied by the color. Every axis uses a different small near 1.0 multiplication factor so axes don't appear in sync.</p>
+<p>Finally, all that's left is the fragment shader:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">fragment</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vec4</span> albedo_tex <span class="op">=</span> <span class="bu">texture</span><span class="op">(</span>texture_albedo<span class="op">,</span> UV<span class="op">);</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    ALBEDO <span class="op">=</span> albedo_tex<span class="op">.</span><span class="fu">rgb</span><span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    ALPHA <span class="op">=</span> albedo_tex<span class="op">.</span><span class="fu">a</span><span class="op">;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    METALLIC <span class="op">=</span> <span class="fl">0.0</span><span class="op">;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    ROUGHNESS <span class="op">=</span> <span class="fl">1.0</span><span class="op">;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    TRANSMISSION <span class="op">=</span> transmission<span class="op">.</span><span class="fu">rgb</span><span class="op">;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>And this is pretty much it.</p>
+<p>The trunk shader is similar, except it does not write to the alpha channel (thus no alpha prepass is needed) and does not require transmission to work. Both shaders can be improved by adding normal mapping, AO and other maps.</p>
+<h2 id="improving-the-shader">Improving the shader</h2>
+<p>There are many more resources on how to do this that you can read. Now that you know the basics, a recommended read is the chapter from GPU Gems3 about how Crysis does this (focus mostly on the sway code, as many other techniques shown there are obsolete):</p>
+<p><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch16.html">https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch16.html</a></p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

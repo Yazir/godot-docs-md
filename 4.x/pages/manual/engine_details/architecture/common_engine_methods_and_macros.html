@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Common engine methods and macros — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="common-engine-methods-and-macros">Common engine methods and macros</h1>
+<p>Godot's C++ codebase makes use of dozens of custom methods and macros which are used in almost every file. This page is geared towards beginner contributors, but it can also be useful for those writing custom C++ modules.</p>
+<h2 id="print-text">Print text</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Prints a message to standard output.</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>print_line<span class="op">(</span><span class="st">&quot;Message&quot;</span><span class="op">);</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Non-String arguments are automatically converted to String for printing.</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">// If passing several arguments, they will be concatenated together with a</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">// space between each argument.</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>print_line<span class="op">(</span><span class="st">&quot;There are&quot;</span><span class="op">,</span> <span class="dv">123</span><span class="op">,</span> <span class="st">&quot;nodes&quot;</span><span class="op">);</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">// Prints a message to standard output, but only when the engine</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">// is started with the `--verbose` command line argument.</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>print_verbose<span class="op">(</span><span class="st">&quot;Message&quot;</span><span class="op">);</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">// Prints a rich-formatted message using BBCode to standard output.</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">// This supports a subset of BBCode tags supported by RichTextLabel</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">// and will also appear formatted in the editor Output panel.</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">// On Windows, this requires Windows 10 or later to work in the terminal.</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>print_line_rich<span class="op">(</span><span class="st">&quot;[b]Bold[/b], [color=red]Red text[/color]&quot;</span><span class="op">)</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="co">// Prints a formatted error or warning message with a trace.</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>ERR_PRINT<span class="op">(</span><span class="st">&quot;Message&quot;</span><span class="op">);</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>WARN_PRINT<span class="op">(</span><span class="st">&quot;Message&quot;</span><span class="op">);</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co">// Prints an error or warning message only once per session.</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co">// This can be used to avoid spamming the console output.</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>ERR_PRINT_ONCE<span class="op">(</span><span class="st">&quot;Message&quot;</span><span class="op">);</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>WARN_PRINT_ONCE<span class="op">(</span><span class="st">&quot;Message&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>If you need to add placeholders in your messages, use format strings as described below.</p>
+<h2 id="format-a-string">Format a string</h2>
+<p>The <code>vformat()</code> function returns a formatted <code>class_String</code>. It behaves in a way similar to C's <code>sprintf()</code>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>vformat<span class="op">(</span><span class="st">&quot;My name is </span><span class="sc">%s</span><span class="st">.&quot;</span><span class="op">,</span> <span class="st">&quot;Godette&quot;</span><span class="op">);</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>vformat<span class="op">(</span><span class="st">&quot;</span><span class="sc">%d</span><span class="st"> bugs on the wall!&quot;</span><span class="op">,</span> <span class="dv">1234</span><span class="op">);</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>vformat<span class="op">(</span><span class="st">&quot;Pi is approximately </span><span class="sc">%f</span><span class="st">.&quot;</span><span class="op">,</span> <span class="fl">3.1416</span><span class="op">);</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">// Converts the resulting String into a `const char *`.</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">// You may need to do this if passing the result as an argument</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">// to a method that expects a `const char *` instead of a String.</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>vformat<span class="op">(</span><span class="st">&quot;My name is </span><span class="sc">%s</span><span class="st">.&quot;</span><span class="op">,</span> <span class="st">&quot;Godette&quot;</span><span class="op">).</span>utf8<span class="op">().</span>get_data<span class="op">();</span></span></code></pre></div>
+<p>In most cases, try to use <code>vformat()</code> instead of string concatenation as it makes for more readable code.</p>
+<h2 id="convert-an-integer-or-float-to-a-string">Convert an integer or float to a string</h2>
+<p>This is not needed when printing numbers using <code>print_line()</code>, but you may still need to perform manual conversion for some other use cases.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Stores the string &quot;42&quot; using integer-to-string conversion.</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>String int_to_string <span class="op">=</span> itos<span class="op">(</span><span class="dv">42</span><span class="op">);</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Stores the string &quot;123.45&quot; using real-to-string conversion.</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>String real_to_string <span class="op">=</span> rtos<span class="op">(</span><span class="fl">123.45</span><span class="op">);</span></span></code></pre></div>
+<h2 id="internationalize-a-string">Internationalize a string</h2>
+<p>There are two types of internationalization in Godot's codebase:</p>
+<ul>
+<li><code>TTR()</code>: <strong>Editor ("tools") translations</strong> will only be processed in the editor. If a user uses the same text in one of their projects, it won't be translated if they provide a translation for it. When contributing to the engine, this is generally the macro you should use for localizable strings.</li>
+<li><code>RTR()</code>: <strong>Runtime translations</strong> will be automatically localized in projects if they provide a translation for the given string. This kind of translation shouldn't be used in editor-only code.</li>
+</ul>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Returns the translated string that matches the user&#39;s locale settings.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Translations are located in `editor/translations`.</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">// The localization template is generated automatically; don&#39;t modify it.</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>TTR<span class="op">(</span><span class="st">&quot;Exit the editor?&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>To insert placeholders in localizable strings, wrap the localization macro in a <code>vformat()</code> call as follows:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>String file_path <span class="op">=</span> <span class="st">&quot;example.txt&quot;</span><span class="op">;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>vformat<span class="op">(</span>TTR<span class="op">(</span><span class="st">&quot;Couldn&#39;t open </span><span class="sc">\&quot;%s\&quot;</span><span class="st"> for reading.&quot;</span><span class="op">),</span> file_path<span class="op">);</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> When using <code>vformat()</code> and a translation macro together, always wrap the translation macro in <code>vformat()</code>, not the other way around. Otherwise, the string will never match the translation as it will have the placeholder already replaced when it's passed to TranslationServer.</p>
+</blockquote>
+<h2 id="clamp-a-value">Clamp a value</h2>
+<p>Godot provides macros for clamping a value with a lower bound (<code>MAX</code>), an upper bound (<code>MIN</code>) or both (<code>CLAMP</code>):</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> a <span class="op">=</span> <span class="dv">3</span><span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> b <span class="op">=</span> <span class="dv">5</span><span class="op">;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>MAX<span class="op">(</span>b<span class="op">,</span> <span class="dv">6</span><span class="op">);</span> <span class="co">// 6</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>MIN<span class="op">(</span><span class="dv">2</span><span class="op">,</span> a<span class="op">);</span> <span class="co">// 2</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>CLAMP<span class="op">(</span>a<span class="op">,</span> <span class="dv">10</span><span class="op">,</span> <span class="dv">30</span><span class="op">);</span> <span class="co">// 10</span></span></code></pre></div>
+<p>This works with any type that can be compared to other values (like <code>int</code> and <code>float</code>).</p>
+<h2 id="microbenchmarking">Microbenchmarking</h2>
+<p>If you want to benchmark a piece of code but don't know how to use a profiler, use this snippet:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="dt">uint64_t</span> begin <span class="op">=</span> Time<span class="op">::</span>get_singleton<span class="op">()-&gt;</span>get_ticks_usec<span class="op">();</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Your code here...</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="dt">uint64_t</span> end <span class="op">=</span> Time<span class="op">::</span>get_singleton<span class="op">()-&gt;</span>get_ticks_usec<span class="op">();</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>print_line<span class="op">(</span>vformat<span class="op">(</span><span class="st">&quot;Snippet took </span><span class="sc">%d</span><span class="st"> microseconds&quot;</span><span class="op">,</span> end <span class="op">-</span> begin<span class="op">));</span></span></code></pre></div>
+<p>This will print the time spent between the <code>begin</code> declaration and the <code>end</code> declaration.</p>
+<blockquote>
+<p><strong>Note:</strong> You may have to <code>#include "core/os/time.h"</code> if it's not present already.</p>
+<p>When opening a pull request, make sure to remove this snippet as well as the include if it wasn't there previously.</p>
+</blockquote>
+<h2 id="get-projecteditor-settings">Get project/editor settings</h2>
+<p>There are four macros available for this:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Returns the specified project setting&#39;s value,</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">// defaulting to `false` if it doesn&#39;t exist.</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>GLOBAL_DEF<span class="op">(</span><span class="st">&quot;section/subsection/value&quot;</span><span class="op">,</span> <span class="kw">false</span><span class="op">);</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">// Returns the specified editor setting&#39;s value,</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">// defaulting to &quot;Untitled&quot; if it doesn&#39;t exist.</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>EDITOR_DEF<span class="op">(</span><span class="st">&quot;section/subsection/value&quot;</span><span class="op">,</span> <span class="st">&quot;Untitled&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>If a default value has been specified elsewhere, don't specify it again to avoid repetition:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Returns the value of the project setting.</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>GLOBAL_GET<span class="op">(</span><span class="st">&quot;section/subsection/value&quot;</span><span class="op">);</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Returns the value of the editor setting.</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>EDITOR_GET<span class="op">(</span><span class="st">&quot;section/subsection/value&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>It's recommended to use <code>GLOBAL_DEF</code>/<code>EDITOR_DEF</code> only once per setting and use <code>GLOBAL_GET</code>/<code>EDITOR_GET</code> in all other places where it's referenced.</p>
+<h2 id="error-macros">Error macros</h2>
+<p>Godot features many error macros to make error reporting more convenient.</p>
+<blockquote>
+<p><strong>Warning:</strong> Conditions in error macros work in the <strong>opposite</strong> way of GDScript's built-in <code>assert()</code> function. An error is reached if the condition inside evaluates to <code>true</code>, not <code>false</code>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> Only variants with custom messages are documented here, as these should always be used in new contributions. Make sure the custom message provided includes enough information for people to diagnose the issue, even if they don't know C++. In case a method was passed invalid arguments, you can print the invalid value in question to ease debugging.</p>
+<p>For internal error checking where displaying a human-readable message isn't necessary, remove <code>_MSG</code> at the end of the macro name and don't supply a message argument.</p>
+<p>Also, always try to return processable data so the engine can keep running well.</p>
+</blockquote>
+<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Conditionally prints an error message and returns from the function.</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Use this in methods which don&#39;t return a value.</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>ERR_FAIL_COND_MSG<span class="op">(!</span>mesh<span class="op">.</span>is_valid<span class="op">(),</span> vformat<span class="op">(</span><span class="st">&quot;Couldn&#39;t load mesh at: </span><span class="sc">%s</span><span class="st">&quot;</span><span class="op">,</span> path<span class="op">));</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co">// Conditionally prints an error message and returns `0` from the function.</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Use this in methods which must return a value.</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>ERR_FAIL_COND_V_MSG<span class="op">(</span>rect<span class="op">.</span>x <span class="op">&lt;</span> <span class="dv">0</span> <span class="op">||</span> rect<span class="op">.</span>y <span class="op">&lt;</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Couldn&#39;t calculate the rectangle&#39;s area.&quot;</span><span class="op">);</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co">// Prints an error message if `index` is &lt; 0 or &gt;= `SomeEnum::QUALITY_MAX`,</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co">// then returns from the function.</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>ERR_FAIL_INDEX_MSG<span class="op">(</span>index<span class="op">,</span> SomeEnum<span class="op">::</span>QUALITY_MAX<span class="op">,</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        vformat<span class="op">(</span><span class="st">&quot;Invalid quality: </span><span class="sc">%d</span><span class="st">. See SomeEnum for allowed values.&quot;</span><span class="op">,</span> index<span class="op">));</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">// Prints an error message if `index` is &lt; 0 &gt;= `some_array.size()`,</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co">// then returns `-1` from the function.</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>ERR_FAIL_INDEX_V_MSG<span class="op">(</span>index<span class="op">,</span> some_array<span class="op">.</span>size<span class="op">(),</span> <span class="op">-</span><span class="dv">1</span><span class="op">,</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>        vformat<span class="op">(</span><span class="st">&quot;Item </span><span class="sc">%d</span><span class="st"> is out of bounds.&quot;</span><span class="op">,</span> index<span class="op">));</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="co">// Unconditionally prints an error message and returns from the function.</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="co">// Only use this if you need to perform complex error checking.</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(!</span>complex_error_checking_routine<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>    ERR_FAIL_MSG<span class="op">(</span><span class="st">&quot;Couldn&#39;t reload the filesystem cache.&quot;</span><span class="op">);</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a><span class="co">// Unconditionally prints an error message and returns `false` from the function.</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a><span class="co">// Only use this if you need to perform complex error checking.</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(!</span>complex_error_checking_routine<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>    ERR_FAIL_V_MSG<span class="op">(</span><span class="kw">false</span><span class="op">,</span> <span class="st">&quot;Couldn&#39;t parse the input arguments.&quot;</span><span class="op">);</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a><span class="co">// Crashes the engine. This should generally never be used</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a><span class="co">// except for testing crash handling code. Godot&#39;s philosophy</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a><span class="co">// is to never crash, both in the editor and in exported projects.</span></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>CRASH_NOW_MSG<span class="op">(</span><span class="st">&quot;Can&#39;t predict the future! Aborting.&quot;</span><span class="op">);</span></span></code></pre></div>
+<blockquote>
+<p><strong>See also:</strong> See <a href="https://github.com/godotengine/godot/blob/master/core/error/error_macros.h">core/error/error_macros.h</a> in Godot's codebase for more information about each error macro.</p>
+<p>Some functions return an error code (materialized by a return type of <code>Error</code>). This value can be returned directly from an error macro. See the list of available error codes in <a href="https://github.com/godotengine/godot/blob/master/core/error/error_list.h">core/error/error_list.h</a>.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

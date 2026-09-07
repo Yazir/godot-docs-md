@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using NavigationObstacles — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-navigationobstacles">Using NavigationObstacles</h1>
+<p>2D and 3D versions of NavigationObstacles nodes are available as ref and ref respectively.</p>
+<p>Navigation obstacles are dual purpose in that they can affect both the navigation mesh baking, and the agent avoidance.</p>
+<ul>
+<li>With <code>affect_navigation_mesh</code> enabled the obstacle will affect navigation mesh when baked.</li>
+<li>With <code>avoidance_enabled</code> the obstacle will affect avoidance agents.</li>
+</ul>
+<blockquote>
+<p><strong>Tip:</strong> Avoidance is enabled by default. If the obstacle is not used for avoidance disable <code>enabled_avoidance</code> to save performance.</p>
+</blockquote>
+<h2 id="obstacles-and-navigation-mesh">Obstacles and navigation mesh</h2>
+<p><em>Image: Navigation obstacles affecting navigation mesh baking</em></p>
+<p>Navigation obstacles affecting navigation mesh baking.</p>
+<p>For navigation mesh baking, obstacles can be used to discard parts of all other source geometry inside the obstacle shape.</p>
+<p>This can be used to stop navigation meshes being baked in unwanted places, e.g. inside "solid" geometry like thick walls or on top of other geometry that should not be included for gameplay like roofs.</p>
+<p><em>Image: Navigation obstacles discard of unwanted navigation mesh</em></p>
+<p>Navigation obstacles discard of unwanted navigation mesh.</p>
+<p>An obstacle does not add geometry in the baking process, it only removes geometry. It does so by nullifying all the (voxel) cells with rasterized source geometry that are within the obstacle shape. As such its effect and shape detail is limited to the cell resolution used by the baking process.</p>
+<p>For more details on the navigation mesh baking see <code>doc_navigation_using_navigationmeshes</code>.</p>
+<p>The property <code>affect_navigation_mesh</code> makes the obstacle contribute to the navigation mesh baking. It will be parsed or unparsed like all other node objects in a navigation mesh baking process.</p>
+<p>The <code>carve_navigation_mesh</code> property makes the shape unaffected by offsets of the baking, e.g. the offset added by the navigation mesh <code>agent_radius</code>. It will basically act as a stencil and cut into the already offset navigation mesh surface. It will still be affected by further postprocessing of the baking process like edge simplification.</p>
+<p>The obstacle shape and placement is defined with the <code>height</code> and <code>vertices</code> properties, and the <code>global_position</code> of the obstacle. The y-axis value of any Vector3 used for the vertices is ignored as the obstacle is projected on a flat horizontal plane.</p>
+<p>When baking navigation meshes in scripts obstacles can be added procedurally as a projected obstruction. Obstacles are not involved in the source geometry parsing so adding them just before baking is enough.</p>
+<pre class="gdscript"><code>var obstacle_outline = PackedVector2Array([
+    Vector2(-50, -50),
+    Vector2(50, -50),
+    Vector2(50, 50),
+    Vector2(-50, 50)
+])
+
+var navigation_mesh = NavigationPolygon.new()
+var source_geometry = NavigationMeshSourceGeometryData2D.new()
+
+NavigationServer2D.parse_source_geometry_data(navigation_mesh, source_geometry, $MyTestRootNode)
+
+var obstacle_carve: bool = true
+
+source_geometry.add_projected_obstruction(obstacle_outline, obstacle_carve)
+
+NavigationServer2D.bake_from_source_geometry_data(navigation_mesh, source_geometry)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>Vector2<span class="op">[]</span> obstacleOutline</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">[</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(-</span><span class="dv">50</span><span class="op">,</span> <span class="op">-</span><span class="dv">50</span><span class="op">),</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">50</span><span class="op">,</span> <span class="op">-</span><span class="dv">50</span><span class="op">),</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">50</span><span class="op">,</span> <span class="dv">50</span><span class="op">),</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(-</span><span class="dv">50</span><span class="op">,</span> <span class="dv">50</span><span class="op">),</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">];</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> navigationMesh <span class="op">=</span> <span class="kw">new</span> <span class="fu">NavigationPolygon</span><span class="op">();</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> sourceGeometry <span class="op">=</span> <span class="kw">new</span> <span class="fu">NavigationMeshSourceGeometryData2D</span><span class="op">();</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>NavigationServer2D<span class="op">.</span><span class="fu">ParseSourceGeometryData</span><span class="op">(</span>navigationMesh<span class="op">,</span> sourceGeometry<span class="op">,</span> GetNode<span class="op">&lt;</span>Node2D<span class="op">&gt;(</span><span class="st">&quot;MyTestRootNode&quot;</span><span class="op">));</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> obstacleCarve <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>sourceGeometry<span class="op">.</span><span class="fu">AddProjectedObstruction</span><span class="op">(</span>obstacleOutline<span class="op">,</span> obstacleCarve<span class="op">);</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>NavigationServer2D<span class="op">.</span><span class="fu">BakeFromSourceGeometryData</span><span class="op">(</span>navigationMesh<span class="op">,</span> sourceGeometry<span class="op">);</span></span></code></pre></div>
+<pre class="gdscript"><code>var obstacle_outline = PackedVector3Array([
+    Vector3(-5, 0, -5),
+    Vector3(5, 0, -5),
+    Vector3(5, 0, 5),
+    Vector3(-5, 0, 5)
+])
+
+var navigation_mesh = NavigationMesh.new()
+var source_geometry = NavigationMeshSourceGeometryData3D.new()
+
+NavigationServer3D.parse_source_geometry_data(navigation_mesh, source_geometry, $MyTestRootNode)
+
+var obstacle_elevation: float = $MyTestObstacleNode.global_position.y
+var obstacle_height: float = 50.0
+var obstacle_carve: bool = true
+
+source_geometry.add_projected_obstruction(obstacle_outline, obstacle_elevation, obstacle_height, obstacle_carve)
+
+NavigationServer3D.bake_from_source_geometry_data(navigation_mesh, source_geometry)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>Vector3<span class="op">[]</span> obstacleOutline <span class="op">=</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">[</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(-</span><span class="dv">5</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="op">-</span><span class="dv">5</span><span class="op">),</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">5</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="op">-</span><span class="dv">5</span><span class="op">),</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">5</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">5</span><span class="op">),</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(-</span><span class="dv">5</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">5</span><span class="op">),</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="op">];</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> navigationMesh <span class="op">=</span> <span class="kw">new</span> <span class="fu">NavigationMesh</span><span class="op">();</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> sourceGeometry <span class="op">=</span> <span class="kw">new</span> <span class="fu">NavigationMeshSourceGeometryData3D</span><span class="op">();</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>NavigationServer3D<span class="op">.</span><span class="fu">ParseSourceGeometryData</span><span class="op">(</span>navigationMesh<span class="op">,</span> sourceGeometry<span class="op">,</span> GetNode<span class="op">&lt;</span>Node3D<span class="op">&gt;(</span><span class="st">&quot;MyTestRootNode&quot;</span><span class="op">));</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> obstacleElevation <span class="op">=</span> GetNode<span class="op">&lt;</span>Node3D<span class="op">&gt;(</span><span class="st">&quot;MyTestObstacleNode&quot;</span><span class="op">).</span><span class="fu">GlobalPosition</span><span class="op">.</span><span class="fu">Y</span><span class="op">;</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> obstacleHeight <span class="op">=</span> <span class="fl">50.0f</span><span class="op">;</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> obstacleCarve <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>sourceGeometry<span class="op">.</span><span class="fu">AddProjectedObstruction</span><span class="op">(</span>obstacleOutline<span class="op">,</span> obstacleElevation<span class="op">,</span> obstacleHeight<span class="op">,</span> obstacleCarve<span class="op">);</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>NavigationServer3D<span class="op">.</span><span class="fu">BakeFromSourceGeometryData</span><span class="op">(</span>navigationMesh<span class="op">,</span> sourceGeometry<span class="op">);</span></span></code></pre></div>
+<h2 id="obstacles-and-agent-avoidance">Obstacles and agent avoidance</h2>
+<p>For avoidance navigation obstacles can be used either as static or dynamic obstacles to affect avoidance controlled agents.</p>
+<ul>
+<li>When used statically NavigationObstacles constrain avoidance controlled agents outside or inside a polygon defined area.</li>
+<li>When used dynamically NavigationObstacles push away avoidance controlled agents in a radius around them.</li>
+</ul>
+<h3 id="static-avoidance-obstacles">Static avoidance obstacles</h3>
+<p>An avoidance obstacle is considered static when its <code>vertices</code> property is populated with an outline array of positions to form a polygon.</p>
+<p><em>Image: Static obstacle drawn in the editor to block or contain navigation agents</em></p>
+<p>Static obstacle drawn in the editor to block or contain navigation agents.</p>
+<ul>
+<li>Static obstacles act as hard do-not-cross boundaries for avoidance using agents, e.g. similar to physics collision but for avoidance.</li>
+<li>Static obstacles define their boundaries with an array of outline <code>vertices</code> (positions), and in case of 3D with an additional <code>height</code> property.</li>
+<li>Static obstacles only work for agents that use the 2D avoidance mode.</li>
+<li>Static obstacles define through winding order of the vertices if agents are pushed out or sucked in.</li>
+<li>Static obstacles can not change their position. They can only be warped to a new position and rebuilt from scratch. Static obstacles as a result are ill-suited for usages where the position is changed every frame, as the constant rebuild has a high performance cost.</li>
+<li>Static obstacles that are warped to another position can not be predicted by agents. This creates the risk of getting agents stuck should a static obstacle be warped on top of agents.</li>
+</ul>
+<p>When the 2D avoidance is used in 3D the y-axis of Vector3 vertices is ignored. Instead, the global y-axis position of the obstacle is used as the elevation level. Agents will ignore static obstacles in 3D that are below or above them. This is automatically determined by global y-axis position of both obstacle and agent as the elevation level as well as their respective height properties.</p>
+<h3 id="dynamic-avoidance-obstacles">Dynamic avoidance obstacles</h3>
+<p>An avoidance obstacle is considered dynamic when its <code>radius</code> property is greater than zero.</p>
+<ul>
+<li>Dynamic obstacles act as a soft please-move-away-from-me object for avoidance using agents, e.g. similar to how they avoid other agents.</li>
+<li>Dynamic obstacles define their boundaries with a single <code>radius</code> for a 2D circle, or in case of 3D avoidance a sphere shape.</li>
+<li>Dynamic obstacles can change their position every frame without additional performance cost.</li>
+<li>Dynamic obstacles with a set velocity can be predicted in their movement by agents.</li>
+<li>Dynamic obstacles are not a reliable way to constrain agents in crowded or narrow spaces.</li>
+</ul>
+<p>While both static and dynamic properties can be active at the same time on the same obstacle this is not recommended for performance. Ideally when an obstacle is moving the static vertices are removed and instead the radius activated. When the obstacle reaches the new final position it should gradually enlarge its radius to push all other agents away. With enough created safe space around the obstacle it should add the static vertices again and remove the radius. This helps avoid getting agents stuck in the suddenly appearing static obstacle when the rebuilt static boundary is finished.</p>
+<p>Similar to agents the obstacles can make use of the <code>avoidance_layers</code> bitmask. All agents with a matching bit on their own avoidance mask will avoid the obstacle.</p>
+<h2 id="procedural-obstacles">Procedural obstacles</h2>
+<p>New obstacles can be created in a script without a Node by using the NavigationServer directly.</p>
+<p>Obstacles created with scripts require at least a <code>map</code> and a <code>position</code>. For dynamic use a <code>radius</code> is required. For static use an array of <code>vertices</code> is required.</p>
+<pre class="gdscript"><code># create a new &quot;obstacle&quot; and place it on the default navigation map.
+var new_obstacle_rid: RID = NavigationServer2D.obstacle_create()
+var default_map_rid: RID = get_world_2d().get_navigation_map()
+
+NavigationServer2D.obstacle_set_map(new_obstacle_rid, default_map_rid)
+NavigationServer2D.obstacle_set_position(new_obstacle_rid, global_position)
+
+# Use obstacle dynamic by increasing radius above zero.
+NavigationServer2D.obstacle_set_radius(new_obstacle_rid, 5.0)
+
+# Use obstacle static by adding a square that pushes agents out.
+var outline = PackedVector2Array([Vector2(-100, -100), Vector2(100, -100), Vector2(100, 100), Vector2(-100, 100)])
+NavigationServer2D.obstacle_set_vertices(new_obstacle_rid, outline)
+
+# Enable the obstacle.
+NavigationServer2D.obstacle_set_avoidance_enabled(new_obstacle_rid, true)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Create a new &quot;obstacle&quot; and place it on the default navigation map.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>Rid newObstacleRid <span class="op">=</span> NavigationServer2D<span class="op">.</span><span class="fu">ObstacleCreate</span><span class="op">();</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>Rid defaultMapRid <span class="op">=</span> <span class="fu">GetWorld2D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>NavigationServer2D<span class="op">.</span><span class="fu">ObstacleSetMap</span><span class="op">(</span>newObstacleRid<span class="op">,</span> defaultMapRid<span class="op">);</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>NavigationServer2D<span class="op">.</span><span class="fu">ObstacleSetPosition</span><span class="op">(</span>newObstacleRid<span class="op">,</span> GlobalPosition<span class="op">);</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">// Use obstacle dynamic by increasing radius above zero.</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>NavigationServer2D<span class="op">.</span><span class="fu">ObstacleSetRadius</span><span class="op">(</span>newObstacleRid<span class="op">,</span> <span class="fl">5.0f</span><span class="op">);</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co">// Use obstacle static by adding a square that pushes agents out.</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>Vector2<span class="op">[]</span> outline <span class="op">=</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="op">[</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(-</span><span class="dv">100</span><span class="op">,</span> <span class="op">-</span><span class="dv">100</span><span class="op">),</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">100</span><span class="op">,</span> <span class="op">-</span><span class="dv">100</span><span class="op">),</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">100</span><span class="op">,</span> <span class="dv">100</span><span class="op">),</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(-</span><span class="dv">100</span><span class="op">,</span> <span class="dv">100</span><span class="op">),</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="op">];</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>NavigationServer2D<span class="op">.</span><span class="fu">ObstacleSetVertices</span><span class="op">(</span>newObstacleRid<span class="op">,</span> outline<span class="op">);</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="co">// Enable the obstacle.</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>NavigationServer2D<span class="op">.</span><span class="fu">ObstacleSetAvoidanceEnabled</span><span class="op">(</span>newObstacleRid<span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span></code></pre></div>
+<pre class="gdscript"><code># Create a new &quot;obstacle&quot; and place it on the default navigation map.
+var new_obstacle_rid: RID = NavigationServer3D.obstacle_create()
+var default_map_rid: RID = get_world_3d().get_navigation_map()
+
+NavigationServer3D.obstacle_set_map(new_obstacle_rid, default_map_rid)
+NavigationServer3D.obstacle_set_position(new_obstacle_rid, global_position)
+
+# Use obstacle dynamic by increasing radius above zero.
+NavigationServer3D.obstacle_set_radius(new_obstacle_rid, 0.5)
+
+# Use obstacle static by adding a square that pushes agents out.
+var outline = PackedVector3Array([Vector3(-5, 0, -5), Vector3(5, 0, -5), Vector3(5, 0, 5), Vector3(-5, 0, 5)])
+NavigationServer3D.obstacle_set_vertices(new_obstacle_rid, outline)
+# Set the obstacle height on the y-axis.
+NavigationServer3D.obstacle_set_height(new_obstacle_rid, 1.0)
+
+# Enable the obstacle.
+NavigationServer3D.obstacle_set_avoidance_enabled(new_obstacle_rid, true)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Create a new &quot;obstacle&quot; and place it on the default navigation map.</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>Rid newObstacleRid <span class="op">=</span> NavigationServer3D<span class="op">.</span><span class="fu">ObstacleCreate</span><span class="op">();</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>Rid defaultMapRid <span class="op">=</span> <span class="fu">GetWorld3D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>NavigationServer3D<span class="op">.</span><span class="fu">ObstacleSetMap</span><span class="op">(</span>newObstacleRid<span class="op">,</span> defaultMapRid<span class="op">);</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>NavigationServer3D<span class="op">.</span><span class="fu">ObstacleSetPosition</span><span class="op">(</span>newObstacleRid<span class="op">,</span> GlobalPosition<span class="op">);</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co">// Use obstacle dynamic by increasing radius above zero.</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>NavigationServer3D<span class="op">.</span><span class="fu">ObstacleSetRadius</span><span class="op">(</span>newObstacleRid<span class="op">,</span> <span class="fl">5.0f</span><span class="op">);</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co">// Use obstacle static by adding a square that pushes agents out.</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>Vector3<span class="op">[]</span> outline <span class="op">=</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="op">[</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(-</span><span class="dv">5</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="op">-</span><span class="dv">5</span><span class="op">),</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">5</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="op">-</span><span class="dv">5</span><span class="op">),</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">5</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">5</span><span class="op">),</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(-</span><span class="dv">5</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">5</span><span class="op">),</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="op">];</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>NavigationServer3D<span class="op">.</span><span class="fu">ObstacleSetVertices</span><span class="op">(</span>newObstacleRid<span class="op">,</span> outline<span class="op">);</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="co">// Set the obstacle height on the y-axis.</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>NavigationServer3D<span class="op">.</span><span class="fu">ObstacleSetHeight</span><span class="op">(</span>newObstacleRid<span class="op">,</span> <span class="fl">1.0f</span><span class="op">);</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a><span class="co">// Enable the obstacle.</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>NavigationServer3D<span class="op">.</span><span class="fu">ObstacleSetAvoidanceEnabled</span><span class="op">(</span>newObstacleRid<span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

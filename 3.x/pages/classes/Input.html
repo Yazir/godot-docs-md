@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Input — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="input">Input</h1>
+<p><em>Inherits: <a href="Object.html">Object</a></em></p>
+<p>A singleton that deals with inputs.</p>
+<h2 id="description">Description</h2>
+<p>A singleton that deals with inputs. This includes key presses, mouse buttons and movement, joypads, and input actions. Actions and their events can be set in the <strong>Input Map</strong> tab in the <strong>Project &gt; Project Settings</strong>, or with the <a href="InputMap.html">InputMap</a> class.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/tutorials/inputs/index.html">Inputs tutorial index</a></li>
+<li><a href="https://godotengine.org/asset-library/asset/515">2D Dodge The Creeps Demo</a></li>
+<li><a href="https://godotengine.org/asset-library/asset/676">3D Voxel Demo</a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="mousemode-mouse_mode">``MouseMode<code> mouse_mode</code></h3>
+<ul>
+<li>Setter: <code>set_mouse_mode(value: </code>MouseMode<code>)</code></li>
+<li>Getter: <code>get_mouse_mode()</code></li>
+</ul>
+<p>Controls the mouse mode. See <code>MouseMode</code> for more information.</p>
+<h3 id="bool-use_accumulated_input"><code>bool use_accumulated_input</code></h3>
+<ul>
+<li>Setter: <code>set_use_accumulated_input(value: bool)</code></li>
+<li>Getter: <code>is_using_accumulated_input()</code></li>
+</ul>
+<p>If <code>true</code>, similar input events sent by the operating system are accumulated. When input accumulation is enabled, all input events generated during a frame will be merged and emitted when the frame is done rendering. Therefore, this limits the number of input method calls per second to the rendering FPS.</p>
+<p>Input accumulation can be disabled to get slightly more precise/reactive input at the cost of increased CPU usage. In applications where drawing freehand lines is required, input accumulation should generally be disabled while the user is drawing the line to get results that closely follow the actual input.</p>
+<p><strong>Note:</strong> Input accumulation is <em>enabled</em> by default. It is recommended to keep it enabled for games which don't require very reactive input, as this will decrease CPU usage.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-action_pressaction-string-strength10-float"><code>void action_press(action: String, strength=1.0: float)</code></h3>
+<p>This will simulate pressing the specified action.</p>
+<p>The strength can be used for non-boolean actions, it's ranged between 0 and 1 representing the intensity of the given action.</p>
+<p><strong>Note:</strong> This method will not cause any <code>Node._input</code> calls. It is intended to be used with <code>is_action_pressed</code> and <code>is_action_just_pressed</code>. If you want to simulate <code>_input</code>, use <code>parse_input_event</code> instead.</p>
+<h3 id="void-action_releaseaction-string"><code>void action_release(action: String)</code></h3>
+<p>If the specified action is already pressed, this will release it.</p>
+<h3 id="void-add_joy_mappingmapping-string-update_existingfalse-bool"><code>void add_joy_mapping(mapping: String, update_existing=false: bool)</code></h3>
+<p>Adds a new mapping entry (in SDL2 format) to the mapping database. Optionally update already connected devices.</p>
+<h3 id="void-flush_buffered_events"><code>void flush_buffered_events()</code></h3>
+<p>Sends all input events which are in the current buffer to the game loop. These events may have been buffered as a result of accumulated input (<code>use_accumulated_input</code>) or agile input flushing (<code>ProjectSettings.input_devices/buffering/agile_event_flushing</code>).</p>
+<p>The engine will already do this itself at key execution points (at least once per frame). However, this can be useful in advanced cases where you want precise control over the timing of event handling.</p>
+<h3 id="vector3-get_accelerometer-const"><code>Vector3 get_accelerometer() const</code></h3>
+<p>Returns the acceleration of the device's accelerometer sensor, if the device has one. Otherwise, the method returns <code>Vector3.ZERO</code>.</p>
+<p>Note this method returns an empty <a href="Vector3.html">Vector3</a> when running from the editor even when your device has an accelerometer. You must export your project to a supported device to read values from the accelerometer.</p>
+<p><strong>Note:</strong> This method only works on iOS, Android, and UWP. On other platforms, it always returns <code>Vector3.ZERO</code>. On Android the unit of measurement for each axis is m/s² while on iOS and UWP it's a multiple of the Earth's gravitational acceleration <code>g</code> (~9.81 m/s²).</p>
+<h3 id="float-get_action_raw_strengthaction-string-exactfalse-bool-const"><code>float get_action_raw_strength(action: String, exact=false: bool) const</code></h3>
+<p>Returns a value between 0 and 1 representing the raw intensity of the given action, ignoring the action's deadzone. In most cases, you should use <code>get_action_strength</code> instead.</p>
+<p>If <code>exact</code> is <code>false</code>, it ignores additional input modifiers for <a href="InputEventKey.html">InputEventKey</a> and <a href="InputEventMouseButton.html">InputEventMouseButton</a> events, and the direction for <a href="InputEventJoypadMotion.html">InputEventJoypadMotion</a> events.</p>
+<h3 id="float-get_action_strengthaction-string-exactfalse-bool-const"><code>float get_action_strength(action: String, exact=false: bool) const</code></h3>
+<p>Returns a value between 0 and 1 representing the intensity of the given action. In a joypad, for example, the further away the axis (analog sticks or L2, R2 triggers) is from the dead zone, the closer the value will be to 1. If the action is mapped to a control that has no axis as the keyboard, the value returned will be 0 or 1.</p>
+<p>If <code>exact</code> is <code>false</code>, it ignores additional input modifiers for <a href="InputEventKey.html">InputEventKey</a> and <a href="InputEventMouseButton.html">InputEventMouseButton</a> events, and the direction for <a href="InputEventJoypadMotion.html">InputEventJoypadMotion</a> events.</p>
+<h3 id="float-get_axisnegative_action-string-positive_action-string-const"><code>float get_axis(negative_action: String, positive_action: String) const</code></h3>
+<p>Get axis input by specifying two actions, one negative and one positive.</p>
+<p>This is a shorthand for writing <code>Input.get_action_strength("positive_action") - Input.get_action_strength("negative_action")</code>.</p>
+<h3 id="array-get_connected_joypads"><code>Array get_connected_joypads()</code></h3>
+<p>Returns an <a href="Array.html">Array</a> containing the device IDs of all currently connected joypads.</p>
+<h3 id="cursorshape-get_current_cursor_shape-const">``CursorShape<code> get_current_cursor_shape() const</code></h3>
+<p>Returns the currently assigned cursor shape (see <code>CursorShape</code>).</p>
+<h3 id="vector3-get_gravity-const"><code>Vector3 get_gravity() const</code></h3>
+<p>Returns the gravity of the device's accelerometer sensor, if the device has one. Otherwise, the method returns <code>Vector3.ZERO</code>.</p>
+<p><strong>Note:</strong> This method only works on Android and iOS. On other platforms, it always returns <code>Vector3.ZERO</code>. On Android the unit of measurement for each axis is m/s² while on iOS it's a multiple of the Earth's gravitational acceleration <code>g</code> (~9.81 m/s²).</p>
+<h3 id="vector3-get_gyroscope-const"><code>Vector3 get_gyroscope() const</code></h3>
+<p>Returns the rotation rate in rad/s around a device's X, Y, and Z axes of the gyroscope sensor, if the device has one. Otherwise, the method returns <code>Vector3.ZERO</code>.</p>
+<p><strong>Note:</strong> This method only works on Android and iOS. On other platforms, it always returns <code>Vector3.ZERO</code>.</p>
+<h3 id="float-get_joy_axisdevice-int-axis-int-const"><code>float get_joy_axis(device: int, axis: int) const</code></h3>
+<p>Returns the current value of the joypad axis at given index (see <code>@GlobalScope.JoystickList</code>).</p>
+<h3 id="int-get_joy_axis_index_from_stringaxis-string"><code>int get_joy_axis_index_from_string(axis: String)</code></h3>
+<p>Returns the index of the provided axis name.</p>
+<h3 id="string-get_joy_axis_stringaxis_index-int"><code>String get_joy_axis_string(axis_index: int)</code></h3>
+<p>Receives a <code>@GlobalScope.JoystickList</code> axis and returns its equivalent name as a string.</p>
+<h3 id="int-get_joy_button_index_from_stringbutton-string"><code>int get_joy_button_index_from_string(button: String)</code></h3>
+<p>Returns the index of the provided button name.</p>
+<h3 id="string-get_joy_button_stringbutton_index-int"><code>String get_joy_button_string(button_index: int)</code></h3>
+<p>Receives a gamepad button from <code>@GlobalScope.JoystickList</code> and returns its equivalent name as a string.</p>
+<h3 id="string-get_joy_guiddevice-int-const"><code>String get_joy_guid(device: int) const</code></h3>
+<p>Returns a SDL2-compatible device GUID on platforms that use gamepad remapping, e.g. <code>030000004c050000c405000000010000</code>. Returns <code>"Default Gamepad"</code> otherwise. Godot uses the <a href="https://github.com/gabomdq/SDL_GameControllerDB">SDL2 game controller database</a> to determine gamepad names and mappings based on this GUID.</p>
+<h3 id="string-get_joy_namedevice-int"><code>String get_joy_name(device: int)</code></h3>
+<p>Returns the name of the joypad at the specified device index, e.g. <code>PS4 Controller</code>. Godot uses the <a href="https://github.com/gabomdq/SDL_GameControllerDB">SDL2 game controller database</a> to determine gamepad names.</p>
+<h3 id="float-get_joy_vibration_durationdevice-int"><code>float get_joy_vibration_duration(device: int)</code></h3>
+<p>Returns the duration of the current vibration effect in seconds.</p>
+<h3 id="vector2-get_joy_vibration_strengthdevice-int"><code>Vector2 get_joy_vibration_strength(device: int)</code></h3>
+<p>Returns the strength of the joypad vibration: x is the strength of the weak motor, and y is the strength of the strong motor.</p>
+<h3 id="vector2-get_last_mouse_speed"><code>Vector2 get_last_mouse_speed()</code></h3>
+<p>Returns the last mouse speed. To provide a precise and jitter-free speed, mouse speed is only calculated every 0.1s. Therefore, mouse speed will lag mouse movements.</p>
+<h3 id="vector3-get_magnetometer-const"><code>Vector3 get_magnetometer() const</code></h3>
+<p>Returns the magnetic field strength in micro-Tesla for all axes of the device's magnetometer sensor, if the device has one. Otherwise, the method returns <code>Vector3.ZERO</code>.</p>
+<p><strong>Note:</strong> This method only works on Android, iOS and UWP. On other platforms, it always returns <code>Vector3.ZERO</code>.</p>
+<h3 id="int-get_mouse_button_mask-const"><code>int get_mouse_button_mask() const</code></h3>
+<p>Returns mouse buttons as a bitmask. If multiple mouse buttons are pressed at the same time, the bits are added together.</p>
+<h3 id="vector2-get_vectornegative_x-string-positive_x-string-negative_y-string-positive_y-string-deadzone-10-float-const"><code>Vector2 get_vector(negative_x: String, positive_x: String, negative_y: String, positive_y: String, deadzone=-1.0: float) const</code></h3>
+<p>Gets an input vector by specifying four actions for the positive and negative X and Y axes.</p>
+<p>This method is useful when getting vector input, such as from a joystick, directional pad, arrows, or WASD. The vector has its length limited to 1 and has a circular deadzone, which is useful for using vector input as movement.</p>
+<p>By default, the deadzone is automatically calculated from the average of the action deadzones. However, you can override the deadzone to be whatever you want (on the range of 0 to 1).</p>
+<h3 id="bool-is_action_just_pressedaction-string-exactfalse-bool-const"><code>bool is_action_just_pressed(action: String, exact=false: bool) const</code></h3>
+<p>Returns <code>true</code> when the user has <em>started</em> pressing the action event in the current frame or physics tick. It will only return <code>true</code> on the frame or tick that the user pressed down the button.</p>
+<p>This is useful for code that needs to run only once when an action is pressed, instead of every frame while it's pressed.</p>
+<p>If <code>exact</code> is <code>false</code>, it ignores additional input modifiers for <a href="InputEventKey.html">InputEventKey</a> and <a href="InputEventMouseButton.html">InputEventMouseButton</a> events, and the direction for <a href="InputEventJoypadMotion.html">InputEventJoypadMotion</a> events.</p>
+<p><strong>Note:</strong> Returning <code>true</code> does not imply that the action is <em>still</em> pressed. An action can be pressed and released again rapidly, and <code>true</code> will still be returned so as not to miss input.</p>
+<p><strong>Note:</strong> Due to keyboard ghosting, <code>is_action_just_pressed</code> may return <code>false</code> even if one of the action's keys is pressed. See <code>Input examples &lt;../tutorials/inputs/input_examples.html#keyboard-events&gt;</code>__ in the documentation for more information.</p>
+<h3 id="bool-is_action_just_releasedaction-string-exactfalse-bool-const"><code>bool is_action_just_released(action: String, exact=false: bool) const</code></h3>
+<p>Returns <code>true</code> when the user <em>stops</em> pressing the action event in the current frame or physics tick. It will only return <code>true</code> on the frame or tick that the user releases the button.</p>
+<p>If <code>exact</code> is <code>false</code>, it ignores additional input modifiers for <a href="InputEventKey.html">InputEventKey</a> and <a href="InputEventMouseButton.html">InputEventMouseButton</a> events, and the direction for <a href="InputEventJoypadMotion.html">InputEventJoypadMotion</a> events.</p>
+<p><strong>Note:</strong> Returning <code>true</code> does not imply that the action is <em>still</em> not pressed. An action can be released and pressed again rapidly, and <code>true</code> will still be returned so as not to miss input.</p>
+<h3 id="bool-is_action_pressedaction-string-exactfalse-bool-const"><code>bool is_action_pressed(action: String, exact=false: bool) const</code></h3>
+<p>Returns <code>true</code> if you are pressing the action event. Note that if an action has multiple buttons assigned and more than one of them is pressed, releasing one button will release the action, even if some other button assigned to this action is still pressed.</p>
+<p>If <code>exact</code> is <code>false</code>, it ignores additional input modifiers for <a href="InputEventKey.html">InputEventKey</a> and <a href="InputEventMouseButton.html">InputEventMouseButton</a> events, and the direction for <a href="InputEventJoypadMotion.html">InputEventJoypadMotion</a> events.</p>
+<p><strong>Note:</strong> Due to keyboard ghosting, <code>is_action_pressed</code> may return <code>false</code> even if one of the action's keys is pressed. See <code>Input examples &lt;../tutorials/inputs/input_examples.html#keyboard-events&gt;</code>__ in the documentation for more information.</p>
+<h3 id="bool-is_joy_button_presseddevice-int-button-int-const"><code>bool is_joy_button_pressed(device: int, button: int) const</code></h3>
+<p>Returns <code>true</code> if you are pressing the joypad button (see <code>@GlobalScope.JoystickList</code>).</p>
+<h3 id="bool-is_joy_knowndevice-int"><code>bool is_joy_known(device: int)</code></h3>
+<p>Returns <code>true</code> if the system knows the specified device. This means that it sets all button and axis indices exactly as defined in <code>@GlobalScope.JoystickList</code>. Unknown joypads are not expected to match these constants, but you can still retrieve events from them.</p>
+<h3 id="bool-is_key_pressedscancode-int-const"><code>bool is_key_pressed(scancode: int) const</code></h3>
+<p>Returns <code>true</code> if you are pressing the key in the current keyboard layout. You can pass a <code>@GlobalScope.KeyList</code> constant.</p>
+<p><code>is_key_pressed</code> is only recommended over <code>is_physical_key_pressed</code> in non-game applications. This ensures that shortcut keys behave as expected depending on the user's keyboard layout, as keyboard shortcuts are generally dependent on the keyboard layout in non-game applications. If in doubt, use <code>is_physical_key_pressed</code>.</p>
+<p><strong>Note:</strong> Due to keyboard ghosting, <code>is_key_pressed</code> may return <code>false</code> even if one of the action's keys is pressed. See <code>Input examples &lt;../tutorials/inputs/input_examples.html#keyboard-events&gt;</code>__ in the documentation for more information.</p>
+<h3 id="bool-is_mouse_button_pressedbutton-int-const"><code>bool is_mouse_button_pressed(button: int) const</code></h3>
+<p>Returns <code>true</code> if you are pressing the mouse button specified with <code>@GlobalScope.ButtonList</code>.</p>
+<h3 id="bool-is_physical_key_pressedscancode-int-const"><code>bool is_physical_key_pressed(scancode: int) const</code></h3>
+<p>Returns <code>true</code> if you are pressing the key in the physical location on the 101/102-key US QWERTY keyboard. You can pass a <code>@GlobalScope.KeyList</code> constant.</p>
+<p><code>is_physical_key_pressed</code> is recommended over <code>is_key_pressed</code> for in-game actions, as it will make W/A/S/D layouts work regardless of the user's keyboard layout. <code>is_physical_key_pressed</code> will also ensure that the top row number keys work on any keyboard layout. If in doubt, use <code>is_physical_key_pressed</code>.</p>
+<p><strong>Note:</strong> Due to keyboard ghosting, <code>is_physical_key_pressed</code> may return <code>false</code> even if one of the action's keys is pressed. See <code>Input examples &lt;../tutorials/inputs/input_examples.html#keyboard-events&gt;</code>__ in the documentation for more information.</p>
+<h3 id="void-joy_connection_changeddevice-int-connected-bool-name-string-guid-string"><code>void joy_connection_changed(device: int, connected: bool, name: String, guid: String)</code></h3>
+<p>Notifies the <strong>Input</strong> singleton that a connection has changed, to update the state for the <code>device</code> index.</p>
+<p>This is used internally and should not have to be called from user scripts. See <code>joy_connection_changed</code> for the signal emitted when this is triggered internally.</p>
+<h3 id="void-parse_input_eventevent-inputevent"><code>void parse_input_event(event: InputEvent)</code></h3>
+<p>Feeds an <a href="InputEvent.html">InputEvent</a> to the game. Can be used to artificially trigger input events from code. Also generates <code>Node._input</code> calls.</p>
+<p>Example:</p>
+<pre class="gdscript"><code>var a = InputEventAction.new()
+a.action = &quot;ui_cancel&quot;
+a.pressed = true
+Input.parse_input_event(a)</code></pre>
+<h3 id="void-remove_joy_mappingguid-string"><code>void remove_joy_mapping(guid: String)</code></h3>
+<p>Removes all mappings from the internal database that match the given GUID.</p>
+<h3 id="void-set_accelerometervalue-vector3"><code>void set_accelerometer(value: Vector3)</code></h3>
+<p>Sets the acceleration value of the accelerometer sensor. Can be used for debugging on devices without a hardware sensor, for example in an editor on a PC.</p>
+<p><strong>Note:</strong> This value can be immediately overwritten by the hardware sensor value on Android and iOS.</p>
+<h3 id="void-set_custom_mouse_cursorimage-resource-shape0-cursorshape--vector2-hotspotvector2-0-0"><code>void set_custom_mouse_cursor(image: Resource, shape=0: </code>CursorShape<code>, ): Vector2 hotspot=Vector2( 0, 0)</code></h3>
+<p>Sets a custom mouse cursor image, which is only visible inside the game window. The hotspot can also be specified. Passing <code>null</code> to the image parameter resets to the system cursor. See <code>CursorShape</code> for the list of shapes.</p>
+<p><code>image</code>'s size must be lower than or equal to 256×256. To avoid rendering issues, sizes lower than or equal to 128×128 are recommended.</p>
+<p><code>hotspot</code> must be within <code>image</code>'s size.</p>
+<p><strong>Note:</strong> <a href="AnimatedTexture.html">AnimatedTexture</a> s aren't supported as custom mouse cursors. If using an <a href="AnimatedTexture.html">AnimatedTexture</a>, only the first frame will be displayed.</p>
+<p><strong>Note:</strong> Only images imported with the <strong>Lossless</strong>, <strong>Lossy</strong> or <strong>Uncompressed</strong> compression modes are supported. The <strong>Video RAM</strong> compression mode can't be used for custom cursors.</p>
+<p><strong>Note:</strong> On the web platform, the maximum allowed cursor image size is 128×128. Cursor images larger than 32×32 will also only be displayed if the mouse cursor image is entirely located within the page for <a href="https://chromestatus.com/feature/5825971391299584">security reasons</a>.</p>
+<h3 id="void-set_default_cursor_shapeshape0-cursorshape"><code>void set_default_cursor_shape(shape=0: </code>CursorShape<code>)</code></h3>
+<p>Sets the default cursor shape to be used in the viewport instead of <code>CURSOR_ARROW</code>.</p>
+<p><strong>Note:</strong> If you want to change the default cursor shape for <a href="Control.html">Control</a>'s nodes, use <code>Control.mouse_default_cursor_shape</code> instead.</p>
+<p><strong>Note:</strong> This method generates an <a href="InputEventMouseMotion.html">InputEventMouseMotion</a> to update cursor immediately.</p>
+<h3 id="void-set_gravityvalue-vector3"><code>void set_gravity(value: Vector3)</code></h3>
+<p>Sets the gravity value of the accelerometer sensor. Can be used for debugging on devices without a hardware sensor, for example in an editor on a PC.</p>
+<p><strong>Note:</strong> This value can be immediately overwritten by the hardware sensor value on Android and iOS.</p>
+<h3 id="void-set_gyroscopevalue-vector3"><code>void set_gyroscope(value: Vector3)</code></h3>
+<p>Sets the value of the rotation rate of the gyroscope sensor. Can be used for debugging on devices without a hardware sensor, for example in an editor on a PC.</p>
+<p><strong>Note:</strong> This value can be immediately overwritten by the hardware sensor value on Android and iOS.</p>
+<h3 id="void-set_magnetometervalue-vector3"><code>void set_magnetometer(value: Vector3)</code></h3>
+<p>Sets the value of the magnetic field of the magnetometer sensor. Can be used for debugging on devices without a hardware sensor, for example in an editor on a PC.</p>
+<p><strong>Note:</strong> This value can be immediately overwritten by the hardware sensor value on Android and iOS.</p>
+<h3 id="bool-should_ignore_devicevendor_id-int-product_id-int-const"><code>bool should_ignore_device(vendor_id: int, product_id: int) const</code></h3>
+<p>Queries whether an input device should be ignored or not. Devices can be ignored by setting the environment variable <code>SDL_GAMECONTROLLER_IGNORE_DEVICES</code>. Read the <a href="https://wiki.libsdl.org/SDL2">SDL documentation</a> for more information.</p>
+<p><strong>Note:</strong> Some 3rd party tools can contribute to the list of ignored devices. For example, <em>SteamInput</em> creates virtual devices from physical devices for remapping purposes. To avoid handling the same input device twice, the original device is added to the ignore list.</p>
+<h3 id="void-start_joy_vibrationdevice-int-weak_magnitude-float-strong_magnitude-float-duration0-float"><code>void start_joy_vibration(device: int, weak_magnitude: float, strong_magnitude: float, duration=0: float)</code></h3>
+<p>Starts to vibrate the joypad. Joypads usually come with two rumble motors, a strong and a weak one. <code>weak_magnitude</code> is the strength of the weak motor (between 0 and 1) and <code>strong_magnitude</code> is the strength of the strong motor (between 0 and 1). <code>duration</code> is the duration of the effect in seconds (a duration of 0 will try to play the vibration indefinitely). The vibration can be stopped early by calling <code>stop_joy_vibration</code>.</p>
+<p><strong>Note:</strong> Not every hardware is compatible with long effect durations; it is recommended to restart an effect if it has to be played for more than a few seconds.</p>
+<h3 id="void-stop_joy_vibrationdevice-int"><code>void stop_joy_vibration(device: int)</code></h3>
+<p>Stops the vibration of the joypad started with <code>start_joy_vibration</code>.</p>
+<h3 id="void-vibrate_handheldduration_ms500-int"><code>void vibrate_handheld(duration_ms=500: int)</code></h3>
+<p>Vibrate the handheld device for the specified duration in milliseconds.</p>
+<p><strong>Note:</strong> This method is implemented on Android, iOS, and HTML5. It has no effect on other platforms.</p>
+<p><strong>Note:</strong> For Android, <code>vibrate_handheld</code> requires enabling the <code>VIBRATE</code> permission in the export preset. Otherwise, <code>vibrate_handheld</code> will have no effect.</p>
+<p><strong>Note:</strong> For iOS, specifying the duration is only supported in iOS 13 and later.</p>
+<p><strong>Note:</strong> Some web browsers such as Safari and Firefox for Android do not support <code>vibrate_handheld</code>.</p>
+<h3 id="void-warp_mouse_positionto-vector2"><code>void warp_mouse_position(to: Vector2)</code></h3>
+<p>Sets the mouse position to the specified vector, provided in pixels and relative to an origin at the upper left corner of the game window.</p>
+<p>Mouse position is clipped to the limits of the screen resolution, or to the limits of the game window if <code>MouseMode</code> is set to <code>MOUSE_MODE_CONFINED</code>.</p>
+<h2 id="signals">Signals</h2>
+<h3 id="joy_connection_changeddevice-int-connected-bool"><code>joy_connection_changed(device: int, connected: bool)</code></h3>
+<p>Emitted when a joypad device has been connected or disconnected.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-mousemode"><code>enum MouseMode</code></h3>
+<ul>
+<li><p><code>MOUSE_MODE_VISIBLE = 0</code></p>
+<p>Makes the mouse cursor visible if it is hidden.</p></li>
+<li><p><code>MOUSE_MODE_HIDDEN = 1</code></p>
+<p>Makes the mouse cursor hidden if it is visible.</p></li>
+<li><p><code>MOUSE_MODE_CAPTURED = 2</code></p>
+<p>Captures the mouse. The mouse will be hidden and its position locked at the center of the screen.</p>
+<p><strong>Note:</strong> If you want to process the mouse's movement in this mode, you need to use <code>InputEventMouseMotion.relative</code>.</p></li>
+<li><p><code>MOUSE_MODE_CONFINED = 3</code></p>
+<p>Confines the mouse cursor to the game window, and make it visible.</p></li>
+<li><p><code>MOUSE_MODE_CONFINED_HIDDEN = 4</code></p>
+<p>Confines the mouse cursor to the game window, and make it hidden.</p></li>
+</ul>
+<h3 id="enum-cursorshape"><code>enum CursorShape</code></h3>
+<ul>
+<li><p><code>CURSOR_ARROW = 0</code></p>
+<p>Arrow cursor. Standard, default pointing cursor.</p></li>
+<li><p><code>CURSOR_IBEAM = 1</code></p>
+<p>I-beam cursor. Usually used to show where the text cursor will appear when the mouse is clicked.</p></li>
+<li><p><code>CURSOR_POINTING_HAND = 2</code></p>
+<p>Pointing hand cursor. Usually used to indicate the pointer is over a link or other interactable item.</p></li>
+<li><p><code>CURSOR_CROSS = 3</code></p>
+<p>Cross cursor. Typically appears over regions in which a drawing operation can be performed or for selections.</p></li>
+<li><p><code>CURSOR_WAIT = 4</code></p>
+<p>Wait cursor. Indicates that the application is busy performing an operation. This cursor shape denotes that the application isn't usable during the operation (e.g. something is blocking its main thread).</p></li>
+<li><p><code>CURSOR_BUSY = 5</code></p>
+<p>Busy cursor. Indicates that the application is busy performing an operation. This cursor shape denotes that the application is still usable during the operation.</p></li>
+<li><p><code>CURSOR_DRAG = 6</code></p>
+<p>Drag cursor. Usually displayed when dragging something.</p></li>
+<li><p><code>CURSOR_CAN_DROP = 7</code></p>
+<p>Can drop cursor. Usually displayed when dragging something to indicate that it can be dropped at the current position.</p></li>
+<li><p><code>CURSOR_FORBIDDEN = 8</code></p>
+<p>Forbidden cursor. Indicates that the current action is forbidden (for example, when dragging something) or that the control at a position is disabled.</p></li>
+<li><p><code>CURSOR_VSIZE = 9</code></p>
+<p>Vertical resize mouse cursor. A double-headed vertical arrow. It tells the user they can resize the window or the panel vertically.</p></li>
+<li><p><code>CURSOR_HSIZE = 10</code></p>
+<p>Horizontal resize mouse cursor. A double-headed horizontal arrow. It tells the user they can resize the window or the panel horizontally.</p></li>
+<li><p><code>CURSOR_BDIAGSIZE = 11</code></p>
+<p>Window resize mouse cursor. The cursor is a double-headed arrow that goes from the bottom left to the top right. It tells the user they can resize the window or the panel both horizontally and vertically.</p></li>
+<li><p><code>CURSOR_FDIAGSIZE = 12</code></p>
+<p>Window resize mouse cursor. The cursor is a double-headed arrow that goes from the top left to the bottom right, the opposite of <code>CURSOR_BDIAGSIZE</code>. It tells the user they can resize the window or the panel both horizontally and vertically.</p></li>
+<li><p><code>CURSOR_MOVE = 13</code></p>
+<p>Move cursor. Indicates that something can be moved.</p></li>
+<li><p><code>CURSOR_VSPLIT = 14</code></p>
+<p>Vertical split mouse cursor. On Windows, it's the same as <code>CURSOR_VSIZE</code>.</p></li>
+<li><p><code>CURSOR_HSPLIT = 15</code></p>
+<p>Horizontal split mouse cursor. On Windows, it's the same as <code>CURSOR_HSIZE</code>.</p></li>
+<li><p><code>CURSOR_HELP = 16</code></p>
+<p>Help cursor. Usually a question mark.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

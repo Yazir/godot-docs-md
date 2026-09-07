@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Node — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="node">Node</h1>
+<p><em>Inherits: <a href="Object.html">Object</a></em></p>
+<p><em>Implemented by: <a href="AnimationMixer.html">AnimationMixer</a>, <a href="AudioStreamPlayer.html">AudioStreamPlayer</a>, <a href="CanvasItem.html">CanvasItem</a>, <a href="CanvasLayer.html">CanvasLayer</a>, <a href="EditorFileSystem.html">EditorFileSystem</a>, <a href="EditorPlugin.html">EditorPlugin</a>, <a href="EditorResourcePreview.html">EditorResourcePreview</a>, <a href="HTTPRequest.html">HTTPRequest</a>, <a href="InstancePlaceholder.html">InstancePlaceholder</a>, <a href="MissingNode.html">MissingNode</a>, <a href="MultiplayerSpawner.html">MultiplayerSpawner</a>, <a href="MultiplayerSynchronizer.html">MultiplayerSynchronizer</a>, <a href="NavigationAgent2D.html">NavigationAgent2D</a>, <a href="NavigationAgent3D.html">NavigationAgent3D</a>, <a href="Node3D.html">Node3D</a>, <a href="ResourcePreloader.html">ResourcePreloader</a>, <a href="ShaderGlobalsOverride.html">ShaderGlobalsOverride</a>, <a href="StatusIndicator.html">StatusIndicator</a>, <a href="Timer.html">Timer</a>, <a href="Viewport.html">Viewport</a>, <a href="WorldEnvironment.html">WorldEnvironment</a></em></p>
+<p>Base class for all scene objects.</p>
+<h2 id="description">Description</h2>
+<p>Nodes are Godot's building blocks. They can be assigned as the child of another node, resulting in a tree arrangement. A given node can contain any number of nodes as children with the requirement that all siblings (direct children of a node) should have unique names.</p>
+<p>A tree of nodes is called a <em>scene</em>. Scenes can be saved to the disk and then instantiated into other scenes. This allows for very high flexibility in the architecture and data model of Godot projects.</p>
+<p><strong>Scene tree:</strong> The <a href="SceneTree.html">SceneTree</a> contains the active tree of nodes. When a node is added to the scene tree, it receives the <code>NOTIFICATION_ENTER_TREE</code> notification and its <code>_enter_tree()</code> callback is triggered. Child nodes are always added <em>after</em> their parent node, i.e. the <code>_enter_tree()</code> callback of a parent node will be triggered before its child's.</p>
+<p>Once all nodes have been added in the scene tree, they receive the <code>NOTIFICATION_READY</code> notification and their respective <code>_ready()</code> callbacks are triggered. For groups of nodes, the <code>_ready()</code> callback is called in reverse order, starting with the children and moving up to the parent nodes.</p>
+<p>This means that when adding a node to the scene tree, the following order will be used for the callbacks: <code>_enter_tree()</code> of the parent, <code>_enter_tree()</code> of the children, <code>_ready()</code> of the children and finally <code>_ready()</code> of the parent (recursively for the entire scene tree).</p>
+<p><strong>Processing:</strong> Nodes can override the "process" state, so that they receive a callback on each frame requesting them to process (do something). Normal processing (callback <code>_process()</code>, toggled with <code>set_process()</code>) happens as fast as possible and is dependent on the frame rate, so the processing time <em>delta</em> (in seconds) is passed as an argument. Physics processing (callback <code>_physics_process()</code>, toggled with <code>set_physics_process()</code>) happens a fixed number of times per second (60 by default) and is useful for code related to the physics engine.</p>
+<p>Nodes can also process input events. When present, the <code>_input()</code> function will be called for each input that the program receives. In many cases, this can be overkill (unless used for simple projects), and the <code>_unhandled_input()</code> function might be preferred; it is called when the input event was not handled by anyone else (typically, GUI <a href="Control.html">Control</a> nodes), ensuring that the node only receives the events that were meant for it.</p>
+<p>To keep track of the scene hierarchy (especially when instantiating scenes into other scenes), an "owner" can be set for the node with the <code>owner</code> property. This keeps track of who instantiated what. This is mostly useful when writing editors and tools, though.</p>
+<p>Finally, when a node is freed with <code>Object.free()</code> or <code>queue_free()</code>, it will also free all its children.</p>
+<p><strong>Groups:</strong> Nodes can be added to as many groups as you want to be easy to manage, you could create groups like "enemies" or "collectables" for example, depending on your game. See <code>add_to_group()</code>, <code>is_in_group()</code> and <code>remove_from_group()</code>. You can then retrieve all nodes in these groups, iterate them and even call methods on groups via the methods on <a href="SceneTree.html">SceneTree</a>.</p>
+<p><strong>Networking with nodes:</strong> After connecting to a server (or making one, see <a href="ENetMultiplayerPeer.html">ENetMultiplayerPeer</a>), it is possible to use the built-in RPC (remote procedure call) system to communicate over the network. By calling <code>rpc()</code> with a method name, it will be called locally and in all connected peers (peers = clients and the server that accepts connections). To identify which node receives the RPC call, Godot will use its <a href="NodePath.html">NodePath</a> (make sure node names are the same on all peers). Also, take a look at the high-level networking tutorial and corresponding demos.</p>
+<p><strong>Note:</strong> The <code>script</code> property is part of the <a href="Object.html">Object</a> class, not <strong>Node</strong>. It isn't exposed like most properties but does have a setter and getter (see <code>Object.set_script()</code> and <code>Object.get_script()</code>).</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/getting_started/step_by_step/nodes_and_scenes.html">Nodes and scenes</a></li>
+<li><a href="https://github.com/godotengine/godot-demo-projects/">All Demos</a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="autotranslatemode-auto_translate_mode--0">``AutoTranslateMode<code> auto_translate_mode = 0</code></h3>
+<ul>
+<li>Setter: <code>set_auto_translate_mode(value: </code>AutoTranslateMode<code>)</code></li>
+<li>Getter: <code>get_auto_translate_mode()</code></li>
+</ul>
+<p>Defines if any text should automatically change to its translated version depending on the current locale (for nodes such as <a href="Label.html">Label</a>, <a href="RichTextLabel.html">RichTextLabel</a>, <a href="Window.html">Window</a>, etc.). Also decides if the node's strings should be parsed for translation template generation.</p>
+<p><strong>Note:</strong> For the root node, auto translate mode can also be set via <code>ProjectSettings.internationalization/rendering/root_node_auto_translate</code>.</p>
+<h3 id="string-editor_description--"><code>String editor_description = ""</code></h3>
+<ul>
+<li>Setter: <code>set_editor_description(value: String)</code></li>
+<li>Getter: <code>get_editor_description()</code></li>
+</ul>
+<p>An optional description to the node. It will be displayed as a tooltip when hovering over the node in the editor's Scene dock.</p>
+<h3 id="multiplayerapi-multiplayer"><code>MultiplayerAPI multiplayer</code></h3>
+<ul>
+<li>Getter: <code>get_multiplayer()</code></li>
+</ul>
+<p>The <a href="MultiplayerAPI.html">MultiplayerAPI</a> instance associated with this node. See <code>SceneTree.get_multiplayer()</code>.</p>
+<p><strong>Note:</strong> Renaming the node, or moving it in the tree, will not move the <a href="MultiplayerAPI.html">MultiplayerAPI</a> to the new path, you will have to update this manually.</p>
+<h3 id="stringname-name"><code>StringName name</code></h3>
+<ul>
+<li>Setter: <code>set_name(value: StringName)</code></li>
+<li>Getter: <code>get_name()</code></li>
+</ul>
+<p>The name of the node. This name must be unique among the siblings (other child nodes from the same parent). When set to an existing sibling's name, the node is automatically renamed.</p>
+<p><strong>Note:</strong> When changing the name, the following characters will be replaced with an underscore: (<code>.</code> <code>:</code> <code>@</code> <code>/</code> <code>"</code> <code>%</code>). In particular, the <code>@</code> character is reserved for auto-generated names. See also <code>String.validate_node_name()</code>.</p>
+<h3 id="node-owner"><code>Node owner</code></h3>
+<ul>
+<li>Setter: <code>set_owner(value: Node)</code></li>
+<li>Getter: <code>get_owner()</code></li>
+</ul>
+<p>The owner of this node. The owner must be an ancestor of this node. When packing the owner node in a <a href="PackedScene.html">PackedScene</a>, all the nodes it owns are also saved with it. See also <code>unique_name_in_owner</code>.</p>
+<p><strong>Note:</strong> In the editor, nodes not owned by the scene root are usually not displayed in the Scene dock, and will <strong>not</strong> be saved. To prevent this, remember to set the owner after calling <code>add_child()</code>.</p>
+<p><strong>Note:</strong> The owner needs to be the current scene root. See <code>Instancing scenes &lt;../tutorials/plugins/running_code_in_the_editor.html#instancing-scenes&gt;</code>__ in the documentation for more information.</p>
+<h3 id="physicsinterpolationmode-physics_interpolation_mode--0">``PhysicsInterpolationMode<code> physics_interpolation_mode = 0</code></h3>
+<ul>
+<li>Setter: <code>set_physics_interpolation_mode(value: </code>PhysicsInterpolationMode<code>)</code></li>
+<li>Getter: <code>get_physics_interpolation_mode()</code></li>
+</ul>
+<p>The physics interpolation mode to use for this node. Only effective if <code>ProjectSettings.physics/common/physics_interpolation</code> or <code>SceneTree.physics_interpolation</code> is <code>true</code>.</p>
+<p>By default, nodes inherit the physics interpolation mode from their parent. This property can enable or disable physics interpolation individually for each node, regardless of their parents' physics interpolation mode.</p>
+<p><strong>Note:</strong> Some node types like <a href="VehicleWheel3D.html">VehicleWheel3D</a> have physics interpolation disabled by default, as they rely on their own custom solution.</p>
+<p><strong>Note:</strong> When teleporting a node to a distant position, it's recommended to temporarily disable interpolation with <code>reset_physics_interpolation()</code> <em>after</em> moving the node. This avoids creating a visual streak between the old and new positions.</p>
+<h3 id="processmode-process_mode--0">``ProcessMode<code> process_mode = 0</code></h3>
+<ul>
+<li>Setter: <code>set_process_mode(value: </code>ProcessMode<code>)</code></li>
+<li>Getter: <code>get_process_mode()</code></li>
+</ul>
+<p>The node's processing behavior. To check if the node can process in its current mode, use <code>can_process()</code>.</p>
+<h3 id="int-process_physics_priority--0"><code>int process_physics_priority = 0</code></h3>
+<ul>
+<li>Setter: <code>set_physics_process_priority(value: int)</code></li>
+<li>Getter: <code>get_physics_process_priority()</code></li>
+</ul>
+<p>Similar to <code>process_priority</code> but for <code>NOTIFICATION_PHYSICS_PROCESS</code>, <code>_physics_process()</code>, or <code>NOTIFICATION_INTERNAL_PHYSICS_PROCESS</code>.</p>
+<h3 id="int-process_priority--0"><code>int process_priority = 0</code></h3>
+<ul>
+<li>Setter: <code>set_process_priority(value: int)</code></li>
+<li>Getter: <code>get_process_priority()</code></li>
+</ul>
+<p>The node's execution order of the process callbacks (<code>_process()</code>, <code>NOTIFICATION_PROCESS</code>, and <code>NOTIFICATION_INTERNAL_PROCESS</code>). Nodes whose priority value is <em>lower</em> call their process callbacks first, regardless of tree order.</p>
+<h3 id="processthreadgroup-process_thread_group--0">``ProcessThreadGroup<code> process_thread_group = 0</code></h3>
+<ul>
+<li>Setter: <code>set_process_thread_group(value: </code>ProcessThreadGroup<code>)</code></li>
+<li>Getter: <code>get_process_thread_group()</code></li>
+</ul>
+<p>Set the process thread group for this node (basically, whether it receives <code>NOTIFICATION_PROCESS</code>, <code>NOTIFICATION_PHYSICS_PROCESS</code>, <code>_process()</code> or <code>_physics_process()</code> (and the internal versions) on the main thread or in a sub-thread.</p>
+<p>By default, the thread group is <code>PROCESS_THREAD_GROUP_INHERIT</code>, which means that this node belongs to the same thread group as the parent node. The thread groups means that nodes in a specific thread group will process together, separate to other thread groups (depending on <code>process_thread_group_order</code>). If the value is set is <code>PROCESS_THREAD_GROUP_SUB_THREAD</code>, this thread group will occur on a sub thread (not the main thread), otherwise if set to <code>PROCESS_THREAD_GROUP_MAIN_THREAD</code> it will process on the main thread. If there is not a parent or grandparent node set to something other than inherit, the node will belong to the <em>default thread group</em>. This default group will process on the main thread and its group order is 0.</p>
+<p>During processing in a sub-thread, accessing most functions in nodes outside the thread group is forbidden (and it will result in an error in debug mode). Use <code>Object.call_deferred()</code>, <code>call_thread_safe()</code>, <code>call_deferred_thread_group()</code> and the likes in order to communicate from the thread groups to the main thread (or to other thread groups).</p>
+<p>To better understand process thread groups, the idea is that any node set to any other value than <code>PROCESS_THREAD_GROUP_INHERIT</code> will include any child (and grandchild) nodes set to inherit into its process thread group. This means that the processing of all the nodes in the group will happen together, at the same time as the node including them.</p>
+<h3 id="int-process_thread_group_order"><code>int process_thread_group_order</code></h3>
+<ul>
+<li>Setter: <code>set_process_thread_group_order(value: int)</code></li>
+<li>Getter: <code>get_process_thread_group_order()</code></li>
+</ul>
+<p>Change the process thread group order. Groups with a lesser order will process before groups with a greater order. This is useful when a large amount of nodes process in sub thread and, afterwards, another group wants to collect their result in the main thread, as an example.</p>
+<h3 id="bitfieldprocessthreadmessages-process_thread_messages"><code>BitField\[</code>ProcessThreadMessages<code>\] process_thread_messages</code></h3>
+<ul>
+<li>Setter: <code>set_process_thread_messages(value: BitField\[</code>ProcessThreadMessages<code>\])</code></li>
+<li>Getter: <code>get_process_thread_messages()</code></li>
+</ul>
+<p>Set whether the current thread group will process messages (calls to <code>call_deferred_thread_group()</code> on threads), and whether it wants to receive them during regular process or physics process callbacks.</p>
+<h3 id="string-scene_file_path"><code>String scene_file_path</code></h3>
+<ul>
+<li>Setter: <code>set_scene_file_path(value: String)</code></li>
+<li>Getter: <code>get_scene_file_path()</code></li>
+</ul>
+<p>The original scene's file path, if the node has been instantiated from a <a href="PackedScene.html">PackedScene</a> file. Only scene root nodes contains this.</p>
+<h3 id="bool-unique_name_in_owner--false"><code>bool unique_name_in_owner = false</code></h3>
+<ul>
+<li>Setter: <code>set_unique_name_in_owner(value: bool)</code></li>
+<li>Getter: <code>is_unique_name_in_owner()</code></li>
+</ul>
+<p>If <code>true</code>, the node can be accessed from any node sharing the same <code>owner</code> or from the <code>owner</code> itself, with special <code>%Name</code> syntax in <code>get_node()</code>.</p>
+<p><strong>Note:</strong> If another node with the same <code>owner</code> shares the same <code>name</code> as this node, the other node will no longer be accessible as unique.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-_enter_tree-virtual"><code>void _enter_tree() virtual</code></h3>
+<p>Called when the node enters the <a href="SceneTree.html">SceneTree</a> (e.g. upon instantiating, scene changing, or after calling <code>add_child()</code> in a script). If the node has children, its <code>_enter_tree()</code> callback will be called first, and then that of the children.</p>
+<p>Corresponds to the <code>NOTIFICATION_ENTER_TREE</code> notification in <code>Object._notification()</code>.</p>
+<h3 id="void-_exit_tree-virtual"><code>void _exit_tree() virtual</code></h3>
+<p>Called when the node is about to leave the <a href="SceneTree.html">SceneTree</a> (e.g. upon freeing, scene changing, or after calling <code>remove_child()</code> in a script). If the node has children, its <code>_exit_tree()</code> callback will be called last, after all its children have left the tree.</p>
+<p>Corresponds to the <code>NOTIFICATION_EXIT_TREE</code> notification in <code>Object._notification()</code> and signal <code>tree_exiting</code>. To get notified when the node has already left the active tree, connect to the <code>tree_exited</code>.</p>
+<h3 id="packedstringarray-_get_accessibility_configuration_warnings-virtual-const"><code>PackedStringArray _get_accessibility_configuration_warnings() virtual const</code></h3>
+<p>The elements in the array returned from this method are displayed as warnings in the Scene dock if the script that overrides it is a <code>tool</code> script, and accessibility warnings are enabled in the editor settings.</p>
+<p>Returning an empty array produces no warnings.</p>
+<h3 id="packedstringarray-_get_configuration_warnings-virtual-const"><code>PackedStringArray _get_configuration_warnings() virtual const</code></h3>
+<p>The elements in the array returned from this method are displayed as warnings in the Scene dock if the script that overrides it is a <code>tool</code> script.</p>
+<p>Returning an empty array produces no warnings.</p>
+<p>Call <code>update_configuration_warnings()</code> when the warnings need to be updated for this node.</p>
+<pre class="gdscript"><code>@export var energy = 0:
+    set(value):
+        energy = value
+        update_configuration_warnings()
+
+func _get_configuration_warnings():
+    if energy &lt; 0:
+        return [&quot;Energy must be 0 or greater.&quot;]
+    else:
+        return []</code></pre>
+<h3 id="rid-_get_focused_accessibility_element-virtual-const"><code>RID _get_focused_accessibility_element() virtual const</code></h3>
+<p>Called during accessibility information updates to determine the currently focused sub-element, should return a sub-element RID or the value returned by <code>get_accessibility_element()</code>.</p>
+<h3 id="void-_inputevent-inputevent-virtual"><code>void _input(event: InputEvent) virtual</code></h3>
+<p>Called when there is an input event. The input event propagates up through the node tree until a node consumes it.</p>
+<p>It is only called if input processing is enabled, which is done automatically if this method is overridden, and can be toggled with <code>set_process_input()</code>.</p>
+<p>To consume the input event and stop it propagating further to other nodes, <code>Viewport.set_input_as_handled()</code> can be called.</p>
+<p>For gameplay input, <code>_unhandled_input()</code> and <code>_unhandled_key_input()</code> are usually a better fit as they allow the GUI to intercept the events first.</p>
+<p><strong>Note:</strong> This method is only called if the node is present in the scene tree (i.e. if it's not an orphan).</p>
+<h3 id="void-_physics_processdelta-float-virtual"><code>void _physics_process(delta: float) virtual</code></h3>
+<p>Called once on each physics tick, and allows Nodes to synchronize their logic with physics ticks. <code>delta</code> is the logical time between physics ticks in seconds and is equal to <code>Engine.time_scale</code> / <code>Engine.physics_ticks_per_second</code>.</p>
+<p>It is only called if physics processing is enabled for this Node, which is done automatically if this method is overridden, and can be toggled with <code>set_physics_process()</code>.</p>
+<p>Processing happens in order of <code>process_physics_priority</code>, lower priority values are called first. Nodes with the same priority are processed in tree order, or top to bottom as seen in the editor (also known as pre-order traversal).</p>
+<p>Corresponds to the <code>NOTIFICATION_PHYSICS_PROCESS</code> notification in <code>Object._notification()</code>.</p>
+<p><strong>Note:</strong> This method is only called if the node is present in the scene tree (i.e. if it's not an orphan).</p>
+<p><strong>Note:</strong> Accumulated <code>delta</code> may diverge from real world seconds.</p>
+<h3 id="void-_processdelta-float-virtual"><code>void _process(delta: float) virtual</code></h3>
+<p>Called on each idle frame, prior to rendering, and after physics ticks have been processed. <code>delta</code> is the time between frames in seconds.</p>
+<p>It is only called if processing is enabled for this Node, which is done automatically if this method is overridden, and can be toggled with <code>set_process()</code>.</p>
+<p>Processing happens in order of <code>process_priority</code>, lower priority values are called first. Nodes with the same priority are processed in tree order, or top to bottom as seen in the editor (also known as pre-order traversal).</p>
+<p>Corresponds to the <code>NOTIFICATION_PROCESS</code> notification in <code>Object._notification()</code>.</p>
+<p><strong>Note:</strong> This method is only called if the node is present in the scene tree (i.e. if it's not an orphan).</p>
+<p><strong>Note:</strong> When the engine is struggling and the frame rate is lowered, <code>delta</code> will increase. When <code>delta</code> is increased, it's capped at a maximum of <code>Engine.time_scale</code> * <code>Engine.max_physics_steps_per_frame</code> / <code>Engine.physics_ticks_per_second</code>. As a result, accumulated <code>delta</code> may not represent real world time.</p>
+<p><strong>Note:</strong> When <code>--fixed-fps</code> is enabled or the engine is running in Movie Maker mode (see <a href="MovieWriter.html">MovieWriter</a>), process <code>delta</code> will always be the same for every frame, regardless of how much time the frame took to render.</p>
+<p><strong>Note:</strong> Frame delta may be post-processed by <code>OS.delta_smoothing</code> if this is enabled for the project.</p>
+<h3 id="void-_ready-virtual"><code>void _ready() virtual</code></h3>
+<p>Called when the node is "ready", i.e. when both the node and its children have entered the scene tree. If the node has children, their <code>_ready()</code> callbacks get triggered first, and the parent node will receive the ready notification afterwards.</p>
+<p>Corresponds to the <code>NOTIFICATION_READY</code> notification in <code>Object._notification()</code>. See also the <code>@onready</code> annotation for variables.</p>
+<p>Usually used for initialization. For even earlier initialization, <code>Object._init()</code> may be used. See also <code>_enter_tree()</code>.</p>
+<p><strong>Note:</strong> This method may be called only once for each node. After removing a node from the scene tree and adding it again, <code>_ready()</code> will <strong>not</strong> be called a second time. This can be bypassed by requesting another call with <code>request_ready()</code>, which may be called anywhere before adding the node again.</p>
+<h3 id="void-_shortcut_inputevent-inputevent-virtual"><code>void _shortcut_input(event: InputEvent) virtual</code></h3>
+<p>Called when an <a href="InputEventKey.html">InputEventKey</a>, <a href="InputEventShortcut.html">InputEventShortcut</a>, or <a href="InputEventJoypadButton.html">InputEventJoypadButton</a> hasn't been consumed by <code>_input()</code> or any GUI <a href="Control.html">Control</a> item. It is called before <code>_unhandled_key_input()</code> and <code>_unhandled_input()</code>. The input event propagates up through the node tree until a node consumes it.</p>
+<p>It is only called if shortcut processing is enabled, which is done automatically if this method is overridden, and can be toggled with <code>set_process_shortcut_input()</code>.</p>
+<p>To consume the input event and stop it propagating further to other nodes, <code>Viewport.set_input_as_handled()</code> can be called.</p>
+<p>This method can be used to handle shortcuts. For generic GUI events, use <code>_input()</code> instead. Gameplay events should usually be handled with either <code>_unhandled_input()</code> or <code>_unhandled_key_input()</code>.</p>
+<p><strong>Note:</strong> This method is only called if the node is present in the scene tree (i.e. if it's not orphan).</p>
+<h3 id="void-_unhandled_inputevent-inputevent-virtual"><code>void _unhandled_input(event: InputEvent) virtual</code></h3>
+<p>Called when an <a href="InputEvent.html">InputEvent</a> hasn't been consumed by <code>_input()</code> or any GUI <a href="Control.html">Control</a> item. It is called after <code>_shortcut_input()</code> and after <code>_unhandled_key_input()</code>. The input event propagates up through the node tree until a node consumes it.</p>
+<p>It is only called if unhandled input processing is enabled, which is done automatically if this method is overridden, and can be toggled with <code>set_process_unhandled_input()</code>.</p>
+<p>To consume the input event and stop it propagating further to other nodes, <code>Viewport.set_input_as_handled()</code> can be called.</p>
+<p>For gameplay input, this method is usually a better fit than <code>_input()</code>, as GUI events need a higher priority. For keyboard shortcuts, consider using <code>_shortcut_input()</code> instead, as it is called before this method. Finally, to handle keyboard events, consider using <code>_unhandled_key_input()</code> for performance reasons.</p>
+<p><strong>Note:</strong> This method is only called if the node is present in the scene tree (i.e. if it's not an orphan).</p>
+<h3 id="void-_unhandled_key_inputevent-inputevent-virtual"><code>void _unhandled_key_input(event: InputEvent) virtual</code></h3>
+<p>Called when an <a href="InputEventKey.html">InputEventKey</a> hasn't been consumed by <code>_input()</code> or any GUI <a href="Control.html">Control</a> item. It is called after <code>_shortcut_input()</code> but before <code>_unhandled_input()</code>. The input event propagates up through the node tree until a node consumes it.</p>
+<p>It is only called if unhandled key input processing is enabled, which is done automatically if this method is overridden, and can be toggled with <code>set_process_unhandled_key_input()</code>.</p>
+<p>To consume the input event and stop it propagating further to other nodes, <code>Viewport.set_input_as_handled()</code> can be called.</p>
+<p>This method can be used to handle Unicode character input with :kbd:<code>Alt</code>, :kbd:<code>Alt + Ctrl</code>, and :kbd:<code>Alt + Shift</code> modifiers, after shortcuts were handled.</p>
+<p>For gameplay input, this and <code>_unhandled_input()</code> are usually a better fit than <code>_input()</code>, as GUI events should be handled first. This method also performs better than <code>_unhandled_input()</code>, since unrelated events such as <a href="InputEventMouseMotion.html">InputEventMouseMotion</a> are automatically filtered. For shortcuts, consider using <code>_shortcut_input()</code> instead.</p>
+<p><strong>Note:</strong> This method is only called if the node is present in the scene tree (i.e. if it's not an orphan).</p>
+<h3 id="void-add_childnode-node-force_readable_name-bool--false-internal-internalmode--0"><code>void add_child(node: Node, force_readable_name: bool = false, internal: </code>InternalMode<code> = 0)</code></h3>
+<p>Adds a child <code>node</code>. Nodes can have any number of children, but every child must have a unique name. Child nodes are automatically deleted when the parent node is deleted, so an entire scene can be removed by deleting its topmost node.</p>
+<p>If <code>force_readable_name</code> is <code>true</code>, improves the readability of the added <code>node</code>. If not named, the <code>node</code> is renamed to its type, and if it shares <code>name</code> with a sibling, a number is suffixed more appropriately. This operation is very slow. As such, it is recommended leaving this to <code>false</code>, which assigns a dummy name featuring <code>@</code> in both situations.</p>
+<p>If <code>internal</code> is different than <code>INTERNAL_MODE_DISABLED</code>, the child will be added as internal node. These nodes are ignored by methods like <code>get_children()</code>, unless their parameter <code>include_internal</code> is <code>true</code>. It also prevents these nodes being duplicated with their parent. The intended usage is to hide the internal nodes from the user, so the user won't accidentally delete or modify them. Used by some GUI nodes, e.g. <a href="ColorPicker.html">ColorPicker</a>.</p>
+<p><strong>Note:</strong> If <code>node</code> already has a parent, this method will fail. Use <code>remove_child()</code> first to remove <code>node</code> from its current parent. For example:</p>
+<pre class="gdscript"><code>var child_node = get_child(0)
+if child_node.get_parent():
+    child_node.get_parent().remove_child(child_node)
+add_child(child_node)</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>Node childNode <span class="op">=</span> <span class="fu">GetChild</span><span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>childNode<span class="op">.</span><span class="fu">GetParent</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    childNode<span class="op">.</span><span class="fu">GetParent</span><span class="op">().</span><span class="fu">RemoveChild</span><span class="op">(</span>childNode<span class="op">);</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="fu">AddChild</span><span class="op">(</span>childNode<span class="op">);</span></span></code></pre></div>
+<p>If you need the child node to be added below a specific node in the list of children, use <code>add_sibling()</code> instead of this method.</p>
+<p><strong>Note:</strong> If you want a child to be persisted to a <a href="PackedScene.html">PackedScene</a>, you must set <code>owner</code> in addition to calling <code>add_child()</code>. This is typically relevant for <a href="../manual/tutorials/plugins/running_code_in_the_editor.html">tool scripts</a> and <a href="../manual/tutorials/plugins/editor/index.html">editor plugins</a>. If <code>add_child()</code> is called without setting <code>owner</code>, the newly added <strong>Node</strong> will not be visible in the scene tree, though it will be visible in the 2D/3D view.</p>
+<h3 id="void-add_siblingsibling-node-force_readable_name-bool--false"><code>void add_sibling(sibling: Node, force_readable_name: bool = false)</code></h3>
+<p>Adds a <code>sibling</code> node to this node's parent, and moves the added sibling right below this node.</p>
+<p>If <code>force_readable_name</code> is <code>true</code>, improves the readability of the added <code>sibling</code>. If not named, the <code>sibling</code> is renamed to its type, and if it shares <code>name</code> with a sibling, a number is suffixed more appropriately. This operation is very slow. As such, it is recommended leaving this to <code>false</code>, which assigns a dummy name featuring <code>@</code> in both situations.</p>
+<p>Use <code>add_child()</code> instead of this method if you don't need the child node to be added below a specific node in the list of children.</p>
+<p><strong>Note:</strong> If this node is internal, the added sibling will be internal too (see <code>add_child()</code>'s <code>internal</code> parameter).</p>
+<h3 id="void-add_to_groupgroup-stringname-persistent-bool--false"><code>void add_to_group(group: StringName, persistent: bool = false)</code></h3>
+<p>Adds the node to the <code>group</code>. Groups can be helpful to organize a subset of nodes, for example <code>"enemies"</code> or <code>"collectables"</code>. See notes in the description, and the group methods in <a href="SceneTree.html">SceneTree</a>.</p>
+<p>If <code>persistent</code> is <code>true</code>, the group will be stored when saved inside a <a href="PackedScene.html">PackedScene</a>. All groups created and displayed in the Groups dock are persistent.</p>
+<p><strong>Note:</strong> To improve performance, the order of group names is <em>not</em> guaranteed and may vary between project runs. Therefore, do not rely on the group order.</p>
+<p><strong>Note:</strong> <a href="SceneTree.html">SceneTree</a>'s group methods will <em>not</em> work on this node if not inside the tree (see <code>is_inside_tree()</code>).</p>
+<h3 id="string-atrmessage-string-context-stringname---const"><code>String atr(message: String, context: StringName = "") const</code></h3>
+<p>Translates a <code>message</code>, using the translation catalogs configured in the Project Settings. Further <code>context</code> can be specified to help with the translation. Note that most <a href="Control.html">Control</a> nodes automatically translate their strings, so this method is mostly useful for formatted strings or custom drawn text.</p>
+<p>This method works the same as <code>Object.tr()</code>, with the addition of respecting the <code>auto_translate_mode</code> state.</p>
+<p>If <code>Object.can_translate_messages()</code> is <code>false</code>, or no translation is available, this method returns the <code>message</code> without changes. See <code>Object.set_message_translation()</code>.</p>
+<p>For detailed examples, see <a href="../manual/tutorials/i18n/internationalizing_games.html">Internationalizing games</a>.</p>
+<h3 id="string-atr_nmessage-string-plural_message-stringname-n-int-context-stringname---const"><code>String atr_n(message: String, plural_message: StringName, n: int, context: StringName = "") const</code></h3>
+<p>Translates a <code>message</code> or <code>plural_message</code>, using the translation catalogs configured in the Project Settings. Further <code>context</code> can be specified to help with the translation.</p>
+<p>This method works the same as <code>Object.tr_n()</code>, with the addition of respecting the <code>auto_translate_mode</code> state.</p>
+<p>If <code>Object.can_translate_messages()</code> is <code>false</code>, or no translation is available, this method returns <code>message</code> or <code>plural_message</code>, without changes. See <code>Object.set_message_translation()</code>.</p>
+<p>The <code>n</code> is the number, or amount, of the message's subject. It is used by the translation system to fetch the correct plural form for the current language.</p>
+<p>For detailed examples, see <a href="../manual/tutorials/i18n/localization_using_gettext.html">Localization using gettext</a>.</p>
+<p><strong>Note:</strong> Negative and <a href="float.html">float</a> numbers may not properly apply to some countable subjects. It's recommended to handle these cases with <code>atr()</code>.</p>
+<h3 id="variant-call_deferred_thread_groupmethod-stringname-"><code>Variant call_deferred_thread_group(method: StringName, ...)</code></h3>
+<p>This function is similar to <code>Object.call_deferred()</code> except that the call will take place when the node thread group is processed. If the node thread group processes in sub-threads, then the call will be done on that thread, right before <code>NOTIFICATION_PROCESS</code> or <code>NOTIFICATION_PHYSICS_PROCESS</code>, the <code>_process()</code> or <code>_physics_process()</code> or their internal versions are called.</p>
+<h3 id="variant-call_thread_safemethod-stringname-"><code>Variant call_thread_safe(method: StringName, ...)</code></h3>
+<p>This function ensures that the calling of this function will succeed, no matter whether it's being done from a thread or not. If called from a thread that is not allowed to call the function, the call will become deferred. Otherwise, the call will go through directly.</p>
+<h3 id="bool-can_auto_translate-const"><code>bool can_auto_translate() const</code></h3>
+<p>Returns <code>true</code> if this node can automatically translate messages depending on the current locale. See <code>auto_translate_mode</code>, <code>atr()</code>, and <code>atr_n()</code>.</p>
+<h3 id="bool-can_process-const"><code>bool can_process() const</code></h3>
+<p>Returns <code>true</code> if the node can receive processing notifications and input callbacks (<code>NOTIFICATION_PROCESS</code>, <code>_input()</code>, etc.) from the <a href="SceneTree.html">SceneTree</a> and <a href="Viewport.html">Viewport</a>. The returned value depends on <code>process_mode</code>:</p>
+<ul>
+<li><p>If set to <code>PROCESS_MODE_PAUSABLE</code>, returns <code>true</code> when the game is processing, i.e. <code>SceneTree.paused</code> is <code>false</code>;</p></li>
+<li><p>If set to <code>PROCESS_MODE_WHEN_PAUSED</code>, returns <code>true</code> when the game is paused, i.e. <code>SceneTree.paused</code> is <code>true</code>;</p></li>
+<li><p>If set to <code>PROCESS_MODE_ALWAYS</code>, always returns <code>true</code>;</p></li>
+<li><p>If set to <code>PROCESS_MODE_DISABLED</code>, always returns <code>false</code>;</p></li>
+<li><p>If set to <code>PROCESS_MODE_INHERIT</code>, use the parent node's <code>process_mode</code> to determine the result.</p></li>
+</ul>
+<p>If the node is not inside the tree, returns <code>false</code> no matter the value of <code>process_mode</code>.</p>
+<h3 id="tween-create_tween"><code>Tween create_tween()</code></h3>
+<p>Creates a new <a href="Tween.html">Tween</a> and binds it to this node.</p>
+<p>This is the equivalent of doing:</p>
+<pre class="gdscript"><code>get_tree().create_tween().bind_node(self)</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">GetTree</span><span class="op">().</span><span class="fu">CreateTween</span><span class="op">().</span><span class="fu">BindNode</span><span class="op">(</span><span class="kw">this</span><span class="op">);</span></span></code></pre></div>
+<p>The Tween will start automatically on the next process frame or physics frame (depending on <code>Tween.TweenProcessMode</code>). See <code>Tween.bind_node()</code> for more info on Tweens bound to nodes.</p>
+<p><strong>Note:</strong> The method can still be used when the node is not inside <a href="SceneTree.html">SceneTree</a>. It can fail in an unlikely case of using a custom <a href="MainLoop.html">MainLoop</a>.</p>
+<h3 id="node-duplicateflags-int--15-const"><code>Node duplicate(flags: int = 15) const</code></h3>
+<p>Duplicates the node, returning a new node with all of its properties, signals, groups, and children copied from the original, recursively. The behavior can be tweaked through the <code>flags</code> (see <code>DuplicateFlags</code>). Internal nodes are not duplicated.</p>
+<p><strong>Note:</strong> For nodes with a <a href="Script.html">Script</a> attached, if <code>Object._init()</code> has been defined with required parameters, the duplicated node will not have a <a href="Script.html">Script</a>.</p>
+<p><strong>Note:</strong> By default, this method will duplicate only properties marked for serialization (i.e. using <code>@GlobalScope.PROPERTY_USAGE_STORAGE</code>, or in GDScript, <code>@GDScript.@export</code>). If you want to duplicate all properties, use <code>DUPLICATE_INTERNAL_STATE</code>.</p>
+<h3 id="node-find_childpattern-string-recursive-bool--true-owned-bool--true-const"><code>Node find_child(pattern: String, recursive: bool = true, owned: bool = true) const</code></h3>
+<p>Finds the first descendant of this node whose <code>name</code> matches <code>pattern</code>, returning <code>null</code> if no match is found. The matching is done against node names, <em>not</em> their paths, through <code>String.match()</code>. As such, it is case-sensitive, <code>"*"</code> matches zero or more characters, and <code>"?"</code> matches any single character.</p>
+<p>If <code>recursive</code> is <code>false</code>, only this node's direct children are checked. Nodes are checked in tree order, so this node's first direct child is checked first, then its own direct children, etc., before moving to the second direct child, and so on. Internal children are also included in the search (see <code>internal</code> parameter in <code>add_child()</code>).</p>
+<p>If <code>owned</code> is <code>true</code>, only descendants with a valid <code>owner</code> node are checked.</p>
+<p><strong>Note:</strong> This method can be very slow. Consider storing a reference to the found node in a variable. Alternatively, use <code>get_node()</code> with unique names (see <code>unique_name_in_owner</code>).</p>
+<p><strong>Note:</strong> To find all descendant nodes matching a pattern or a class type, see <code>find_children()</code>.</p>
+<h3 id="arraynode-find_childrenpattern-string-type-string---recursive-bool--true-owned-bool--true-const"><code>Array\[Node\] find_children(pattern: String, type: String = "", recursive: bool = true, owned: bool = true) const</code></h3>
+<p>Finds all descendants of this node whose names match <code>pattern</code>, returning an empty <a href="Array.html">Array</a> if no match is found. The matching is done against node names, <em>not</em> their paths, through <code>String.match()</code>. As such, it is case-sensitive, <code>"*"</code> matches zero or more characters, and <code>"?"</code> matches any single character.</p>
+<p>If <code>type</code> is not empty, only descendants inheriting from <code>type</code> are included (see <code>Object.is_class()</code>).</p>
+<p>If <code>recursive</code> is <code>false</code>, only this node's direct children are checked. Nodes are checked in tree order, so this node's first direct child is checked first, then its own direct children, etc., before moving to the second direct child, and so on. Internal children are also included in the search (see <code>internal</code> parameter in <code>add_child()</code>).</p>
+<p>If <code>owned</code> is <code>true</code>, only descendants with a valid <code>owner</code> node are checked.</p>
+<p><strong>Note:</strong> This method can be very slow. Consider storing references to the found nodes in a variable.</p>
+<p><strong>Note:</strong> To find a single descendant node matching a pattern, see <code>find_child()</code>.</p>
+<h3 id="node-find_parentpattern-string-const"><code>Node find_parent(pattern: String) const</code></h3>
+<p>Finds the first ancestor of this node whose <code>name</code> matches <code>pattern</code>, returning <code>null</code> if no match is found. The matching is done through <code>String.match()</code>. As such, it is case-sensitive, <code>"*"</code> matches zero or more characters, and <code>"?"</code> matches any single character. See also <code>find_child()</code> and <code>find_children()</code>.</p>
+<p><strong>Note:</strong> As this method walks upwards in the scene tree, it can be slow in large, deeply nested nodes. Consider storing a reference to the found node in a variable. Alternatively, use <code>get_node()</code> with unique names (see <code>unique_name_in_owner</code>).</p>
+<h3 id="rid-get_accessibility_element-const"><code>RID get_accessibility_element() const</code></h3>
+<p>Returns main accessibility element RID.</p>
+<p><strong>Note:</strong> This method should be called only during accessibility information updates (<code>NOTIFICATION_ACCESSIBILITY_UPDATE</code>).</p>
+<h3 id="node-get_childidx-int-include_internal-bool--false-const"><code>Node get_child(idx: int, include_internal: bool = false) const</code></h3>
+<p>Fetches a child node by its index. Each child node has an index relative to its siblings (see <code>get_index()</code>). The first child is at index 0. Negative values can also be used to start from the end of the list. This method can be used in combination with <code>get_child_count()</code> to iterate over this node's children. If no child exists at the given index, this method returns <code>null</code> and an error is generated.</p>
+<p>If <code>include_internal</code> is <code>false</code>, internal children are ignored (see <code>add_child()</code>'s <code>internal</code> parameter).</p>
+<pre class="gdscript"><code># Assuming the following are children of this node, in order:
+# First, Middle, Last.
+
+var a = get_child(0).name  # a is &quot;First&quot;
+var b = get_child(1).name  # b is &quot;Middle&quot;
+var b = get_child(2).name  # b is &quot;Last&quot;
+var c = get_child(-1).name # c is &quot;Last&quot;</code></pre>
+<p><strong>Note:</strong> To fetch a node by <a href="NodePath.html">NodePath</a>, use <code>get_node()</code>.</p>
+<h3 id="int-get_child_countinclude_internal-bool--false-const"><code>int get_child_count(include_internal: bool = false) const</code></h3>
+<p>Returns the number of children of this node.</p>
+<p>If <code>include_internal</code> is <code>false</code>, internal children are not counted (see <code>add_child()</code>'s <code>internal</code> parameter).</p>
+<h3 id="arraynode-get_childreninclude_internal-bool--false-const"><code>Array\[Node\] get_children(include_internal: bool = false) const</code></h3>
+<p>Returns all children of this node inside an <a href="Array.html">Array</a>.</p>
+<p>If <code>include_internal</code> is <code>false</code>, excludes internal children from the returned array (see <code>add_child()</code>'s <code>internal</code> parameter).</p>
+<h3 id="arraystringname-get_groups-const"><code>Array\[StringName\] get_groups() const</code></h3>
+<p>Returns an <a href="Array.html">Array</a> of group names that the node has been added to.</p>
+<p><strong>Note:</strong> To improve performance, the order of group names is <em>not</em> guaranteed and may vary between project runs. Therefore, do not rely on the group order.</p>
+<p><strong>Note:</strong> This method may also return some group names starting with an underscore (<code>_</code>). These are internally used by the engine. To avoid conflicts, do not use custom groups starting with underscores. To exclude internal groups, see the following code snippet:</p>
+<pre class="gdscript"><code># Stores the node&#39;s non-internal groups only (as an array of StringNames).
+var non_internal_groups = []
+for group in get_groups():
+    if not str(group).begins_with(&quot;_&quot;):
+        non_internal_groups.push_back(group)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Stores the node&#39;s non-internal groups only (as a List of StringNames).</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>List<span class="op">&lt;</span><span class="dt">string</span><span class="op">&gt;</span> nonInternalGroups <span class="op">=</span> <span class="kw">new</span> List<span class="op">&lt;</span><span class="dt">string</span><span class="op">&gt;();</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">foreach</span> <span class="op">(</span><span class="dt">string</span> group <span class="kw">in</span> <span class="fu">GetGroups</span><span class="op">())</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(!</span>group<span class="op">.</span><span class="fu">BeginsWith</span><span class="op">(</span><span class="st">&quot;_&quot;</span><span class="op">))</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        nonInternalGroups<span class="op">.</span><span class="fu">Add</span><span class="op">(</span>group<span class="op">);</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="int-get_indexinclude_internal-bool--false-const"><code>int get_index(include_internal: bool = false) const</code></h3>
+<p>Returns this node's order among its siblings. The first node's index is <code>0</code>. See also <code>get_child()</code>.</p>
+<p>If <code>include_internal</code> is <code>false</code>, returns the index ignoring internal children. The first, non-internal child will have an index of <code>0</code> (see <code>add_child()</code>'s <code>internal</code> parameter).</p>
+<h3 id="window-get_last_exclusive_window-const"><code>Window get_last_exclusive_window() const</code></h3>
+<p>Returns the <a href="Window.html">Window</a> that contains this node, or the last exclusive child in a chain of windows starting with the one that contains this node.</p>
+<h3 id="int-get_multiplayer_authority-const"><code>int get_multiplayer_authority() const</code></h3>
+<p>Returns the peer ID of the multiplayer authority for this node. See <code>set_multiplayer_authority()</code>.</p>
+<h3 id="node-get_nodepath-nodepath-const"><code>Node get_node(path: NodePath) const</code></h3>
+<p>Fetches a node. The <a href="NodePath.html">NodePath</a> can either be a relative path (from this node), or an absolute path (from the <code>SceneTree.root</code>) to a node. If <code>path</code> does not point to a valid node, generates an error and returns <code>null</code>. Attempts to access methods on the return value will result in an <em>"Attempt to call <method> on a null instance."</em> error.</p>
+<p><strong>Note:</strong> Fetching by absolute path only works when the node is inside the scene tree (see <code>is_inside_tree()</code>).</p>
+<p><strong>Example:</strong> Assume this method is called from the Character node, inside the following tree:</p>
+<pre class="text"><code>┖╴root
+   ┠╴Character (you are here!)
+   ┃  ┠╴Sword
+   ┃  ┖╴Backpack
+   ┃     ┖╴Dagger
+   ┠╴MyGame
+   ┖╴Swamp
+      ┠╴Alligator
+      ┠╴Mosquito
+      ┖╴Goblin</code></pre>
+<p>The following calls will return a valid node:</p>
+<pre class="gdscript"><code>get_node(&quot;Sword&quot;)
+get_node(&quot;Backpack/Dagger&quot;)
+get_node(&quot;../Swamp/Alligator&quot;)
+get_node(&quot;/root/MyGame&quot;)</code></pre>
+<div class="sourceCode" id="cb11"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Sword&quot;</span><span class="op">);</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Backpack/Dagger&quot;</span><span class="op">);</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;../Swamp/Alligator&quot;</span><span class="op">);</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;/root/MyGame&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="array-get_node_and_resourcepath-nodepath"><code>Array get_node_and_resource(path: NodePath)</code></h3>
+<p>Fetches a node and its most nested resource as specified by the <a href="NodePath.html">NodePath</a>'s subname. Returns an <a href="Array.html">Array</a> of size <code>3</code> where:</p>
+<ul>
+<li><p>Element <code>0</code> is the <strong>Node</strong>, or <code>null</code> if not found;</p></li>
+<li><p>Element <code>1</code> is the subname's last nested <a href="Resource.html">Resource</a>, or <code>null</code> if not found;</p></li>
+<li><p>Element <code>2</code> is the remaining <a href="NodePath.html">NodePath</a>, referring to an existing, non-<a href="Resource.html">Resource</a> property (see <code>Object.get_indexed()</code>).</p></li>
+</ul>
+<p><strong>Example:</strong> Assume that the child's <code>Sprite2D.texture</code> has been assigned an <a href="AtlasTexture.html">AtlasTexture</a>:</p>
+<pre class="gdscript"><code>var a = get_node_and_resource(&quot;Area2D/Sprite2D&quot;)
+print(a[0].name) # Prints Sprite2D
+print(a[1])      # Prints &lt;null&gt;
+print(a[2])      # Prints ^&quot;&quot;
+
+var b = get_node_and_resource(&quot;Area2D/Sprite2D:texture:atlas&quot;)
+print(b[0].name)        # Prints Sprite2D
+print(b[1].get_class()) # Prints AtlasTexture
+print(b[2])             # Prints ^&quot;&quot;
+
+var c = get_node_and_resource(&quot;Area2D/Sprite2D:texture:atlas:region&quot;)
+print(c[0].name)        # Prints Sprite2D
+print(c[1].get_class()) # Prints AtlasTexture
+print(c[2])             # Prints ^&quot;:region&quot;</code></pre>
+<div class="sourceCode" id="cb13"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> a <span class="op">=</span> <span class="fu">GetNodeAndResource</span><span class="op">(</span><span class="fu">NodePath</span><span class="op">(</span><span class="st">&quot;Area2D/Sprite2D&quot;</span><span class="op">));</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>a<span class="op">[</span><span class="dv">0</span><span class="op">].</span><span class="fu">Name</span><span class="op">);</span> <span class="co">// Prints Sprite2D</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>a<span class="op">[</span><span class="dv">1</span><span class="op">]);</span>      <span class="co">// Prints &lt;null&gt;</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>a<span class="op">[</span><span class="dv">2</span><span class="op">]);</span>      <span class="co">// Prints ^&quot;</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> b <span class="op">=</span> <span class="fu">GetNodeAndResource</span><span class="op">(</span><span class="fu">NodePath</span><span class="op">(</span><span class="st">&quot;Area2D/Sprite2D:texture:atlas&quot;</span><span class="op">));</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>b<span class="op">[</span><span class="dv">0</span><span class="op">].</span><span class="fu">name</span><span class="op">);</span>        <span class="co">// Prints Sprite2D</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>b<span class="op">[</span><span class="dv">1</span><span class="op">].</span><span class="fu">get_class</span><span class="op">());</span> <span class="co">// Prints AtlasTexture</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>b<span class="op">[</span><span class="dv">2</span><span class="op">]);</span>             <span class="co">// Prints ^&quot;&quot;</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> c <span class="op">=</span> <span class="fu">GetNodeAndResource</span><span class="op">(</span><span class="fu">NodePath</span><span class="op">(</span><span class="st">&quot;Area2D/Sprite2D:texture:atlas:region&quot;</span><span class="op">));</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>c<span class="op">[</span><span class="dv">0</span><span class="op">].</span><span class="fu">name</span><span class="op">);</span>        <span class="co">// Prints Sprite2D</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>c<span class="op">[</span><span class="dv">1</span><span class="op">].</span><span class="fu">get_class</span><span class="op">());</span> <span class="co">// Prints AtlasTexture</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>c<span class="op">[</span><span class="dv">2</span><span class="op">]);</span>             <span class="co">// Prints ^&quot;:region&quot;</span></span></code></pre></div>
+<h3 id="node-get_node_or_nullpath-nodepath-const"><code>Node get_node_or_null(path: NodePath) const</code></h3>
+<p>Fetches a node by <a href="NodePath.html">NodePath</a>. Similar to <code>get_node()</code>, but does not generate an error if <code>path</code> does not point to a valid node.</p>
+<h3 id="variant-get_node_rpc_config-const"><code>Variant get_node_rpc_config() const</code></h3>
+<p>Returns a <a href="Dictionary.html">Dictionary</a> mapping method names to their RPC configuration defined for this node using <code>rpc_config()</code>.</p>
+<p><strong>Note:</strong> This method only returns the RPC configuration assigned via <code>rpc_config()</code>. See <code>Script.get_rpc_config()</code> to retrieve the RPCs defined by the <a href="Script.html">Script</a>.</p>
+<h3 id="arrayint-get_orphan_node_ids-static"><code>Array\[int\] get_orphan_node_ids() static</code></h3>
+<p>Returns object IDs of all orphan nodes (nodes outside the <a href="SceneTree.html">SceneTree</a>). Used for debugging.</p>
+<p><strong>Note:</strong> <code>get_orphan_node_ids()</code> only works in debug builds. When called in a project exported in release mode, <code>get_orphan_node_ids()</code> will return an empty array.</p>
+<h3 id="node-get_parent-const"><code>Node get_parent() const</code></h3>
+<p>Returns this node's parent node, or <code>null</code> if the node doesn't have a parent.</p>
+<h3 id="nodepath-get_path-const"><code>NodePath get_path() const</code></h3>
+<p>Returns the node's absolute path, relative to the <code>SceneTree.root</code>. If the node is not inside the scene tree, this method fails and returns an empty <a href="NodePath.html">NodePath</a>.</p>
+<h3 id="nodepath-get_path_tonode-node-use_unique_path-bool--false-const"><code>NodePath get_path_to(node: Node, use_unique_path: bool = false) const</code></h3>
+<p>Returns the relative <a href="NodePath.html">NodePath</a> from this node to the specified <code>node</code>. Both nodes must be in the same <a href="SceneTree.html">SceneTree</a> or scene hierarchy, otherwise this method fails and returns an empty <a href="NodePath.html">NodePath</a>.</p>
+<p>If <code>use_unique_path</code> is <code>true</code>, returns the shortest path accounting for this node's unique name (see <code>unique_name_in_owner</code>).</p>
+<p><strong>Note:</strong> If you get a relative path which starts from a unique node, the path may be longer than a normal relative path, due to the addition of the unique node's name.</p>
+<h3 id="float-get_physics_process_delta_time-const"><code>float get_physics_process_delta_time() const</code></h3>
+<p>Returns the time elapsed (in seconds) since the last physics callback. This value is identical to <code>_physics_process()</code>'s <code>delta</code> parameter, and is often consistent at run-time, unless <code>Engine.physics_ticks_per_second</code> is changed. See also <code>NOTIFICATION_PHYSICS_PROCESS</code>.</p>
+<p><strong>Note:</strong> The returned value will be larger than expected if running at a framerate lower than <code>Engine.physics_ticks_per_second</code> / <code>Engine.max_physics_steps_per_frame</code> FPS. This is done to avoid "spiral of death" scenarios where performance would plummet due to an ever-increasing number of physics steps per frame. This behavior affects both <code>_process()</code> and <code>_physics_process()</code>. As a result, avoid using <code>delta</code> for time measurements in real-world seconds. Use the <a href="Time.html">Time</a> singleton's methods for this purpose instead, such as <code>Time.get_ticks_usec()</code>.</p>
+<h3 id="float-get_process_delta_time-const"><code>float get_process_delta_time() const</code></h3>
+<p>Returns the time elapsed (in seconds) since the last process callback. This value is identical to <code>_process()</code>'s <code>delta</code> parameter, and may vary from frame to frame. See also <code>NOTIFICATION_PROCESS</code>.</p>
+<p><strong>Note:</strong> The returned value will be larger than expected if running at a framerate lower than <code>Engine.physics_ticks_per_second</code> / <code>Engine.max_physics_steps_per_frame</code> FPS. This is done to avoid "spiral of death" scenarios where performance would plummet due to an ever-increasing number of physics steps per frame. This behavior affects both <code>_process()</code> and <code>_physics_process()</code>. As a result, avoid using <code>delta</code> for time measurements in real-world seconds. Use the <a href="Time.html">Time</a> singleton's methods for this purpose instead, such as <code>Time.get_ticks_usec()</code>.</p>
+<h3 id="bool-get_scene_instance_load_placeholder-const"><code>bool get_scene_instance_load_placeholder() const</code></h3>
+<p>Returns <code>true</code> if this node is an instance load placeholder. See <a href="InstancePlaceholder.html">InstancePlaceholder</a> and <code>set_scene_instance_load_placeholder()</code>.</p>
+<h3 id="scenetree-get_tree-const"><code>SceneTree get_tree() const</code></h3>
+<p>Returns the <a href="SceneTree.html">SceneTree</a> that contains this node. If this node is not inside the tree, generates an error and returns <code>null</code>. See also <code>is_inside_tree()</code>.</p>
+<h3 id="string-get_tree_string"><code>String get_tree_string()</code></h3>
+<p>Returns the tree as a <a href="String.html">String</a>. Used mainly for debugging purposes. This version displays the path relative to the current node, and is good for copy/pasting into the <code>get_node()</code> function. It also can be used in game UI/UX.</p>
+<p>May print, for example:</p>
+<pre class="text"><code>TheGame
+TheGame/Menu
+TheGame/Menu/Label
+TheGame/Menu/Camera2D
+TheGame/SplashScreen
+TheGame/SplashScreen/Camera2D</code></pre>
+<h3 id="string-get_tree_string_pretty"><code>String get_tree_string_pretty()</code></h3>
+<p>Similar to <code>get_tree_string()</code>, this returns the tree as a <a href="String.html">String</a>. This version displays a more graphical representation similar to what is displayed in the Scene Dock. It is useful for inspecting larger trees.</p>
+<p>May print, for example:</p>
+<pre class="text"><code>┖╴TheGame
+   ┠╴Menu
+   ┃  ┠╴Label
+   ┃  ┖╴Camera2D
+   ┖╴SplashScreen
+      ┖╴Camera2D</code></pre>
+<h3 id="viewport-get_viewport-const"><code>Viewport get_viewport() const</code></h3>
+<p>Returns the node's closest <a href="Viewport.html">Viewport</a> ancestor, if the node is inside the tree. Otherwise, returns <code>null</code>.</p>
+<h3 id="window-get_window-const"><code>Window get_window() const</code></h3>
+<p>Returns the <a href="Window.html">Window</a> that contains this node. If the node is in the main window, this is equivalent to getting the root node (<code>get_tree().get_root()</code>).</p>
+<h3 id="bool-has_nodepath-nodepath-const"><code>bool has_node(path: NodePath) const</code></h3>
+<p>Returns <code>true</code> if the <code>path</code> points to a valid node. See also <code>get_node()</code>.</p>
+<h3 id="bool-has_node_and_resourcepath-nodepath-const"><code>bool has_node_and_resource(path: NodePath) const</code></h3>
+<p>Returns <code>true</code> if <code>path</code> points to a valid node and its subnames point to a valid <a href="Resource.html">Resource</a>, e.g. <code>Area2D/CollisionShape2D:shape</code>. Properties that are not <a href="Resource.html">Resource</a> types (such as nodes or other <a href="Variant.html">Variant</a> types) are not considered. See also <code>get_node_and_resource()</code>.</p>
+<h3 id="bool-is_ancestor_ofnode-node-const"><code>bool is_ancestor_of(node: Node) const</code></h3>
+<p>Returns <code>true</code> if the given <code>node</code> is a direct or indirect child of this node.</p>
+<h3 id="bool-is_displayed_folded-const"><code>bool is_displayed_folded() const</code></h3>
+<p>Returns <code>true</code> if the node is folded (collapsed) in the Scene dock. This method is intended to be used in editor plugins and tools. See also <code>set_display_folded()</code>.</p>
+<h3 id="bool-is_editable_instancenode-node-const"><code>bool is_editable_instance(node: Node) const</code></h3>
+<p>Returns <code>true</code> if <code>node</code> has editable children enabled relative to this node. This method is intended to be used in editor plugins and tools. See also <code>set_editable_instance()</code>.</p>
+<h3 id="bool-is_greater_thannode-node-const"><code>bool is_greater_than(node: Node) const</code></h3>
+<p>Returns <code>true</code> if the given <code>node</code> occurs later in the scene hierarchy than this node. A node occurring later is usually processed last.</p>
+<h3 id="bool-is_in_groupgroup-stringname-const"><code>bool is_in_group(group: StringName) const</code></h3>
+<p>Returns <code>true</code> if this node has been added to the given <code>group</code>. See <code>add_to_group()</code> and <code>remove_from_group()</code>. See also notes in the description, and the <a href="SceneTree.html">SceneTree</a>'s group methods.</p>
+<h3 id="bool-is_inside_tree-const"><code>bool is_inside_tree() const</code></h3>
+<p>Returns <code>true</code> if this node is currently inside a <a href="SceneTree.html">SceneTree</a>. See also <code>get_tree()</code>.</p>
+<h3 id="bool-is_multiplayer_authority-const"><code>bool is_multiplayer_authority() const</code></h3>
+<p>Returns <code>true</code> if the local system is the multiplayer authority of this node.</p>
+<h3 id="bool-is_node_ready-const"><code>bool is_node_ready() const</code></h3>
+<p>Returns <code>true</code> if the node is ready, i.e. it's inside scene tree and all its children are initialized.</p>
+<p><code>request_ready()</code> resets it back to <code>false</code>.</p>
+<h3 id="bool-is_part_of_edited_scene-const"><code>bool is_part_of_edited_scene() const</code></h3>
+<p>Returns <code>true</code> if the node is part of the scene currently opened in the editor.</p>
+<h3 id="bool-is_physics_interpolated-const"><code>bool is_physics_interpolated() const</code></h3>
+<p>Returns <code>true</code> if physics interpolation is enabled for this node (see <code>physics_interpolation_mode</code>).</p>
+<p><strong>Note:</strong> Interpolation will only be active if both the flag is set <strong>and</strong> physics interpolation is enabled within the <a href="SceneTree.html">SceneTree</a>. This can be tested using <code>is_physics_interpolated_and_enabled()</code>.</p>
+<h3 id="bool-is_physics_interpolated_and_enabled-const"><code>bool is_physics_interpolated_and_enabled() const</code></h3>
+<p>Returns <code>true</code> if physics interpolation is enabled (see <code>physics_interpolation_mode</code>) <strong>and</strong> enabled in the <a href="SceneTree.html">SceneTree</a>.</p>
+<p>This is a convenience version of <code>is_physics_interpolated()</code> that also checks whether physics interpolation is enabled globally.</p>
+<p>See <code>SceneTree.physics_interpolation</code> and <code>ProjectSettings.physics/common/physics_interpolation</code>.</p>
+<h3 id="bool-is_physics_processing-const"><code>bool is_physics_processing() const</code></h3>
+<p>Returns <code>true</code> if physics processing is enabled (see <code>set_physics_process()</code>).</p>
+<h3 id="bool-is_physics_processing_internal-const"><code>bool is_physics_processing_internal() const</code></h3>
+<p>Returns <code>true</code> if internal physics processing is enabled (see <code>set_physics_process_internal()</code>).</p>
+<h3 id="bool-is_processing-const"><code>bool is_processing() const</code></h3>
+<p>Returns <code>true</code> if processing is enabled (see <code>set_process()</code>).</p>
+<h3 id="bool-is_processing_input-const"><code>bool is_processing_input() const</code></h3>
+<p>Returns <code>true</code> if the node is processing input (see <code>set_process_input()</code>).</p>
+<h3 id="bool-is_processing_internal-const"><code>bool is_processing_internal() const</code></h3>
+<p>Returns <code>true</code> if internal processing is enabled (see <code>set_process_internal()</code>).</p>
+<h3 id="bool-is_processing_shortcut_input-const"><code>bool is_processing_shortcut_input() const</code></h3>
+<p>Returns <code>true</code> if the node is processing shortcuts (see <code>set_process_shortcut_input()</code>).</p>
+<h3 id="bool-is_processing_unhandled_input-const"><code>bool is_processing_unhandled_input() const</code></h3>
+<p>Returns <code>true</code> if the node is processing unhandled input (see <code>set_process_unhandled_input()</code>).</p>
+<h3 id="bool-is_processing_unhandled_key_input-const"><code>bool is_processing_unhandled_key_input() const</code></h3>
+<p>Returns <code>true</code> if the node is processing unhandled key input (see <code>set_process_unhandled_key_input()</code>).</p>
+<h3 id="void-move_childchild_node-node-to_index-int"><code>void move_child(child_node: Node, to_index: int)</code></h3>
+<p>Moves <code>child_node</code> to the given index. A node's index is the order among its siblings. If <code>to_index</code> is negative, the index is counted from the end of the list. See also <code>get_child()</code> and <code>get_index()</code>.</p>
+<p><strong>Note:</strong> The processing order of several engine callbacks (<code>_ready()</code>, <code>_process()</code>, etc.) and notifications sent through <code>propagate_notification()</code> is affected by tree order. <a href="CanvasItem.html">CanvasItem</a> nodes are also rendered in tree order. See also <code>process_priority</code>.</p>
+<h3 id="void-notify_deferred_thread_groupwhat-int"><code>void notify_deferred_thread_group(what: int)</code></h3>
+<p>Similar to <code>call_deferred_thread_group()</code>, but for notifications.</p>
+<h3 id="void-notify_thread_safewhat-int"><code>void notify_thread_safe(what: int)</code></h3>
+<p>Similar to <code>call_thread_safe()</code>, but for notifications.</p>
+<h3 id="void-print_orphan_nodes-static"><code>void print_orphan_nodes() static</code></h3>
+<p>Prints all orphan nodes (nodes outside the <a href="SceneTree.html">SceneTree</a>). Useful for debugging.</p>
+<p><strong>Note:</strong> This method only works in debug builds. It does nothing in a project exported in release mode.</p>
+<h3 id="void-print_tree"><code>void print_tree()</code></h3>
+<p>Prints the node and its children to the console, recursively. The node does not have to be inside the tree. This method outputs <a href="NodePath.html">NodePath</a> s relative to this node, and is good for copy/pasting into <code>get_node()</code>. See also <code>print_tree_pretty()</code>.</p>
+<p>May print, for example:</p>
+<pre class="text"><code>.
+Menu
+Menu/Label
+Menu/Camera2D
+SplashScreen
+SplashScreen/Camera2D</code></pre>
+<h3 id="void-print_tree_pretty"><code>void print_tree_pretty()</code></h3>
+<p>Prints the node and its children to the console, recursively. The node does not have to be inside the tree. Similar to <code>print_tree()</code>, but the graphical representation looks like what is displayed in the editor's Scene dock. It is useful for inspecting larger trees.</p>
+<p>May print, for example:</p>
+<pre class="text"><code>┖╴TheGame
+   ┠╴Menu
+   ┃  ┠╴Label
+   ┃  ┖╴Camera2D
+   ┖╴SplashScreen
+      ┖╴Camera2D</code></pre>
+<h3 id="void-propagate_callmethod-stringname-args-array---parent_first-bool--false"><code>void propagate_call(method: StringName, args: Array = [], parent_first: bool = false)</code></h3>
+<p>Calls the given <code>method</code> name, passing <code>args</code> as arguments, on this node and all of its children, recursively.</p>
+<p>If <code>parent_first</code> is <code>true</code>, the method is called on this node first, then on all of its children. If <code>false</code>, the children's methods are called first.</p>
+<h3 id="void-propagate_notificationwhat-int"><code>void propagate_notification(what: int)</code></h3>
+<p>Calls <code>Object.notification()</code> with <code>what</code> on this node and all of its children, recursively.</p>
+<h3 id="void-queue_accessibility_update"><code>void queue_accessibility_update()</code></h3>
+<p>Queues an accessibility information update for this node.</p>
+<h3 id="void-queue_free"><code>void queue_free()</code></h3>
+<p>Queues this node to be deleted at the end of the current frame. When deleted, all of its children are deleted as well, and all references to the node and its children become invalid.</p>
+<p>Unlike with <code>Object.free()</code>, the node is not deleted instantly, and it can still be accessed before deletion. It is also safe to call <code>queue_free()</code> multiple times. Use <code>Object.is_queued_for_deletion()</code> to check if the node will be deleted at the end of the frame.</p>
+<p><strong>Note:</strong> The node will only be freed after all other deferred calls are finished. Using this method is not always the same as calling <code>Object.free()</code> through <code>Object.call_deferred()</code>.</p>
+<h3 id="void-remove_childnode-node"><code>void remove_child(node: Node)</code></h3>
+<p>Removes a child <code>node</code>. The <code>node</code>, along with its children, are <strong>not</strong> deleted. To delete a node, see <code>queue_free()</code>.</p>
+<p><strong>Note:</strong> When this node is inside the tree, this method sets the <code>owner</code> of the removed <code>node</code> (or its descendants) to <code>null</code>, if their <code>owner</code> is no longer an ancestor (see <code>is_ancestor_of()</code>).</p>
+<h3 id="void-remove_from_groupgroup-stringname"><code>void remove_from_group(group: StringName)</code></h3>
+<p>Removes the node from the given <code>group</code>. Does nothing if the node is not in the <code>group</code>. See also notes in the description, and the <a href="SceneTree.html">SceneTree</a>'s group methods.</p>
+<h3 id="void-reparentnew_parent-node-keep_global_transform-bool--true"><code>void reparent(new_parent: Node, keep_global_transform: bool = true)</code></h3>
+<p>Changes the parent of this <strong>Node</strong> to the <code>new_parent</code>. The node needs to already have a parent. The node's <code>owner</code> is preserved if its owner is still reachable from the new location (i.e., the node is still a descendant of the new parent after the operation).</p>
+<p>If <code>keep_global_transform</code> is <code>true</code>, the node's global transform will be preserved if supported. <a href="Node2D.html">Node2D</a>, <a href="Node3D.html">Node3D</a> and <a href="Control.html">Control</a> support this argument (but <a href="Control.html">Control</a> keeps only position).</p>
+<p><strong>Warning:</strong> If <code>ProjectSettings.physics/common/physics_interpolation</code> is enabled and reparenting causes a large change in global transform, the object may appear to move from its old position to its new one over the next physics tick. To avoid this, call <code>reset_physics_interpolation()</code> after reparenting.</p>
+<h3 id="void-replace_bynode-node-keep_groups-bool--false"><code>void replace_by(node: Node, keep_groups: bool = false)</code></h3>
+<p>Replaces this node by the given <code>node</code>. All children of this node are moved to <code>node</code>.</p>
+<p>If <code>keep_groups</code> is <code>true</code>, the <code>node</code> is added to the same groups that the replaced node is in (see <code>add_to_group()</code>).</p>
+<p><strong>Warning:</strong> The replaced node is removed from the tree, but it is <strong>not</strong> deleted. To prevent memory leaks, store a reference to the node in a variable, or use <code>Object.free()</code>.</p>
+<h3 id="void-request_ready"><code>void request_ready()</code></h3>
+<p>Requests <code>_ready()</code> to be called again the next time the node enters the tree. Does <strong>not</strong> immediately call <code>_ready()</code>.</p>
+<p><strong>Note:</strong> This method only affects the current node. If the node's children also need to request ready, this method needs to be called for each one of them. When the node and its children enter the tree again, the order of <code>_ready()</code> callbacks will be the same as normal.</p>
+<h3 id="void-reset_physics_interpolation"><code>void reset_physics_interpolation()</code></h3>
+<p>When physics interpolation is active, moving a node to a radically different transform (such as placement within a level) can result in a visible glitch as the object is rendered moving from the old to new position over the physics tick.</p>
+<p>That glitch can be prevented by calling this method, which temporarily disables interpolation until the physics tick is complete.</p>
+<p>The notification <code>NOTIFICATION_RESET_PHYSICS_INTERPOLATION</code> will be received by the node and all children recursively.</p>
+<p><strong>Note:</strong> This function should be called <strong>after</strong> moving the node, rather than before.</p>
+<h3 id="globalscopeerror-rpcmethod-stringname-">``@GlobalScope.Error<code> rpc(method: StringName, ...)</code></h3>
+<p>Sends a remote procedure call request for the given <code>method</code> to peers on the network (and locally), sending additional arguments to the method called by the RPC. The call request will only be received by nodes with the same <a href="NodePath.html">NodePath</a>, including the exact same <code>name</code>. Behavior depends on the RPC configuration for the given <code>method</code> (see <code>rpc_config()</code> and <code>@GDScript.@rpc</code>). By default, methods are not exposed to RPCs.</p>
+<p>May return <code>@GlobalScope.OK</code> if the call is successful, <code>@GlobalScope.ERR_INVALID_PARAMETER</code> if the arguments passed in the <code>method</code> do not match, <code>@GlobalScope.ERR_UNCONFIGURED</code> if the node's <code>multiplayer</code> cannot be fetched (such as when the node is not inside the tree), <code>@GlobalScope.ERR_CONNECTION_ERROR</code> if <code>multiplayer</code>'s connection is not available.</p>
+<p><strong>Note:</strong> You can only safely use RPCs on clients after you received the <code>MultiplayerAPI.connected_to_server</code> signal from the <a href="MultiplayerAPI.html">MultiplayerAPI</a>. You also need to keep track of the connection state, either by the <a href="MultiplayerAPI.html">MultiplayerAPI</a> signals like <code>MultiplayerAPI.server_disconnected</code> or by checking (<code>get_multiplayer().peer.get_connection_status() == CONNECTION_CONNECTED</code>).</p>
+<h3 id="void-rpc_configmethod-stringname-config-variant"><code>void rpc_config(method: StringName, config: Variant)</code></h3>
+<p>Changes the RPC configuration for the given <code>method</code>. <code>config</code> should either be <code>null</code> to disable the feature (as by default), or a <a href="Dictionary.html">Dictionary</a> containing the following entries:</p>
+<ul>
+<li><p><code>rpc_mode</code>: see <code>MultiplayerAPI.RPCMode</code>;</p></li>
+<li><p><code>transfer_mode</code>: see <code>MultiplayerPeer.TransferMode</code>;</p></li>
+<li><p><code>call_local</code>: if <code>true</code>, the method will also be called locally;</p></li>
+<li><p><code>channel</code>: an <a href="int.html">int</a> representing the channel to send the RPC on.</p></li>
+</ul>
+<p><strong>Note:</strong> In GDScript, this method corresponds to the <code>@GDScript.@rpc</code> annotation, with various parameters passed (<code>@rpc(any)</code>, <code>@rpc(authority)</code>...). See also the <a href="../manual/tutorials/networking/high_level_multiplayer.html">high-level multiplayer</a> tutorial.</p>
+<h3 id="globalscopeerror-rpc_idpeer_id-int-method-stringname-">``@GlobalScope.Error<code> rpc_id(peer_id: int, method: StringName, ...)</code></h3>
+<p>Sends a <code>rpc()</code> to a specific peer identified by <code>peer_id</code> (see <code>MultiplayerPeer.set_target_peer()</code>).</p>
+<p>May return <code>@GlobalScope.OK</code> if the call is successful, <code>@GlobalScope.ERR_INVALID_PARAMETER</code> if the arguments passed in the <code>method</code> do not match, <code>@GlobalScope.ERR_UNCONFIGURED</code> if the node's <code>multiplayer</code> cannot be fetched (such as when the node is not inside the tree), <code>@GlobalScope.ERR_CONNECTION_ERROR</code> if <code>multiplayer</code>'s connection is not available.</p>
+<h3 id="void-set_deferred_thread_groupproperty-stringname-value-variant"><code>void set_deferred_thread_group(property: StringName, value: Variant)</code></h3>
+<p>Similar to <code>call_deferred_thread_group()</code>, but for setting properties.</p>
+<h3 id="void-set_display_foldedfold-bool"><code>void set_display_folded(fold: bool)</code></h3>
+<p>If set to <code>true</code>, the node appears folded in the Scene dock. As a result, all of its children are hidden. This method is intended to be used in editor plugins and tools, but it also works in release builds. See also <code>is_displayed_folded()</code>.</p>
+<h3 id="void-set_editable_instancenode-node-is_editable-bool"><code>void set_editable_instance(node: Node, is_editable: bool)</code></h3>
+<p>Set to <code>true</code> to allow all nodes owned by <code>node</code> to be available, and editable, in the Scene dock, even if their <code>owner</code> is not the scene root. This method is intended to be used in editor plugins and tools, but it also works in release builds. See also <code>is_editable_instance()</code>.</p>
+<h3 id="void-set_multiplayer_authorityid-int-recursive-bool--true"><code>void set_multiplayer_authority(id: int, recursive: bool = true)</code></h3>
+<p>Sets the node's multiplayer authority to the peer with the given peer <code>id</code>. The multiplayer authority is the peer that has authority over the node on the network. Defaults to peer ID 1 (the server). Useful in conjunction with <code>rpc_config()</code> and the <a href="MultiplayerAPI.html">MultiplayerAPI</a>.</p>
+<p>If <code>recursive</code> is <code>true</code>, the given peer is recursively set as the authority for all children of this node.</p>
+<p><strong>Warning:</strong> This does <strong>not</strong> automatically replicate the new authority to other peers. It is the developer's responsibility to do so. You may replicate the new authority's information using <code>MultiplayerSpawner.spawn_function</code>, an RPC, or a <a href="MultiplayerSynchronizer.html">MultiplayerSynchronizer</a>. Furthermore, the parent's authority does <strong>not</strong> propagate to newly added children.</p>
+<h3 id="void-set_physics_processenable-bool"><code>void set_physics_process(enable: bool)</code></h3>
+<p>If set to <code>true</code>, enables physics (fixed framerate) processing. When a node is being processed, it will receive a <code>NOTIFICATION_PHYSICS_PROCESS</code> at a fixed (usually 60 FPS, see <code>Engine.physics_ticks_per_second</code> to change) interval (and the <code>_physics_process()</code> callback will be called if it exists).</p>
+<p><strong>Note:</strong> If <code>_physics_process()</code> is overridden, this will be automatically enabled before <code>_ready()</code> is called.</p>
+<h3 id="void-set_physics_process_internalenable-bool"><code>void set_physics_process_internal(enable: bool)</code></h3>
+<p>If set to <code>true</code>, enables internal physics for this node. Internal physics processing happens in isolation from the normal <code>_physics_process()</code> calls and is used by some nodes internally to guarantee proper functioning even if the node is paused or physics processing is disabled for scripting (<code>set_physics_process()</code>).</p>
+<p><strong>Warning:</strong> Built-in nodes rely on internal processing for their internal logic. Disabling it is unsafe and may lead to unexpected behavior. Use this method if you know what you are doing.</p>
+<h3 id="void-set_processenable-bool"><code>void set_process(enable: bool)</code></h3>
+<p>If set to <code>true</code>, enables processing. When a node is being processed, it will receive a <code>NOTIFICATION_PROCESS</code> on every drawn frame (and the <code>_process()</code> callback will be called if it exists).</p>
+<p><strong>Note:</strong> If <code>_process()</code> is overridden, this will be automatically enabled before <code>_ready()</code> is called.</p>
+<p><strong>Note:</strong> This method only affects the <code>_process()</code> callback, i.e. it has no effect on other callbacks like <code>_physics_process()</code>. If you want to disable all processing for the node, set <code>process_mode</code> to <code>PROCESS_MODE_DISABLED</code>.</p>
+<h3 id="void-set_process_inputenable-bool"><code>void set_process_input(enable: bool)</code></h3>
+<p>If set to <code>true</code>, enables input processing.</p>
+<p><strong>Note:</strong> If <code>_input()</code> is overridden, this will be automatically enabled before <code>_ready()</code> is called. Input processing is also already enabled for GUI controls, such as <a href="Button.html">Button</a> and <a href="TextEdit.html">TextEdit</a>.</p>
+<h3 id="void-set_process_internalenable-bool"><code>void set_process_internal(enable: bool)</code></h3>
+<p>If set to <code>true</code>, enables internal processing for this node. Internal processing happens in isolation from the normal <code>_process()</code> calls and is used by some nodes internally to guarantee proper functioning even if the node is paused or processing is disabled for scripting (<code>set_process()</code>).</p>
+<p><strong>Warning:</strong> Built-in nodes rely on internal processing for their internal logic. Disabling it is unsafe and may lead to unexpected behavior. Use this method if you know what you are doing.</p>
+<h3 id="void-set_process_shortcut_inputenable-bool"><code>void set_process_shortcut_input(enable: bool)</code></h3>
+<p>If set to <code>true</code>, enables shortcut processing for this node.</p>
+<p><strong>Note:</strong> If <code>_shortcut_input()</code> is overridden, this will be automatically enabled before <code>_ready()</code> is called.</p>
+<h3 id="void-set_process_unhandled_inputenable-bool"><code>void set_process_unhandled_input(enable: bool)</code></h3>
+<p>If set to <code>true</code>, enables unhandled input processing. It enables the node to receive all input that was not previously handled (usually by a <a href="Control.html">Control</a>).</p>
+<p><strong>Note:</strong> If <code>_unhandled_input()</code> is overridden, this will be automatically enabled before <code>_ready()</code> is called. Unhandled input processing is also already enabled for GUI controls, such as <a href="Button.html">Button</a> and <a href="TextEdit.html">TextEdit</a>.</p>
+<h3 id="void-set_process_unhandled_key_inputenable-bool"><code>void set_process_unhandled_key_input(enable: bool)</code></h3>
+<p>If set to <code>true</code>, enables unhandled key input processing.</p>
+<p><strong>Note:</strong> If <code>_unhandled_key_input()</code> is overridden, this will be automatically enabled before <code>_ready()</code> is called.</p>
+<h3 id="void-set_scene_instance_load_placeholderload_placeholder-bool"><code>void set_scene_instance_load_placeholder(load_placeholder: bool)</code></h3>
+<p>If set to <code>true</code>, the node becomes an <a href="InstancePlaceholder.html">InstancePlaceholder</a> when packed and instantiated from a <a href="PackedScene.html">PackedScene</a>. See also <code>get_scene_instance_load_placeholder()</code>.</p>
+<h3 id="void-set_thread_safeproperty-stringname-value-variant"><code>void set_thread_safe(property: StringName, value: Variant)</code></h3>
+<p>Similar to <code>call_thread_safe()</code>, but for setting properties.</p>
+<h3 id="void-set_translation_domain_inherited"><code>void set_translation_domain_inherited()</code></h3>
+<p>Makes this node inherit the translation domain from its parent node. If this node has no parent, the main translation domain will be used.</p>
+<p>This is the default behavior for all nodes. Calling <code>Object.set_translation_domain()</code> disables this behavior.</p>
+<h3 id="void-update_configuration_warnings"><code>void update_configuration_warnings()</code></h3>
+<p>Refreshes the warnings displayed for this node in the Scene dock. Use <code>_get_configuration_warnings()</code> to customize the warning messages to display.</p>
+<h2 id="signals">Signals</h2>
+<h3 id="child_entered_treenode-node"><code>child_entered_tree(node: Node)</code></h3>
+<p>Emitted when the child <code>node</code> enters the <a href="SceneTree.html">SceneTree</a>, usually because this node entered the tree (see <code>tree_entered</code>), or <code>add_child()</code> has been called.</p>
+<p>This signal is emitted <em>after</em> the child node's own <code>NOTIFICATION_ENTER_TREE</code> and <code>tree_entered</code>.</p>
+<h3 id="child_exiting_treenode-node"><code>child_exiting_tree(node: Node)</code></h3>
+<p>Emitted when the child <code>node</code> is about to exit the <a href="SceneTree.html">SceneTree</a>, usually because this node is exiting the tree (see <code>tree_exiting</code>), or because the child <code>node</code> is being removed or freed.</p>
+<p>When this signal is received, the child <code>node</code> is still accessible inside the tree. This signal is emitted <em>after</em> the child node's own <code>tree_exiting</code> and <code>NOTIFICATION_EXIT_TREE</code>.</p>
+<h3 id="child_order_changed"><code>child_order_changed()</code></h3>
+<p>Emitted when the list of children is changed. This happens when child nodes are added, moved or removed.</p>
+<h3 id="editor_description_changednode-node"><code>editor_description_changed(node: Node)</code></h3>
+<p>Emitted when the node's editor description field changed.</p>
+<h3 id="editor_state_changed"><code>editor_state_changed()</code></h3>
+<p>Emitted when an attribute of the node that is relevant to the editor is changed. Only emitted in the editor.</p>
+<h3 id="ready"><code>ready()</code></h3>
+<p>Emitted when the node is considered ready, after <code>_ready()</code> is called.</p>
+<h3 id="renamed"><code>renamed()</code></h3>
+<p>Emitted when the node's <code>name</code> is changed, if the node is inside the tree.</p>
+<h3 id="replacing_bynode-node"><code>replacing_by(node: Node)</code></h3>
+<p>Emitted when this node is being replaced by the <code>node</code>, see <code>replace_by()</code>.</p>
+<p>This signal is emitted <em>after</em> <code>node</code> has been added as a child of the original parent node, but <em>before</em> all original child nodes have been reparented to <code>node</code>.</p>
+<h3 id="tree_entered"><code>tree_entered()</code></h3>
+<p>Emitted when the node enters the tree.</p>
+<p>This signal is emitted <em>after</em> the related <code>NOTIFICATION_ENTER_TREE</code> notification.</p>
+<h3 id="tree_exited"><code>tree_exited()</code></h3>
+<p>Emitted after the node exits the tree and is no longer active.</p>
+<p>This signal is emitted <em>after</em> the related <code>NOTIFICATION_EXIT_TREE</code> notification.</p>
+<h3 id="tree_exiting"><code>tree_exiting()</code></h3>
+<p>Emitted when the node is just about to exit the tree. The node is still valid. As such, this is the right place for de-initialization (or a "destructor", if you will).</p>
+<p>This signal is emitted <em>after</em> the node's <code>_exit_tree()</code>, and <em>before</em> the related <code>NOTIFICATION_EXIT_TREE</code>.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-processmode"><code>enum ProcessMode</code></h3>
+<ul>
+<li><p><code>PROCESS_MODE_INHERIT = 0</code></p>
+<p>Inherits <code>process_mode</code> from the node's parent. This is the default for any newly created node.</p></li>
+<li><p><code>PROCESS_MODE_PAUSABLE = 1</code></p>
+<p>Processes when <code>SceneTree.paused</code> is <code>false</code>. This is the inverse of <code>PROCESS_MODE_WHEN_PAUSED</code>, and the default for the root node.</p></li>
+<li><p><code>PROCESS_MODE_WHEN_PAUSED = 2</code></p>
+<p>Processes <strong>only</strong> when <code>SceneTree.paused</code> is <code>true</code>. This is the inverse of <code>PROCESS_MODE_PAUSABLE</code>.</p></li>
+<li><p><code>PROCESS_MODE_ALWAYS = 3</code></p>
+<p>Always processes. Keeps processing, ignoring <code>SceneTree.paused</code>. This is the inverse of <code>PROCESS_MODE_DISABLED</code>.</p></li>
+<li><p><code>PROCESS_MODE_DISABLED = 4</code></p>
+<p>Never processes. Completely disables processing, ignoring <code>SceneTree.paused</code>. This is the inverse of <code>PROCESS_MODE_ALWAYS</code>.</p></li>
+</ul>
+<h3 id="enum-processthreadgroup"><code>enum ProcessThreadGroup</code></h3>
+<ul>
+<li><p><code>PROCESS_THREAD_GROUP_INHERIT = 0</code></p>
+<p>Process this node based on the thread group mode of the first parent (or grandparent) node that has a thread group mode that is not inherit. See <code>process_thread_group</code> for more information.</p></li>
+<li><p><code>PROCESS_THREAD_GROUP_MAIN_THREAD = 1</code></p>
+<p>Process this node (and child nodes set to inherit) on the main thread. See <code>process_thread_group</code> for more information.</p></li>
+<li><p><code>PROCESS_THREAD_GROUP_SUB_THREAD = 2</code></p>
+<p>Process this node (and child nodes set to inherit) on a sub-thread. See <code>process_thread_group</code> for more information.</p></li>
+</ul>
+<h3 id="flags-processthreadmessages"><code>flags ProcessThreadMessages</code></h3>
+<ul>
+<li><p><code>FLAG_PROCESS_THREAD_MESSAGES = 1</code></p>
+<p>Allows this node to process threaded messages created with <code>call_deferred_thread_group()</code> right before <code>_process()</code> is called.</p></li>
+<li><p><code>FLAG_PROCESS_THREAD_MESSAGES_PHYSICS = 2</code></p>
+<p>Allows this node to process threaded messages created with <code>call_deferred_thread_group()</code> right before <code>_physics_process()</code> is called.</p></li>
+<li><p><code>FLAG_PROCESS_THREAD_MESSAGES_ALL = 3</code></p>
+<p>Allows this node to process threaded messages created with <code>call_deferred_thread_group()</code> right before either <code>_process()</code> or <code>_physics_process()</code> are called.</p></li>
+</ul>
+<h3 id="enum-physicsinterpolationmode"><code>enum PhysicsInterpolationMode</code></h3>
+<ul>
+<li><p><code>PHYSICS_INTERPOLATION_MODE_INHERIT = 0</code></p>
+<p>Inherits <code>physics_interpolation_mode</code> from the node's parent. This is the default for any newly created node.</p></li>
+<li><p><code>PHYSICS_INTERPOLATION_MODE_ON = 1</code></p>
+<p>Enables physics interpolation for this node and for children set to <code>PHYSICS_INTERPOLATION_MODE_INHERIT</code>. This is the default for the root node.</p></li>
+<li><p><code>PHYSICS_INTERPOLATION_MODE_OFF = 2</code></p>
+<p>Disables physics interpolation for this node and for children set to <code>PHYSICS_INTERPOLATION_MODE_INHERIT</code>.</p></li>
+</ul>
+<h3 id="enum-duplicateflags"><code>enum DuplicateFlags</code></h3>
+<ul>
+<li><p><code>DUPLICATE_SIGNALS = 1</code></p>
+<p>Duplicate the node's signal connections that are connected with the <code>Object.CONNECT_PERSIST</code> flag.</p></li>
+<li><p><code>DUPLICATE_GROUPS = 2</code></p>
+<p>Duplicate the node's groups.</p></li>
+<li><p><code>DUPLICATE_SCRIPTS = 4</code></p>
+<p>Duplicate the node's script (also overriding the duplicated children's scripts, if combined with <code>DUPLICATE_USE_INSTANTIATION</code>).</p></li>
+<li><p><code>DUPLICATE_USE_INSTANTIATION = 8</code></p>
+<p>Duplicate using <code>PackedScene.instantiate()</code>. If the node comes from a scene saved on disk, reuses <code>PackedScene.instantiate()</code> as the base for the duplicated node and its children.</p></li>
+<li><p><code>DUPLICATE_INTERNAL_STATE = 16</code></p>
+<p>Duplicate also non-serializable variables (i.e. without <code>@GlobalScope.PROPERTY_USAGE_STORAGE</code>).</p></li>
+<li><p><code>DUPLICATE_DEFAULT = 15</code></p>
+<p>Duplicate using default flags. This constant is useful to add or remove a single flag.</p>
+<pre class="gdscript"><code># Duplicate non-exported variables.
+var dupe = duplicate(DUPLICATE_DEFAULT | DUPLICATE_INTERNAL_STATE)</code></pre></li>
+</ul>
+<h3 id="enum-internalmode"><code>enum InternalMode</code></h3>
+<ul>
+<li><p><code>INTERNAL_MODE_DISABLED = 0</code></p>
+<p>The node will not be internal.</p></li>
+<li><p><code>INTERNAL_MODE_FRONT = 1</code></p>
+<p>The node will be placed at the beginning of the parent's children, before any non-internal sibling.</p></li>
+<li><p><code>INTERNAL_MODE_BACK = 2</code></p>
+<p>The node will be placed at the end of the parent's children, after any non-internal sibling.</p></li>
+</ul>
+<h3 id="enum-autotranslatemode"><code>enum AutoTranslateMode</code></h3>
+<ul>
+<li><p><code>AUTO_TRANSLATE_MODE_INHERIT = 0</code></p>
+<p>Inherits <code>auto_translate_mode</code> from the node's parent. This is the default for any newly created node.</p></li>
+<li><p><code>AUTO_TRANSLATE_MODE_ALWAYS = 1</code></p>
+<p>Always automatically translate. This is the inverse of <code>AUTO_TRANSLATE_MODE_DISABLED</code>, and the default for the root node.</p></li>
+<li><p><code>AUTO_TRANSLATE_MODE_DISABLED = 2</code></p>
+<p>Never automatically translate. This is the inverse of <code>AUTO_TRANSLATE_MODE_ALWAYS</code>.</p>
+<p>String parsing for translation template generation will be skipped for this node and children that are set to <code>AUTO_TRANSLATE_MODE_INHERIT</code>.</p></li>
+</ul>
+<h2 id="constants">Constants</h2>
+<h3 id="notification_enter_tree--10"><code>NOTIFICATION_ENTER_TREE = 10</code></h3>
+<p>Notification received when the node enters a <a href="SceneTree.html">SceneTree</a>. See <code>_enter_tree()</code>.</p>
+<p>This notification is received <em>before</em> the related <code>tree_entered</code> signal.</p>
+<h3 id="notification_exit_tree--11"><code>NOTIFICATION_EXIT_TREE = 11</code></h3>
+<p>Notification received when the node is about to exit a <a href="SceneTree.html">SceneTree</a>. See <code>_exit_tree()</code>.</p>
+<p>This notification is received <em>after</em> the related <code>tree_exiting</code> signal.</p>
+<p>This notification is sent in reversed order.</p>
+<h3 id="notification_moved_in_parent--12"><code>NOTIFICATION_MOVED_IN_PARENT = 12</code></h3>
+<p><strong>Deprecated:</strong> This notification is no longer sent by the engine. Use <code>NOTIFICATION_CHILD_ORDER_CHANGED</code> instead.</p>
+<h3 id="notification_ready--13"><code>NOTIFICATION_READY = 13</code></h3>
+<p>Notification received when the node is ready. See <code>_ready()</code>.</p>
+<h3 id="notification_paused--14"><code>NOTIFICATION_PAUSED = 14</code></h3>
+<p>Notification received when the node is paused. See <code>process_mode</code>.</p>
+<h3 id="notification_unpaused--15"><code>NOTIFICATION_UNPAUSED = 15</code></h3>
+<p>Notification received when the node is unpaused. See <code>process_mode</code>.</p>
+<h3 id="notification_physics_process--16"><code>NOTIFICATION_PHYSICS_PROCESS = 16</code></h3>
+<p>Notification received from the tree every physics frame when <code>is_physics_processing()</code> returns <code>true</code>. See <code>_physics_process()</code>.</p>
+<h3 id="notification_process--17"><code>NOTIFICATION_PROCESS = 17</code></h3>
+<p>Notification received from the tree every rendered frame when <code>is_processing()</code> returns <code>true</code>. See <code>_process()</code>.</p>
+<h3 id="notification_parented--18"><code>NOTIFICATION_PARENTED = 18</code></h3>
+<p>Notification received when the node is set as a child of another node (see <code>add_child()</code> and <code>add_sibling()</code>).</p>
+<p><strong>Note:</strong> This does <em>not</em> mean that the node entered the <a href="SceneTree.html">SceneTree</a>.</p>
+<h3 id="notification_unparented--19"><code>NOTIFICATION_UNPARENTED = 19</code></h3>
+<p>Notification received when the parent node calls <code>remove_child()</code> on this node.</p>
+<p><strong>Note:</strong> This does <em>not</em> mean that the node exited the <a href="SceneTree.html">SceneTree</a>.</p>
+<h3 id="notification_scene_instantiated--20"><code>NOTIFICATION_SCENE_INSTANTIATED = 20</code></h3>
+<p>Notification received <em>only</em> by the newly instantiated scene root node, when <code>PackedScene.instantiate()</code> is completed.</p>
+<h3 id="notification_drag_begin--21"><code>NOTIFICATION_DRAG_BEGIN = 21</code></h3>
+<p>Notification received when a drag operation begins. All nodes receive this notification, not only the dragged one.</p>
+<p>Can be triggered either by dragging a <a href="Control.html">Control</a> that provides drag data (see <code>Control._get_drag_data()</code>) or using <code>Control.force_drag()</code>.</p>
+<p>Use <code>Viewport.gui_get_drag_data()</code> to get the dragged data.</p>
+<h3 id="notification_drag_end--22"><code>NOTIFICATION_DRAG_END = 22</code></h3>
+<p>Notification received when a drag operation ends.</p>
+<p>Use <code>Viewport.gui_is_drag_successful()</code> to check if the drag succeeded.</p>
+<h3 id="notification_path_renamed--23"><code>NOTIFICATION_PATH_RENAMED = 23</code></h3>
+<p>Notification received when the node's <code>name</code> or one of its ancestors' <code>name</code> is changed. This notification is <em>not</em> received when the node is removed from the <a href="SceneTree.html">SceneTree</a>.</p>
+<h3 id="notification_child_order_changed--24"><code>NOTIFICATION_CHILD_ORDER_CHANGED = 24</code></h3>
+<p>Notification received when the list of children is changed. This happens when child nodes are added, moved or removed.</p>
+<h3 id="notification_internal_process--25"><code>NOTIFICATION_INTERNAL_PROCESS = 25</code></h3>
+<p>Notification received from the tree every rendered frame when <code>is_processing_internal()</code> returns <code>true</code>.</p>
+<h3 id="notification_internal_physics_process--26"><code>NOTIFICATION_INTERNAL_PHYSICS_PROCESS = 26</code></h3>
+<p>Notification received from the tree every physics frame when <code>is_physics_processing_internal()</code> returns <code>true</code>.</p>
+<h3 id="notification_post_enter_tree--27"><code>NOTIFICATION_POST_ENTER_TREE = 27</code></h3>
+<p>Notification received when the node enters the tree, just before <code>NOTIFICATION_READY</code> may be received. Unlike the latter, it is sent every time the node enters tree, not just once.</p>
+<h3 id="notification_disabled--28"><code>NOTIFICATION_DISABLED = 28</code></h3>
+<p>Notification received when the node is disabled. See <code>PROCESS_MODE_DISABLED</code>.</p>
+<h3 id="notification_enabled--29"><code>NOTIFICATION_ENABLED = 29</code></h3>
+<p>Notification received when the node is enabled again after being disabled. See <code>PROCESS_MODE_DISABLED</code>.</p>
+<h3 id="notification_reset_physics_interpolation--2001"><code>NOTIFICATION_RESET_PHYSICS_INTERPOLATION = 2001</code></h3>
+<p>Notification received when <code>reset_physics_interpolation()</code> is called on the node or its ancestors.</p>
+<h3 id="notification_editor_pre_save--9001"><code>NOTIFICATION_EDITOR_PRE_SAVE = 9001</code></h3>
+<p>Notification received right before the scene with the node is saved in the editor. This notification is only sent in the Godot editor and will not occur in exported projects.</p>
+<h3 id="notification_editor_post_save--9002"><code>NOTIFICATION_EDITOR_POST_SAVE = 9002</code></h3>
+<p>Notification received right after the scene with the node is saved in the editor. This notification is only sent in the Godot editor and will not occur in exported projects.</p>
+<h3 id="notification_wm_mouse_enter--1002"><code>NOTIFICATION_WM_MOUSE_ENTER = 1002</code></h3>
+<p>Notification received when the mouse enters the window.</p>
+<p>Implemented for embedded windows and on desktop and web platforms.</p>
+<h3 id="notification_wm_mouse_exit--1003"><code>NOTIFICATION_WM_MOUSE_EXIT = 1003</code></h3>
+<p>Notification received when the mouse leaves the window.</p>
+<p>Implemented for embedded windows and on desktop and web platforms.</p>
+<h3 id="notification_wm_window_focus_in--1004"><code>NOTIFICATION_WM_WINDOW_FOCUS_IN = 1004</code></h3>
+<p>Notification received from the OS when the node's <a href="Window.html">Window</a> ancestor is focused. This may be a change of focus between two windows of the same engine instance, or from the OS desktop or a third-party application to a window of the game (in which case <code>NOTIFICATION_APPLICATION_FOCUS_IN</code> is also received).</p>
+<p>A <a href="Window.html">Window</a> node receives this notification when it is focused.</p>
+<h3 id="notification_wm_window_focus_out--1005"><code>NOTIFICATION_WM_WINDOW_FOCUS_OUT = 1005</code></h3>
+<p>Notification received from the OS when the node's <a href="Window.html">Window</a> ancestor is defocused. This may be a change of focus between two windows of the same engine instance, or from a window of the game to the OS desktop or a third-party application (in which case <code>NOTIFICATION_APPLICATION_FOCUS_OUT</code> is also received).</p>
+<p>A <a href="Window.html">Window</a> node receives this notification when it is defocused.</p>
+<h3 id="notification_wm_close_request--1006"><code>NOTIFICATION_WM_CLOSE_REQUEST = 1006</code></h3>
+<p>Notification received from the OS when a close request is sent (e.g. closing the window with a "Close" button or :kbd:<code>Alt + F4</code>).</p>
+<p>Implemented on desktop platforms.</p>
+<h3 id="notification_wm_go_back_request--1007"><code>NOTIFICATION_WM_GO_BACK_REQUEST = 1007</code></h3>
+<p>Notification received from the OS when a go back request is sent (e.g. pressing the "Back" button on Android).</p>
+<p>Implemented only on Android.</p>
+<h3 id="notification_wm_size_changed--1008"><code>NOTIFICATION_WM_SIZE_CHANGED = 1008</code></h3>
+<p>Notification received when the window is resized.</p>
+<p><strong>Note:</strong> Only the resized <a href="Window.html">Window</a> node receives this notification, and it's not propagated to the child nodes.</p>
+<h3 id="notification_wm_dpi_change--1009"><code>NOTIFICATION_WM_DPI_CHANGE = 1009</code></h3>
+<p>Notification received from the OS when the screen's dots per inch (DPI) scale is changed. Only implemented on macOS.</p>
+<h3 id="notification_vp_mouse_enter--1010"><code>NOTIFICATION_VP_MOUSE_ENTER = 1010</code></h3>
+<p>Notification received when the mouse cursor enters the <a href="Viewport.html">Viewport</a>'s visible area, that is not occluded behind other <a href="Control.html">Control</a> s or <a href="Window.html">Window</a> s, provided its <code>Viewport.gui_disable_input</code> is <code>false</code> and regardless if it's currently focused or not.</p>
+<h3 id="notification_vp_mouse_exit--1011"><code>NOTIFICATION_VP_MOUSE_EXIT = 1011</code></h3>
+<p>Notification received when the mouse cursor leaves the <a href="Viewport.html">Viewport</a>'s visible area, that is not occluded behind other <a href="Control.html">Control</a> s or <a href="Window.html">Window</a> s, provided its <code>Viewport.gui_disable_input</code> is <code>false</code> and regardless if it's currently focused or not.</p>
+<h3 id="notification_wm_position_changed--1012"><code>NOTIFICATION_WM_POSITION_CHANGED = 1012</code></h3>
+<p>Notification received when the window is moved.</p>
+<h3 id="notification_wm_output_max_linear_value_changed--1013"><code>NOTIFICATION_WM_OUTPUT_MAX_LINEAR_VALUE_CHANGED = 1013</code></h3>
+<p>Notification received when the output max linear value returned by <code>Window.get_output_max_linear_value()</code> has changed.</p>
+<p>This occurs when HDR output is enabled or disabled and when any HDR output luminance values of the window have changed, such as when the player adjusts their screen brightness setting or moves the window to a different screen.</p>
+<h3 id="notification_os_memory_warning--2009"><code>NOTIFICATION_OS_MEMORY_WARNING = 2009</code></h3>
+<p>Notification received from the OS when the application is exceeding its allocated memory.</p>
+<p>Implemented only on iOS.</p>
+<h3 id="notification_translation_changed--2010"><code>NOTIFICATION_TRANSLATION_CHANGED = 2010</code></h3>
+<p>Notification received when translations may have changed. Can be triggered by the user changing the locale, changing <code>auto_translate_mode</code> or when the node enters the scene tree. Can be used to respond to language changes, for example to change the UI strings on the fly. Useful when working with the built-in translation support, like <code>Object.tr()</code>.</p>
+<p><strong>Note:</strong> This notification is received alongside <code>NOTIFICATION_ENTER_TREE</code>, so if you are instantiating a scene, the child nodes will not be initialized yet. You can use it to setup translations for this node, child nodes created from script, or if you want to access child nodes added in the editor, make sure the node is ready using <code>is_node_ready()</code>.</p>
+<pre class="gdscript"><code>func _notification(what):
+    if what == NOTIFICATION_TRANSLATION_CHANGED:
+        if not is_node_ready():
+            await ready # Wait until ready signal.
+        $Label.text = atr(&quot;%d Bananas&quot;) % banana_counter</code></pre>
+<h3 id="notification_wm_about--2011"><code>NOTIFICATION_WM_ABOUT = 2011</code></h3>
+<p>Notification received from the OS when a request for "About" information is sent.</p>
+<p>Implemented only on macOS.</p>
+<h3 id="notification_crash--2012"><code>NOTIFICATION_CRASH = 2012</code></h3>
+<p>Notification received from Godot's crash handler when the engine is about to crash.</p>
+<p>Implemented on desktop platforms, if the crash handler is enabled.</p>
+<h3 id="notification_os_ime_update--2013"><code>NOTIFICATION_OS_IME_UPDATE = 2013</code></h3>
+<p>Notification received from the OS when an update of the Input Method Engine occurs (e.g. change of IME cursor position or composition string).</p>
+<p>Implemented on desktop and web platforms.</p>
+<h3 id="notification_application_resumed--2014"><code>NOTIFICATION_APPLICATION_RESUMED = 2014</code></h3>
+<p>Notification received from the OS when the application is resumed.</p>
+<p>Specific to the Android and iOS platforms.</p>
+<h3 id="notification_application_paused--2015"><code>NOTIFICATION_APPLICATION_PAUSED = 2015</code></h3>
+<p>Notification received from the OS when the application is paused.</p>
+<p>Specific to the Android and iOS platforms.</p>
+<p><strong>Note:</strong> On iOS, you only have approximately 5 seconds to finish a task started by this signal. If you go over this allotment, iOS will kill the app instead of pausing it.</p>
+<h3 id="notification_application_focus_in--2016"><code>NOTIFICATION_APPLICATION_FOCUS_IN = 2016</code></h3>
+<p>Notification received from the OS when the application is focused, i.e. when changing the focus from the OS desktop or a thirdparty application to any open window of the Godot instance.</p>
+<p>Implemented on desktop and mobile platforms.</p>
+<h3 id="notification_application_focus_out--2017"><code>NOTIFICATION_APPLICATION_FOCUS_OUT = 2017</code></h3>
+<p>Notification received from the OS when the application is defocused, i.e. when changing the focus from any open window of the Godot instance to the OS desktop or a thirdparty application.</p>
+<p>Implemented on desktop and mobile platforms.</p>
+<h3 id="notification_text_server_changed--2018"><code>NOTIFICATION_TEXT_SERVER_CHANGED = 2018</code></h3>
+<p>Notification received when the <a href="TextServer.html">TextServer</a> is changed.</p>
+<h3 id="notification_application_pip_mode_entered--2019"><code>NOTIFICATION_APPLICATION_PIP_MODE_ENTERED = 2019</code></h3>
+<p>Notification received when the application enters picture-in-picture mode.</p>
+<h3 id="notification_application_pip_mode_exited--2020"><code>NOTIFICATION_APPLICATION_PIP_MODE_EXITED = 2020</code></h3>
+<p>Notification received when the application exits picture-in-picture mode.</p>
+<h3 id="notification_accessibility_update--3000"><code>NOTIFICATION_ACCESSIBILITY_UPDATE = 3000</code></h3>
+<p>Notification received when an accessibility information update is required.</p>
+<h3 id="notification_accessibility_invalidate--3001"><code>NOTIFICATION_ACCESSIBILITY_INVALIDATE = 3001</code></h3>
+<p>Notification received when accessibility elements are invalidated. All node accessibility elements are automatically deleted after receiving this message, therefore all existing references to such elements should be discarded.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

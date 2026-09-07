@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using InputEvent — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-inputevent">Using InputEvent</h1>
+<h2 id="what-is-it">What is it?</h2>
+<p>Managing input is usually complex, no matter the OS or platform. To ease this a little, a special built-in type is provided, ref. This datatype can be configured to contain several types of input events. Input events travel through the engine and can be received in multiple locations, depending on the purpose.</p>
+<p>Here is a quick example, closing your game if the escape key is hit:</p>
+<pre class="gdscript"><code>func _unhandled_input(event):
+    if event is InputEventKey:
+        if event.pressed and event.scancode == KEY_ESCAPE:
+            get_tree().quit()</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_UnhandledInput</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventKey eventKey<span class="op">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>eventKey<span class="op">.</span><span class="fu">Pressed</span> <span class="op">&amp;&amp;</span> eventKey<span class="op">.</span><span class="fu">Scancode</span> <span class="op">==</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>KeyList<span class="op">.</span><span class="fu">Escape</span><span class="op">)</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>            <span class="fu">GetTree</span><span class="op">().</span><span class="fu">Quit</span><span class="op">();</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>However, it is cleaner and more flexible to use the provided ref feature, which allows you to define input actions and assign them different keys. This way, you can define multiple keys for the same action (e.g. the keyboard escape key and the start button on a gamepad). You can then more easily change this mapping in the project settings without updating your code, and even build a key mapping feature on top of it to allow your game to change the key mapping at runtime!</p>
+<p>You can set up your InputMap under <strong>Project &gt; Project Settings &gt; Input Map</strong> and then use those actions like this:</p>
+<pre class="gdscript"><code>func _process(delta):
+    if Input.is_action_pressed(&quot;ui_right&quot;):
+        # Move right.</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;ui_right&quot;</span><span class="op">))</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Move right.</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="how-does-it-work">How does it work?</h2>
+<p>Every input event is originated from the user/player (though it's possible to generate an InputEvent and feed them back to the engine, which is useful for gestures). The OS object for each platform will read events from the device, then feed them to MainLoop. As ref is the default MainLoop implementation, events are fed to it. Godot provides a function to get the current SceneTree object : <strong>get_tree()</strong>.</p>
+<p>But SceneTree does not know what to do with the event, so it will give it to the viewports, starting by the "root" ref (the first node of the scene tree). Viewport does quite a lot of stuff with the received input, in order:</p>
+<ol type="1">
+<li>First of all, the standard ref function will be called in any node that overrides it (and hasn't disabled input processing with ref). If any function consumes the event, it can call ref, and the event will not spread any more. This ensures that you can filter all events of interest, even before the GUI. For gameplay input, ref is generally a better fit, because it allows the GUI to intercept the events.</li>
+<li>Second, it will try to feed the input to the GUI, and see if any control can receive it. If so, the ref will be called via the virtual function ref and the signal "gui_input" will be emitted (this function is re-implementable by script by inheriting from it). If the control wants to "consume" the event, it will call ref and the event will not spread any more. Use the ref property to control whether a ref is notified of mouse events via ref callback, and whether these events are propagated further.</li>
+<li>If so far no one consumed the event, the unhandled input callback will be called if overridden (and not disabled with ref). If any function consumes the event, it can call ref, and the event will not spread any more. The unhandled input callback is ideal for full-screen gameplay events, so they are not received when a GUI is active.</li>
+<li>If no one wanted the event so far, and a ref is assigned to the Viewport with ref turned on, a ray to the physics world (in the ray direction from the click) will be cast. (For the root viewport, this can also be enabled in ref) If this ray hits an object, it will call the ref function in the relevant physics object (bodies receive this callback by default, but areas do not. This can be configured through ref properties).</li>
+<li>Finally, if the event was unhandled, it will be passed to the next Viewport in the tree, otherwise it will be ignored.</li>
+</ol>
+<p>When sending events to all listening nodes within a scene, the viewport will do so in a reverse depth-first order: Starting with the node at the bottom of the scene tree, and ending at the root node:</p>
+<p>GUI events also travel up the scene tree but, since these events target specific Controls, only direct ancestors of the targeted Control node receive the event.</p>
+<p>In accordance with Godot's node-based design, this enables specialized child nodes to handle and consume particular events, while their ancestors, and ultimately the scene root, can provide more generalized behavior if needed.</p>
+<h2 id="anatomy-of-an-inputevent">Anatomy of an InputEvent</h2>
+<p>ref is just a base built-in type, it does not represent anything and only contains some basic information, such as event ID (which is increased for each event), device index, etc.</p>
+<p>There are several specialized types of InputEvent, described in the table below:</p>
+<table style="width:99%;">
+<colgroup>
+<col style="width: 51%" />
+<col style="width: 15%" />
+<col style="width: 31%" />
+</colgroup>
+<tbody>
+<tr class="odd">
+<td>Event</td>
+<td>Type Index</td>
+<td>Description</td>
+</tr>
+<tr class="even">
+<td colspan="3">ref | NONE | Empty Input Event. |</td>
+</tr>
+<tr class="odd">
+<td colspan="3"><dl>
+<dt>ref | KEY | Contains a scancode and Unicode value, |</dt>
+<dd>
+<p>                   | as well as modifiers.</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="even">
+<td colspan="3"><dl>
+<dt>ref | MOUSE_BUTTON | Contains click information, such as |</dt>
+<dd>
+<p>                   | button, modifiers, etc.</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="odd">
+<td colspan="3"><dl>
+<dt>ref | MOUSE_MOTION | Contains motion information, such as |</dt>
+<dd>
+<p>                   | relative, absolute positions and speed.</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="even">
+<td colspan="3"><dl>
+<dt>ref | JOYSTICK_MOTION | Contains Joystick/Joypad analog axis |</dt>
+<dd>
+<p>                   | information.</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="odd">
+<td colspan="3"><dl>
+<dt>ref | JOYSTICK_BUTTON | Contains Joystick/Joypad button |</dt>
+<dd>
+<p>                   | information.</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="even">
+<td colspan="3"><dl>
+<dt>ref | SCREEN_TOUCH | Contains multi-touch press/release |</dt>
+<dd>
+<p>                   | information. (only available on mobile<br />
+                   | devices)</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="odd">
+<td colspan="3"><dl>
+<dt>ref | SCREEN_DRAG | Contains multi-touch drag information. |</dt>
+<dd>
+<p>                   | (only available on mobile devices)</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="even">
+<td colspan="3"><dl>
+<dt>ref | SCREEN_ACTION | Contains a generic action. These events |</dt>
+<dd>
+<p>                   | are often generated by the programmer<br />
+                   | as feedback. (more on this below)</p>
+</dd>
+</dl></td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="actions">Actions</h2>
+<p>An InputEvent may or may not represent a pre-defined action. Actions are useful because they abstract the input device when programming the game logic. This allows for:</p>
+<ul>
+<li>The same code to work on different devices with different inputs (e.g., keyboard on PC, Joypad on console).</li>
+<li>Input to be reconfigured at run-time.</li>
+</ul>
+<p>Actions can be created from the Project Settings menu in the Actions tab.</p>
+<p>Any event has the methods ref, ref and ref.</p>
+<p>Alternatively, it may be desired to supply the game back with an action from the game code (a good example of this is detecting gestures). The Input singleton has a method for this: ref. You would normally use it like this:</p>
+<pre class="gdscript"><code>var ev = InputEventAction.new()
+# Set as move_left, pressed.
+ev.action = &quot;move_left&quot;
+ev.pressed = true
+# Feedback.
+Input.parse_input_event(ev)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> ev <span class="op">=</span> <span class="kw">new</span> <span class="fu">InputEventAction</span><span class="op">();</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Set as move_left, pressed.</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>ev<span class="op">.</span><span class="fu">SetAction</span><span class="op">(</span><span class="st">&quot;move_left&quot;</span><span class="op">);</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>ev<span class="op">.</span><span class="fu">SetPressed</span><span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">// Feedback.</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>Input<span class="op">.</span><span class="fu">ParseInputEvent</span><span class="op">(</span>ev<span class="op">);</span></span></code></pre></div>
+<h2 id="inputmap">InputMap</h2>
+<p>Customizing and re-mapping input from code is often desired. If your whole workflow depends on actions, the ref singleton is ideal for reassigning or creating different actions at run-time. This singleton is not saved (must be modified manually) and its state is run from the project settings (project.godot). So any dynamic system of this type needs to store settings in the way the programmer best sees fit.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

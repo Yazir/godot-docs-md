@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Making plugins — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="making-plugins">Making plugins</h1>
+<h2 id="about-plugins">About plugins</h2>
+<p>A plugin is a great way to extend the editor with useful tools. It can be made entirely with GDScript and standard scenes, without even reloading the editor. Unlike modules, you don't need to create C++ code nor recompile the engine. While this makes plugins less powerful, there are still many things you can do with them. Note that a plugin is similar to any scene you can already make, except it is created using a script to add editor functionality.</p>
+<p>This tutorial will guide you through the creation of two simple plugins so you can understand how they work and be able to develop your own. The first will be a custom node that you can add to any scene in the project and the other will be a custom dock added to the editor.</p>
+<h2 id="creating-a-plugin">Creating a plugin</h2>
+<p>Before starting, create a new empty project wherever you want. This will serve as a base to develop and test the plugins.</p>
+<p>The first thing you need for the editor to identify a new plugin is to create two files: a <code>plugin.cfg</code> for configuration and a tool script with the functionality. Plugins have a standard path like <code>addons/plugin_name</code> inside the project folder. Godot provides a dialog for generating those files and placing them where they need to be.</p>
+<p>In the main toolbar, click the <code>Project</code> dropdown. Then click <code>Project Settings...</code>. Go to the <code>Plugins</code> tab and then click on the <code>Create</code> button in the top-right.</p>
+<p>You will see the dialog appear, like so:</p>
+<p>The placeholder text in each field describes how it affects the plugin's creation of the files and the config file's values.</p>
+<p>To continue with the example, use the following values:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode ini"><code class="sourceCode ini"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">Plugin Name: My Custom Node</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="dt">Subfolder: my_custom_node</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="dt">Description: A custom node made to extend the Godot Engine.</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="dt">Author: Your Name Here</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="dt">Version: 1.0.0</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="dt">Language: GDScript</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="dt">Script Name: custom_node.gd</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="dt">Activate now: No</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode ini"><code class="sourceCode ini"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">Plugin Name: My Custom Node</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">Subfolder: my_custom_node</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">Description: A custom node made to extend the Godot Engine.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="dt">Author: Your Name Here</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="dt">Version: 1.0.0</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="dt">Language: C#</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="dt">Script Name: CustomNode.cs</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="dt">Activate now: No</span></span></code></pre></div>
+<blockquote>
+<p><strong>Warning:</strong> Unchecking the <code>Activate now?</code> option in C# is always required because, like every other C# script, the EditorPlugin script needs to be compiled which requires building the project. After building the project the plugin can be enabled in the <code>Plugins</code> tab of <code>Project Settings</code>.</p>
+</blockquote>
+<p>You should end up with a directory structure like this:</p>
+<p><code>plugin.cfg</code> is a simple INI file with metadata about your plugin. The name and description help people understand what it does. Your name helps you get properly credited for your work. The version number helps others know if they have an outdated version; if you are unsure on how to come up with the version number, check out <a href="https://semver.org/">Semantic Versioning</a>. The main script file will instruct Godot what your plugin does in the editor once it is active.</p>
+<h3 id="the-script-file">The script file</h3>
+<p>Upon creation of the plugin, the dialog will automatically open the EditorPlugin script for you. The script has two requirements that you cannot change: it must be a <code>tool</code> script, or else it will not load properly in the editor, and it must inherit from <code>class_EditorPlugin</code>.</p>
+<blockquote>
+<p><strong>Warning:</strong> In addition to the EditorPlugin script, any other script that your plugin uses must <em>also</em> be a tool. * Any GDScript without <code>tool</code> imported into the editor will act like an empty file! * Any C# class without <code>[Tool]</code> won't be reloaded when the project is built forcing you to re-enable the plugin!</p>
+</blockquote>
+<p>It's important to deal with initialization and clean-up of resources. A good practice is to use the virtual function ref to initialize your plugin and ref to clean it up. Thankfully, the dialog generates these callbacks for you. Your script should look something like this:</p>
+<pre class="gdscript"><code>tool
+extends EditorPlugin
+
+
+func _enter_tree():
+    # Initialization of the plugin goes here.
+    pass
+
+
+func _exit_tree():
+    # Clean-up of the plugin goes here.
+    pass</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">#if</span> TOOLS</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> CustomNode <span class="op">:</span> EditorPlugin</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_EnterTree</span><span class="op">()</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialization of the plugin goes here.</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_ExitTree</span><span class="op">()</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Clean-up of the plugin goes here.</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="kw">#endif</span></span></code></pre></div>
+<p>This is a good template to use when creating new plugins.</p>
+<h2 id="a-custom-node">A custom node</h2>
+<p>Sometimes you want a certain behavior in many nodes, such as a custom scene or control that can be reused. Instancing is helpful in a lot of cases, but sometimes it can be cumbersome, especially if you're using it in many projects. A good solution to this is to make a plugin that adds a node with a custom behavior.</p>
+<blockquote>
+<p><strong>Warning:</strong> Nodes added via an EditorPlugin are "CustomType" nodes. While they work with any scripting language, they have fewer features than ref. If you are writing GDScript or NativeScript, we recommend using Script Classes instead.</p>
+</blockquote>
+<p>To create a new node type, you can use the function ref from the <code>class_EditorPlugin</code> class. This function can add new types to the editor (nodes or resources). However, before you can create the type, you need a script that will act as the logic for the type. While that script doesn't have to use the <code>tool</code> keyword, it can be added so the script runs in the editor.</p>
+<p>For this tutorial, we'll create a simple button that prints a message when clicked. For that, we'll need a simple script that extends from <code>class_Button</code>. It could also extend <code>class_BaseButton</code> if you prefer:</p>
+<pre class="gdscript"><code>tool
+extends Button
+
+
+func _enter_tree():
+    connect(&quot;pressed&quot;, self, &quot;clicked&quot;)
+
+
+func clicked():
+    print(&quot;You clicked me!&quot;)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> MyButton <span class="op">:</span> Button</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_EnterTree</span><span class="op">()</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">Connect</span><span class="op">(</span><span class="st">&quot;pressed&quot;</span><span class="op">,</span> <span class="kw">this</span><span class="op">,</span> <span class="st">&quot;clicked&quot;</span><span class="op">);</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">clicked</span><span class="op">()</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;You clicked me!&quot;</span><span class="op">);</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>That's it for our basic button. You can save this as <code>my_button.gd</code> inside the plugin folder. You'll also need a 16×16 icon to show in the scene tree. If you don't have one, you can grab the default one from the engine and save it in your addons/my_custom_node folder as icon.png, or use the default Godot logo (preload("res://icon.png")). You can also use SVG icons if desired.</p>
+<p>Now, we need to add it as a custom type so it shows on the <strong>Create New Node</strong> dialog. For that, change the <code>custom_node.gd</code> script to the following:</p>
+<pre class="gdscript"><code>tool
+extends EditorPlugin
+
+
+func _enter_tree():
+    # Initialization of the plugin goes here.
+    # Add the new type with a name, a parent type, a script and an icon.
+    add_custom_type(&quot;MyButton&quot;, &quot;Button&quot;, preload(&quot;my_button.gd&quot;), preload(&quot;icon.png&quot;))
+
+
+func _exit_tree():
+    # Clean-up of the plugin goes here.
+    # Always remember to remove it from the engine when deactivated.
+    remove_custom_type(&quot;MyButton&quot;)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">#if</span> TOOLS</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> CustomNode <span class="op">:</span> EditorPlugin</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_EnterTree</span><span class="op">()</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialization of the plugin goes here.</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Add the new type with a name, a parent type, a script and an icon.</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> script <span class="op">=</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Script<span class="op">&gt;(</span><span class="st">&quot;MyButton.cs&quot;</span><span class="op">);</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> texture <span class="op">=</span> GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Texture<span class="op">&gt;(</span><span class="st">&quot;icon.png&quot;</span><span class="op">);</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">AddCustomType</span><span class="op">(</span><span class="st">&quot;MyButton&quot;</span><span class="op">,</span> <span class="st">&quot;Button&quot;</span><span class="op">,</span> script<span class="op">,</span> texture<span class="op">);</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_ExitTree</span><span class="op">()</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Clean-up of the plugin goes here.</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Always remember to remove it from the engine when deactivated.</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">RemoveCustomType</span><span class="op">(</span><span class="st">&quot;MyButton&quot;</span><span class="op">);</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a><span class="kw">#endif</span></span></code></pre></div>
+<p>With that done, the plugin should already be available in the plugin list in the <strong>Project Settings</strong>, so activate it as explained in <a href="#checking-the-results">Checking the results</a>.</p>
+<p>Then try it out by adding your new node:</p>
+<p>When you add the node, you can see that it already has the script you created attached to it. Set a text to the button, save and run the scene. When you click the button, you can see some text in the console:</p>
+<h3 id="a-custom-dock">A custom dock</h3>
+<p>Sometimes, you need to extend the editor and add tools that are always available. An easy way to do it is to add a new dock with a plugin. Docks are just scenes based on Control, so they are created in a way similar to usual GUI scenes.</p>
+<p>Creating a custom dock is done just like a custom node. Create a new <code>plugin.cfg</code> file in the <code>addons/my_custom_dock</code> folder, then add the following content to it:</p>
+<pre class="gdscript"><code>[plugin]
+
+name=&quot;My Custom Dock&quot;
+description=&quot;A custom dock made so I can learn how to make plugins.&quot;
+author=&quot;Your Name Here&quot;
+version=&quot;1.0&quot;
+script=&quot;custom_dock.gd&quot;</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>plugin<span class="op">]</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>name<span class="op">=</span><span class="st">&quot;My Custom Dock&quot;</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>description<span class="op">=</span><span class="st">&quot;A custom dock made so I can learn how to make plugins.&quot;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>author<span class="op">=</span><span class="st">&quot;Your Name Here&quot;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>version<span class="op">=</span><span class="st">&quot;1.0&quot;</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>script<span class="op">=</span><span class="st">&quot;CustomDock.cs&quot;</span></span></code></pre></div>
+<p>Then create the script <code>custom_dock.gd</code> in the same folder. Fill it with the ref to get a good start.</p>
+<p>Since we're trying to add a new custom dock, we need to create the contents of the dock. This is nothing more than a standard Godot scene: just create a new scene in the editor then edit it.</p>
+<p>For an editor dock, the root node <strong>must</strong> be a ref or one of its child classes. For this tutorial, you can create a single button. The name of the root node will also be the name that appears on the dock tab, so be sure to give it a short and descriptive name. Also, don't forget to add some text to your button.</p>
+<p>Save this scene as <code>my_dock.tscn</code>. Now, we need to grab the scene we created then add it as a dock in the editor. For this, you can rely on the function ref from the ref class.</p>
+<p>You need to select a dock position and define the control to add (which is the scene you just created). Don't forget to <strong>remove the dock</strong> when the plugin is deactivated. The script could look like this:</p>
+<pre class="gdscript"><code>tool
+extends EditorPlugin
+
+
+# A class member to hold the dock during the plugin life cycle.
+var dock
+
+
+func _enter_tree():
+    # Initialization of the plugin goes here.
+    # Load the dock scene and instance it.
+    dock = preload(&quot;res://addons/my_custom_dock/my_dock.tscn&quot;).instance()
+
+    # Add the loaded scene to the docks.
+    add_control_to_dock(DOCK_SLOT_LEFT_UL, dock)
+    # Note that LEFT_UL means the left of the editor, upper-left dock.
+
+
+func _exit_tree():
+    # Clean-up of the plugin goes here.
+    # Remove the dock.
+    remove_control_from_docks(dock)
+    # Erase the control from the memory.
+    dock.free()</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">#if</span> TOOLS</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> System<span class="op">;</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> CustomDock <span class="op">:</span> EditorPlugin</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    Control dock<span class="op">;</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_EnterTree</span><span class="op">()</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        dock <span class="op">=</span> <span class="op">(</span>Control<span class="op">)</span>GD<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>PackedScene<span class="op">&gt;(</span><span class="st">&quot;addons/my_custom_dock/my_dock.tscn&quot;</span><span class="op">).</span><span class="fu">Instance</span><span class="op">();</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">AddControlToDock</span><span class="op">(</span>DockSlot<span class="op">.</span><span class="fu">LeftUl</span><span class="op">,</span> dock<span class="op">);</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_ExitTree</span><span class="op">()</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Clean-up of the plugin goes here.</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Remove the dock.</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        <span class="fu">RemoveControlFromDocks</span><span class="op">(</span>dock<span class="op">);</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Erase the control from the memory.</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>        dock<span class="op">.</span><span class="fu">Free</span><span class="op">();</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a><span class="kw">#endif</span></span></code></pre></div>
+<p>Note that, while the dock will initially appear at its specified position, the user can freely change its position and save the resulting layout.</p>
+<h3 id="checking-the-results">Checking the results</h3>
+<p>It's now time to check the results of your work. Open the <strong>Project Settings</strong> and click on the <strong>Plugins</strong> tab. Your plugin should be the only one on the list. If it is not showing, click on the <strong>Update</strong> button in the top-right corner.</p>
+<p>You can see the plugin is inactive on the <strong>Status</strong> column; click on the status to select <strong>Active</strong>. The dock should become visible before you even close the settings window. You should now have a custom dock:</p>
+<h2 id="going-beyond">Going beyond</h2>
+<p>Now that you've learned how to make basic plugins, you can extend the editor in several ways. Lots of functionality can be added to the editor with GDScript; it is a powerful way to create specialized editors without having to delve into C++ modules.</p>
+<p>You can make your own plugins to help yourself and share them in the <a href="https://godotengine.org/asset-library/">Asset Library</a> so that people can benefit from your work.</p>
+<h2 id="registering-autoloadssingletons-in-plugins">Registering autoloads/singletons in plugins</h2>
+<p>It is possible for editor plugins to automatically register ref when the plugin is enabled. This also includes unregistering the autoload when the plugin is disabled.</p>
+<p>This makes setting up plugins faster for users, as they no longer have to manually add autoloads to their project settings if your editor plugin requires the use of an autoload.</p>
+<p>Use the following code to register a singleton from an editor plugin:</p>
+<pre><code>tool
+extends EditorPlugin
+
+# Replace this value with a PascalCase autoload name, as per the GDScript style guide.
+const AUTOLOAD_NAME = &quot;SomeAutoload&quot;
+
+func _enter_tree():
+    # The autoload can be a scene or script file.
+    add_autoload_singleton(AUTOLOAD_NAME, &quot;res://addons/my_addon/some_autoload.tscn&quot;)
+
+func _exit_tree():
+    remove_autoload_singleton(AUTOLOAD_NAME)</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

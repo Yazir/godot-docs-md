@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D text — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="3d-text">3D text</h1>
+<h2 id="introduction">Introduction</h2>
+<p>In a project, there may be times when text needs to be created as part of a 3D scene and not just in the HUD. Godot provides 2 methods to do this: the Label3D node and the TextMesh <em>resource</em> for a MeshInstance3D node.</p>
+<p>Additionally, Godot makes it possible to position Control nodes according to a 3D point's position on the camera. This can be used as an alternative to "true" 3D text in situations where Label3D and TextMesh aren't flexible enough.</p>
+<blockquote>
+<p><strong>See also:</strong> You can see 3D text in action using the <a href="https://github.com/godotengine/godot-demo-projects/tree/master/3d/labels_and_texts">3D Labels and Texts demo project</a>.</p>
+<p>This page does <strong>not</strong> cover how to display a GUI scene within a 3D environment. For information on how to achieve that, see the <a href="https://github.com/godotengine/godot-demo-projects/tree/master/viewport/gui_in_3d">GUI in 3D</a> demo project.</p>
+</blockquote>
+<h2 id="label3d">Label3D</h2>
+<p>Label3D behaves like a Label node, but in 3D space. Unlike the Label node, this Label3D node does <strong>not</strong> inherit properties of a GUI theme. However, its look remains customizable and uses the same font subresource as Control nodes (including support for <code>MSDF (Multi-channel Signed Distance Font)</code> font rendering).</p>
+<h3 id="advantages">Advantages</h3>
+<ul>
+<li>Label3D is faster to generate than TextMesh. While both use a caching mechanism to only render new glyphs once, Label3D will still be faster to (re)generate, especially for long text. This can avoid stuttering during gameplay on low-end CPUs or mobile.</li>
+<li>Label3D can use bitmap fonts and dynamic fonts (with and without <code>MSDF (Multi-channel Signed Distance Font)</code> or mipmaps). This makes it more flexible on that aspect compared to TextMesh, especially for rendering fonts with self-intersecting outlines or colored fonts (emoji).</li>
+</ul>
+<blockquote>
+<p><strong>See also:</strong> See <code>doc_gui_using_fonts</code> for guidelines on configuring font imports.</p>
+</blockquote>
+<h3 id="limitations">Limitations</h3>
+<p>By default, Label3D has limited interaction with a 3D environment. It can be occluded by geometry and lit by light sources if the <strong>Shaded</strong> flag is enabled. However, it will not cast shadows even if <strong>Cast Shadow</strong> is set to <strong>On</strong> in the Label3D's GeometryInstance3D properties. This is because the node internally generates a quad mesh (one glyph per quad) with transparent textures and has the same limitations as Sprite3D. Transparency sorting issues can also become apparent when several Label3Ds overlap, especially if they have outlines.</p>
+<p>This can be mitigated by setting the Label3D's transparency mode to <strong>Alpha Cut</strong>, at the cost of less smooth text rendering. The <strong>Opaque Pre-Pass</strong> transparency mode can preserve text smoothness while allowing the Label3D to cast shadows, but some transparency sorting issues will remain.</p>
+<p>See ref section in the 3D rendering limitations page for more information.</p>
+<p>Text rendering quality can also suffer when the Label3D is viewed at a distance. To improve text rendering quality, ref or ref.</p>
+<h2 id="textmesh">TextMesh</h2>
+<p>The TextMesh resource has similarities to Label3D. They both display text in a 3D scene, and will use the same font subresource. However, instead of generating transparent quads, TextMesh generates 3D geometry that represents the glyphs' contours and has the properties of a mesh. As a result, a TextMesh is shaded by default and automatically casts shadows onto the environment. A TextMesh can also have a material applied to it (including custom shaders).</p>
+<p>Here is an example of a texture and how it's applied to the mesh. You can use the texture below as a reference for the generated mesh's UV map:</p>
+<h3 id="advantages-1">Advantages</h3>
+<p>TextMesh has a few advantages over Label3D:</p>
+<ul>
+<li>TextMesh can use a texture to modify text color on a per-side basis.</li>
+<li>TextMesh geometry can have actual depth to it, giving glyphs a 3D look.</li>
+<li>TextMesh can use custom shaders, unlike Label3D.</li>
+</ul>
+<h3 id="limitations-1">Limitations</h3>
+<p>There are some limitations to TextMesh:</p>
+<ul>
+<li>No built-in outline support, unlike Label3D. This can be simulated using custom shaders though.</li>
+<li>Only dynamic fonts are supported (<code>.ttf</code>, <code>.otf</code>, <code>.woff</code>, <code>.woff2</code>). Bitmap fonts in the <code>.fnt</code> or <code>.font</code> formats are <strong>not</strong> supported.</li>
+<li>Fonts with self-intersecting outlines will not render correctly. If you notice rendering issues on fonts downloaded from websites such as Google Fonts, try downloading the font from the font author's official website instead.</li>
+<li>Antialiasing the text rendering requires a full-scene antialiasing method to be enabled such as MSAA, FXAA and temporal antialiasing (TAA). If no antialiasing method is enabled, text will appear grainy, especially at a distance. See <code>doc_3d_antialiasing</code> for more information.</li>
+</ul>
+<h2 id="projected-label-node-or-any-other-control">Projected Label node (or any other Control)</h2>
+<p>There is a last solution that is more complex to set up, but provides the most flexibility: projecting a 2D node onto 3D space. This can be achieved using the return value of ref method on a Camera3D node in a script's <code>_process()</code> function. This return value should then be used to set the <code>position</code> property of a Control node.</p>
+<p>See the <a href="https://github.com/godotengine/godot-demo-projects/tree/master/3d/waypoints">3D waypoints</a> demo for an example of this.</p>
+<h3 id="advantages-2">Advantages</h3>
+<ul>
+<li>Any Control node can be used, including Label, RichTextLabel or even nodes such as Button. This allows for powerful formatting and GUI interaction.</li>
+<li>The script-based approach allows for complete freedom in positioning. For example, this makes it considerably easier to pin Controls to the screen's edges when they go off-screen (for in-game 3D markers).</li>
+<li>Control theming is obeyed. This allows for easier customization that globally applies to the project.</li>
+</ul>
+<h3 id="limitations-2">Limitations</h3>
+<ul>
+<li>Projected Controls cannot be occluded by 3D geometry in any way. You can use a RayCast to fully hide the control if its target position is occluded by a collider, but this doesn't allow for partially hiding the control behind a wall.</li>
+<li>Changing text size depending on distance by adjusting the Control's <code>scale</code> property is possible, but it needs to be done manually. Label3D and TextMesh automatically take care of this, at the cost of less flexibility (can't set a minimum/maximum text size in pixels).</li>
+<li>Handling resolution and aspect ratio changes must be taken into account in the script, which can be challenging.</li>
+</ul>
+<h2 id="should-i-use-label3d-textmesh-or-a-projected-control">Should I use Label3D, TextMesh or a projected Control?</h2>
+<p>In most scenarios, Label3D is recommended as it's easier to set up and provides higher rendering quality (especially if 3D antialiasing is disabled).</p>
+<p>For advanced use cases, TextMesh is more flexible as it allows styling the text with custom shaders. Custom shaders allow for modifying the final geometry, such as curving the text along a surface. Since the text is actual 3D geometry, the text can optionally have depth to it and can also contribute to global illumination.</p>
+<p>If you need features such as BBCode or Control theming support, then using a projected RichTextLabel node is the only way to go.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

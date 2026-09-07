@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CullInstance — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="cullinstance">CullInstance</h1>
+<p><em>Inherits: <a href="Spatial.html">Spatial</a> &lt; <a href="Node.html">Node</a> &lt; <a href="Object.html">Object</a></em></p>
+<p><em>Implemented by: <a href="VisibilityNotifier.html">VisibilityNotifier</a>, <a href="VisualInstance.html">VisualInstance</a></em></p>
+<p>Parent of all nodes that can be culled by the Portal system.</p>
+<h2 id="description">Description</h2>
+<p>Provides common functionality to nodes that can be culled by the <a href="Portal.html">Portal</a> system.</p>
+<p><code>Static</code> and <code>Dynamic</code> objects are the most efficiently managed objects in the system, but there are some caveats. They are expected to be present initially when <a href="Room.html">Room</a> s are converted using the <a href="RoomManager.html">RoomManager</a> <code>rooms_convert</code> function, and their lifetime should be the same as the game level (i.e. present until you call <code>rooms_clear</code> on the <a href="RoomManager.html">RoomManager</a>. Although you shouldn't create / delete these objects during gameplay, you can manage their visibility with the standard <code>hide</code> and <code>show</code> commands.</p>
+<p><code>Roaming</code> objects on the other hand, require extra processing to keep track of which <a href="Room.html">Room</a> they are within. This enables them to be culled effectively, wherever they are.</p>
+<p><code>Global</code> objects are not culled by the portal system, and use view frustum culling only.</p>
+<p>Objects that are not <code>Static</code> or <code>Dynamic</code> can be freely created and deleted during the lifetime of the game level.</p>
+<h2 id="properties">Properties</h2>
+<h3 id="bool-allow_merging--true"><code>bool allow_merging = true</code></h3>
+<ul>
+<li>Setter: <code>set_allow_merging(value: bool)</code></li>
+<li>Getter: <code>get_allow_merging()</code></li>
+</ul>
+<p>This allows fine control over the mesh merging feature in the <a href="RoomManager.html">RoomManager</a>.</p>
+<p>Setting this option to <code>false</code> can be used to prevent an instance being merged. When set to <code>true</code> (the default), merging will be determined by <code>Spatial.merging_mode</code>.</p>
+<p><em>Deprecated.</em> This property has been deprecated and is only included for backward compatibility. Please use <code>Spatial.merging_mode</code> instead.</p>
+<h3 id="int-autoplace_priority--0"><code>int autoplace_priority = 0</code></h3>
+<ul>
+<li>Setter: <code>set_portal_autoplace_priority(value: int)</code></li>
+<li>Getter: <code>get_portal_autoplace_priority()</code></li>
+</ul>
+<p>When set to <code>0</code>, <strong>CullInstance</strong> s will be autoplaced in the <a href="Room.html">Room</a> with the highest priority.</p>
+<p>When set to a value other than <code>0</code>, the system will attempt to autoplace in a <a href="Room.html">Room</a> with the <code>autoplace_priority</code>, if it is present.</p>
+<p>This can be used to control autoplacement of building exteriors in an outer <a href="RoomGroup.html">RoomGroup</a>.</p>
+<h3 id="bool-include_in_bound--true"><code>bool include_in_bound = true</code></h3>
+<ul>
+<li>Setter: <code>set_include_in_bound(value: bool)</code></li>
+<li>Getter: <code>get_include_in_bound()</code></li>
+</ul>
+<p>When a manual bound has not been explicitly specified for a <a href="Room.html">Room</a>, the convex hull bound will be estimated from the geometry of the objects within the room. This setting determines whether the geometry of an object is included in this estimate of the room bound.</p>
+<p><strong>Note:</strong> This setting is only relevant when the object is set to <code>PORTAL_MODE_STATIC</code> or <code>PORTAL_MODE_DYNAMIC</code>, and for <a href="Portal.html">Portal</a> s.</p>
+<h3 id="portalmode-portal_mode--0">``PortalMode<code> portal_mode = 0</code></h3>
+<ul>
+<li>Setter: <code>set_portal_mode(value: </code>PortalMode<code>)</code></li>
+<li>Getter: <code>get_portal_mode()</code></li>
+</ul>
+<p>When using <a href="Room.html">Room</a> s and <a href="Portal.html">Portal</a> s, this specifies how the <strong>CullInstance</strong> is processed in the system.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-portalmode"><code>enum PortalMode</code></h3>
+<ul>
+<li><p><code>PORTAL_MODE_STATIC = 0</code></p>
+<p>Use for instances within <a href="Room.html">Room</a> s that will <strong>not move</strong> - e.g. walls, floors.</p>
+<p><strong>Note:</strong> If you attempt to delete a <code>PORTAL_MODE_STATIC</code> instance while the room graph is loaded (converted), it will unload the room graph and deactivate portal culling. This is because the <strong>room graph</strong> data has been invalidated. You will need to reconvert the rooms using the <a href="RoomManager.html">RoomManager</a> to activate the system again.</p></li>
+<li><p><code>PORTAL_MODE_DYNAMIC = 1</code></p>
+<p>Use for instances within rooms that will move but <strong>not change room</strong> - e.g. moving platforms.</p>
+<p><strong>Note:</strong> If you attempt to delete a <code>PORTAL_MODE_DYNAMIC</code> instance while the room graph is loaded (converted), it will unload the room graph and deactivate portal culling. This is because the <strong>room graph</strong> data has been invalidated. You will need to reconvert the rooms using the <a href="RoomManager.html">RoomManager</a> to activate the system again.</p></li>
+<li><p><code>PORTAL_MODE_ROAMING = 2</code></p>
+<p>Use for instances that will move <strong>between</strong> <a href="Room.html">Room</a> s - e.g. players.</p></li>
+<li><p><code>PORTAL_MODE_GLOBAL = 3</code></p>
+<p>Use for instances that will be frustum culled only - e.g. first person weapon, debug.</p></li>
+<li><p><code>PORTAL_MODE_IGNORE = 4</code></p>
+<p>Use for instances that will not be shown at all - e.g. <strong>manual room bounds</strong> (specified by prefix <em>'Bound_'</em>).</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

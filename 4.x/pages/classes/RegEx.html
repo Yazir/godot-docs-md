@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RegEx — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="regex">RegEx</h1>
+<p><em>Inherits: <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Class for searching text for patterns using regular expressions.</p>
+<h2 id="description">Description</h2>
+<p>A regular expression (or regex) is a compact language that can be used to recognize strings that follow a specific pattern, such as URLs, email addresses, complete sentences, etc. For example, a regex of <code>ab[0-9]</code> would find any string that is <code>ab</code> followed by any number from <code>0</code> to <code>9</code>. For a more in-depth look, you can easily find various tutorials and detailed explanations on the Internet.</p>
+<p>To begin, the RegEx object needs to be compiled with the search pattern using <code>compile()</code> before it can be used. Alternatively, the static method <code>create_from_string()</code> can be used to create and compile a RegEx object in a single method call.</p>
+<pre class="gdscript"><code>var regex = RegEx.new()
+regex.compile(&quot;\\w-(\\d+)&quot;)
+# Shorthand to create and compile a regex (used in the examples below):
+var regex2 = RegEx.create_from_string(&quot;\\w-(\\d+)&quot;)</code></pre>
+<p>The search pattern must be escaped first for GDScript before it is escaped for the expression. For example, <code>compile("\\d+")</code> would be read by RegEx as <code>\d+</code>. Similarly, <code>compile("\"(?:\\\\.|[^\"])*\"")</code> would be read as <code>"(?:\\.|[^"])*"</code>. In GDScript, you can also use raw string literals (r-strings). For example, <code>compile(r'"(?:\\.|[^"])*"')</code> would be read the same.</p>
+<p>Using <code>search()</code>, you can find the pattern within the given text. If a pattern is found, <a href="RegExMatch.html">RegExMatch</a> is returned and you can retrieve details of the results using methods such as <code>RegExMatch.get_string()</code> and <code>RegExMatch.get_start()</code>.</p>
+<pre class="gdscript"><code>var regex = RegEx.create_from_string(&quot;\\w-(\\d+)&quot;)
+var result = regex.search(&quot;abc n-0123&quot;)
+if result:
+    print(result.get_string()) # Prints &quot;n-0123&quot;</code></pre>
+<p>The results of capturing groups <code>()</code> can be retrieved by passing the group number to the various methods in <a href="RegExMatch.html">RegExMatch</a>. Group 0 is the default and will always refer to the entire pattern. In the above example, calling <code>result.get_string(1)</code> would give you <code>0123</code>.</p>
+<p>This version of RegEx also supports named capturing groups, and the names can be used to retrieve the results. If two or more groups have the same name, the name would only refer to the first one with a match.</p>
+<pre class="gdscript"><code>var regex = RegEx.create_from_string(&quot;d(?&lt;digit&gt;[0-9]+)|x(?&lt;digit&gt;[0-9a-f]+)&quot;)
+var result = regex.search(&quot;the number is x2f&quot;)
+if result:
+    print(result.get_string(&quot;digit&quot;)) # Prints &quot;2f&quot;</code></pre>
+<p>If you need to process multiple results, <code>search_all()</code> generates a list of all non-overlapping results. This can be combined with a <code>for</code> loop for convenience.</p>
+<pre class="gdscript"><code># Prints &quot;01 03 0 3f 42&quot;
+for result in regex.search_all(&quot;d01, d03, d0c, x3f and x42&quot;):
+    print(result.get_string(&quot;digit&quot;))</code></pre>
+<p><strong>Example:</strong> Split a string using a RegEx:</p>
+<pre class="gdscript"><code>var regex = RegEx.create_from_string(&quot;\\S+&quot;) # Negated whitespace character class.
+var results = []
+for result in regex.search_all(&quot;One  Two \n\tThree&quot;):
+    results.push_back(result.get_string())
+print(results) # Prints [&quot;One&quot;, &quot;Two&quot;, &quot;Three&quot;]</code></pre>
+<p><strong>Note:</strong> Godot's regex implementation is based on the <a href="https://www.pcre.org/">PCRE2</a> library. You can view the full pattern reference <a href="https://www.pcre.org/current/doc/html/pcre2pattern.html">here</a>.</p>
+<p><strong>Tip:</strong> You can use <a href="https://regexr.com/">Regexr</a> to test regular expressions online.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-clear"><code>void clear()</code></h3>
+<p>This method resets the state of the object, as if it was freshly created. Namely, it unassigns the regular expression of this object.</p>
+<h3 id="globalscopeerror-compilepattern-string-show_error-bool--true">``@GlobalScope.Error<code> compile(pattern: String, show_error: bool = true)</code></h3>
+<p>Compiles and assign the search pattern to use. Returns <code>@GlobalScope.OK</code> if the compilation is successful. If compilation fails, returns <code>@GlobalScope.FAILED</code> and when <code>show_error</code> is <code>true</code>, details are printed to standard output.</p>
+<h3 id="regex-create_from_stringpattern-string-show_error-bool--true-static"><code>RegEx create_from_string(pattern: String, show_error: bool = true) static</code></h3>
+<p>Creates and compiles a new <strong>RegEx</strong> object. See also <code>compile()</code>.</p>
+<h3 id="int-get_group_count-const"><code>int get_group_count() const</code></h3>
+<p>Returns the number of capturing groups in compiled pattern.</p>
+<h3 id="packedstringarray-get_names-const"><code>PackedStringArray get_names() const</code></h3>
+<p>Returns an array of names of named capturing groups in the compiled pattern. They are ordered by appearance.</p>
+<h3 id="string-get_pattern-const"><code>String get_pattern() const</code></h3>
+<p>Returns the original search pattern that was compiled.</p>
+<h3 id="bool-is_valid-const"><code>bool is_valid() const</code></h3>
+<p>Returns whether this object has a valid search pattern assigned.</p>
+<h3 id="regexmatch-searchsubject-string-offset-int--0-end-int---1-const"><code>RegExMatch search(subject: String, offset: int = 0, end: int = -1) const</code></h3>
+<p>Searches the text for the compiled pattern. Returns a <a href="RegExMatch.html">RegExMatch</a> container of the first matching result if found, otherwise <code>null</code>.</p>
+<p>The region to search within can be specified with <code>offset</code> and <code>end</code>. This is useful when searching for another match in the same <code>subject</code> by calling this method again after a previous success. Note that setting these parameters differs from passing over a shortened string. For example, the start anchor <code>^</code> is not affected by <code>offset</code>, and the character before <code>offset</code> will be checked for the word boundary <code>\b</code>.</p>
+<h3 id="arrayregexmatch-search_allsubject-string-offset-int--0-end-int---1-const"><code>Array\[RegExMatch\] search_all(subject: String, offset: int = 0, end: int = -1) const</code></h3>
+<p>Searches the text for the compiled pattern. Returns an array of <a href="RegExMatch.html">RegExMatch</a> containers for each non-overlapping result. If no results were found, an empty array is returned instead.</p>
+<p>The region to search within can be specified with <code>offset</code> and <code>end</code>. This is useful when searching for another match in the same <code>subject</code> by calling this method again after a previous success. Note that setting these parameters differs from passing over a shortened string. For example, the start anchor <code>^</code> is not affected by <code>offset</code>, and the character before <code>offset</code> will be checked for the word boundary <code>\b</code>.</p>
+<h3 id="string-subsubject-string-replacement-string-all-bool--false-offset-int--0-end-int---1-const"><code>String sub(subject: String, replacement: String, all: bool = false, offset: int = 0, end: int = -1) const</code></h3>
+<p>Searches the text for the compiled pattern and replaces it with the specified string. Escapes and backreferences such as <code>$1</code> and <code>$name</code> are expanded and resolved. By default, only the first instance is replaced, but it can be changed for all instances (global replacement).</p>
+<p>The region to search within can be specified with <code>offset</code> and <code>end</code>. This is useful when searching for another match in the same <code>subject</code> by calling this method again after a previous success. Note that setting these parameters differs from passing over a shortened string. For example, the start anchor <code>^</code> is not affected by <code>offset</code>, and the character before <code>offset</code> will be checked for the word boundary <code>\b</code>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advanced physics interpolation — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="advanced-physics-interpolation">Advanced physics interpolation</h1>
+<p>Although the previous instructions will give satisfactory results in a lot of games, in some cases you will want to go a stage further to get the best possible results and the smoothest possible experience.</p>
+<h2 id="exceptions-to-automatic-physics-interpolation">Exceptions to automatic physics interpolation</h2>
+<p>Even with physics interpolation active, there may be some local situations where you would benefit from disabling automatic interpolation for a ref (or branch of the ref), and have the finer control of performing interpolation manually.</p>
+<p>This is possible using the ref property which is present in all Nodes. If you for example, turn off interpolation for a Node, the children will recursively also be affected (as they default to inheriting the parent setting). This means you can easily disable interpolation for an entire subscene.</p>
+<p>The most common situation where you may want to perform your own interpolation is Cameras.</p>
+<h2 id="cameras">Cameras</h2>
+<p>In many cases, a ref can use automatic interpolation just like any other node. However, for best results, especially at low physics tick rates, it is recommended that you take a manual approach to Camera interpolation.</p>
+<p>This is because viewers are very sensitive to Camera movement. For instance, a Camera that realigns slightly every 1/10th of a second (at 10tps tick rate) will often be noticeable. You can get a much smoother result by moving the Camera each frame in <code>_process</code>, and following an interpolated target manually.</p>
+<h2 id="manual-camera-interpolation">Manual Camera interpolation</h2>
+<p><strong>Ensure the Camera is using global coordinate space</strong></p>
+<p>The very first step when performing manual Camera interpolation is to make sure the Camera transform is specified in <em>global space</em> rather than inheriting the transform of a moving parent. This is because feedback can occur between the movement of a parent node of a Camera and the movement of the Camera Node itself, which can mess up the interpolation.</p>
+<p>There are two ways of doing this:</p>
+<ol type="1">
+<li>Move the Camera so it is independent on its own branch, rather than being a child of a moving object.</li>
+<li>Call ref and set this to <code>true</code>, which will make the Camera ignore the transform of its parent.</li>
+</ol>
+<h2 id="typical-example">Typical example</h2>
+<p>A typical example of a custom approach is to use the <code>look_at</code> function in the Camera every frame in <code>_process()</code> to look at a target node (such as the player).</p>
+<p>But there is a problem. If we use the traditional <code>get_global_transform()</code> on a Camera "target" Node, this transform will only focus the Camera on the target <em>at the current physics tick</em>. This is <em>not</em> what we want, as the Camera will jump about on each physics tick as the target moves. Even though the Camera may be updated each frame, this does not help give smooth motion if the <em>target</em> is only changing each physics tick.</p>
+<h2 id="get_global_transform_interpolated">get_global_transform_interpolated()</h2>
+<p>What we really want to focus the Camera on, is not the position of the target on the physics tick, but the <em>interpolated</em> position, i.e. the position at which the target will be rendered.</p>
+<p>We can do this using the ref function. This acts exactly like getting ref but it gives you the <em>interpolated</em> transform (during a <code>_process()</code> call).</p>
+<blockquote>
+<p><strong>Important:</strong> <code>get_global_transform_interpolated()</code> should only be used once or twice for special cases such as Cameras. It should <strong>not</strong> be used all over the place in your code (both for performance reasons, and to give correct gameplay).</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> Aside from exceptions like the Camera, in most cases, your game logic should be in <code>_physics_process()</code>. In game logic you should be calling <code>get_global_transform()</code> or <code>get_transform()</code>, which will give the current physics transform (in global or local space respectively), which is usually what you will want for gameplay code.</p>
+</blockquote>
+<h2 id="example-manual-camera-script">Example manual Camera script</h2>
+<p>Here is an example of a simple fixed Camera which follows an interpolated target:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>extends Camera</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Node that the camera will follow</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>var _target</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># We will smoothly lerp to follow the target</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># rather than follow exactly</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>var _target_pos : Vector3 <span class="op">=</span> Vector3()</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>func _ready() <span class="op">-&gt;</span> void:</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Find the target node</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    _target <span class="op">=</span> get_node(<span class="st">&quot;../Player&quot;</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Turn off automatic physics interpolation for the Camera,</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># we will be doing this manually</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    set_physics_interpolation_mode(Node.PHYSICS_INTERPOLATION_MODE_OFF)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>func _process(delta: <span class="bu">float</span>) <span class="op">-&gt;</span> void:</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Find the current interpolated transform of the target</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    var tr : Transform <span class="op">=</span> _target.get_global_transform_interpolated()</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Provide some delayed smoothed lerping towards the target position</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    _target_pos <span class="op">=</span> lerp(_target_pos, tr.origin, <span class="bu">min</span>(delta, <span class="fl">1.0</span>))</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Fixed camera position, but it will follow the target</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    look_at(_target_pos, Vector3(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>))</span></code></pre></div>
+<h2 id="mouse-look">Mouse look</h2>
+<p>Mouse look is a very common way of controlling Cameras. But there is a problem. Unlike keyboard input which can be sampled periodically on the physics tick, mouse move events can come in continuously. The Camera will be expected to react and follow these mouse movements on the next frame, rather than waiting until the next physics tick.</p>
+<p>In this situation, it can be better to disable physics interpolation for the Camera node (using ref) and directly apply the mouse input to the Camera rotation, rather than apply it in <code>_physics_process</code>.</p>
+<p>Sometimes, especially with Cameras, you will want to use a combination of interpolation and non-interpolation:</p>
+<ul>
+<li>A first person camera may position the camera at a player location (perhaps using ref), but control the Camera rotation from mouse look <em>without</em> interpolation.</li>
+<li>A third person camera may similarly determine the look at (target location) of the camera using ref, but position the camera using mouse look <em>without</em> interpolation.</li>
+</ul>
+<p>There are many permutations and variations of Camera types, but it should be clear that in many cases, disabling automatic physics interpolation and handling this yourself can give a better result.</p>
+<h2 id="disabling-interpolation-on-other-nodes">Disabling interpolation on other nodes</h2>
+<p>Although Cameras are the most common example, there are a number of cases when you may wish other nodes to control their own interpolation, or be non-interpolated. Consider for example, a player in a top view game whose rotation is controlled by mouse look. Disabling physics rotation allows the player rotation to match the mouse in real-time.</p>
+<h2 id="multimeshes">MultiMeshes</h2>
+<p>Although most visual Nodes follow the single Node single visual instance paradigm, MultiMeshes can control several instances from the same Node. Therefore, they have some extra functions for controlling interpolation functionality on a <em>per-instance</em> basis. You should explore these functions if you are using interpolated MultiMeshes.</p>
+<ul>
+<li>ref</li>
+<li>ref</li>
+</ul>
+<p>Full details are in the ref documentation.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2D coordinate systems and 2D transforms — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="2d-coordinate-systems-and-2d-transforms">2D coordinate systems and 2D transforms</h1>
+<h2 id="introduction">Introduction</h2>
+<p>This is a detailed overview of the available 2D coordinate systems and 2D transforms that are built in. The basic concepts are covered in <code>doc_viewport_and_canvas_transforms</code>.</p>
+<p>ref are matrices that convert coordinates from one coordinate system to another. In order to use them, it is beneficial to know which coordinate systems are available in Godot. For a deeper understanding, the <code>doc_matrices_and_transforms</code> tutorial offers insights to the underlying functionality.</p>
+<h2 id="godot-2d-coordinate-systems">Godot 2D coordinate systems</h2>
+<p>The following graphic gives an overview of Godot 2D coordinate systems and the available node-transforms, transform-functions and coordinate-system related functions. At the left is the OS Window Manager screen, at the right are the ref. For simplicity reasons this graphic doesn't include ref, ref, ref and ref all of which also influence transforms.</p>
+<p>The graphic is based on a node tree of the following form: <code>Root Window (embed Windows)</code> ⇒ <code>Window (don't embed Windows)</code> ⇒ <code>CanvasLayer</code> ⇒ <code>CanvasItem</code> ⇒ <code>CanvasItem</code> ⇒ <code>CanvasItem</code>. There are more complex combinations possible, like deeply nested Window and SubViewports, however this example intends to provide an overview of the methodology in general.</p>
+<p>Click graphic to enlarge.</p>
+<ul>
+<li><p><strong>Item Coordinates</strong> This is the local coordinate system of a ref.</p></li>
+<li><p><strong>Parent Item Coordinates</strong> This is the local coordinate system of the parent's <em>CanvasItem</em>. When positioning <em>CanvasItems</em> in the <em>Canvas</em>, they usually inherit the transformations of their parent <em>CanvasItems</em>. An exceptions is ref.</p></li>
+<li><p><strong>Canvas Coordinates</strong> As mentioned in the previous tutorial <code>doc_canvas_layers</code>, there are two types of canvases (<em>Viewport</em> canvas and <em>CanvasLayer</em> canvas) and both have a canvas coordinate system. These are also called world coordinates. A <em>Viewport</em> can contain multiple <em>Canvases</em> with different coordinate systems.</p></li>
+<li><p><strong>Viewport Coordinates</strong> This is the coordinate system of the ref.</p></li>
+<li><p><strong>Camera Coordinates</strong> This is only used internally for functionality like 3D-camera ray projections.</p></li>
+<li><p><strong>Embedder Coordinates / Screen Coordinates</strong> Every <em>Viewport</em> (<em>Window</em> or <em>SubViewport</em>) in the scene tree is embedded either in a different node or in the OS Window Manager. This coordinate system's origin is identical to the top-left corner of the <em>Window</em> or <em>SubViewport</em> and its scale is the one of the embedder or the OS Window Manager.</p>
+<p>If the embedder is the OS Window Manager, then they are also called Screen Coordinates.</p></li>
+<li><p><strong>Absolute Embedder Coordinates / Absolute Screen Coordinates</strong> The origin of this coordinate system is the top-left corner of the embedding node or the OS Window Manager screen. Its scale is the one of the embedder or the OS Window Manager.</p>
+<p>If the embedder is the OS Window Manager, then they are also called Absolute Screen Coordinates.</p></li>
+</ul>
+<h2 id="node-transforms">Node transforms</h2>
+<p>Each of the mentioned nodes have one or more transforms associated with them and the combination of these nodes infer the transforms between the different coordinate systems. With a few exceptions, the transforms are ref and the following list shows details and effects of each of them.</p>
+<ul>
+<li><p><strong>CanvasItem transform</strong> <em>CanvasItems</em> are either <em>Control</em>-nodes or <em>Node2D</em>-nodes.</p>
+<p>For <em>Control</em> nodes this transform consists of a ref relative to the parent's origin and a ref and ref around a ref.</p>
+<p>For <em>Node2D</em> nodes ref consists of ref, ref, ref and ref.</p>
+<p>The transform affects the item itself and usually also child-<em>CanvasItems</em> and in the case of a <em>SubViewportContainer</em> it affects the contained <em>SubViewport</em>.</p></li>
+<li><p><strong>CanvasLayer transform</strong> The <em>CanvasLayer's</em> ref affects all <em>CanvasItems</em> within the <em>CanvasLayer</em>. It doesn't affect other <em>CanvasLayers</em> or <em>Windows</em> in its <em>Viewport</em>.</p></li>
+<li><p><strong>CanvasLayer follow viewport transform</strong> The <em>follow viewport transform</em> is an automatically calculated transform, that is based on the <em>Viewport's</em> ref and the <em>CanvasLayer's</em> ref and can be used, if ref, to achieve a pseudo-3D effect. It affects the same child nodes as the <em>CanvasLayer transform</em>.</p></li>
+<li><p><strong>Viewport canvas transform</strong> The ref affects all <em>CanvasItems</em> in the <em>Viewport's</em> default canvas. It also affects <em>CanvasLayers</em>, that have follow viewport transform enabled. The <em>Viewport's</em> active ref works by changing this transform. It doesn't affect this <em>Viewport's</em> embedded <em>Windows</em>.</p></li>
+<li><p><strong>Viewport global canvas transform</strong> <em>Viewports</em> also have a ref. This is the master transform and affects all individual <em>Canvas Layer</em> and embedded <em>Window</em> transforms. This is primarily used in Godot's CanvasItem Editor.</p></li>
+<li><p><strong>Viewport stretch transform</strong> Finally, <em>Viewports</em> have a <em>stretch transform</em>, which is used when resizing or stretching the viewport. This transform is used for ref as described in <code>doc_multiple_resolutions</code>, but can also be manually set on <em>SubViewports</em> by means of ref and ref. Its ref, ref and ref are the default values and it can only have non-default ref.</p></li>
+<li><p><strong>Window transform</strong> In order to scale and position the <em>Window's</em> content as described in <code>doc_multiple_resolutions</code>, each ref contains a <em>window transform</em>. It is for example responsible for the black bars at the <em>Window's</em> sides so that the <em>Viewport</em> is displayed with a fixed aspect ratio.</p></li>
+<li><p><strong>Window position</strong> Every <em>Window</em> also has a ref to describe its position within its embedder. The embedder can be another <em>Viewport</em> or the OS Window Manager.</p></li>
+<li><p><strong>SubViewportContainer shrink transform</strong> ref together with ref declare for a <em>SubViewportContainer</em> if and by what integer factor the contained <em>SubViewport</em> should be scaled in comparison to the container's size.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

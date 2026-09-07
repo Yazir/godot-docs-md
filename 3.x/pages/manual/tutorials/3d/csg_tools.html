@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototyping levels with CSG — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="prototyping-levels-with-csg">Prototyping levels with CSG</h1>
+<p>CSG stands for <strong>Constructive Solid Geometry</strong>, and is a tool to combine basic shapes or custom meshes to create more complex shapes. In 3D modelling software, CSG is mostly known as "Boolean Operators".</p>
+<p>Level prototyping is one of the main uses of CSG in Godot. This technique allows users to create simple versions of most common shapes by combining primitives. Interior environments can be created by using inverted primitives.</p>
+<blockquote>
+<p><strong>Note:</strong> The CSG nodes in Godot are mainly intended for prototyping. There is no built-in support for UV mapping or editing 3D polygons (though extruded 2D polygons can be used with the CSGPolygon node).</p>
+<p>If you're looking for an easy to use level design tool for a project, you may want to use <a href="https://github.com/Shfty/qodot-plugin">Qodot</a> instead. It lets you design levels using <a href="https://kristianduske.com/trenchbroom/">TrenchBroom</a> and import them in Godot.</p>
+</blockquote>
+<h2 id="introduction-to-csg-nodes">Introduction to CSG nodes</h2>
+<p>Like other features of Godot, CSG is supported in the form of nodes. These are the CSG nodes:</p>
+<ul>
+<li>ref</li>
+<li>ref (also supports cone)</li>
+<li>ref</li>
+<li>ref</li>
+<li>ref</li>
+<li>ref</li>
+<li>ref</li>
+</ul>
+<h3 id="csg-tools-features">CSG tools features</h3>
+<p>Every CSG node supports 3 kinds of boolean operations:</p>
+<ul>
+<li><strong>Union:</strong> Geometry of both primitives is merged, intersecting geometry is removed.</li>
+<li><strong>Intersection:</strong> Only intersecting geometry remains, the rest is removed.</li>
+<li><strong>Subtraction:</strong> The second shape is subtracted from the first, leaving a dent with its shape.</li>
+</ul>
+<h3 id="csgpolygon">CSGPolygon</h3>
+<p>The ref node extrude along a Polygon drawn in 2D (in X, Y coordinates) in the following ways:</p>
+<ul>
+<li><strong>Depth:</strong> Extruded back a given amount.</li>
+<li><strong>Spin:</strong> Extruded while spinning around its origin.</li>
+<li><strong>Path:</strong> Extruded along a Path node. This operation is commonly called lofting.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> The <strong>Path</strong> mode must be provided with a ref node to work. In the Path node, draw the path and the polygon in CSGPolygon will extrude along the given path.</p>
+</blockquote>
+<h3 id="custom-meshes">Custom meshes</h3>
+<p>Any mesh can be used for ref; the mesh can be modelled in other software and imported into Godot. Multiple materials are supported. There are some restrictions for geometry:</p>
+<ul>
+<li>it must be closed,</li>
+<li>it must not self-intersect,</li>
+<li>it must not contain internal faces,</li>
+<li>every edge must connect to only two other faces.</li>
+</ul>
+<h3 id="csgcombiner">CSGCombiner</h3>
+<p>The ref node is an empty shape used for organization. It will only combine children nodes.</p>
+<h3 id="processing-order">Processing order</h3>
+<p>Every CSG node will first process its children nodes and their operations: union, intersection or subtraction, in tree order, and apply them to itself one after the other.</p>
+<blockquote>
+<p><strong>Note:</strong> In the interest of performance, make sure CSG geometry remains relatively simple, as complex meshes can take a while to process. If adding objects together (such as table and room objects), create them as separate CSG trees. Forcing too many objects in a single tree will eventually start affecting performance. Only use binary operations where you actually need them.</p>
+</blockquote>
+<h2 id="prototyping-a-level">Prototyping a level</h2>
+<p>We will prototype a room to practice the use of CSG tools.</p>
+<blockquote>
+<p><strong>Tip:</strong> Working in <strong>Orthogonal</strong> projection gives a better view when combining the CSG shapes.</p>
+</blockquote>
+<p>Our level will contain these objects:</p>
+<ul>
+<li>a room,</li>
+<li>a bed,</li>
+<li>a lamp,</li>
+<li>a desk,</li>
+<li>a bookshelf.</li>
+</ul>
+<p>Create a scene with a Spatial node as root node.</p>
+<blockquote>
+<p><strong>Tip:</strong> The default lighting of the environment doesn't provide clear shading at some angles. Change the display mode using <strong>Display Overdraw</strong> in the 3D viewport menu, or add a DirectionalLight node to help you see clearly.</p>
+</blockquote>
+<p>Create a CSGBox and name it <code>room</code>, enable <strong>Invert Faces</strong> and change the dimensions of your room.</p>
+<p>Next, create a CSGCombiner and name it <code>desk</code>.</p>
+<p>A desk has one surface and 4 legs:</p>
+<ul>
+<li>Create 1 CSGBox children node in <strong>Union</strong> mode for the surface and adjust the dimensions.</li>
+<li>Create 4 CSGBox children nodes in <strong>Union</strong> mode for the legs and adjust the dimensions.</li>
+</ul>
+<p>Adjust their placement to resemble a desk.</p>
+<blockquote>
+<p><strong>Note:</strong> CSG nodes inside a CSGCombiner will only process their operation within the combiner. Therefore, CSGCombiners are used to organize CSG nodes.</p>
+</blockquote>
+<p>Create a CSGCombiner and name it <code>bed</code>.</p>
+<p>Our bed consists of 3 parts: the bed, the mattress and a pillow. Create a CSGBox and adjust its dimension for the bed. Create another CSGBox and adjust its dimension for the mattress.</p>
+<p>We will create another CSGCombiner named <code>pillow</code> as the child of <code>bed</code>. The scene tree should look like this:</p>
+<p>We will combine 3 CSGSphere nodes in <strong>Union</strong> mode to form a pillow. Scale the Y axis of the spheres and enable <strong>Smooth Faces</strong>.</p>
+<p>Select the <code>pillow</code> node and switch the mode to <strong>Subtraction</strong>; the combined spheres will cut a hole into the mattress.</p>
+<p>Try to re-parent the <code>pillow</code> node to the root <code>Spatial</code> node; the hole will disappear.</p>
+<blockquote>
+<p><strong>Note:</strong> This is to illustrate the effect of CSG processing order. Since the root node is not a CSG node, the CSGCombiner nodes are the end of the operations; this shows the use of CSGCombiner to organize the CSG scene.</p>
+</blockquote>
+<p>Undo the re-parent after observing the effect. The bed you've built should look like this:</p>
+<p>Create a CSGCombiner and name it <code>lamp</code>.</p>
+<p>A lamp consists of 3 parts: the stand, the pole and the lampshade. Create a CSGCylinder, enable the <strong>Cone</strong> option and make it the stand. Create another CSGCylinder and adjust the dimensions to use it as a pole.</p>
+<p>We will use a CSGPolygon for the lampshade. Use the <strong>Spin</strong> mode for the CSGPolygon and draw a <a href="https://en.wikipedia.org/wiki/Trapezoid">trapezoid</a> while in <strong>Front View</strong> (numeric keypad 1); this shape will extrude around the origin and form the lampshade.</p>
+<p>Adjust the placement of the 3 parts to make it look like a lamp.</p>
+<p>Create a CSGCombiner and name it <code>bookshelf</code>.</p>
+<p>We will use 3 CSGBox nodes for the bookshelf. Create a CSGBox and adjust its dimensions; this will be the size of the bookshelf.</p>
+<p>Duplicate the CSGBox and shorten the dimensions of each axis and change the mode to <strong>Subtraction</strong>.</p>
+<p>You've almost built a shelf. Create one more CSGBox for dividing the shelf into two levels.</p>
+<p>Position your furniture in your room as you like and your scene should look this:</p>
+<p>You've successfully prototyped a room level with the CSG tools in Godot. CSG tools can be used for designing all kinds of levels, such as a maze or a city; explore its limitations when designing your game.</p>
+<h2 id="using-prototype-textures">Using prototype textures</h2>
+<p>Godot's <code>doc_spatial_material</code> supports <em>triplanar mapping</em>, which can be used to automatically apply a texture to arbitrary objects without distortion. This is handy when using CSG as Godot doesn't support editing UV maps on CSG nodes yet. Triplanar mapping is relatively slow, which usually restricts its usage to organic surfaces like terrain. Still, when prototyping, it can be used to quickly apply textures to CSG-based levels.</p>
+<blockquote>
+<p><strong>Note:</strong> If you need some textures for prototyping, Kenney made a <a href="https://kenney.nl/assets/prototype-textures">set of CC0-licensed prototype textures</a>.</p>
+</blockquote>
+<p>There are two ways to apply a material to a CSG node:</p>
+<ul>
+<li>Applying it to a CSGCombiner node as a material override (<strong>Geometry &gt; Material Override</strong> in the Inspector). This will affect its children automatically, but will make it impossible to change the material in individual children.</li>
+<li>Applying a material to individual nodes (<strong>Material</strong> in the Inspector). This way, each CSG node can have its own appearance. Subtractive CSG nodes will apply their material to the nodes they're "digging" into.</li>
+</ul>
+<p>To apply triplanar mapping to a CSG node, select it, go to the Inspector, click the <strong>[empty]</strong> text next to <strong>Material Override</strong> (or <strong>Material</strong> for individual CSG nodes). Choose <strong>New SpatialMaterial</strong>. Click the newly created material's icon to edit it. Unfold the <strong>Albedo</strong> section and load a texture into the <strong>Texture</strong> property. Now, unfold the <strong>Uv1</strong> section and check <strong>Triplanar</strong>. You can change the texture offset and scale on each axis by playing with the <strong>Scale</strong> and <strong>Offset</strong> properties just above. Higher values in the <strong>Scale</strong> property will cause the texture to repeat more often.</p>
+<blockquote>
+<p><strong>Tip:</strong> You can copy a SpatialMaterial to reuse it across CSG nodes. To do so, click the dropdown arrow next to a material property in the Inspector and choose <strong>Copy</strong>. To paste it, select the node you'd like to apply the material onto, click the dropdown arrow next to its material property then choose <strong>Paste</strong>.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

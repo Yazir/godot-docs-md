@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exporting for the Web — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="exporting-for-the-web">Exporting for the Web</h1>
+<blockquote>
+<p><strong>See also:</strong> This page describes how to export a Godot project to HTML5. If you're looking to compile editor or export template binaries from source instead, read <code>doc_compiling_for_web</code>.</p>
+</blockquote>
+<p>HTML5 export allows publishing games made in Godot Engine to the browser. This requires support for <a href="https://webassembly.org/">WebAssembly</a> and <a href="https://www.khronos.org/webgl/">WebGL</a> in the user's browser.</p>
+<blockquote>
+<p><strong>Important:</strong> Use the browser-integrated developer console, usually opened with <code>F12</code>, to view <strong>debug information</strong> like JavaScript, engine, and WebGL errors.</p>
+</blockquote>
+<blockquote>
+<p><strong>Attention:</strong> <a href="https://github.com/godotengine/godot/issues?q=is:issue+is:open+label:platform:html5+ios">There are significant bugs when running HTML5 projects on iOS</a> (regardless of the browser). We recommend using ref instead, as it will also result in better performance.</p>
+</blockquote>
+<h2 id="webgl-version">WebGL version</h2>
+<p>Depending on your choice of renderer, Godot can target WebGL 1.0 (<em>GLES2</em>) or WebGL 2.0 (<em>GLES3</em>).</p>
+<p>WebGL 1.0 is the recommended option if you want your project to be supported on all browsers with the best performance.</p>
+<p>Godot's GLES3 renderer targets high end devices, and the performance using WebGL 2.0 can be subpar. Some features are also not supported in WebGL 2.0 specifically.</p>
+<p>Additionally, while most browsers support WebGL 2.0, this is not yet the case for <strong>Safari</strong>. WebGL 2.0 support is coming in Safari 15 for macOS, and is not available yet for any <strong>iOS</strong> browser (all WebKit-based like Safari). See <a href="https://caniuse.com/webgl2">Can I use WebGL 2.0</a> for details.</p>
+<h2 id="export-options">Export options</h2>
+<p>If a runnable web export template is available, a button appears between the <em>Stop scene</em> and <em>Play edited Scene</em> buttons in the editor to quickly open the game in the default browser for testing.</p>
+<p>You can choose the <strong>Export Type</strong> to select which features will be available:</p>
+<ul>
+<li><em>Regular</em>: is the most compatible across browsers, will not support threads, nor GDNative.</li>
+<li><em>Threads</em>: will require the browser to support <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer">SharedArrayBuffer</a>. See <a href="https://caniuse.com/sharedarraybuffer">Can I use SharedArrayBuffer</a> for details.</li>
+<li><em>GDNative</em>: enables GDNative support but makes the binary bigger and slower to load.</li>
+</ul>
+<p>If you plan to use ref make sure that <strong>Vram Texture Compression</strong> is enabled for the targeted platforms (enabling both <strong>For Desktop</strong> and <strong>For Mobile</strong> will result in a bigger, but more compatible export).</p>
+<p>If a path to a <strong>Custom HTML shell</strong> file is given, it will be used instead of the default HTML page. See <code>doc_customizing_html5_shell</code>.</p>
+<p><strong>Head Include</strong> is appended into the <code>&lt;head&gt;</code> element of the generated HTML page. This allows to, for example, load webfonts and third-party JavaScript APIs, include CSS, or run JavaScript code.</p>
+<blockquote>
+<p><strong>Important:</strong> Each project must generate their own HTML file. On export, several text placeholders are replaced in the generated HTML file specifically for the given export options. Any direct modifications to that HTML file will be lost in future exports. To customize the generated file, use the <strong>Custom HTML shell</strong> option.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> <strong>Export types</strong> other than <em>Regular</em> are not yet supported by the C# version.</p>
+</blockquote>
+<h2 id="limitations">Limitations</h2>
+<p>For security and privacy reasons, many features that work effortlessly on native platforms are more complicated on the web platform. Following is a list of limitations you should be aware of when porting a Godot game to the web.</p>
+<blockquote>
+<p><strong>Important:</strong> Browser vendors are making more and more functionalities only available in <a href="https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts">secure contexts</a>, this means that such features are only be available if the web page is served via a secure HTTPS connection (localhost is usually exempt from such requirement).</p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> Check the <a href="https://github.com/godotengine/godot/issues?q=is:open+is:issue+label:platform:html5">list of open HTML5 issues on GitHub</a> to see if the functionality you're interested in has an issue yet. If not, open one to communicate your interest.</p>
+</blockquote>
+<h3 id="using-cookies-for-data-persistence">Using cookies for data persistence</h3>
+<p>Users must <strong>allow cookies</strong> (specifically IndexedDB) if persistence of the <code>user://</code> file system is desired. When playing a game presented in an <code>iframe</code>, <strong>third-party</strong> cookies must also be enabled. Incognito/private browsing mode also prevents persistence.</p>
+<p>The method <code>OS.is_userfs_persistent()</code> can be used to check if the <code>user://</code> file system is persistent, but can give false positives in some cases.</p>
+<h3 id="background-processing">Background processing</h3>
+<p>The project will be paused by the browser when the tab is no longer the active tab in the user's browser. This means functions such as <code>_process()</code> and <code>_physics_process()</code> will no longer run until the tab is made active again by the user (by switching back to the tab). This can cause networked games to disconnect if the user switches tabs for a long duration.</p>
+<p>This limitation does not apply to unfocused browser <em>windows</em>. Therefore, on the user's side, this can be worked around by running the project in a separate <em>window</em> instead of a separate tab.</p>
+<h3 id="threads">Threads</h3>
+<p>As mentioned ref multi-threading is only available if the appropriate <strong>Export Type</strong> is set and support for it across browsers is still limited.</p>
+<blockquote>
+<p><strong>Warning:</strong> Requires a ref. Browsers also require that the web page is served with specific <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy">cross-origin isolation headers</a>.</p>
+</blockquote>
+<h3 id="gdnative">GDNative</h3>
+<p>As mentioned ref GDNative is only available if the appropriate <strong>Export Type</strong> is set.</p>
+<p>The export will also copy the required GDNative <code>.wasm</code> files to the output folder (and must be uploaded to your server along with your game).</p>
+<h3 id="full-screen-and-mouse-capture">Full screen and mouse capture</h3>
+<p>Browsers do not allow arbitrarily <strong>entering full screen</strong>. The same goes for <strong>capturing the cursor</strong>. Instead, these actions have to occur as a response to a JavaScript input event. In Godot, this means entering full screen from within a pressed input event callback such as <code>_input</code> or <code>_unhandled_input</code>. Querying the <code>class_Input</code> singleton is not sufficient, the relevant input event must currently be active.</p>
+<p>For the same reason, the full screen project setting doesn't work unless the engine is started from within a valid input event handler. This requires ref.</p>
+<h3 id="audio">Audio</h3>
+<p>Chrome restricts how websites may play audio. It may be necessary for the player to click or tap or press a key to enable audio.</p>
+<blockquote>
+<p><strong>See also:</strong> Google offers additional information about their <a href="https://sites.google.com/a/chromium.org/dev/audio-video/autoplay">Web Audio autoplay policies</a>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Access to microphone requires a ref.</p>
+</blockquote>
+<h3 id="networking">Networking</h3>
+<p>Low level networking is not implemented due to lacking support in browsers.</p>
+<p>Currently, only ref, ref, ref and ref are supported.</p>
+<p>The HTTP classes also have several restrictions on the HTML5 platform:</p>
+<blockquote>
+<ul>
+<li>Accessing or changing the <code>StreamPeer</code> is not possible</li>
+<li>Threaded/Blocking mode is not available</li>
+<li>Cannot progress more than once per frame, so polling in a loop will freeze</li>
+<li>No chunked responses</li>
+<li>Host verification cannot be disabled</li>
+<li>Subject to <a href="https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy">same-origin policy</a></li>
+</ul>
+</blockquote>
+<h3 id="clipboard">Clipboard</h3>
+<p>Clipboard synchronization between engine and the operating system requires a browser supporting the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API">Clipboard API</a>, additionally, due to the API asynchronous nature might not be reliable when accessed from GDScript.</p>
+<blockquote>
+<p><strong>Warning:</strong> Requires a ref.</p>
+</blockquote>
+<h3 id="gamepads">Gamepads</h3>
+<p>Gamepads will not be detected until one of their button is pressed. Gamepads might have the wrong mapping depending on the browser/OS/gamepad combination, sadly the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API/Using_the_Gamepad_API">Gamepad API</a> does not provide a reliable way to detect the gamepad information necessary to remap them based on model/vendor/OS due to privacy considerations.</p>
+<blockquote>
+<p><strong>Warning:</strong> Requires a ref.</p>
+</blockquote>
+<h3 id="boot-splash-is-not-displayed">Boot splash is not displayed</h3>
+<p>The default HTML page does not display the boot splash while loading. However, the image is exported as a PNG file, so ref can display it.</p>
+<h3 id="shader-language-limitations">Shader language limitations</h3>
+<p>When exporting a GLES2 project to HTML5, WebGL 1.0 will be used. WebGL 1.0 doesn't support dynamic loops, so shaders using those won't work there.</p>
+<h2 id="serving-the-files">Serving the files</h2>
+<p>Exporting for the web generates several files to be served from a web server, including a default HTML page for presentation. A custom HTML file can be used, see <code>doc_customizing_html5_shell</code>.</p>
+<p>The generated <code>.html</code> file can be used as <code>DirectoryIndex</code> in Apache servers and can be renamed to e.g. <code>index.html</code> at any time, its name is never depended on by default.</p>
+<p>The HTML page draws the game at maximum size within the browser window. This way it can be inserted into an <code>&lt;iframe&gt;</code> with the game's size, as is common on most web game hosting sites.</p>
+<p>The other exported files are served as they are, next to the <code>.html</code> file, names unchanged. The <code>.wasm</code> file is a binary WebAssembly module implementing the engine. The <code>.pck</code> file is the Godot main pack containing your game. The <code>.js</code> file contains start-up code and is used by the <code>.html</code> file to access the engine. The <code>.png</code> file contains the boot splash image. It is not used in the default HTML page, but is included for ref.</p>
+<p>The <code>.pck</code> file is binary, usually delivered with the MIME-type <code>application/octet-stream</code>. The <code>.wasm</code> file is delivered as <code>application/wasm</code>.</p>
+<blockquote>
+<p><strong>Caution:</strong> Delivering the WebAssembly module (<code>.wasm</code>) with a MIME-type other than <code>application/wasm</code> can prevent some start-up optimizations.</p>
+</blockquote>
+<p>Delivering the files with server-side compression is recommended especially for the <code>.pck</code> and <code>.wasm</code> files, which are usually large in size. The WebAssembly module compresses particularly well, down to around a quarter of its original size with gzip compression.</p>
+<p><strong>Hosts that provide on-the-fly compression:</strong> GitHub Pages (gzip)</p>
+<p><strong>Hosts that don't provide on-the-fly compression:</strong> itch.io, GitLab Pages (<a href="https://webd97.de/post/gitlab-pages-compression/">supports manual gzip precompression</a>)</p>
+<h2 id="calling-javascript-from-script">Calling JavaScript from script</h2>
+<p>In web builds, the <code>JavaScript</code> singleton is implemented. It offers a single method called <code>eval</code> that works similarly to the JavaScript function of the same name. It takes a string as an argument and executes it as JavaScript code. This allows interacting with the browser in ways not possible with script languages integrated into Godot.</p>
+<pre><code>func my_func():
+    JavaScript.eval(&quot;alert(&#39;Calling JavaScript per GDScript!&#39;);&quot;)</code></pre>
+<p>The value of the last JavaScript statement is converted to a GDScript value and returned by <code>eval()</code> under certain circumstances:</p>
+<blockquote>
+<ul>
+<li>JavaScript <code>number</code> is returned as GDScript <code>class_float</code></li>
+<li>JavaScript <code>boolean</code> is returned as GDScript <code>class_bool</code></li>
+<li>JavaScript <code>string</code> is returned as GDScript <code>class_String</code></li>
+<li>JavaScript <code>ArrayBuffer</code>, <code>TypedArray</code> and <code>DataView</code> are returned as GDScript <code>class_PoolByteArray</code></li>
+</ul>
+</blockquote>
+<pre><code>func my_func2():
+    var js_return = JavaScript.eval(&quot;var myNumber = 1; myNumber + 2;&quot;)
+    print(js_return) # prints &#39;3.0&#39;</code></pre>
+<p>Any other JavaScript value is returned as <code>null</code>.</p>
+<p>HTML5 export templates may be ref without support for the singleton to improve security. With such templates, and on platforms other than HTML5, calling <code>JavaScript.eval</code> will also return <code>null</code>. The availability of the singleton can be checked with the <code>JavaScript</code> ref:</p>
+<pre><code>func my_func3():
+    if OS.has_feature(&#39;JavaScript&#39;):
+        JavaScript.eval(&quot;&quot;&quot;
+            console.log(&#39;The JavaScript singleton is available&#39;)
+        &quot;&quot;&quot;)
+    else:
+        print(&quot;The JavaScript singleton is NOT available&quot;)</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> GDScript's multi-line strings, surrounded by 3 quotes <code>"""</code> as in <code>my_func3()</code> above, are useful to keep JavaScript code readable.</p>
+</blockquote>
+<p>The <code>eval</code> method also accepts a second, optional Boolean argument, which specifies whether to execute the code in the global execution context, defaulting to <code>false</code> to prevent polluting the global namespace:</p>
+<pre><code>func my_func4():
+    # execute in global execution context,
+    # thus adding a new JavaScript global variable `SomeGlobal`
+    JavaScript.eval(&quot;var SomeGlobal = {};&quot;, true)</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

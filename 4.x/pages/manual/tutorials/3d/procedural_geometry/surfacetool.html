@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using the SurfaceTool — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-the-surfacetool">Using the SurfaceTool</h1>
+<p>The ref provides a useful interface for constructing geometry. The interface is similar to the ref class. You set each per-vertex attribute (e.g. normal, uv, color) and then when you add a vertex it captures the attributes.</p>
+<p>The SurfaceTool also provides some useful helper functions like <code>index()</code> and <code>generate_normals()</code>.</p>
+<p>Attributes are added before each vertex is added:</p>
+<pre class="gdscript"><code>var st = SurfaceTool.new()
+
+st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+st.set_normal() # Overwritten by normal below.
+st.set_normal() # Added to next vertex.
+st.set_color() # Added to next vertex.
+st.add_vertex() # Captures normal and color above.
+st.set_normal() # Normal never added to a vertex.</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">SetNormal</span><span class="op">();</span> <span class="co">// Overwritten by normal below.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">SetNormal</span><span class="op">();</span> <span class="co">// Added to next vertex.</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">SetColor</span><span class="op">();</span> <span class="co">// Added to next vertex.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddVertex</span><span class="op">();</span> <span class="co">// Captures normal and color above.</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">SetNormal</span><span class="op">();</span> <span class="co">// Normal never added to a vertex.</span></span></code></pre></div>
+<p>When finished generating your geometry with the ref, call <code>commit()</code> to finish generating the mesh. If an ref is passed to <code>commit()</code>, then it appends a new surface to the end of the ArrayMesh. While if nothing is passed in, <code>commit()</code> returns an ArrayMesh.</p>
+<pre class="gdscript"><code># Add surface to existing ArrayMesh.
+st.commit(mesh)
+
+# -- Or Alternatively --
+
+# Create new ArrayMesh.
+var mesh = st.commit()</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">Commit</span><span class="op">(</span>mesh<span class="op">);</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Or:</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> mesh <span class="op">=</span> st<span class="op">.</span><span class="fu">Commit</span><span class="op">();</span></span></code></pre></div>
+<p>The code below creates a triangle without indices.</p>
+<pre class="gdscript"><code>var st = SurfaceTool.new()
+
+st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+# Prepare attributes for add_vertex.
+st.set_normal(Vector3(0, 0, 1))
+st.set_uv(Vector2(0, 0))
+# Call last for each vertex, adds the above attributes.
+st.add_vertex(Vector3(-1, -1, 0))
+
+st.set_normal(Vector3(0, 0, 1))
+st.set_uv(Vector2(0, 1))
+st.add_vertex(Vector3(-1, 1, 0))
+
+st.set_normal(Vector3(0, 0, 1))
+st.set_uv(Vector2(1, 1))
+st.add_vertex(Vector3(1, 1, 0))
+
+# Commit to a mesh.
+var mesh = st.commit()</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> st <span class="op">=</span> <span class="kw">new</span> <span class="fu">SurfaceTool</span><span class="op">();</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">Begin</span><span class="op">(</span>Mesh<span class="op">.</span><span class="fu">PrimitiveType</span><span class="op">.</span><span class="fu">Triangles</span><span class="op">);</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">// Prepare attributes for AddVertex.</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">SetNormal</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">));</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">SetUV</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">// Call last for each vertex, adds the above attributes.</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddVertex</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(-</span><span class="dv">1</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">SetNormal</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">));</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">SetUV</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">));</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddVertex</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(-</span><span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">SetNormal</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">));</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">SetUV</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">));</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddVertex</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="co">// Commit to a mesh.</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> mesh <span class="op">=</span> st<span class="op">.</span><span class="fu">Commit</span><span class="op">();</span></span></code></pre></div>
+<p>You can optionally add an index array, either by calling <code>add_index()</code> and adding vertices to the index array manually, or by calling <code>index()</code> once, which generates the index array automatically and shrinks the vertex array to remove duplicate vertices.</p>
+<pre class="gdscript"><code># Suppose we have a quad defined by 6 vertices as follows
+st.add_vertex(Vector3(-1, 1, 0))
+st.add_vertex(Vector3(1, 1, 0))
+st.add_vertex(Vector3(-1, -1, 0))
+
+st.add_vertex(Vector3(1, 1, 0))
+st.add_vertex(Vector3(1, -1, 0))
+st.add_vertex(Vector3(-1, -1, 0))
+
+# We can make the quad more efficient by using an index array and only utilizing 4 vertices:
+
+st.add_vertex(Vector3(-1, 1, 0))
+st.add_vertex(Vector3(1, 1, 0))
+st.add_vertex(Vector3(-1, -1, 0))
+st.add_vertex(Vector3(1, -1, 0))
+
+# Creates a quad from four corner vertices.
+# add_index() can be called before or after add_vertex()
+# since it&#39;s not an attribute of a vertex itself.
+st.add_index(0)
+st.add_index(1)
+st.add_index(2)
+
+st.add_index(1)
+st.add_index(3)
+st.add_index(2)
+
+# Alternatively we can use ``st.index()`` which will create the quad for us and remove the duplicate vertices
+st.index()</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Suppose we have a quad defined by 6 vertices as follows.</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddVertex</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(-</span><span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddVertex</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddVertex</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(-</span><span class="dv">1</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddVertex</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddVertex</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddVertex</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(-</span><span class="dv">1</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co">// We can make the quad more efficient by using an index array and only utilizing 4 vertices:</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddVertex</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(-</span><span class="dv">1</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddVertex</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddVertex</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(-</span><span class="dv">1</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddVertex</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co">// Creates a quad from four corner vertices.</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co">// AddIndex does not need to be called before AddVertex.</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddIndex</span><span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddIndex</span><span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddIndex</span><span class="op">(</span><span class="dv">2</span><span class="op">);</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddIndex</span><span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddIndex</span><span class="op">(</span><span class="dv">3</span><span class="op">);</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">AddIndex</span><span class="op">(</span><span class="dv">2</span><span class="op">);</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a><span class="co">// Alternatively we can use `st.Index()` which will create the quad for us and remove the duplicate vertices.</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">Index</span><span class="op">();</span></span></code></pre></div>
+<p>Similarly, if you have an index array, but you want each vertex to be unique (e.g. because you want to use unique normals or colors per face instead of per-vertex), you can call <code>deindex()</code>.</p>
+<pre class="gdscript"><code>st.deindex()</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">Deindex</span><span class="op">();</span></span></code></pre></div>
+<p>If you don't add custom normals yourself, you can add them using <code>generate_normals()</code>, which should be called after generating geometry and before committing the mesh using <code>commit()</code> or <code>commit_to_arrays()</code>. Calling <code>generate_normals(true)</code> will flip the resulting normals. As a side note, <code>generate_normals()</code> only works if the primitive type is set to <code>Mesh.PRIMITIVE_TRIANGLES</code>.</p>
+<p>You may notice that normal mapping or other material properties look broken on the generated mesh. This is because normal mapping <strong>requires</strong> the mesh to feature <em>tangents</em>, which are separate from <em>normals</em>. You can either add custom tangents manually, or generate them automatically with <code>generate_tangents()</code>. This method requires that each vertex have UVs and normals set already.</p>
+<pre class="gdscript"><code>st.generate_normals()
+st.generate_tangents()
+
+st.commit(mesh)</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">GenerateNormals</span><span class="op">();</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>st<span class="op">.</span><span class="fu">GenerateTangents</span><span class="op">();</span></span></code></pre></div>
+<p>By default, when generating normals, they will be calculated on a per-vertex basis (i.e. they will be "smooth normals"). If you want flat vertex normals (i.e. a single normal vector per face), when adding vertices, call <code>add_smooth_group(i)</code> where <code>i</code> is a unique number per vertex. <code>add_smooth_group()</code> needs to be called while building the geometry, e.g. before the call to <code>add_vertex()</code>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

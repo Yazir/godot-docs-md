@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EditorContextMenuPlugin — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="editorcontextmenuplugin">EditorContextMenuPlugin</h1>
+<p><em>Inherits: <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Plugin for adding custom context menus in the editor.</p>
+<h2 id="description">Description</h2>
+<p><strong>EditorContextMenuPlugin</strong> allows for the addition of custom options in the editor's context menu.</p>
+<p>Currently, context menus are supported for three commonly used areas: the file system, scene tree, and editor script list panel.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-_popup_menupaths-packedstringarray-virtual"><code>void _popup_menu(paths: PackedStringArray) virtual</code></h3>
+<p>Called when creating a context menu, custom options can be added by using the <code>add_context_menu_item()</code> or <code>add_context_menu_item_from_shortcut()</code> functions. <code>paths</code> contains currently selected paths (depending on menu), which can be used to conditionally add options.</p>
+<h3 id="void-add_context_menu_itemname-string-callback-callable-icon-texture2d--null"><code>void add_context_menu_item(name: String, callback: Callable, icon: Texture2D = null)</code></h3>
+<p>Add custom option to the context menu of the plugin's specified slot. When the option is activated, <code>callback</code> will be called. Callback should take single <a href="Array.html">Array</a> argument; array contents depend on context menu slot.</p>
+<pre class="gdscript"><code>func _popup_menu(paths):
+    add_context_menu_item(&quot;File Custom options&quot;, handle, ICON)</code></pre>
+<p>If you want to assign shortcut to the menu item, use <code>add_context_menu_item_from_shortcut()</code> instead.</p>
+<h3 id="void-add_context_menu_item_from_shortcutname-string-shortcut-shortcut-icon-texture2d--null"><code>void add_context_menu_item_from_shortcut(name: String, shortcut: Shortcut, icon: Texture2D = null)</code></h3>
+<p>Add custom option to the context menu of the plugin's specified slot. The option will have the <code>shortcut</code> assigned and reuse its callback. The shortcut has to be registered beforehand with <code>add_menu_shortcut()</code>.</p>
+<pre class="gdscript"><code>func _init():
+    add_menu_shortcut(SHORTCUT, handle)
+
+func _popup_menu(paths):
+    add_context_menu_item_from_shortcut(&quot;File Custom options&quot;, SHORTCUT, ICON)</code></pre>
+<h3 id="void-add_context_submenu_itemname-string-menu-popupmenu-icon-texture2d--null"><code>void add_context_submenu_item(name: String, menu: PopupMenu, icon: Texture2D = null)</code></h3>
+<p>Add a submenu to the context menu of the plugin's specified slot. The submenu is not automatically handled, you need to connect to its signals yourself. Also the submenu is freed on every popup, so provide a new <a href="PopupMenu.html">PopupMenu</a> every time.</p>
+<pre class="gdscript"><code>func _popup_menu(paths):
+    var popup_menu = PopupMenu.new()
+    popup_menu.add_item(&quot;Blue&quot;)
+    popup_menu.add_item(&quot;White&quot;)
+    popup_menu.id_pressed.connect(_on_color_submenu_option)
+
+    add_context_submenu_item(&quot;Set Node Color&quot;, popup_menu)</code></pre>
+<h3 id="void-add_menu_shortcutshortcut-shortcut-callback-callable"><code>void add_menu_shortcut(shortcut: Shortcut, callback: Callable)</code></h3>
+<p>Registers a shortcut associated with the plugin's context menu. This method should be called once (e.g. in plugin's <code>Object._init()</code>). <code>callback</code> will be called when user presses the specified <code>shortcut</code> while the menu's context is in effect (e.g. FileSystem dock is focused). Callback should take single <a href="Array.html">Array</a> argument; array contents depend on context menu slot.</p>
+<pre class="gdscript"><code>func _init():
+    add_menu_shortcut(SHORTCUT, handle)</code></pre>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-contextmenuslot"><code>enum ContextMenuSlot</code></h3>
+<ul>
+<li><p><code>CONTEXT_SLOT_SCENE_TREE = 0</code></p>
+<p>Context menu of Scene dock. <code>_popup_menu()</code> will be called with a list of paths to currently selected nodes, while option callback will receive the list of currently selected nodes.</p></li>
+<li><p><code>CONTEXT_SLOT_FILESYSTEM = 1</code></p>
+<p>Context menu of FileSystem dock. <code>_popup_menu()</code> and option callback will be called with list of paths of the currently selected files.</p></li>
+<li><p><code>CONTEXT_SLOT_SCRIPT_EDITOR = 2</code></p>
+<p>Context menu of Script editor's script tabs. <code>_popup_menu()</code> will be called with the path to the currently edited script, while option callback will receive reference to that script.</p></li>
+<li><p><code>CONTEXT_SLOT_FILESYSTEM_CREATE = 3</code></p>
+<p>The "Create..." submenu of FileSystem dock's context menu, or the "New" section of the main context menu when empty space is clicked. <code>_popup_menu()</code> and option callback will be called with the path of the currently selected folder. When clicking the empty space, the list of paths for popup method will be empty.</p>
+<pre class="gdscript"><code>func _popup_menu(paths):
+    if paths.is_empty():
+        add_context_menu_item(&quot;New Image File...&quot;, create_image)
+    else:
+        add_context_menu_item(&quot;Image File...&quot;, create_image)</code></pre></li>
+<li><p><code>CONTEXT_SLOT_SCRIPT_EDITOR_CODE = 4</code></p>
+<p>Context menu of Script editor's code editor. <code>_popup_menu()</code> will be called with the path to the <a href="CodeEdit.html">CodeEdit</a> node. You can fetch it using this code:</p>
+<pre class="gdscript"><code>func _popup_menu(paths):
+    var code_edit = Engine.get_main_loop().root.get_node(paths[0]);</code></pre>
+<p>The option callback will receive reference to that node. You can use <a href="CodeEdit.html">CodeEdit</a> methods to perform symbol lookups etc.</p></li>
+<li><p><code>CONTEXT_SLOT_SCENE_TABS = 5</code></p>
+<p>Context menu of scene tabs. <code>_popup_menu()</code> will be called with the path of the clicked scene, or empty <a href="PackedStringArray.html">PackedStringArray</a> if the menu was opened on empty space. The option callback will receive the path of the clicked scene, or empty <a href="String.html">String</a> if none was clicked.</p></li>
+<li><p><code>CONTEXT_SLOT_2D_EDITOR = 6</code></p>
+<p>Context menu of 2D editor's basic right-click menu. <code>_popup_menu()</code> will be called with paths to all <a href="CanvasItem.html">CanvasItem</a> nodes under the cursor. You can fetch them using this code:</p>
+<pre class="gdscript"><code>func _popup_menu(paths):
+    var canvas_item = Engine.get_main_loop().root.get_node(paths[0]); # Replace 0 with the desired index.</code></pre>
+<p>The paths array is empty if there weren't any nodes under cursor. The option callback will receive a typed array of <a href="CanvasItem.html">CanvasItem</a> nodes.</p></li>
+<li><p><code>CONTEXT_SLOT_INSPECTOR_PROPERTY = 7</code></p>
+<p>Context menu of the inspectors right-click menu. <code>_popup_menu()</code> will be called with an array of two items: The first will be the object's ID, the second will be the property name. An object can be retrieved from it's ID via <code>@GlobalScope.instance_from_id()</code> after converting it to an int. The option callback will receive the EditorProperty directly.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SceneTreeTween — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="scenetreetween">SceneTreeTween</h1>
+<p><em>Inherits: <a href="Reference.html">Reference</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Lightweight object used for general-purpose animation via script, using <a href="Tweener.html">Tweener</a> s.</p>
+<h2 id="description">Description</h2>
+<p><strong>SceneTreeTween</strong> is a tween managed by the scene tree. As opposed to <a href="Tween.html">Tween</a>, it does not require the instantiation of a node.</p>
+<p><strong>SceneTreeTween</strong> s are more light-weight than <a href="AnimationPlayer.html">AnimationPlayer</a>, so they are very much suited for simple animations or general tasks that don't require visual tweaking provided by the editor. They can be used in a fire-and-forget manner for some logic that normally would be done by code. You can e.g. make something shoot periodically by using a looped <a href="CallbackTweener.html">CallbackTweener</a> with a delay.</p>
+<p>A <strong>SceneTreeTween</strong> can be created by using either <code>SceneTree.create_tween</code> or <code>Node.create_tween</code>. <strong>SceneTreeTween</strong> s created manually (i.e. by using <code>Tween.new()</code>) are invalid. They can't be used for tweening values, but you can do manual interpolation with <code>interpolate_value</code>.</p>
+<p>A tween animation is created by adding <a href="Tweener.html">Tweener</a> s to the <strong>SceneTreeTween</strong> object, using <code>tween_property</code>, <code>tween_interval</code>, <code>tween_callback</code> or <code>tween_method</code>:</p>
+<pre class="gdscript"><code>var tween = get_tree().create_tween()
+tween.tween_property($Sprite, &quot;modulate&quot;, Color.red, 1)
+tween.tween_property($Sprite, &quot;scale&quot;, Vector2(), 1)
+tween.tween_callback($Sprite, &quot;queue_free&quot;)</code></pre>
+<p>This sequence will make the <code>$Sprite</code> node turn red, then shrink, before finally calling <code>Node.queue_free</code> to free the sprite. <a href="Tweener.html">Tweener</a> s are executed one after another by default. This behavior can be changed using <code>parallel</code> and <code>set_parallel</code>.</p>
+<p>When a <a href="Tweener.html">Tweener</a> is created with one of the <code>tween_*</code> methods, a chained method call can be used to tweak the properties of this <a href="Tweener.html">Tweener</a>. For example, if you want to set a different transition type in the above example, you can use <code>set_trans</code>:</p>
+<pre class="gdscript"><code>var tween = get_tree().create_tween()
+tween.tween_property($Sprite, &quot;modulate&quot;, Color.red, 1).set_trans(Tween.TRANS_SINE)
+tween.tween_property($Sprite, &quot;scale&quot;, Vector2(), 1).set_trans(Tween.TRANS_BOUNCE)
+tween.tween_callback($Sprite, &quot;queue_free&quot;)</code></pre>
+<p>Most of the <strong>SceneTreeTween</strong> methods can be chained this way too. In the following example the <strong>SceneTreeTween</strong> is bound to the running script's node and a default transition is set for its <a href="Tweener.html">Tweener</a> s:</p>
+<pre class="gdscript"><code>var tween = get_tree().create_tween().bind_node(self).set_trans(Tween.TRANS_ELASTIC)
+tween.tween_property($Sprite, &quot;modulate&quot;, Color.red, 1)
+tween.tween_property($Sprite, &quot;scale&quot;, Vector2(), 1)
+tween.tween_callback($Sprite, &quot;queue_free&quot;)</code></pre>
+<p>Another interesting use for <strong>SceneTreeTween</strong> s is animating arbitrary sets of objects:</p>
+<pre class="gdscript"><code>var tween = create_tween()
+for sprite in get_children():
+    tween.tween_property(sprite, &quot;position&quot;, Vector2(0, 0), 1)</code></pre>
+<p>In the example above, all children of a node are moved one after another to position (0, 0).</p>
+<p>You should avoid using more than one <strong>SceneTreeTween</strong> per object's property. If two or more tweens animate one property at the same time, the last one created will take priority and assign the final value. If you want to interrupt and restart an animation, consider assigning the <strong>SceneTreeTween</strong> to a variable:</p>
+<pre class="gdscript"><code>var tween
+func animate():
+    if tween:
+        tween.kill() # Abort the previous animation.
+    tween = create_tween()</code></pre>
+<p>Some <a href="Tweener.html">Tweener</a> s use transitions and eases. The first accepts a <code>Tween.TransitionType</code> constant, and refers to the way the timing of the animation is handled (see <a href="https://easings.net/">easings.net</a> for some examples). The second accepts an <code>Tween.EaseType</code> constant, and controls where the <code>trans_type</code> is applied to the interpolation (in the beginning, the end, or both). If you don't know which transition and easing to pick, you can try different <code>Tween.TransitionType</code> constants with <code>Tween.EASE_IN_OUT</code>, and use the one that looks best.</p>
+<p>Tween easing and transition types cheatsheet</p>
+<p><strong>Note:</strong> All <strong>SceneTreeTween</strong> s will automatically start by default. To prevent a <strong>SceneTreeTween</strong> from autostarting, you can call <code>stop</code> immediately after it is created.</p>
+<p><strong>Note:</strong> <strong>SceneTreeTween</strong> s are processing after all of nodes in the current frame, i.e. after <code>Node._process</code> or <code>Node._physics_process</code> (depending on <code>Tween.TweenProcessMode</code>).</p>
+<h2 id="methods">Methods</h2>
+<h3 id="scenetreetween-bind_nodenode-node"><code>SceneTreeTween bind_node(node: Node)</code></h3>
+<p>Binds this <strong>SceneTreeTween</strong> with the given <code>node</code>. <strong>SceneTreeTween</strong> s are processed directly by the <a href="SceneTree.html">SceneTree</a>, so they run independently of the animated nodes. When you bind a <a href="Node.html">Node</a> with the <strong>SceneTreeTween</strong>, the <strong>SceneTreeTween</strong> will halt the animation when the object is not inside tree and the <strong>SceneTreeTween</strong> will be automatically killed when the bound object is freed. Also <code>TWEEN_PAUSE_BOUND</code> will make the pausing behavior dependent on the bound node.</p>
+<p>For a shorter way to create and bind a <strong>SceneTreeTween</strong>, you can use <code>Node.create_tween</code>.</p>
+<h3 id="scenetreetween-chain"><code>SceneTreeTween chain()</code></h3>
+<p>Used to chain two <a href="Tweener.html">Tweener</a> s after <code>set_parallel</code> is called with <code>true</code>.</p>
+<pre class="gdscript"><code>var tween = create_tween().set_parallel(true)
+tween.tween_property(...)
+tween.tween_property(...) # Will run parallelly with above.
+tween.chain().tween_property(...) # Will run after two above are finished.</code></pre>
+<h3 id="bool-custom_stepdelta-float"><code>bool custom_step(delta: float)</code></h3>
+<p>Processes the <strong>SceneTreeTween</strong> by the given <code>delta</code> value, in seconds. This is mostly useful for manual control when the <strong>SceneTreeTween</strong> is paused. It can also be used to end the <strong>SceneTreeTween</strong> animation immediately, by setting <code>delta</code> longer than the whole duration of the <strong>SceneTreeTween</strong> animation.</p>
+<p>Returns <code>true</code> if the <strong>SceneTreeTween</strong> still has <a href="Tweener.html">Tweener</a> s that haven't finished.</p>
+<p><strong>Note:</strong> The <strong>SceneTreeTween</strong> will become invalid in the next processing frame after its animation finishes. Calling <code>stop</code> after performing <code>custom_step</code> instead keeps and resets the <strong>SceneTreeTween</strong>.</p>
+<h3 id="float-get_total_elapsed_time-const"><code>float get_total_elapsed_time() const</code></h3>
+<p>Returns the total time in seconds the <strong>SceneTreeTween</strong> has been animating (i.e. the time since it started, not counting pauses etc.). The time is affected by <code>set_speed_scale</code>, and <code>stop</code> will reset it to <code>0</code>.</p>
+<p><strong>Note:</strong> As it results from accumulating frame deltas, the time returned after the <strong>SceneTreeTween</strong> has finished animating will be slightly greater than the actual <strong>SceneTreeTween</strong> duration.</p>
+<h3 id="variant-interpolate_valueinitial_value-variant-delta_value-variant-elapsed_time-float-duration-float-trans_type-tweentransitiontype-ease_type-tweeneasetype-const"><code>Variant interpolate_value(initial_value: Variant, delta_value: Variant, elapsed_time: float, duration: float, trans_type: </code>Tween.TransitionType<code>, ease_type: </code>Tween.EaseType<code>) const</code></h3>
+<p>This method can be used for manual interpolation of a value, when you don't want <strong>SceneTreeTween</strong> to do animating for you. It's similar to <code>@GDScript.lerp</code>, but with support for custom transition and easing.</p>
+<p><code>initial_value</code> is the starting value of the interpolation.</p>
+<p><code>delta_value</code> is the change of the value in the interpolation, i.e. it's equal to <code>final_value - initial_value</code>.</p>
+<p><code>elapsed_time</code> is the time in seconds that passed after the interpolation started and it's used to control the position of the interpolation. E.g. when it's equal to half of the <code>duration</code>, the interpolated value will be halfway between initial and final values. This value can also be greater than <code>duration</code> or lower than 0, which will extrapolate the value.</p>
+<p><code>duration</code> is the total time of the interpolation.</p>
+<p><strong>Note:</strong> If <code>duration</code> is equal to <code>0</code>, the method will always return the final value, regardless of <code>elapsed_time</code> provided.</p>
+<h3 id="bool-is_running-const"><code>bool is_running() const</code></h3>
+<p>Returns whether the <strong>SceneTreeTween</strong> is currently running, i.e. it wasn't paused and it's not finished.</p>
+<h3 id="bool-is_valid-const"><code>bool is_valid() const</code></h3>
+<p>Returns whether the <strong>SceneTreeTween</strong> is valid. A valid <strong>SceneTreeTween</strong> is a <strong>SceneTreeTween</strong> contained by the scene tree (i.e. the array from <code>SceneTree.get_processed_tweens</code> will contain this <strong>SceneTreeTween</strong>). A <strong>SceneTreeTween</strong> might become invalid when it has finished tweening, is killed, or when created with <code>SceneTreeTween.new()</code>. Invalid <strong>SceneTreeTween</strong> s can't have <a href="Tweener.html">Tweener</a> s appended. You can however still use <code>interpolate_value</code>.</p>
+<h3 id="void-kill"><code>void kill()</code></h3>
+<p>Aborts all tweening operations and invalidates the <strong>SceneTreeTween</strong>.</p>
+<h3 id="scenetreetween-parallel"><code>SceneTreeTween parallel()</code></h3>
+<p>Makes the next <a href="Tweener.html">Tweener</a> run parallelly to the previous one. Example:</p>
+<pre class="gdscript"><code>var tween = create_tween()
+tween.tween_property(...)
+tween.parallel().tween_property(...)
+tween.parallel().tween_property(...)</code></pre>
+<p>All <a href="Tweener.html">Tweener</a> s in the example will run at the same time.</p>
+<p>You can make the <strong>SceneTreeTween</strong> parallel by default by using <code>set_parallel</code>.</p>
+<h3 id="void-pause"><code>void pause()</code></h3>
+<p>Pauses the tweening. The animation can be resumed by using <code>play</code>.</p>
+<h3 id="void-play"><code>void play()</code></h3>
+<p>Resumes a paused or stopped <strong>SceneTreeTween</strong>.</p>
+<h3 id="scenetreetween-set_easeease-tweeneasetype"><code>SceneTreeTween set_ease(ease: </code>Tween.EaseType<code>)</code></h3>
+<p>Sets the default ease type for <a href="PropertyTweener.html">PropertyTweener</a> s and <a href="MethodTweener.html">MethodTweener</a> s animated by this <strong>SceneTreeTween</strong>.</p>
+<h3 id="scenetreetween-set_loopsloops0-int"><code>SceneTreeTween set_loops(loops=0: int)</code></h3>
+<p>Sets the number of times the tweening sequence will be repeated, i.e. <code>set_loops(2)</code> will run the animation twice.</p>
+<p>Calling this method without arguments will make the <strong>SceneTreeTween</strong> run infinitely, until either it is killed with <code>kill</code>, the <strong>SceneTreeTween</strong>'s bound node is freed, or all the animated objects have been freed (which makes further animation impossible).</p>
+<p><strong>Warning:</strong> Make sure to always add some duration/delay when using infinite loops. To prevent the game freezing, 0-duration looped animations (e.g. a single <a href="CallbackTweener.html">CallbackTweener</a> with no delay) are stopped after a small number of loops, which may produce unexpected results. If a <strong>SceneTreeTween</strong>'s lifetime depends on some node, always use <code>bind_node</code>.</p>
+<h3 id="scenetreetween-set_parallelparalleltrue-bool"><code>SceneTreeTween set_parallel(parallel=true: bool)</code></h3>
+<p>If <code>parallel</code> is <code>true</code>, the <a href="Tweener.html">Tweener</a> s appended after this method will by default run simultaneously, as opposed to sequentially.</p>
+<h3 id="scenetreetween-set_pause_modemode-tweenpausemode"><code>SceneTreeTween set_pause_mode(mode: </code>TweenPauseMode<code>)</code></h3>
+<p>Determines the behavior of the <strong>SceneTreeTween</strong> when the <a href="SceneTree.html">SceneTree</a> is paused. Check <code>TweenPauseMode</code> for options.</p>
+<p>Default value is <code>TWEEN_PAUSE_BOUND</code>.</p>
+<h3 id="scenetreetween-set_process_modemode-tweentweenprocessmode"><code>SceneTreeTween set_process_mode(mode: </code>Tween.TweenProcessMode<code>)</code></h3>
+<p>Determines whether the <strong>SceneTreeTween</strong> should run during idle frame (see <code>Node._process</code>) or physics frame (see <code>Node._physics_process</code>.</p>
+<p>Default value is <code>Tween.TWEEN_PROCESS_IDLE</code>.</p>
+<h3 id="scenetreetween-set_speed_scalespeed-float"><code>SceneTreeTween set_speed_scale(speed: float)</code></h3>
+<p>Scales the speed of tweening. This affects all <a href="Tweener.html">Tweener</a> s and their delays.</p>
+<h3 id="scenetreetween-set_transtrans-tweentransitiontype"><code>SceneTreeTween set_trans(trans: </code>Tween.TransitionType<code>)</code></h3>
+<p>Sets the default transition type for <a href="PropertyTweener.html">PropertyTweener</a> s and <a href="MethodTweener.html">MethodTweener</a> s animated by this <strong>SceneTreeTween</strong>.</p>
+<h3 id="void-stop"><code>void stop()</code></h3>
+<p>Stops the tweening and resets the <strong>SceneTreeTween</strong> to its initial state. This will not remove any appended <a href="Tweener.html">Tweener</a> s.</p>
+<h3 id="callbacktweener-tween_callbackobject-object-method-string--array-binds"><code>CallbackTweener tween_callback(object: Object, method: String, ]: Array binds=[)</code></h3>
+<p>Creates and appends a <a href="CallbackTweener.html">CallbackTweener</a>. This method can be used to call an arbitrary method in any object. Use <code>binds</code> to bind additional arguments for the call.</p>
+<p>Example: object that keeps shooting every 1 second.</p>
+<pre class="gdscript"><code>var tween = get_tree().create_tween().set_loops()
+tween.tween_callback(self, &quot;shoot&quot;).set_delay(1)</code></pre>
+<p>Example: turning a sprite red and then blue, with 2 second delay.</p>
+<pre class="gdscript"><code>var tween = get_tree().create_tween()
+tween.tween_callback($Sprite, &quot;set_modulate&quot;, [Color.red]).set_delay(2)
+tween.tween_callback($Sprite, &quot;set_modulate&quot;, [Color.blue]).set_delay(2)</code></pre>
+<h3 id="intervaltweener-tween_intervaltime-float"><code>IntervalTweener tween_interval(time: float)</code></h3>
+<p>Creates and appends an <a href="IntervalTweener.html">IntervalTweener</a>. This method can be used to create delays in the tween animation, as an alternative to using the delay in other <a href="Tweener.html">Tweener</a> s, or when there's no animation (in which case the <strong>SceneTreeTween</strong> acts as a timer). <code>time</code> is the length of the interval, in seconds.</p>
+<p>Example: creating an interval in code execution.</p>
+<pre class="gdscript"><code># ... some code
+yield(create_tween().tween_interval(2), &quot;finished&quot;)
+# ... more code</code></pre>
+<p>Example: creating an object that moves back and forth and jumps every few seconds.</p>
+<pre class="gdscript"><code>var tween = create_tween().set_loops()
+tween.tween_property($Sprite, &quot;position:x&quot;, 200.0, 1).as_relative()
+tween.tween_callback(self, &quot;jump&quot;)
+tween.tween_interval(2)
+tween.tween_property($Sprite, &quot;position:x&quot;, -200.0, 1).as_relative()
+tween.tween_callback(self, &quot;jump&quot;)
+tween.tween_interval(2)</code></pre>
+<h3 id="methodtweener-tween_methodobject-object-method-string-from-variant-to-variant-duration-float--array-binds"><code>MethodTweener tween_method(object: Object, method: String, from: Variant, to: Variant, duration: float, ]: Array binds=[)</code></h3>
+<p>Creates and appends a <a href="MethodTweener.html">MethodTweener</a>. This method is similar to a combination of <code>tween_callback</code> and <code>tween_property</code>. It calls a method over time with a tweened value provided as an argument. The value is tweened between <code>from</code> and <code>to</code> over the time specified by <code>duration</code>, in seconds. Use <code>binds</code> to bind additional arguments for the call. You can use <code>MethodTweener.set_ease</code> and <code>MethodTweener.set_trans</code> to tweak the easing and transition of the value or <code>MethodTweener.set_delay</code> to delay the tweening.</p>
+<p>Example: making a 3D object look from one point to another point.</p>
+<pre class="gdscript"><code>var tween = create_tween()
+tween.tween_method(self, &quot;look_at&quot;, Vector3(-1, 0, -1), Vector3(1, 0, -1), 1, [Vector3.UP]) # The look_at() method takes up vector as second argument.</code></pre>
+<p>Example: setting a text of a <a href="Label.html">Label</a>, using an intermediate method and after a delay.</p>
+<pre class="gdscript"><code>func _ready():
+    var tween = create_tween()
+    tween.tween_method(self, &quot;set_label_text&quot;, 0, 10, 1).set_delay(1)
+
+func set_label_text(value: int):
+    $Label.text = &quot;Counting &quot; + str(value)</code></pre>
+<h3 id="propertytweener-tween_propertyobject-object-property-nodepath-final_val-variant-duration-float"><code>PropertyTweener tween_property(object: Object, property: NodePath, final_val: Variant, duration: float)</code></h3>
+<p>Creates and appends a <a href="PropertyTweener.html">PropertyTweener</a>. This method tweens a <code>property</code> of an <code>object</code> between an initial value and <code>final_val</code> in a span of time equal to <code>duration</code>, in seconds. The initial value by default is the property's value at the time the tweening of the <a href="PropertyTweener.html">PropertyTweener</a> starts. For example:</p>
+<pre class="gdscript"><code>var tween = create_tween()
+tween.tween_property($Sprite, &quot;position&quot;, Vector2(100, 200), 1)
+tween.tween_property($Sprite, &quot;position&quot;, Vector2(200, 300), 1)</code></pre>
+<p>will move the sprite to position (100, 200) and then to (200, 300). If you use <code>PropertyTweener.from</code> or <code>PropertyTweener.from_current</code>, the starting position will be overwritten by the given value instead. See other methods in <a href="PropertyTweener.html">PropertyTweener</a> to see how the tweening can be tweaked further.</p>
+<p><strong>Note:</strong> You can find the correct property name by hovering over the property in the Inspector. You can also provide the components of a property directly by using <code>"property:component"</code> (eg. <code>position:x</code>), where it would only apply to that particular component.</p>
+<p>Example: moving object twice from the same position, with different transition types.</p>
+<pre class="gdscript"><code>var tween = create_tween()
+tween.tween_property($Sprite, &quot;position&quot;, Vector2.RIGHT * 300, 1).as_relative().set_trans(Tween.TRANS_SINE)
+tween.tween_property($Sprite, &quot;position&quot;, Vector2.RIGHT * 300, 1).as_relative().from_current().set_trans(Tween.TRANS_EXPO)</code></pre>
+<h2 id="signals">Signals</h2>
+<h3 id="finished"><code>finished()</code></h3>
+<p>Emitted when the <strong>SceneTreeTween</strong> has finished all tweening. Never emitted when the <strong>SceneTreeTween</strong> is set to infinite looping (see <code>set_loops</code>).</p>
+<p><strong>Note:</strong> The <strong>SceneTreeTween</strong> is removed (invalidated) in the next processing frame after this signal is emitted. Calling <code>stop</code> inside the signal callback will prevent the <strong>SceneTreeTween</strong> from being removed.</p>
+<h3 id="loop_finishedloop_count-int"><code>loop_finished(loop_count: int)</code></h3>
+<p>Emitted when a full loop is complete (see <code>set_loops</code>), providing the loop index. This signal is not emitted after the final loop, use <code>finished</code> instead for this case.</p>
+<h3 id="step_finishedidx-int"><code>step_finished(idx: int)</code></h3>
+<p>Emitted when one step of the <strong>SceneTreeTween</strong> is complete, providing the step index. One step is either a single <a href="Tweener.html">Tweener</a> or a group of <a href="Tweener.html">Tweener</a> s running in parallel.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-tweenpausemode"><code>enum TweenPauseMode</code></h3>
+<ul>
+<li><p><code>TWEEN_PAUSE_BOUND = 0</code></p>
+<p>If the <strong>SceneTreeTween</strong> has a bound node, it will process when that node can process (see <code>Node.pause_mode</code>). Otherwise it's the same as <code>TWEEN_PAUSE_STOP</code>.</p></li>
+<li><p><code>TWEEN_PAUSE_STOP = 1</code></p>
+<p>If <a href="SceneTree.html">SceneTree</a> is paused, the <strong>SceneTreeTween</strong> will also pause.</p></li>
+<li><p><code>TWEEN_PAUSE_PROCESS = 2</code></p>
+<p>The <strong>SceneTreeTween</strong> will process regardless of whether <a href="SceneTree.html">SceneTree</a> is paused.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

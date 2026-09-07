@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saving games — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="saving-games">Saving games</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Save games can be complicated. For example, it may be desirable to store information from multiple objects across multiple levels. Advanced save game systems should allow for additional information about an arbitrary number of objects. This will allow the save function to scale as the game grows more complex.</p>
+<blockquote>
+<p><strong>Note:</strong> If you're looking to save user configuration, you can use the <code>class_ConfigFile</code> class for this purpose.</p>
+</blockquote>
+<h2 id="identify-persistent-objects">Identify persistent objects</h2>
+<p>Firstly, we should identify what objects we want to keep between game sessions and what information we want to keep from those objects. For this tutorial, we will use groups to mark and handle objects to be saved, but other methods are certainly possible.</p>
+<p>We will start by adding objects we wish to save to the "Persist" group. We can do this through either the GUI or script. Let's add the relevant nodes using the GUI:</p>
+<p>Once this is done, when we need to save the game, we can get all objects to save them and then tell them all to save with this script:</p>
+<pre class="gdscript"><code>var save_nodes = get_tree().get_nodes_in_group(&quot;Persist&quot;)
+for node in save_nodes:
+    # Now, we can call our save function on each node.</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> saveNodes <span class="op">=</span> <span class="fu">GetTree</span><span class="op">().</span><span class="fu">GetNodesInGroup</span><span class="op">(</span><span class="st">&quot;Persist&quot;</span><span class="op">);</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">foreach</span> <span class="op">(</span>Node saveNode <span class="kw">in</span> saveNodes<span class="op">)</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Now, we can call our save function on each node.</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="serializing">Serializing</h2>
+<p>The next step is to serialize the data. This makes it much easier to read from and store to disk. In this case, we're assuming each member of group Persist is an instanced node and thus has a path. GDScript has helper functions for this, such as ref and ref, so we will use a dictionary. Our node needs to contain a save function that returns this data. The save function will look like this:</p>
+<pre class="gdscript"><code>func save():
+    var save_dict = {
+        &quot;filename&quot; : get_filename(),
+        &quot;parent&quot; : get_parent().get_path(),
+        &quot;pos_x&quot; : position.x, # Vector2 is not supported by JSON
+        &quot;pos_y&quot; : position.y,
+        &quot;attack&quot; : attack,
+        &quot;defense&quot; : defense,
+        &quot;current_health&quot; : current_health,
+        &quot;max_health&quot; : max_health,
+        &quot;damage&quot; : damage,
+        &quot;regen&quot; : regen,
+        &quot;experience&quot; : experience,
+        &quot;tnl&quot; : tnl,
+        &quot;level&quot; : level,
+        &quot;attack_growth&quot; : attack_growth,
+        &quot;defense_growth&quot; : defense_growth,
+        &quot;health_growth&quot; : health_growth,
+        &quot;is_alive&quot; : is_alive,
+        &quot;last_attack&quot; : last_attack
+    }
+    return save_dict</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">object</span><span class="op">&gt;</span> <span class="fu">Save</span><span class="op">()</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> <span class="kw">new</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">object</span><span class="op">&gt;()</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;Filename&quot;</span><span class="op">,</span> <span class="fu">GetFilename</span><span class="op">()</span> <span class="op">},</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;Parent&quot;</span><span class="op">,</span> <span class="fu">GetParent</span><span class="op">().</span><span class="fu">GetPath</span><span class="op">()</span> <span class="op">},</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;PosX&quot;</span><span class="op">,</span> Position<span class="op">.</span><span class="fu">x</span> <span class="op">},</span> <span class="co">// Vector2 is not supported by JSON</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;PosY&quot;</span><span class="op">,</span> Position<span class="op">.</span><span class="fu">y</span> <span class="op">},</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;Attack&quot;</span><span class="op">,</span> Attack <span class="op">},</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;Defense&quot;</span><span class="op">,</span> Defense <span class="op">},</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;CurrentHealth&quot;</span><span class="op">,</span> CurrentHealth <span class="op">},</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;MaxHealth&quot;</span><span class="op">,</span> MaxHealth <span class="op">},</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;Damage&quot;</span><span class="op">,</span> Damage <span class="op">},</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;Regen&quot;</span><span class="op">,</span> Regen <span class="op">},</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;Experience&quot;</span><span class="op">,</span> Experience <span class="op">},</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;Tnl&quot;</span><span class="op">,</span> Tnl <span class="op">},</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;Level&quot;</span><span class="op">,</span> Level <span class="op">},</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;AttackGrowth&quot;</span><span class="op">,</span> AttackGrowth <span class="op">},</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;DefenseGrowth&quot;</span><span class="op">,</span> DefenseGrowth <span class="op">},</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;HealthGrowth&quot;</span><span class="op">,</span> HealthGrowth <span class="op">},</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;IsAlive&quot;</span><span class="op">,</span> IsAlive <span class="op">},</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span> <span class="st">&quot;LastAttack&quot;</span><span class="op">,</span> LastAttack <span class="op">}</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This gives us a dictionary with the style <code>{ "variable_name":value_of_variable }</code>, which will be useful when loading.</p>
+<h2 id="saving-and-reading-data">Saving and reading data</h2>
+<p>As covered in the <code>doc_filesystem</code> tutorial, we'll need to open a file so we can write to it or read from it. Now that we have a way to call our groups and get their relevant data, let's use ref to convert it into an easily stored string and store them in a file. Doing it this way ensures that each line is its own object, so we have an easy way to pull the data out of the file as well.</p>
+<pre class="gdscript"><code># Note: This can be called from anywhere inside the tree. This function is
+# path independent.
+# Go through everything in the persist category and ask them to return a
+# dict of relevant variables.
+func save_game():
+    var save_game = File.new()
+    save_game.open(&quot;user://savegame.save&quot;, File.WRITE)
+    var save_nodes = get_tree().get_nodes_in_group(&quot;Persist&quot;)
+    for node in save_nodes:
+        # Check the node is an instanced scene so it can be instanced again during load.
+        if node.filename.empty():
+            print(&quot;persistent node &#39;%s&#39; is not an instanced scene, skipped&quot; % node.name)
+            continue
+
+        # Check the node has a save function.
+        if !node.has_method(&quot;save&quot;):
+            print(&quot;persistent node &#39;%s&#39; is missing a save() function, skipped&quot; % node.name)
+            continue
+
+        # Call the node&#39;s save function.
+        var node_data = node.call(&quot;save&quot;)
+
+        # Store the save dictionary as a new line in the save file.
+        save_game.store_line(to_json(node_data))
+    save_game.close()</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Note: This can be called from anywhere inside the tree. This function is</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">// path independent.</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Go through everything in the persist category and ask them to return a</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">// dict of relevant variables.</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">SaveGame</span><span class="op">()</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> saveGame <span class="op">=</span> <span class="kw">new</span> <span class="fu">File</span><span class="op">();</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    saveGame<span class="op">.</span><span class="fu">Open</span><span class="op">(</span><span class="st">&quot;user://savegame.save&quot;</span><span class="op">,</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>File<span class="op">.</span><span class="fu">ModeFlags</span><span class="op">.</span><span class="fu">Write</span><span class="op">);</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> saveNodes <span class="op">=</span> <span class="fu">GetTree</span><span class="op">().</span><span class="fu">GetNodesInGroup</span><span class="op">(</span><span class="st">&quot;Persist&quot;</span><span class="op">);</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">foreach</span> <span class="op">(</span>Node saveNode <span class="kw">in</span> saveNodes<span class="op">)</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Check the node is an instanced scene so it can be instanced again during load.</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>saveNode<span class="op">.</span><span class="fu">Filename</span><span class="op">.</span><span class="fu">Empty</span><span class="op">())</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>String<span class="op">.</span><span class="fu">Format</span><span class="op">(</span><span class="st">&quot;persistent node &#39;{0}&#39; is not an instanced scene, skipped&quot;</span><span class="op">,</span> saveNode<span class="op">.</span><span class="fu">Name</span><span class="op">));</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>            <span class="kw">continue</span><span class="op">;</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Check the node has a save function.</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(!</span>saveNode<span class="op">.</span><span class="fu">HasMethod</span><span class="op">(</span><span class="st">&quot;Save&quot;</span><span class="op">))</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>String<span class="op">.</span><span class="fu">Format</span><span class="op">(</span><span class="st">&quot;persistent node &#39;{0}&#39; is missing a Save() function, skipped&quot;</span><span class="op">,</span> saveNode<span class="op">.</span><span class="fu">Name</span><span class="op">));</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>            <span class="kw">continue</span><span class="op">;</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Call the node&#39;s save function.</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> nodeData <span class="op">=</span> saveNode<span class="op">.</span><span class="fu">Call</span><span class="op">(</span><span class="st">&quot;Save&quot;</span><span class="op">);</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Store the save dictionary as a new line in the save file.</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>        saveGame<span class="op">.</span><span class="fu">StoreLine</span><span class="op">(</span>JSON<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>nodeData<span class="op">));</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>    saveGame<span class="op">.</span><span class="fu">Close</span><span class="op">();</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Game saved! Loading is fairly simple as well. For that, we'll read each line, use parse_json() to read it back to a dict, and then iterate over the dict to read our values. But we'll need to first create the object and we can use the filename and parent values to achieve that. Here is our load function:</p>
+<pre class="gdscript"><code># Note: This can be called from anywhere inside the tree. This function
+# is path independent.
+func load_game():
+    var save_game = File.new()
+    if not save_game.file_exists(&quot;user://savegame.save&quot;):
+        return # Error! We don&#39;t have a save to load.
+
+    # We need to revert the game state so we&#39;re not cloning objects
+    # during loading. This will vary wildly depending on the needs of a
+    # project, so take care with this step.
+    # For our example, we will accomplish this by deleting saveable objects.
+    var save_nodes = get_tree().get_nodes_in_group(&quot;Persist&quot;)
+    for i in save_nodes:
+        i.queue_free()
+
+    # Load the file line by line and process that dictionary to restore
+    # the object it represents.
+    save_game.open(&quot;user://savegame.save&quot;, File.READ)
+    while save_game.get_position() &lt; save_game.get_len():
+        # Get the saved dictionary from the next line in the save file
+        var node_data = parse_json(save_game.get_line())
+
+        # Firstly, we need to create the object and add it to the tree and set its position.
+        var new_object = load(node_data[&quot;filename&quot;]).instance()
+        get_node(node_data[&quot;parent&quot;]).add_child(new_object)
+        new_object.position = Vector2(node_data[&quot;pos_x&quot;], node_data[&quot;pos_y&quot;])
+
+        # Now we set the remaining variables.
+        for i in node_data.keys():
+            if i == &quot;filename&quot; or i == &quot;parent&quot; or i == &quot;pos_x&quot; or i == &quot;pos_y&quot;:
+                continue
+            new_object.set(i, node_data[i])
+
+    save_game.close()</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Note: This can be called from anywhere inside the tree. This function is</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">// path independent.</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">LoadGame</span><span class="op">()</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> saveGame <span class="op">=</span> <span class="kw">new</span> <span class="fu">File</span><span class="op">();</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(!</span>saveGame<span class="op">.</span><span class="fu">FileExists</span><span class="op">(</span><span class="st">&quot;user://savegame.save&quot;</span><span class="op">))</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span><span class="op">;</span> <span class="co">// Error! We don&#39;t have a save to load.</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We need to revert the game state so we&#39;re not cloning objects during loading.</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// This will vary wildly depending on the needs of a project, so take care with</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// this step.</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// For our example, we will accomplish this by deleting saveable objects.</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> saveNodes <span class="op">=</span> <span class="fu">GetTree</span><span class="op">().</span><span class="fu">GetNodesInGroup</span><span class="op">(</span><span class="st">&quot;Persist&quot;</span><span class="op">);</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">foreach</span> <span class="op">(</span>Node saveNode <span class="kw">in</span> saveNodes<span class="op">)</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        saveNode<span class="op">.</span><span class="fu">QueueFree</span><span class="op">();</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Load the file line by line and process that dictionary to restore the object</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">// it represents.</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    saveGame<span class="op">.</span><span class="fu">Open</span><span class="op">(</span><span class="st">&quot;user://savegame.save&quot;</span><span class="op">,</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>File<span class="op">.</span><span class="fu">ModeFlags</span><span class="op">.</span><span class="fu">Read</span><span class="op">);</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">while</span> <span class="op">(</span>saveGame<span class="op">.</span><span class="fu">GetPosition</span><span class="op">()</span> <span class="op">&lt;</span> saveGame<span class="op">.</span><span class="fu">GetLen</span><span class="op">())</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Get the saved dictionary from the next line in the save file</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> nodeData <span class="op">=</span> <span class="kw">new</span> Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">object</span><span class="op">&gt;((</span>Godot<span class="op">.</span><span class="fu">Collections</span><span class="op">.</span><span class="fu">Dictionary</span><span class="op">)</span>JSON<span class="op">.</span><span class="fu">Parse</span><span class="op">(</span>saveGame<span class="op">.</span><span class="fu">GetLine</span><span class="op">()).</span><span class="fu">Result</span><span class="op">);</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Firstly, we need to create the object and add it to the tree and set its position.</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> newObjectScene <span class="op">=</span> <span class="op">(</span>PackedScene<span class="op">)</span>ResourceLoader<span class="op">.</span><span class="fu">Load</span><span class="op">(</span>nodeData<span class="op">[</span><span class="st">&quot;Filename&quot;</span><span class="op">].</span><span class="fu">ToString</span><span class="op">());</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> newObject <span class="op">=</span> <span class="op">(</span>Node<span class="op">)</span>newObjectScene<span class="op">.</span><span class="fu">Instance</span><span class="op">();</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>        <span class="fu">GetNode</span><span class="op">(</span>nodeData<span class="op">[</span><span class="st">&quot;Parent&quot;</span><span class="op">].</span><span class="fu">ToString</span><span class="op">()).</span><span class="fu">AddChild</span><span class="op">(</span>newObject<span class="op">);</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>        newObject<span class="op">.</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;Position&quot;</span><span class="op">,</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">((</span><span class="dt">float</span><span class="op">)</span>nodeData<span class="op">[</span><span class="st">&quot;PosX&quot;</span><span class="op">],</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>nodeData<span class="op">[</span><span class="st">&quot;PosY&quot;</span><span class="op">]));</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Now we set the remaining variables.</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>        <span class="kw">foreach</span> <span class="op">(</span>KeyValuePair<span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">object</span><span class="op">&gt;</span> entry <span class="kw">in</span> nodeData<span class="op">)</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>            <span class="dt">string</span> key <span class="op">=</span> entry<span class="op">.</span><span class="fu">Key</span><span class="op">.</span><span class="fu">ToString</span><span class="op">();</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>key <span class="op">==</span> <span class="st">&quot;Filename&quot;</span> <span class="op">||</span> key <span class="op">==</span> <span class="st">&quot;Parent&quot;</span> <span class="op">||</span> key <span class="op">==</span> <span class="st">&quot;PosX&quot;</span> <span class="op">||</span> key <span class="op">==</span> <span class="st">&quot;PosY&quot;</span><span class="op">)</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>                <span class="kw">continue</span><span class="op">;</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>            newObject<span class="op">.</span><span class="fu">Set</span><span class="op">(</span>key<span class="op">,</span> entry<span class="op">.</span><span class="fu">Value</span><span class="op">);</span></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>    saveGame<span class="op">.</span><span class="fu">Close</span><span class="op">();</span></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Now we can save and load an arbitrary number of objects laid out almost anywhere across the scene tree! Each object can store different data depending on what it needs to save.</p>
+<h2 id="some-notes">Some notes</h2>
+<p>We have glossed over setting up the game state for loading. It's ultimately up to the project creator where much of this logic goes. This is often complicated and will need to be heavily customized based on the needs of the individual project.</p>
+<p>Additionally, our implementation assumes no Persist objects are children of other Persist objects. Otherwise, invalid paths would be created. To accommodate nested Persist objects, consider saving objects in stages. Load parent objects first so they are available for the ref call when child objects are loaded. You will also need a way to link children to parents as the ref will likely be invalid.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

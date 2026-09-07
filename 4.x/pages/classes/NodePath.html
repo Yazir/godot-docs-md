@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NodePath — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="nodepath">NodePath</h1>
+<p>A pre-parsed scene tree path.</p>
+<h2 id="description">Description</h2>
+<p>The <strong>NodePath</strong> built-in <a href="Variant.html">Variant</a> type represents a path to a node or property in a hierarchy of nodes. It is designed to be efficiently passed into many built-in methods (such as <code>Node.get_node()</code>, <code>Object.set_indexed()</code>, <code>Tween.tween_property()</code>, etc.) without a hard dependence on the node or property they point to.</p>
+<p>A node path is represented as a <a href="String.html">String</a> composed of slash-separated (<code>/</code>) node names and colon-separated (<code>:</code>) property names (also called "subnames"). Similar to a filesystem path, <code>".."</code> and <code>"."</code> are special node names. They refer to the parent node and the current node, respectively.</p>
+<p>The following examples are paths relative to the current node:</p>
+<pre class="gdscript"><code>^&quot;A&quot;     # Points to the direct child A.
+^&quot;A/B&quot;   # Points to A&#39;s child B.
+^&quot;.&quot;     # Points to the current node.
+^&quot;..&quot;    # Points to the parent node.
+^&quot;../C&quot;  # Points to the sibling node C.
+^&quot;../..&quot; # Points to the grandparent node.</code></pre>
+<p>A leading slash means the path is absolute, and begins from the <a href="SceneTree.html">SceneTree</a>:</p>
+<pre class="gdscript"><code>^&quot;/root&quot;            # Points to the SceneTree&#39;s root Window.
+^&quot;/root/Title&quot;      # May point to the main scene&#39;s root node named &quot;Title&quot;.
+^&quot;/root/Global&quot;     # May point to an autoloaded node or scene named &quot;Global&quot;.</code></pre>
+<p>Despite their name, node paths may also point to a property:</p>
+<pre class="gdscript"><code>^&quot;:position&quot;           # Points to this object&#39;s position.
+^&quot;:position:x&quot;         # Points to this object&#39;s position in the x axis.
+^&quot;Camera3D:rotation:y&quot; # Points to the child Camera3D and its y rotation.
+^&quot;/root:size:x&quot;        # Points to the root Window and its width.</code></pre>
+<p>In some situations, it's possible to omit the leading <code>:</code> when pointing to an object's property. As an example, this is the case with <code>Object.set_indexed()</code> and <code>Tween.tween_property()</code>, as those methods call <code>get_as_property_path()</code> under the hood. However, it's generally recommended to keep the <code>:</code> prefix.</p>
+<p>Node paths cannot check whether they are valid and may point to nodes or properties that do not exist. Their meaning depends entirely on the context in which they're used.</p>
+<p>You usually do not have to worry about the <strong>NodePath</strong> type, as strings are automatically converted to the type when necessary. There are still times when defining node paths is useful. For example, exported <strong>NodePath</strong> properties allow you to easily select any node within the currently edited scene. They are also automatically updated when moving, renaming or deleting nodes in the scene tree editor. See also <code>@GDScript.@export_node_path</code>.</p>
+<p>See also <a href="StringName.html">StringName</a>, which is a similar type designed for optimized strings.</p>
+<p><strong>Note:</strong> In a boolean context, a <strong>NodePath</strong> will evaluate to <code>false</code> if it is empty (<code>NodePath("")</code>). Otherwise, a <strong>NodePath</strong> will always evaluate to <code>true</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> There are notable differences when using this API with C#. See <code>c_sharp_differences</code> for more information.</p>
+</blockquote>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="https://godotengine.org/asset-library/asset/2729">2D Role Playing Game (RPG) Demo</a></li>
+</ul>
+<h2 id="constructors">Constructors</h2>
+<h3 id="nodepath-nodepath"><code>NodePath NodePath()</code></h3>
+<p>Constructs an empty <strong>NodePath</strong>.</p>
+<h3 id="nodepath-nodepathfrom-nodepath"><code>NodePath NodePath(from: NodePath)</code></h3>
+<p>Constructs a <strong>NodePath</strong> as a copy of the given <strong>NodePath</strong>.</p>
+<h3 id="nodepath-nodepathfrom-string"><code>NodePath NodePath(from: String)</code></h3>
+<p>Constructs a <strong>NodePath</strong> from a <a href="String.html">String</a>. The created path is absolute if prefixed with a slash (see <code>is_absolute()</code>).</p>
+<p>The "subnames" optionally included after the path to the target node can point to properties, and can also be nested.</p>
+<p>The following strings can be valid node paths:</p>
+<pre class="gdscript"><code># Points to the Sprite2D node.
+&quot;Level/RigidBody2D/Sprite2D&quot;
+
+# Points to the Sprite2D node and its &quot;texture&quot; resource.
+# get_node() would retrieve the Sprite2D, while get_node_and_resource()
+# would retrieve both the Sprite2D node and the &quot;texture&quot; resource.
+&quot;Level/RigidBody2D/Sprite2D:texture&quot;
+
+# Points to the Sprite2D node and its &quot;position&quot; property.
+&quot;Level/RigidBody2D/Sprite2D:position&quot;
+
+# Points to the Sprite2D node and the &quot;x&quot; component of its &quot;position&quot; property.
+&quot;Level/RigidBody2D/Sprite2D:position:x&quot;
+
+# Points to the RigidBody2D node as an absolute path beginning from the SceneTree.
+&quot;/root/Level/RigidBody2D&quot;</code></pre>
+<p><strong>Note:</strong> In GDScript, it's also possible to convert a constant string into a node path by prefixing it with <code>^</code>. <code>^"path/to/node"</code> is equivalent to <code>NodePath("path/to/node")</code>.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="nodepath-get_as_property_path-const"><code>NodePath get_as_property_path() const</code></h3>
+<p>Returns a copy of this node path with a colon character (<code>:</code>) prefixed, transforming it to a pure property path with no node names (relative to the current node).</p>
+<pre class="gdscript"><code># node_path points to the &quot;x&quot; property of the child node named &quot;position&quot;.
+var node_path = ^&quot;position:x&quot;
+
+# property_path points to the &quot;position&quot; in the &quot;x&quot; axis of this node.
+var property_path = node_path.get_as_property_path()
+print(property_path) # Prints &quot;:position:x&quot;</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// nodePath points to the &quot;x&quot; property of the child node named &quot;position&quot;.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> nodePath <span class="op">=</span> <span class="kw">new</span> <span class="fu">NodePath</span><span class="op">(</span><span class="st">&quot;position:x&quot;</span><span class="op">);</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">// propertyPath points to the &quot;position&quot; in the &quot;x&quot; axis of this node.</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>NodePath propertyPath <span class="op">=</span> nodePath<span class="op">.</span><span class="fu">GetAsPropertyPath</span><span class="op">();</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>propertyPath<span class="op">);</span> <span class="co">// Prints &quot;:position:x&quot;</span></span></code></pre></div>
+<h3 id="stringname-get_concatenated_names-const"><code>StringName get_concatenated_names() const</code></h3>
+<p>Returns all node names concatenated with a slash character (<code>/</code>) as a single <a href="StringName.html">StringName</a>.</p>
+<h3 id="stringname-get_concatenated_subnames-const"><code>StringName get_concatenated_subnames() const</code></h3>
+<p>Returns all property subnames concatenated with a colon character (<code>:</code>) as a single <a href="StringName.html">StringName</a>.</p>
+<pre class="gdscript"><code>var node_path = ^&quot;Sprite2D:texture:resource_name&quot;
+print(node_path.get_concatenated_subnames()) # Prints &quot;texture:resource_name&quot;</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> nodePath <span class="op">=</span> <span class="kw">new</span> <span class="fu">NodePath</span><span class="op">(</span><span class="st">&quot;Sprite2D:texture:resource_name&quot;</span><span class="op">);</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>nodePath<span class="op">.</span><span class="fu">GetConcatenatedSubnames</span><span class="op">());</span> <span class="co">// Prints &quot;texture:resource_name&quot;</span></span></code></pre></div>
+<h3 id="stringname-get_nameidx-int-const"><code>StringName get_name(idx: int) const</code></h3>
+<p>Returns the node name indicated by <code>idx</code>, starting from 0. If <code>idx</code> is out of bounds, an error is generated. See also <code>get_subname_count()</code> and <code>get_name_count()</code>.</p>
+<pre class="gdscript"><code>var sprite_path = NodePath(&quot;../RigidBody2D/Sprite2D&quot;)
+print(sprite_path.get_name(0)) # Prints &quot;..&quot;
+print(sprite_path.get_name(1)) # Prints &quot;RigidBody2D&quot;
+print(sprite_path.get_name(2)) # Prints &quot;Sprite&quot;</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> spritePath <span class="op">=</span> <span class="kw">new</span> <span class="fu">NodePath</span><span class="op">(</span><span class="st">&quot;../RigidBody2D/Sprite2D&quot;</span><span class="op">);</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>spritePath<span class="op">.</span><span class="fu">GetName</span><span class="op">(</span><span class="dv">0</span><span class="op">));</span> <span class="co">// Prints &quot;..&quot;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>spritePath<span class="op">.</span><span class="fu">GetName</span><span class="op">(</span><span class="dv">1</span><span class="op">));</span> <span class="co">// Prints &quot;PathFollow2D&quot;</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>spritePath<span class="op">.</span><span class="fu">GetName</span><span class="op">(</span><span class="dv">2</span><span class="op">));</span> <span class="co">// Prints &quot;Sprite&quot;</span></span></code></pre></div>
+<h3 id="int-get_name_count-const"><code>int get_name_count() const</code></h3>
+<p>Returns the number of node names in the path. Property subnames are not included.</p>
+<p>For example, <code>"../RigidBody2D/Sprite2D:texture"</code> contains 3 node names.</p>
+<h3 id="stringname-get_subnameidx-int-const"><code>StringName get_subname(idx: int) const</code></h3>
+<p>Returns the property name indicated by <code>idx</code>, starting from 0. If <code>idx</code> is out of bounds, an error is generated. See also <code>get_subname_count()</code>.</p>
+<pre class="gdscript"><code>var path_to_name = NodePath(&quot;Sprite2D:texture:resource_name&quot;)
+print(path_to_name.get_subname(0)) # Prints &quot;texture&quot;
+print(path_to_name.get_subname(1)) # Prints &quot;resource_name&quot;</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> pathToName <span class="op">=</span> <span class="kw">new</span> <span class="fu">NodePath</span><span class="op">(</span><span class="st">&quot;Sprite2D:texture:resource_name&quot;</span><span class="op">);</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>pathToName<span class="op">.</span><span class="fu">GetSubname</span><span class="op">(</span><span class="dv">0</span><span class="op">));</span> <span class="co">// Prints &quot;texture&quot;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>pathToName<span class="op">.</span><span class="fu">GetSubname</span><span class="op">(</span><span class="dv">1</span><span class="op">));</span> <span class="co">// Prints &quot;resource_name&quot;</span></span></code></pre></div>
+<h3 id="int-get_subname_count-const"><code>int get_subname_count() const</code></h3>
+<p>Returns the number of property names ("subnames") in the path. Each subname in the node path is listed after a colon character (<code>:</code>).</p>
+<p>For example, <code>"Level/RigidBody2D/Sprite2D:texture:resource_name"</code> contains 2 subnames.</p>
+<h3 id="int-hash-const"><code>int hash() const</code></h3>
+<p>Returns the 32-bit hash value representing the node path's contents.</p>
+<p><strong>Note:</strong> Node paths with equal hash values are <em>not</em> guaranteed to be the same, as a result of hash collisions. Node paths with different hash values are guaranteed to be different.</p>
+<h3 id="bool-is_absolute-const"><code>bool is_absolute() const</code></h3>
+<p>Returns <code>true</code> if the node path is absolute. Unlike a relative path, an absolute path is represented by a leading slash character (<code>/</code>) and always begins from the <a href="SceneTree.html">SceneTree</a>. It can be used to reliably access nodes from the root node (e.g. <code>"/root/Global"</code> if an autoload named "Global" exists).</p>
+<h3 id="bool-is_empty-const"><code>bool is_empty() const</code></h3>
+<p>Returns <code>true</code> if the node path has been constructed from an empty <a href="String.html">String</a> (<code>""</code>).</p>
+<h3 id="nodepath-slicebegin-int-end-int--2147483647-const"><code>NodePath slice(begin: int, end: int = 2147483647) const</code></h3>
+<p>Returns the slice of the <strong>NodePath</strong>, from <code>begin</code> (inclusive) to <code>end</code> (exclusive), as a new <strong>NodePath</strong>.</p>
+<p>The absolute value of <code>begin</code> and <code>end</code> will be clamped to the sum of <code>get_name_count()</code> and <code>get_subname_count()</code>, so the default value for <code>end</code> makes it slice to the end of the <strong>NodePath</strong> by default (i.e. <code>path.slice(1)</code> is a shorthand for <code>path.slice(1, path.get_name_count() + path.get_subname_count())</code>).</p>
+<p>If either <code>begin</code> or <code>end</code> are negative, they will be relative to the end of the <strong>NodePath</strong> (i.e. <code>path.slice(0, -2)</code> is a shorthand for <code>path.slice(0, path.get_name_count() + path.get_subname_count() - 2)</code>).</p>
+<h2 id="operators">Operators</h2>
+<h3 id="bool-operator-right-nodepath"><code>bool operator !=(right: NodePath)</code></h3>
+<p>Returns <code>true</code> if two node paths are not equal.</p>
+<h3 id="bool-operator-right-nodepath-1"><code>bool operator ==(right: NodePath)</code></h3>
+<p>Returns <code>true</code> if two node paths are equal, that is, they are composed of the same node names and subnames in the same order.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

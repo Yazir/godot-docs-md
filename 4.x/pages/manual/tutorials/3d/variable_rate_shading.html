@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Variable rate shading — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="variable-rate-shading">Variable rate shading</h1>
+<h2 id="what-is-variable-rate-shading">What is variable rate shading?</h2>
+<p>In modern 3D rendering engines, shaders are much more complex compared to before. The advent of physically-based rendering, real-time global illumination and screen-space effects has increased the number of <em>per-pixel</em> shading that must be performed to render each frame. Additionally, screen resolutions also have increased a lot, with 1440p and 4K now being common target resolutions. As a result, the total shading cost in scene rendering usually represents a significant amount of the time taken to render each frame.</p>
+<p>Variable rate shading (VRS) is a method of decreasing this shading cost by reducing the resolution of <em>per-pixel</em> shading (also called <em>fragment</em> shading), while keeping the original resolution for rendering geometry. This means geometry edges remain as sharp as they would without VRS. VRS can be combined with any <code>doc_3d_antialiasing</code> technique (MSAA, FXAA, TAA, SSAA).</p>
+<p>VRS allows specifying the shading quality in a local manner, which makes it possible to have certain parts of the viewport receive more detailed shading than others. This is particularly useful in virtual reality (VR) to achieve <em>foveated rendering</em>, where the center of the viewport is more detailed than the edges.</p>
+<p>Here's a scene rendered with rate shading disabled then enabled, using the density map linked at the bottom of this page:</p>
+<p><em>Image: Variable rate shading disabled in textured scene</em></p>
+<p>Variable rate shading disabled in textured scene</p>
+<p><em>Image: Variable rate shading enabled in textured scene (lower quality, but higher performance)</em></p>
+<p>Variable rate shading enabled in textured scene (lower quality, but higher performance)</p>
+<p>When used in scenes with low-frequency detail (such as scenes with a stylized/low-poly aesthetic), it's possible to achieve similar performance gains, but with less reduction in visual quality:</p>
+<p><em>Image: Variable rate shading disabled in untextured scene</em></p>
+<p>Variable rate shading disabled in untextured scene</p>
+<p><em>Image: Variable rate shading enabled in untextured scene (lower quality, but higher performance)</em></p>
+<p>Variable rate shading enabled in untextured scene (lower quality, but higher performance)</p>
+<h2 id="hardware-support">Hardware support</h2>
+<p>Variable rate shading is only supported on specific GPUs:</p>
+<p><strong>Desktop:</strong></p>
+<ul>
+<li>NVIDIA Turing and newer (including GTX 1600 series)</li>
+<li>AMD RDNA2 and newer (both integrated and dedicated GPUs – including Steam Deck)</li>
+<li>Intel Arc Alchemist and newer <strong>(dedicated GPUs only)</strong>
+<ul>
+<li>Intel integrated graphics do not support variable rate shading.</li>
+</ul></li>
+</ul>
+<p><strong>Mobile SoCs:</strong></p>
+<ul>
+<li>Snapdragon 888 and newer</li>
+<li>MediaTek Dimensity 9000 and newer</li>
+<li>ARM Mali-G615 and newer</li>
+</ul>
+<p>As of January 2023, Apple and Raspberry Pi GPUs do not support variable rate shading.</p>
+<h2 id="using-variable-rate-shading-in-godot">Using variable rate shading in Godot</h2>
+<blockquote>
+<p><strong>Note:</strong> Both Forward+ and Mobile renderers support variable rate shading. VRS can be used in both pancake (non-XR) and XR display modes.</p>
+<p>The Compatibility renderer does <strong>not</strong> support variable rate shading. For XR, you can use ref as an alternative.</p>
+</blockquote>
+<p>In the advanced Project Settings, the <strong>Rendering &gt; VRS</strong> section offers settings to control variable rate shading on the root viewport:</p>
+<ul>
+<li><strong>Mode:</strong> Controls the variable rate shading mode. <strong>Disabled</strong> disables variable rate shading. <strong>Texture</strong> uses a manually authored texture to set shading density (see the property below). <strong>XR</strong> automatically generates a texture suited for foveated rendering in virtual/augmented reality.</li>
+<li><strong>Texture:</strong> The texture to use to control shading density on the root viewport. Only used if <strong>Mode</strong> is <strong>Texture</strong>.</li>
+</ul>
+<p>For custom viewports, the VRS mode and texture must be set manually to the <code>class_Viewport</code> node.</p>
+<blockquote>
+<p><strong>Note:</strong> On unsupported hardware, there is no visual difference when variable rate shading is enabled. You can check whether hardware supports variable rate shading by running the editor or project with the <code>--verbose</code> ref.</p>
+</blockquote>
+<h3 id="creating-a-vrs-density-map">Creating a VRS density map</h3>
+<p>If using the <strong>Texture</strong> VRS mode, you <em>must</em> set a texture to be used as a density map. Otherwise, no effect will be visible.</p>
+<p>You can create your own VRS density map manually using an image editor, or generate it using another method (e.g. on the CPU using the Image class, or on the GPU using a shader). However, beware of performance implications when generating a VRS image dynamically. If opting for dynamic generation, make sure the VRS image generation process is fast enough to avoid outweighing the performance gains from VRS.</p>
+<p>The texture must follow these rules:</p>
+<ul>
+<li>The texture <em>must</em> use a lossless compression format so that colors can be matched precisely.</li>
+<li>The following VRS densities are mapped to various colors, with brighter colors representing a lower level of shading precision:</li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th>Density</th>
+<th>Color</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1×1 (highest detail)</td>
+<td><code>rgb(0, 0, 0) - #000000</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>1×2</td>
+<td><code>rgb(0, 85, 0) - #005500</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>2×1</td>
+<td><code>rgb(85, 0, 0) - #550000</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>2×2</td>
+<td><code>rgb(85, 85, 0) - #555500</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>2×4</td>
+<td><code>rgb(85, 170, 0) - #55aa00</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>4×2</td>
+<td><code>rgb(170, 85, 0) - #aa5500</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>4×4</td>
+<td><code>rgb(170, 170, 0) - #aaaa00</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>4×8</td>
+<td><code>rgb(170, 255, 0) - #aaff00</code></td>
+<td>Not supported on most hardware.</td>
+</tr>
+<tr class="odd">
+<td>8×4</td>
+<td><code>rgb(255, 170, 0) - #ffaa00</code></td>
+<td>Not supported on most hardware.</td>
+</tr>
+<tr class="even">
+<td>8×8 (lowest detail)</td>
+<td><code>rgb(255, 255, 0) - #ffff00</code></td>
+<td>Not supported on most hardware.</td>
+</tr>
+</tbody>
+</table>
+<p>For example, this VRS density texture provides the highest shading density in the center of the viewport, and the lowest shading density in the corners:</p>
+<p><em>Image: Example VRS density map texture, simulating foveated rendering</em></p>
+<p>Example VRS density map texture, simulating foveated rendering</p>
+<p>There are no size or aspect ratio requirements for the VRS density texture. However, there is no benefit to using a VRS density map that is larger than the viewport resolution divided by the GPU's <em>tile size</em>. The tile size is what determines the smallest area of pixels where the shading density can be changed separately from other tiles. On most GPUs, this tile size is 8×8 pixels. You can view the tile size by running Godot with the <code>--verbose</code> command line argument, as it's printed in the VRS debugging information.</p>
+<p>Therefore, sticking to a relatively low resolution such as 256×256 (square) or 480×270 (16:9) is recommended. Depending on your use cases, a square texture may be more suited compared to a texture that matches the most common viewport aspect ratio in your project (such as 16:9).</p>
+<blockquote>
+<p><strong>Tip:</strong> When using variable rate shading, you can use a negative ref to reduce blurriness in areas with reduced shading rate.</p>
+<p>Note that the texture LOD bias is set globally, so this will also affect areas of the viewport with full shading rate. Don't use values that are too low, or textures will appear grainy.</p>
+</blockquote>
+<h3 id="performance-comparison">Performance comparison</h3>
+<p>To give an idea of how much VRS can improve performance in theory, here's a performance comparison with the textured example scene shown at the top of this page. The VRS density map example present on this page is used.</p>
+<p>Results were captured on a GeForce RTX 4090 with the NVIDIA 525.60.11 driver.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Resolution</th>
+<th>VRS disabled</th>
+<th>VRS enabled</th>
+<th>Performance improvement</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1920×1080 (Full HD)</td>
+<td>2832 FPS</td>
+<td>3136 FPS</td>
+<td>+10.7%</td>
+</tr>
+<tr class="even">
+<td>2560×1440 (QHD)</td>
+<td>2008 FPS</td>
+<td>2256 FPS</td>
+<td>+12.3%</td>
+</tr>
+<tr class="odd">
+<td>3840×2160 (4K)</td>
+<td>1236 FPS</td>
+<td>1436 FPS</td>
+<td>+16.2%</td>
+</tr>
+<tr class="even">
+<td>7680×4320 (8K)</td>
+<td>384 FPS</td>
+<td>473 FPS</td>
+<td>+23.1%</td>
+</tr>
+</tbody>
+</table>
+<p>In terms of performance improvements, variable rate shading is more beneficial at higher target resolutions. The reduction in visual quality is also less noticeable at high resolutions.</p>
+<blockquote>
+<p><strong>Note:</strong> For non-VR games, you will probably have to use a less aggressive VRS texture than what was used in this example. As a result, the effective performance gains will be lower.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NavigationAgent — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="navigationagent">NavigationAgent</h1>
+<p><em>Inherits: <a href="Node.html">Node</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>3D agent used in navigation for collision avoidance.</p>
+<h2 id="description">Description</h2>
+<p>3D agent that is used in navigation to reach a location while avoiding static and dynamic obstacles. The dynamic obstacles are avoided using RVO (Reciprocal Velocity Obstacles) collision avoidance. The agent needs navigation data to work correctly. By default this node will register to the default <a href="World.html">World</a> navigation map. If this node is a child of a <a href="Navigation.html">Navigation</a> node it will register to the navigation map of the navigation node or the function <code>set_navigation</code> can be used to set the navigation node directly. <strong>NavigationAgent</strong> is physics safe.</p>
+<p><strong>Note:</strong> After setting <code>target_location</code> it is required to use the <code>get_next_location</code> function once every physics frame to update the internal path logic of the NavigationAgent. The returned vector position from this function should be used as the next movement position for the agent's parent Node.</p>
+<p><strong>Note:</strong> By default, the expensive calculations for avoidance are done in a thread. In HTML5 exports without thread support, they will be done on the main thread, which can lead to performance issues.</p>
+<h2 id="properties">Properties</h2>
+<h3 id="float-agent_height_offset--00"><code>float agent_height_offset = 0.0</code></h3>
+<ul>
+<li>Setter: <code>set_agent_height_offset(value: float)</code></li>
+<li>Getter: <code>get_agent_height_offset()</code></li>
+</ul>
+<p>The NavigationAgent height offset is subtracted from the y-axis value of any vector path position for this NavigationAgent. The NavigationAgent height offset does not change or influence the navigation mesh or pathfinding query result. Additional navigation maps that use regions with navigation meshes that the developer baked with appropriate agent radius or height values are required to support different-sized agents.</p>
+<h3 id="bool-avoidance_enabled--false"><code>bool avoidance_enabled = false</code></h3>
+<ul>
+<li>Setter: <code>set_avoidance_enabled(value: bool)</code></li>
+<li>Getter: <code>get_avoidance_enabled()</code></li>
+</ul>
+<p>If <code>true</code> the agent is registered for an RVO avoidance callback on the <a href="NavigationServer.html">NavigationServer</a>. When <code>set_velocity</code> is used and the processing is completed a <code>safe_velocity</code> Vector3 is received with a signal connection to <code>velocity_computed</code>. Avoidance processing with many registered agents has a significant performance cost and should only be enabled on agents that currently require it.</p>
+<h3 id="bool-ignore_y--true"><code>bool ignore_y = true</code></h3>
+<ul>
+<li>Setter: <code>set_ignore_y(value: bool)</code></li>
+<li>Getter: <code>get_ignore_y()</code></li>
+</ul>
+<p>Ignores collisions on the Y axis. Must be <code>true</code> to move on a horizontal plane.</p>
+<h3 id="int-max_neighbors--10"><code>int max_neighbors = 10</code></h3>
+<ul>
+<li>Setter: <code>set_max_neighbors(value: int)</code></li>
+<li>Getter: <code>get_max_neighbors()</code></li>
+</ul>
+<p>The maximum number of neighbors for the agent to consider.</p>
+<h3 id="float-max_speed--100"><code>float max_speed = 10.0</code></h3>
+<ul>
+<li>Setter: <code>set_max_speed(value: float)</code></li>
+<li>Getter: <code>get_max_speed()</code></li>
+</ul>
+<p>The maximum speed that an agent can move.</p>
+<h3 id="int-navigation_layers--1"><code>int navigation_layers = 1</code></h3>
+<ul>
+<li>Setter: <code>set_navigation_layers(value: int)</code></li>
+<li>Getter: <code>get_navigation_layers()</code></li>
+</ul>
+<p>A bitfield determining all navigation map layers the <strong>NavigationAgent</strong> belongs to. On path requests the agent will ignore navmeshes without at least one matching layer.</p>
+<h3 id="float-neighbor_dist--500"><code>float neighbor_dist = 50.0</code></h3>
+<ul>
+<li>Setter: <code>set_neighbor_dist(value: float)</code></li>
+<li>Getter: <code>get_neighbor_dist()</code></li>
+</ul>
+<p>The distance to search for other agents.</p>
+<h3 id="float-path_desired_distance--10"><code>float path_desired_distance = 1.0</code></h3>
+<ul>
+<li>Setter: <code>set_path_desired_distance(value: float)</code></li>
+<li>Getter: <code>get_path_desired_distance()</code></li>
+</ul>
+<p>The distance threshold before a path point is considered to be reached. This will allow an agent to not have to hit a path point on the path exactly, but in the area. If this value is set to high the NavigationAgent will skip points on the path which can lead to leaving the navigation mesh. If this value is set to low the NavigationAgent will be stuck in a repath loop cause it will constantly overshoot or undershoot the distance to the next point on each physics frame update.</p>
+<h3 id="float-path_max_distance--30"><code>float path_max_distance = 3.0</code></h3>
+<ul>
+<li>Setter: <code>set_path_max_distance(value: float)</code></li>
+<li>Getter: <code>get_path_max_distance()</code></li>
+</ul>
+<p>The maximum distance the agent is allowed away from the ideal path to the final location. This can happen due to trying to avoid collisions. When the maximum distance is exceeded, it recalculates the ideal path.</p>
+<h3 id="float-radius--10"><code>float radius = 1.0</code></h3>
+<ul>
+<li>Setter: <code>set_radius(value: float)</code></li>
+<li>Getter: <code>get_radius()</code></li>
+</ul>
+<p>The radius of the avoidance agent. This is the "body" of the avoidance agent and not the avoidance maneuver starting radius (which is controlled by <code>neighbor_dist</code>).</p>
+<p>Does not affect normal pathfinding. To change an actor's pathfinding radius bake <a href="NavigationMesh.html">NavigationMesh</a> resources with a different <code>NavigationMesh.agent_radius</code> property and use different navigation maps for each actor size.</p>
+<h3 id="float-target_desired_distance--10"><code>float target_desired_distance = 1.0</code></h3>
+<ul>
+<li>Setter: <code>set_target_desired_distance(value: float)</code></li>
+<li>Getter: <code>get_target_desired_distance()</code></li>
+</ul>
+<p>The distance threshold before the final target point is considered to be reached. This will allow an agent to not have to hit the point of the final target exactly, but only the area. If this value is set to low the NavigationAgent will be stuck in a repath loop cause it will constantly overshoot or undershoot the distance to the final target point on each physics frame update.</p>
+<h3 id="vector3-target_location--vector3-0-0-0-"><code>Vector3 target_location = Vector3( 0, 0, 0 )</code></h3>
+<ul>
+<li>Setter: <code>set_target_location(value: Vector3)</code></li>
+<li>Getter: <code>get_target_location()</code></li>
+</ul>
+<p>The user-defined target location. Setting this property will clear the current navigation path.</p>
+<h3 id="float-time_horizon--50"><code>float time_horizon = 5.0</code></h3>
+<ul>
+<li>Setter: <code>set_time_horizon(value: float)</code></li>
+<li>Getter: <code>get_time_horizon()</code></li>
+</ul>
+<p>The minimal amount of time for which this agent's velocities, that are computed with the collision avoidance algorithm, are safe with respect to other agents. The larger the number, the sooner the agent will respond to other agents, but the less freedom in choosing its velocities. Must be positive.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="float-distance_to_target-const"><code>float distance_to_target() const</code></h3>
+<p>Returns the distance to the target location, using the agent's global position. The user must set <code>target_location</code> in order for this to be accurate.</p>
+<h3 id="vector3-get_final_location"><code>Vector3 get_final_location()</code></h3>
+<p>Returns the reachable final location in global coordinates. This can change if the navigation path is altered in any way. Because of this, it would be best to check this each frame.</p>
+<h3 id="poolvector3array-get_nav_path-const"><code>PoolVector3Array get_nav_path() const</code></h3>
+<p>Returns this agent's current path from start to finish in global coordinates. The path only updates when the target location is changed or the agent requires a repath. The path array is not intended to be used in direct path movement as the agent has its own internal path logic that would get corrupted by changing the path array manually. Use the intended <code>get_next_location</code> once every physics frame to receive the next path point for the agents movement as this function also updates the internal path logic.</p>
+<h3 id="int-get_nav_path_index-const"><code>int get_nav_path_index() const</code></h3>
+<p>Returns which index the agent is currently on in the navigation path's <a href="PoolVector3Array.html">PoolVector3Array</a>.</p>
+<h3 id="node-get_navigation-const"><code>Node get_navigation() const</code></h3>
+<p>Returns the <a href="Navigation.html">Navigation</a> node that the agent is using for its navigation system.</p>
+<h3 id="rid-get_navigation_map-const"><code>RID get_navigation_map() const</code></h3>
+<p>Returns the <a href="RID.html">RID</a> of the navigation map for this NavigationAgent node. This function returns always the map set on the NavigationAgent node and not the map of the abstract agent on the NavigationServer. If the agent map is changed directly with the NavigationServer API the NavigationAgent node will not be aware of the map change. Use <code>set_navigation_map</code> to change the navigation map for the NavigationAgent and also update the agent on the NavigationServer.</p>
+<h3 id="vector3-get_next_location"><code>Vector3 get_next_location()</code></h3>
+<p>Returns the next location in global coordinates that can be moved to, making sure that there are no static objects in the way. If the agent does not have a navigation path, it will return the position of the agent's parent. The use of this function once every physics frame is required to update the internal path logic of the NavigationAgent.</p>
+<h3 id="rid-get_rid-const"><code>RID get_rid() const</code></h3>
+<p>Returns the <a href="RID.html">RID</a> of this agent on the <a href="NavigationServer.html">NavigationServer</a>.</p>
+<h3 id="bool-is_navigation_finished"><code>bool is_navigation_finished()</code></h3>
+<p>Returns <code>true</code> if the navigation path's final location has been reached.</p>
+<h3 id="bool-is_target_reachable"><code>bool is_target_reachable()</code></h3>
+<p>Returns <code>true</code> if <code>target_location</code> is reachable.</p>
+<h3 id="bool-is_target_reached-const"><code>bool is_target_reached() const</code></h3>
+<p>Returns <code>true</code> if <code>target_location</code> is reached. It may not always be possible to reach the target location. It should always be possible to reach the final location though. See <code>get_final_location</code>.</p>
+<h3 id="void-set_navigationnavigation-node"><code>void set_navigation(navigation: Node)</code></h3>
+<p>Sets the <a href="Navigation.html">Navigation</a> node used by the agent. Useful when you don't want to make the agent a child of a <a href="Navigation.html">Navigation</a> node.</p>
+<h3 id="void-set_navigation_mapnavigation_map-rid"><code>void set_navigation_map(navigation_map: RID)</code></h3>
+<p>Sets the <a href="RID.html">RID</a> of the navigation map this NavigationAgent node should use and also updates the <code>agent</code> on the NavigationServer.</p>
+<h3 id="void-set_velocityvelocity-vector3"><code>void set_velocity(velocity: Vector3)</code></h3>
+<p>Sends the passed in velocity to the collision avoidance algorithm. It will adjust the velocity to avoid collisions. Once the adjustment to the velocity is complete, it will emit the <code>velocity_computed</code> signal.</p>
+<h2 id="signals">Signals</h2>
+<h3 id="navigation_finished"><code>navigation_finished()</code></h3>
+<p>Notifies when the final location is reached.</p>
+<h3 id="path_changed"><code>path_changed()</code></h3>
+<p>Notifies when the navigation path changes. This can be triggered by the navigation system or by the user changing the path.</p>
+<h3 id="target_reached"><code>target_reached()</code></h3>
+<p>Notifies when the player-defined <code>target_location</code> is reached.</p>
+<h3 id="velocity_computedsafe_velocity-vector3"><code>velocity_computed(safe_velocity: Vector3)</code></h3>
+<p>Notifies when the collision avoidance velocity is calculated after a call to <code>set_velocity</code>. Only emitted when <code>avoidance_enabled</code> is true.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

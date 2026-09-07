@@ -1,0 +1,1142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="control">Control</h1>
+<p><em>Inherits: <a href="CanvasItem.html">CanvasItem</a> &lt; <a href="Node.html">Node</a> &lt; <a href="Object.html">Object</a></em></p>
+<p><em>Implemented by: <a href="BaseButton.html">BaseButton</a>, <a href="ColorRect.html">ColorRect</a>, <a href="Container.html">Container</a>, <a href="GraphEdit.html">GraphEdit</a>, <a href="ItemList.html">ItemList</a>, <a href="Label.html">Label</a>, <a href="LineEdit.html">LineEdit</a>, <a href="MenuBar.html">MenuBar</a>, <a href="NinePatchRect.html">NinePatchRect</a>, <a href="Panel.html">Panel</a>, <a href="Range.html">Range</a>, <a href="ReferenceRect.html">ReferenceRect</a>, <a href="RichTextLabel.html">RichTextLabel</a>, <a href="Separator.html">Separator</a>, <a href="TabBar.html">TabBar</a>, <a href="TextEdit.html">TextEdit</a>, <a href="TextureRect.html">TextureRect</a>, <a href="Tree.html">Tree</a>, <a href="VideoStreamPlayer.html">VideoStreamPlayer</a>, <a href="VirtualJoystick.html">VirtualJoystick</a></em></p>
+<p>Base class for all GUI controls. Adapts its position and size based on its parent control.</p>
+<h2 id="description">Description</h2>
+<p>Base class for all UI-related nodes. <strong>Control</strong> features a bounding rectangle that defines its extents, an anchor position relative to its parent control or the current viewport, and offsets relative to the anchor. The offsets update automatically when the node, any of its parents, or the screen size change.</p>
+<p>For more information on Godot's UI system, anchors, offsets, and containers, see the related tutorials in the manual. To build flexible UIs, you'll need a mix of UI elements that inherit from <strong>Control</strong> and <a href="Container.html">Container</a> nodes.</p>
+<p><strong>Note:</strong> Since both <a href="Node2D.html">Node2D</a> and <strong>Control</strong> inherit from <a href="CanvasItem.html">CanvasItem</a>, they share several concepts from the class such as the <code>CanvasItem.z_index</code> and <code>CanvasItem.visible</code> properties.</p>
+<p><strong>User Interface nodes and input</strong></p>
+<p>Godot propagates input events via viewports. Each <a href="Viewport.html">Viewport</a> is responsible for propagating <a href="InputEvent.html">InputEvent</a> s to their child nodes. As the <code>SceneTree.root</code> is a <a href="Window.html">Window</a>, this already happens automatically for all UI elements in your game.</p>
+<p>Input events are propagated through the <a href="SceneTree.html">SceneTree</a> from the root node to all child nodes by calling <code>Node._input()</code>. For UI elements specifically, it makes more sense to override the virtual method <code>_gui_input()</code>, which filters out unrelated input events, such as by checking z-order, <code>mouse_filter</code>, focus, or if the event was inside of the control's bounding box.</p>
+<p>Call <code>accept_event()</code> so no other node receives the event. Once you accept an input, it becomes handled so <code>Node._unhandled_input()</code> will not process it.</p>
+<p>Only one <strong>Control</strong> node can be in focus. Only the node in focus will receive events. To get the focus, call <code>grab_focus()</code>. <strong>Control</strong> nodes lose focus when another node grabs it, or if you hide the node in focus. Focus will not be represented visually if gained via mouse/touch input, only appearing with keyboard/gamepad input (for accessibility), or via <code>grab_focus()</code>.</p>
+<p>Set <code>mouse_filter</code> to <code>MOUSE_FILTER_IGNORE</code> to tell a <strong>Control</strong> node to ignore mouse or touch events. You'll need it if you place an icon on top of a button.</p>
+<p><a href="Theme.html">Theme</a> resources change the control's appearance. The <code>theme</code> of a <strong>Control</strong> node affects all of its direct and indirect children (as long as a chain of controls is uninterrupted). To override some of the theme items, call one of the <code>add_theme_*_override</code> methods, like <code>add_theme_font_override()</code>. You can also override theme items in the Inspector.</p>
+<p><strong>Note:</strong> Theme items are <em>not</em> <a href="Object.html">Object</a> properties. This means you can't access their values using <code>Object.get()</code> and <code>Object.set()</code>. Instead, use the <code>get_theme_*</code> and <code>add_theme_*_override</code> methods provided by this class.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/tutorials/ui/index.html">GUI documentation index</a></li>
+<li><a href="../manual/tutorials/2d/custom_drawing_in_2d.html">Custom drawing in 2D</a></li>
+<li><a href="../manual/tutorials/ui/control_node_gallery.html">Control node gallery</a></li>
+<li><a href="../manual/tutorials/rendering/multiple_resolutions.html">Multiple resolutions</a></li>
+<li><a href="https://github.com/godotengine/godot-demo-projects/tree/master/gui">All GUI Demos</a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="arraynodepath-accessibility_controls_nodes--"><code>Array\[NodePath\] accessibility_controls_nodes = []</code></h3>
+<ul>
+<li>Setter: <code>set_accessibility_controls_nodes(value: Array\[NodePath\])</code></li>
+<li>Getter: <code>get_accessibility_controls_nodes()</code></li>
+</ul>
+<p>The paths to the nodes which are controlled by this node.</p>
+<h3 id="arraynodepath-accessibility_described_by_nodes--"><code>Array\[NodePath\] accessibility_described_by_nodes = []</code></h3>
+<ul>
+<li>Setter: <code>set_accessibility_described_by_nodes(value: Array\[NodePath\])</code></li>
+<li>Getter: <code>get_accessibility_described_by_nodes()</code></li>
+</ul>
+<p>The paths to the nodes which are describing this node.</p>
+<h3 id="string-accessibility_description--"><code>String accessibility_description = ""</code></h3>
+<ul>
+<li>Setter: <code>set_accessibility_description(value: String)</code></li>
+<li>Getter: <code>get_accessibility_description()</code></li>
+</ul>
+<p>The human-readable node description that is reported to assistive apps.</p>
+<h3 id="arraynodepath-accessibility_flow_to_nodes--"><code>Array\[NodePath\] accessibility_flow_to_nodes = []</code></h3>
+<ul>
+<li>Setter: <code>set_accessibility_flow_to_nodes(value: Array\[NodePath\])</code></li>
+<li>Getter: <code>get_accessibility_flow_to_nodes()</code></li>
+</ul>
+<p>The paths to the nodes which this node flows into.</p>
+<h3 id="arraynodepath-accessibility_labeled_by_nodes--"><code>Array\[NodePath\] accessibility_labeled_by_nodes = []</code></h3>
+<ul>
+<li>Setter: <code>set_accessibility_labeled_by_nodes(value: Array\[NodePath\])</code></li>
+<li>Getter: <code>get_accessibility_labeled_by_nodes()</code></li>
+</ul>
+<p>The paths to the nodes which label this node.</p>
+<h3 id="accessibilityserveraccessibilitylivemode-accessibility_live--0">``AccessibilityServer.AccessibilityLiveMode<code> accessibility_live = 0</code></h3>
+<ul>
+<li>Setter: <code>set_accessibility_live(value: </code>AccessibilityServer.AccessibilityLiveMode<code>)</code></li>
+<li>Getter: <code>get_accessibility_live()</code></li>
+</ul>
+<p>The mode with which a live region updates. A live region is a <a href="Node.html">Node</a> that is updated as a result of an external event when the user's focus may be elsewhere.</p>
+<h3 id="string-accessibility_name--"><code>String accessibility_name = ""</code></h3>
+<ul>
+<li>Setter: <code>set_accessibility_name(value: String)</code></li>
+<li>Getter: <code>get_accessibility_name()</code></li>
+</ul>
+<p>The human-readable node name that is reported to assistive apps.</p>
+<h3 id="float-anchor_bottom--00"><code>float anchor_bottom = 0.0</code></h3>
+<p>Anchors the bottom edge of the node to the origin, the center, or the end of its parent control. It changes how the bottom offset updates when the node moves or changes size. You can use one of the <code>Anchor</code> constants for convenience.</p>
+<h3 id="float-anchor_left--00"><code>float anchor_left = 0.0</code></h3>
+<p>Anchors the left edge of the node to the origin, the center or the end of its parent control. It changes how the left offset updates when the node moves or changes size. You can use one of the <code>Anchor</code> constants for convenience.</p>
+<h3 id="float-anchor_right--00"><code>float anchor_right = 0.0</code></h3>
+<p>Anchors the right edge of the node to the origin, the center or the end of its parent control. It changes how the right offset updates when the node moves or changes size. You can use one of the <code>Anchor</code> constants for convenience.</p>
+<h3 id="float-anchor_top--00"><code>float anchor_top = 0.0</code></h3>
+<p>Anchors the top edge of the node to the origin, the center or the end of its parent control. It changes how the top offset updates when the node moves or changes size. You can use one of the <code>Anchor</code> constants for convenience.</p>
+<h3 id="bool-auto_translate"><code>bool auto_translate</code></h3>
+<ul>
+<li>Setter: <code>set_auto_translate(value: bool)</code></li>
+<li>Getter: <code>is_auto_translating()</code></li>
+</ul>
+<p><strong>Deprecated:</strong> Use <code>Node.auto_translate_mode</code> and <code>Node.can_auto_translate()</code> instead.</p>
+<p>Toggles if any text should automatically change to its translated version depending on the current locale.</p>
+<h3 id="bool-clip_contents--false"><code>bool clip_contents = false</code></h3>
+<ul>
+<li>Setter: <code>set_clip_contents(value: bool)</code></li>
+<li>Getter: <code>is_clipping_contents()</code></li>
+</ul>
+<p>Enables whether rendering of <a href="CanvasItem.html">CanvasItem</a> based children should be clipped to this control's rectangle. If <code>true</code>, parts of a child which would be visibly outside of this control's rectangle will not be rendered and won't receive input.</p>
+<h3 id="vector2-custom_maximum_size--vector2-1--1"><code>Vector2 custom_maximum_size = Vector2(-1, -1)</code></h3>
+<ul>
+<li>Setter: <code>set_custom_maximum_size(value: Vector2)</code></li>
+<li>Getter: <code>get_custom_maximum_size()</code></li>
+</ul>
+<p>The maximum size of this Control's bounding rectangle. If set to a value greater than or equal to <code>(0, 0)</code>, the node's bounding rectangle will never exceed this size. A value below <code>(0, 0)</code> means there is no maximum size.</p>
+<p><strong>Note:</strong> The final effective maximum size may be subject to parent Container sizing and propagated maximum sizes. See also: <code>get_combined_maximum_size()</code>.</p>
+<p><strong>Note:</strong> Not all <strong>Control</strong> subtypes handle a custom maximum size gracefully, which may lead to unexpected behavior if the control's contents exceed this size.</p>
+<p><strong>Note:</strong> This value has priority over <code>custom_minimum_size</code>. For example, if you set <code>custom_maximum_size</code> to <code>(100, 100)</code> and <code>custom_minimum_size</code> to <code>(200, 200)</code>, the resulting size will be <code>(100, 100)</code>.</p>
+<p><strong>Note:</strong> It is recommended to use <code>get_bound_minimum_size()</code> instead of <code>get_combined_minimum_size()</code> when using this property, as the former respects maximum size limits when calculating the minimum size, while the latter does not.</p>
+<h3 id="vector2-custom_minimum_size--vector20-0"><code>Vector2 custom_minimum_size = Vector2(0, 0)</code></h3>
+<ul>
+<li>Setter: <code>set_custom_minimum_size(value: Vector2)</code></li>
+<li>Getter: <code>get_custom_minimum_size()</code></li>
+</ul>
+<p>The minimum size of the node's bounding rectangle. If you set it to a value greater than <code>(0, 0)</code>, the node's bounding rectangle will always have at least this size. Note that <strong>Control</strong> nodes have their internal minimum size returned by <code>get_minimum_size()</code>. It depends on the control's contents, like text, textures, or style boxes. The actual minimum size is the maximum value of this property and the internal minimum size (see <code>get_combined_minimum_size()</code>).</p>
+<p><strong>Note:</strong> <code>custom_maximum_size</code> has priority over this property. For example, if you set <code>custom_minimum_size</code> to <code>(200, 200)</code> and <code>custom_maximum_size</code> to <code>(100, 100)</code>, the resulting size will be <code>(100, 100)</code>.</p>
+<h3 id="focusbehaviorrecursive-focus_behavior_recursive--0">``FocusBehaviorRecursive<code> focus_behavior_recursive = 0</code></h3>
+<ul>
+<li>Setter: <code>set_focus_behavior_recursive(value: </code>FocusBehaviorRecursive<code>)</code></li>
+<li>Getter: <code>get_focus_behavior_recursive()</code></li>
+</ul>
+<p>Determines which controls can be focused together with <code>focus_mode</code>. See <code>get_focus_mode_with_override()</code>. Since the default behavior is <code>FOCUS_BEHAVIOR_INHERITED</code>, this can be used to prevent all children controls from getting focused.</p>
+<h3 id="focusmode-focus_mode--0">``FocusMode<code> focus_mode = 0</code></h3>
+<ul>
+<li>Setter: <code>set_focus_mode(value: </code>FocusMode<code>)</code></li>
+<li>Getter: <code>get_focus_mode()</code></li>
+</ul>
+<p>Determines which controls can be focused. Only one control can be focused at a time, and the focused control will receive keyboard, gamepad, and mouse events in <code>_gui_input()</code>. Use <code>get_focus_mode_with_override()</code> to determine if a control can grab focus, since <code>focus_behavior_recursive</code> also affects it. See also <code>grab_focus()</code>.</p>
+<h3 id="nodepath-focus_neighbor_bottom--nodepath"><code>NodePath focus_neighbor_bottom = NodePath("")</code></h3>
+<ul>
+<li>Setter: <code>set_focus_neighbor(side: </code>@GlobalScope.Side<code>, neighbor: NodePath)</code></li>
+</ul>
+<p>Tells Godot which node it should give focus to if the user presses the down arrow on the keyboard or down on a gamepad by default. You can change the key by editing the <code>ProjectSettings.input/ui_down</code> input action. The node must be a <strong>Control</strong>. If this property is not set, Godot will give focus to the closest <strong>Control</strong> to the bottom of this one.</p>
+<h3 id="nodepath-focus_neighbor_left--nodepath"><code>NodePath focus_neighbor_left = NodePath("")</code></h3>
+<ul>
+<li>Setter: <code>set_focus_neighbor(side: </code>@GlobalScope.Side<code>, neighbor: NodePath)</code></li>
+</ul>
+<p>Tells Godot which node it should give focus to if the user presses the left arrow on the keyboard or left on a gamepad by default. You can change the key by editing the <code>ProjectSettings.input/ui_left</code> input action. The node must be a <strong>Control</strong>. If this property is not set, Godot will give focus to the closest <strong>Control</strong> to the left of this one.</p>
+<h3 id="nodepath-focus_neighbor_right--nodepath"><code>NodePath focus_neighbor_right = NodePath("")</code></h3>
+<ul>
+<li>Setter: <code>set_focus_neighbor(side: </code>@GlobalScope.Side<code>, neighbor: NodePath)</code></li>
+</ul>
+<p>Tells Godot which node it should give focus to if the user presses the right arrow on the keyboard or right on a gamepad by default. You can change the key by editing the <code>ProjectSettings.input/ui_right</code> input action. The node must be a <strong>Control</strong>. If this property is not set, Godot will give focus to the closest <strong>Control</strong> to the right of this one.</p>
+<h3 id="nodepath-focus_neighbor_top--nodepath"><code>NodePath focus_neighbor_top = NodePath("")</code></h3>
+<ul>
+<li>Setter: <code>set_focus_neighbor(side: </code>@GlobalScope.Side<code>, neighbor: NodePath)</code></li>
+</ul>
+<p>Tells Godot which node it should give focus to if the user presses the top arrow on the keyboard or top on a gamepad by default. You can change the key by editing the <code>ProjectSettings.input/ui_up</code> input action. The node must be a <strong>Control</strong>. If this property is not set, Godot will give focus to the closest <strong>Control</strong> to the top of this one.</p>
+<h3 id="nodepath-focus_next--nodepath"><code>NodePath focus_next = NodePath("")</code></h3>
+<ul>
+<li>Setter: <code>set_focus_next(value: NodePath)</code></li>
+<li>Getter: <code>get_focus_next()</code></li>
+</ul>
+<p>Tells Godot which node it should give focus to if the user presses :kbd:<code>Tab</code> on a keyboard by default. You can change the key by editing the <code>ProjectSettings.input/ui_focus_next</code> input action.</p>
+<p>If this property is not set, Godot will select a "best guess" based on surrounding nodes in the scene tree.</p>
+<h3 id="nodepath-focus_previous--nodepath"><code>NodePath focus_previous = NodePath("")</code></h3>
+<ul>
+<li>Setter: <code>set_focus_previous(value: NodePath)</code></li>
+<li>Getter: <code>get_focus_previous()</code></li>
+</ul>
+<p>Tells Godot which node it should give focus to if the user presses :kbd:<code>Shift + Tab</code> on a keyboard by default. You can change the key by editing the <code>ProjectSettings.input/ui_focus_prev</code> input action.</p>
+<p>If this property is not set, Godot will select a "best guess" based on surrounding nodes in the scene tree.</p>
+<h3 id="vector2-global_position"><code>Vector2 global_position</code></h3>
+<ul>
+<li>Getter: <code>get_global_position()</code></li>
+</ul>
+<p>The node's global position, relative to the world (usually to the <a href="CanvasLayer.html">CanvasLayer</a>).</p>
+<h3 id="growdirection-grow_horizontal--1">``GrowDirection<code> grow_horizontal = 1</code></h3>
+<ul>
+<li>Setter: <code>set_h_grow_direction(value: </code>GrowDirection<code>)</code></li>
+<li>Getter: <code>get_h_grow_direction()</code></li>
+</ul>
+<p>Controls the direction on the horizontal axis in which the control should grow if its horizontal minimum size is changed to be greater than its current size, as the control always has to be at least the minimum size.</p>
+<h3 id="growdirection-grow_vertical--1">``GrowDirection<code> grow_vertical = 1</code></h3>
+<ul>
+<li>Setter: <code>set_v_grow_direction(value: </code>GrowDirection<code>)</code></li>
+<li>Getter: <code>get_v_grow_direction()</code></li>
+</ul>
+<p>Controls the direction on the vertical axis in which the control should grow if its vertical minimum size is changed to be greater than its current size, as the control always has to be at least the minimum size.</p>
+<h3 id="layoutdirection-layout_direction--0">``LayoutDirection<code> layout_direction = 0</code></h3>
+<ul>
+<li>Setter: <code>set_layout_direction(value: </code>LayoutDirection<code>)</code></li>
+<li>Getter: <code>get_layout_direction()</code></li>
+</ul>
+<p>Controls layout direction and text writing direction. Right-to-left layouts are necessary for certain languages (e.g. Arabic and Hebrew). See also <code>is_layout_rtl()</code>.</p>
+<h3 id="bool-localize_numeral_system--true"><code>bool localize_numeral_system = true</code></h3>
+<ul>
+<li>Setter: <code>set_localize_numeral_system(value: bool)</code></li>
+<li>Getter: <code>is_localizing_numeral_system()</code></li>
+</ul>
+<p>If <code>true</code>, automatically converts code line numbers, list indices, <a href="SpinBox.html">SpinBox</a> and <a href="ProgressBar.html">ProgressBar</a> values from the Western Arabic (0..9) to the numeral systems used in current locale.</p>
+<p><strong>Note:</strong> Numbers within the text are not automatically converted, it can be done manually, using <code>TextServer.format_number()</code>.</p>
+<h3 id="mousebehaviorrecursive-mouse_behavior_recursive--0">``MouseBehaviorRecursive<code> mouse_behavior_recursive = 0</code></h3>
+<ul>
+<li>Setter: <code>set_mouse_behavior_recursive(value: </code>MouseBehaviorRecursive<code>)</code></li>
+<li>Getter: <code>get_mouse_behavior_recursive()</code></li>
+</ul>
+<p>Determines which controls can receive mouse input together with <code>mouse_filter</code>. See <code>get_mouse_filter_with_override()</code>. Since the default behavior is <code>MOUSE_BEHAVIOR_INHERITED</code>, this can be used to prevent all children controls from receiving mouse input.</p>
+<h3 id="cursorshape-mouse_default_cursor_shape--0">``CursorShape<code> mouse_default_cursor_shape = 0</code></h3>
+<ul>
+<li>Setter: <code>set_default_cursor_shape(value: </code>CursorShape<code>)</code></li>
+<li>Getter: <code>get_default_cursor_shape()</code></li>
+</ul>
+<p>The default cursor shape for this control. Useful for Godot plugins and applications or games that use the system's mouse cursors.</p>
+<p><strong>Note:</strong> On Linux, shapes may vary depending on the cursor theme of the system.</p>
+<h3 id="mousefilter-mouse_filter--0">``MouseFilter<code> mouse_filter = 0</code></h3>
+<ul>
+<li>Setter: <code>set_mouse_filter(value: </code>MouseFilter<code>)</code></li>
+<li>Getter: <code>get_mouse_filter()</code></li>
+</ul>
+<p>Determines which controls will be able to receive mouse button input events through <code>_gui_input()</code> and the <code>mouse_entered</code>, and <code>mouse_exited</code> signals. Also determines how these events should be propagated. See the constants to learn what each does. Use <code>get_mouse_filter_with_override()</code> to determine if a control can receive mouse input, since <code>mouse_behavior_recursive</code> also affects it.</p>
+<h3 id="bool-mouse_force_pass_scroll_events--true"><code>bool mouse_force_pass_scroll_events = true</code></h3>
+<ul>
+<li>Setter: <code>set_force_pass_scroll_events(value: bool)</code></li>
+<li>Getter: <code>is_force_pass_scroll_events()</code></li>
+</ul>
+<p>When enabled, scroll wheel events processed by <code>_gui_input()</code> will be passed to the parent control even if <code>mouse_filter</code> is set to <code>MOUSE_FILTER_STOP</code>.</p>
+<p>You should disable it on the root of your UI if you do not want scroll events to go to the <code>Node._unhandled_input()</code> processing.</p>
+<p><strong>Note:</strong> Because this property defaults to <code>true</code>, this allows nested scrollable containers to work out of the box.</p>
+<h3 id="float-offset_bottom--00"><code>float offset_bottom = 0.0</code></h3>
+<ul>
+<li>Setter: <code>set_offset(side: </code>@GlobalScope.Side<code>, offset: float)</code></li>
+</ul>
+<p>Distance between the node's bottom edge and its parent control, based on <code>anchor_bottom</code>.</p>
+<p>Offsets are often controlled by one or multiple parent <a href="Container.html">Container</a> nodes, so you should not modify them manually if your node is a direct child of a <a href="Container.html">Container</a>. Offsets update automatically when you move or resize the node.</p>
+<h3 id="float-offset_left--00"><code>float offset_left = 0.0</code></h3>
+<ul>
+<li>Setter: <code>set_offset(side: </code>@GlobalScope.Side<code>, offset: float)</code></li>
+</ul>
+<p>Distance between the node's left edge and its parent control, based on <code>anchor_left</code>.</p>
+<p>Offsets are often controlled by one or multiple parent <a href="Container.html">Container</a> nodes, so you should not modify them manually if your node is a direct child of a <a href="Container.html">Container</a>. Offsets update automatically when you move or resize the node.</p>
+<h3 id="float-offset_right--00"><code>float offset_right = 0.0</code></h3>
+<ul>
+<li>Setter: <code>set_offset(side: </code>@GlobalScope.Side<code>, offset: float)</code></li>
+</ul>
+<p>Distance between the node's right edge and its parent control, based on <code>anchor_right</code>.</p>
+<p>Offsets are often controlled by one or multiple parent <a href="Container.html">Container</a> nodes, so you should not modify them manually if your node is a direct child of a <a href="Container.html">Container</a>. Offsets update automatically when you move or resize the node.</p>
+<h3 id="float-offset_top--00"><code>float offset_top = 0.0</code></h3>
+<ul>
+<li>Setter: <code>set_offset(side: </code>@GlobalScope.Side<code>, offset: float)</code></li>
+</ul>
+<p>Distance between the node's top edge and its parent control, based on <code>anchor_top</code>.</p>
+<p>Offsets are often controlled by one or multiple parent <a href="Container.html">Container</a> nodes, so you should not modify them manually if your node is a direct child of a <a href="Container.html">Container</a>. Offsets update automatically when you move or resize the node.</p>
+<h3 id="bool-offset_transform_enabled--false"><code>bool offset_transform_enabled = false</code></h3>
+<ul>
+<li>Setter: <code>set_offset_transform_enabled(value: bool)</code></li>
+<li>Getter: <code>is_offset_transform_enabled()</code></li>
+</ul>
+<p>If <code>true</code>, applies all offset transform properties. Otherwise, no offset transform is applied and the properties have no effect.</p>
+<h3 id="vector2-offset_transform_pivot--vector20-0"><code>Vector2 offset_transform_pivot = Vector2(0, 0)</code></h3>
+<ul>
+<li>Setter: <code>set_offset_transform_pivot(value: Vector2)</code></li>
+<li>Getter: <code>get_offset_transform_pivot()</code></li>
+</ul>
+<p>Pivot used by <code>offset_transform_rotation</code> and <code>offset_transform_scale</code> in absolute units.</p>
+<p>The final pivot position is the combined value of this property and <code>offset_transform_pivot_ratio</code>.</p>
+<p>Has no effect unless <code>offset_transform_enabled</code> is <code>true</code>.</p>
+<h3 id="vector2-offset_transform_pivot_ratio--vector205-05"><code>Vector2 offset_transform_pivot_ratio = Vector2(0.5, 0.5)</code></h3>
+<ul>
+<li>Setter: <code>set_offset_transform_pivot_ratio(value: Vector2)</code></li>
+<li>Getter: <code>get_offset_transform_pivot_ratio()</code></li>
+</ul>
+<p>Same as <code>offset_transform_pivot</code> but expressed in units relative to the <strong>Control</strong> <code>size</code> where <code>Vector2(0, 0)</code> is the top-left corner of this control, and <code>Vector2(1, 1)</code> is its bottom-right corner.</p>
+<p>The final pivot position is the combined value of this property and <code>offset_transform_pivot</code>.</p>
+<p>Has no effect unless <code>offset_transform_enabled</code> is <code>true</code>.</p>
+<h3 id="vector2-offset_transform_position--vector20-0"><code>Vector2 offset_transform_position = Vector2(0, 0)</code></h3>
+<ul>
+<li>Setter: <code>set_offset_transform_position(value: Vector2)</code></li>
+<li>Getter: <code>get_offset_transform_position()</code></li>
+</ul>
+<p>Position offset in absolute units. The final offset is the combined value of this property and <code>offset_transform_position_ratio</code>.</p>
+<p>Has no effect unless <code>offset_transform_enabled</code> is <code>true</code>.</p>
+<h3 id="vector2-offset_transform_position_ratio--vector20-0"><code>Vector2 offset_transform_position_ratio = Vector2(0, 0)</code></h3>
+<ul>
+<li>Setter: <code>set_offset_transform_position_ratio(value: Vector2)</code></li>
+<li>Getter: <code>get_offset_transform_position_ratio()</code></li>
+</ul>
+<p>Same as <code>offset_transform_position</code> but expressed in units relative to the <strong>Control</strong> <code>size</code> where <code>Vector2(0, 0)</code> is the top-left corner of this control, and <code>Vector2(1, 1)</code> is its bottom-right corner.</p>
+<p>The final offset is the combined value of this property and <code>offset_transform_position</code>.</p>
+<p>Has no effect unless <code>offset_transform_enabled</code> is <code>true</code>.</p>
+<h3 id="float-offset_transform_rotation--00"><code>float offset_transform_rotation = 0.0</code></h3>
+<ul>
+<li>Setter: <code>set_offset_transform_rotation(value: float)</code></li>
+<li>Getter: <code>get_offset_transform_rotation()</code></li>
+</ul>
+<p>Rotation offset. The rotation pivot is defined by <code>offset_transform_pivot</code> and <code>offset_transform_pivot_ratio</code>.</p>
+<p>Has no effect unless <code>offset_transform_enabled</code> is <code>true</code>.</p>
+<h3 id="vector2-offset_transform_scale--vector21-1"><code>Vector2 offset_transform_scale = Vector2(1, 1)</code></h3>
+<ul>
+<li>Setter: <code>set_offset_transform_scale(value: Vector2)</code></li>
+<li>Getter: <code>get_offset_transform_scale()</code></li>
+</ul>
+<p>Scale offset. The scale pivot is defined by <code>offset_transform_pivot</code> and <code>offset_transform_pivot_ratio</code>.</p>
+<p>Has no effect unless <code>offset_transform_enabled</code> is <code>true</code>.</p>
+<h3 id="bool-offset_transform_visual_only--true"><code>bool offset_transform_visual_only = true</code></h3>
+<ul>
+<li>Setter: <code>set_offset_transform_visual_only(value: bool)</code></li>
+<li>Getter: <code>is_offset_transform_visual_only()</code></li>
+</ul>
+<p>If <code>true</code>, the offset transforms is only applied visually and does not affect input. In other words, this Control will still receive input events at its original location before the offset transform is applied.</p>
+<p>If <code>false</code>, the entire transform of this Control is affected and input events will register where the Control is visually.</p>
+<p>Has no effect unless <code>offset_transform_enabled</code> is <code>true</code>.</p>
+<h3 id="vector2-pivot_offset--vector20-0"><code>Vector2 pivot_offset = Vector2(0, 0)</code></h3>
+<ul>
+<li>Setter: <code>set_pivot_offset(value: Vector2)</code></li>
+<li>Getter: <code>get_pivot_offset()</code></li>
+</ul>
+<p>By default, the node's pivot is its top-left corner. When you change its <code>rotation</code> or <code>scale</code>, it will rotate or scale around this pivot.</p>
+<p>The actual offset is the combined value of this property and <code>pivot_offset_ratio</code>.</p>
+<h3 id="vector2-pivot_offset_ratio--vector20-0"><code>Vector2 pivot_offset_ratio = Vector2(0, 0)</code></h3>
+<ul>
+<li>Setter: <code>set_pivot_offset_ratio(value: Vector2)</code></li>
+<li>Getter: <code>get_pivot_offset_ratio()</code></li>
+</ul>
+<p>Same as <code>pivot_offset</code>, but expressed as uniform vector, where <code>Vector2(0, 0)</code> is the top-left corner of this control, and <code>Vector2(1, 1)</code> is its bottom-right corner. Set this property to <code>Vector2(0.5, 0.5)</code> to pivot around this control's center.</p>
+<p>The actual offset is the combined value of this property and <code>pivot_offset</code>.</p>
+<h3 id="vector2-position--vector20-0"><code>Vector2 position = Vector2(0, 0)</code></h3>
+<ul>
+<li>Getter: <code>get_position()</code></li>
+</ul>
+<p>The node's position, relative to its containing node. It corresponds to the rectangle's top-left corner. The property is not affected by <code>pivot_offset</code>.</p>
+<h3 id="bool-propagate_maximum_size--false"><code>bool propagate_maximum_size = false</code></h3>
+<ul>
+<li>Setter: <code>set_propagate_maximum_size(value: bool)</code></li>
+<li>Getter: <code>is_propagating_maximum_size()</code></li>
+</ul>
+<p>If <code>true</code>, this Control's children will use the value returned by <code>get_combined_maximum_size()</code> in their own size calculations.</p>
+<h3 id="float-rotation--00"><code>float rotation = 0.0</code></h3>
+<ul>
+<li>Setter: <code>set_rotation(value: float)</code></li>
+<li>Getter: <code>get_rotation()</code></li>
+</ul>
+<p>The node's rotation around its pivot, in radians. See <code>pivot_offset</code> to change the pivot's position.</p>
+<p><strong>Note:</strong> This property is edited in the inspector in degrees. If you want to use degrees in a script, use <code>rotation_degrees</code>.</p>
+<h3 id="float-rotation_degrees"><code>float rotation_degrees</code></h3>
+<ul>
+<li>Setter: <code>set_rotation_degrees(value: float)</code></li>
+<li>Getter: <code>get_rotation_degrees()</code></li>
+</ul>
+<p>Helper property to access <code>rotation</code> in degrees instead of radians.</p>
+<h3 id="vector2-scale--vector21-1"><code>Vector2 scale = Vector2(1, 1)</code></h3>
+<ul>
+<li>Setter: <code>set_scale(value: Vector2)</code></li>
+<li>Getter: <code>get_scale()</code></li>
+</ul>
+<p>The node's scale, relative to its <code>size</code>. Change this property to scale the node around its <code>pivot_offset</code>. The Control's tooltip will also scale according to this value.</p>
+<p><strong>Note:</strong> This property is mainly intended to be used for animation purposes. To support multiple resolutions in your project, use an appropriate viewport stretch mode as described in the <a href="../manual/tutorials/rendering/multiple_resolutions.html">documentation</a> instead of scaling Controls individually.</p>
+<p><strong>Note:</strong> <code>FontFile.oversampling</code> does <em>not</em> take <strong>Control</strong> <code>scale</code> into account. This means that scaling up/down will cause bitmap fonts and rasterized (non-MSDF) dynamic fonts to appear blurry or pixelated. To ensure text remains crisp regardless of scale, you can enable MSDF font rendering by enabling <code>ProjectSettings.gui/theme/default_font_multichannel_signed_distance_field</code> (applies to the default project font only), or enabling <strong>Multichannel Signed Distance Field</strong> in the import options of a DynamicFont for custom fonts. On system fonts, <code>SystemFont.multichannel_signed_distance_field</code> can be enabled in the inspector.</p>
+<p><strong>Note:</strong> If the Control node is a child of a <a href="Container.html">Container</a> node, the scale will be reset to <code>Vector2(1, 1)</code> when the scene is instantiated. To set the Control's scale when it's instantiated, wait for one frame using <code>await get_tree().process_frame</code> then set its <code>scale</code> property.</p>
+<h3 id="node-shortcut_context"><code>Node shortcut_context</code></h3>
+<ul>
+<li>Setter: <code>set_shortcut_context(value: Node)</code></li>
+<li>Getter: <code>get_shortcut_context()</code></li>
+</ul>
+<p>The <a href="Node.html">Node</a> which must be a parent of the focused <strong>Control</strong> for the shortcut to be activated. If <code>null</code>, the shortcut can be activated when any control is focused (a global shortcut). This allows shortcuts to be accepted only when the user has a certain area of the GUI focused.</p>
+<h3 id="vector2-size--vector20-0"><code>Vector2 size = Vector2(0, 0)</code></h3>
+<ul>
+<li>Getter: <code>get_size()</code></li>
+</ul>
+<p>The size of the node's bounding rectangle, in the node's coordinate system. <a href="Container.html">Container</a> nodes update this property automatically.</p>
+<h3 id="bitfieldsizeflags-size_flags_horizontal--1"><code>BitField\[</code>SizeFlags<code>\] size_flags_horizontal = 1</code></h3>
+<ul>
+<li>Setter: <code>set_h_size_flags(value: BitField\[</code>SizeFlags<code>\])</code></li>
+<li>Getter: <code>get_h_size_flags()</code></li>
+</ul>
+<p>Tells the parent <a href="Container.html">Container</a> nodes how they should resize and place the node on the X axis. Use a combination of the <code>SizeFlags</code> constants to change the flags. See the constants to learn what each does.</p>
+<h3 id="float-size_flags_stretch_ratio--10"><code>float size_flags_stretch_ratio = 1.0</code></h3>
+<ul>
+<li>Setter: <code>set_stretch_ratio(value: float)</code></li>
+<li>Getter: <code>get_stretch_ratio()</code></li>
+</ul>
+<p>If the node and at least one of its neighbors uses the <code>SIZE_EXPAND</code> size flag, the parent <a href="Container.html">Container</a> will let it take more or less space depending on this property. If this node has a stretch ratio of 2 and its neighbor a ratio of 1, this node will take two thirds of the available space.</p>
+<h3 id="bitfieldsizeflags-size_flags_vertical--1"><code>BitField\[</code>SizeFlags<code>\] size_flags_vertical = 1</code></h3>
+<ul>
+<li>Setter: <code>set_v_size_flags(value: BitField\[</code>SizeFlags<code>\])</code></li>
+<li>Getter: <code>get_v_size_flags()</code></li>
+</ul>
+<p>Tells the parent <a href="Container.html">Container</a> nodes how they should resize and place the node on the Y axis. Use a combination of the <code>SizeFlags</code> constants to change the flags. See the constants to learn what each does.</p>
+<h3 id="theme-theme"><code>Theme theme</code></h3>
+<ul>
+<li>Setter: <code>set_theme(value: Theme)</code></li>
+<li>Getter: <code>get_theme()</code></li>
+</ul>
+<p>The <a href="Theme.html">Theme</a> resource this node and all its <strong>Control</strong> and <a href="Window.html">Window</a> children use. If a child node has its own <a href="Theme.html">Theme</a> resource set, theme items are merged with child's definitions having higher priority.</p>
+<p><strong>Note:</strong> <a href="Window.html">Window</a> styles will have no effect unless the window is embedded.</p>
+<h3 id="stringname-theme_type_variation--"><code>StringName theme_type_variation = &amp;""</code></h3>
+<ul>
+<li>Setter: <code>set_theme_type_variation(value: StringName)</code></li>
+<li>Getter: <code>get_theme_type_variation()</code></li>
+</ul>
+<p>The name of a theme type variation used by this <strong>Control</strong> to look up its own theme items. When empty, the class name of the node is used (e.g. <code>Button</code> for the <a href="Button.html">Button</a> control), as well as the class names of all parent classes (in order of inheritance).</p>
+<p>When set, this property gives the highest priority to the type of the specified name. This type can in turn extend another type, forming a dependency chain. See <code>Theme.set_type_variation()</code>. If the theme item cannot be found using this type or its base types, lookup falls back on the class names.</p>
+<p><strong>Note:</strong> To look up <strong>Control</strong>'s own items use various <code>get_theme_*</code> methods without specifying <code>theme_type</code>.</p>
+<p><strong>Note:</strong> Theme items are looked for in the tree order, from branch to root, where each <strong>Control</strong> node is checked for its <code>theme</code> property. The earliest match against any type/class name is returned. The project-level Theme and the default Theme are checked last.</p>
+<h3 id="nodeautotranslatemode-tooltip_auto_translate_mode--0">``Node.AutoTranslateMode<code> tooltip_auto_translate_mode = 0</code></h3>
+<ul>
+<li>Setter: <code>set_tooltip_auto_translate_mode(value: </code>Node.AutoTranslateMode<code>)</code></li>
+<li>Getter: <code>get_tooltip_auto_translate_mode()</code></li>
+</ul>
+<p>Defines if tooltip text should automatically change to its translated version depending on the current locale. Uses the same auto translate mode as this control when set to <code>Node.AUTO_TRANSLATE_MODE_INHERIT</code>.</p>
+<p><strong>Note:</strong> Tooltips customized using <code>_make_custom_tooltip()</code> do not use this auto translate mode automatically.</p>
+<h3 id="string-tooltip_text--"><code>String tooltip_text = ""</code></h3>
+<ul>
+<li>Setter: <code>set_tooltip_text(value: String)</code></li>
+<li>Getter: <code>get_tooltip_text()</code></li>
+</ul>
+<p>The default tooltip text. The tooltip appears when the user's mouse cursor stays idle over this control for a few moments, provided that the <code>mouse_filter</code> property is not <code>MOUSE_FILTER_IGNORE</code>. The time required for the tooltip to appear can be changed with the <code>ProjectSettings.gui/timers/tooltip_delay_sec</code> setting.</p>
+<p>This string is the default return value of <code>get_tooltip()</code>. Override <code>_get_tooltip()</code> to generate tooltip text dynamically. Override <code>_make_custom_tooltip()</code> to customize the tooltip interface and behavior.</p>
+<p>The tooltip popup will use either a default implementation, or a custom one that you can provide by overriding <code>_make_custom_tooltip()</code>. The default tooltip includes a <a href="PopupPanel.html">PopupPanel</a> and <a href="Label.html">Label</a> whose theme properties can be customized using <a href="Theme.html">Theme</a> methods with the <code>"TooltipPanel"</code> and <code>"TooltipLabel"</code> respectively. For example:</p>
+<pre class="gdscript"><code>var style_box = StyleBoxFlat.new()
+style_box.set_bg_color(Color(1, 1, 0))
+style_box.set_border_width_all(2)
+# We assume here that the `theme` property has been assigned a custom Theme beforehand.
+theme.set_stylebox(&quot;panel&quot;, &quot;TooltipPanel&quot;, style_box)
+theme.set_color(&quot;font_color&quot;, &quot;TooltipLabel&quot;, Color(0, 1, 1))</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> styleBox <span class="op">=</span> <span class="kw">new</span> <span class="fu">StyleBoxFlat</span><span class="op">();</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>styleBox<span class="op">.</span><span class="fu">SetBgColor</span><span class="op">(</span><span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>styleBox<span class="op">.</span><span class="fu">SetBorderWidthAll</span><span class="op">(</span><span class="dv">2</span><span class="op">);</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">// We assume here that the `Theme` property has been assigned a custom Theme beforehand.</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>Theme<span class="op">.</span><span class="fu">SetStyleBox</span><span class="op">(</span><span class="st">&quot;panel&quot;</span><span class="op">,</span> <span class="st">&quot;TooltipPanel&quot;</span><span class="op">,</span> styleBox<span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>Theme<span class="op">.</span><span class="fu">SetColor</span><span class="op">(</span><span class="st">&quot;font_color&quot;</span><span class="op">,</span> <span class="st">&quot;TooltipLabel&quot;</span><span class="op">,</span> <span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">));</span></span></code></pre></div>
+<h3 id="stringname-translation_context--"><code>StringName translation_context = &amp;""</code></h3>
+<ul>
+<li>Setter: <code>set_translation_context(value: StringName)</code></li>
+<li>Getter: <code>get_translation_context()</code></li>
+</ul>
+<p>The translation context used when translating this control's displayed text, if it has any. Also used when generating translation templates.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="string-_accessibility_get_contextual_info-virtual-const"><code>String _accessibility_get_contextual_info() virtual const</code></h3>
+<p>Return the description of the keyboard shortcuts and other contextual help for this control.</p>
+<h3 id="bool-_can_drop_dataat_position-vector2-data-variant-virtual-const"><code>bool _can_drop_data(at_position: Vector2, data: Variant) virtual const</code></h3>
+<p>Godot calls this method to test if <code>data</code> from a control's <code>_get_drag_data()</code> can be dropped at <code>at_position</code>. <code>at_position</code> is local to this control.</p>
+<p>This method should only be used to test the data. Process the data in <code>_drop_data()</code>.</p>
+<p><strong>Note:</strong> If the drag was initiated by a keyboard shortcut or <code>accessibility_drag()</code>, <code>at_position</code> is set to <code>Vector2.INF</code>, and the currently selected item/text position should be used as the drop position.</p>
+<pre class="gdscript"><code>func _can_drop_data(position, data):
+    # Check position if it is relevant to you
+    # Otherwise, just check data
+    return typeof(data) == TYPE_DICTIONARY and data.has(&quot;expected&quot;)</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">bool</span> <span class="fu">_CanDropData</span><span class="op">(</span>Vector2 atPosition<span class="op">,</span> Variant data<span class="op">)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Check position if it is relevant to you</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Otherwise, just check data</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> data<span class="op">.</span><span class="fu">VariantType</span> <span class="op">==</span> Variant<span class="op">.</span><span class="fu">Type</span><span class="op">.</span><span class="fu">Dictionary</span> <span class="op">&amp;&amp;</span> data<span class="op">.</span><span class="fu">AsGodotDictionary</span><span class="op">().</span><span class="fu">ContainsKey</span><span class="op">(</span><span class="st">&quot;expected&quot;</span><span class="op">);</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="void-_drop_dataat_position-vector2-data-variant-virtual"><code>void _drop_data(at_position: Vector2, data: Variant) virtual</code></h3>
+<p>Godot calls this method to pass you the <code>data</code> from a control's <code>_get_drag_data()</code> result. Godot first calls <code>_can_drop_data()</code> to test if <code>data</code> is allowed to drop at <code>at_position</code> where <code>at_position</code> is local to this control.</p>
+<p><strong>Note:</strong> If the drag was initiated by a keyboard shortcut or <code>accessibility_drag()</code>, <code>at_position</code> is set to <code>Vector2.INF</code>, and the currently selected item/text position should be used as the drop position.</p>
+<pre class="gdscript"><code>func _can_drop_data(position, data):
+    return typeof(data) == TYPE_DICTIONARY and data.has(&quot;color&quot;)
+
+func _drop_data(position, data):
+    var color = data[&quot;color&quot;]</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">bool</span> <span class="fu">_CanDropData</span><span class="op">(</span>Vector2 atPosition<span class="op">,</span> Variant data<span class="op">)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> data<span class="op">.</span><span class="fu">VariantType</span> <span class="op">==</span> Variant<span class="op">.</span><span class="fu">Type</span><span class="op">.</span><span class="fu">Dictionary</span> <span class="op">&amp;&amp;</span> data<span class="op">.</span><span class="fu">AsGodotDictionary</span><span class="op">().</span><span class="fu">ContainsKey</span><span class="op">(</span><span class="st">&quot;color&quot;</span><span class="op">);</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_DropData</span><span class="op">(</span>Vector2 atPosition<span class="op">,</span> Variant data<span class="op">)</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    Color color <span class="op">=</span> data<span class="op">.</span><span class="fu">AsGodotDictionary</span><span class="op">()[</span><span class="st">&quot;color&quot;</span><span class="op">].</span><span class="fu">AsColor</span><span class="op">();</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="string-_get_accessibility_container_namenode-node-virtual-const"><code>String _get_accessibility_container_name(node: Node) virtual const</code></h3>
+<p>Override this method to return a human-readable description of the position of the child <code>node</code> in the custom container, added to the <code>accessibility_name</code>.</p>
+<h3 id="int-_get_cursor_shapeat_position-vector2-virtual-const"><code>int _get_cursor_shape(at_position: Vector2) virtual const</code></h3>
+<p>Virtual method to be implemented by the user. Returns the cursor shape for the position <code>at_position</code> in the control's local coordinates, which will typically be used while hovering over this control. See <code>get_cursor_shape()</code>.</p>
+<p>If not overridden, defaults to <code>mouse_default_cursor_shape</code>.</p>
+<h3 id="variant-_get_drag_dataat_position-vector2-virtual"><code>Variant _get_drag_data(at_position: Vector2) virtual</code></h3>
+<p>Godot calls this method to get data that can be dragged and dropped onto controls that expect drop data. Returns <code>null</code> if there is no data to drag. Controls that want to receive drop data should implement <code>_can_drop_data()</code> and <code>_drop_data()</code>. <code>at_position</code> is local to this control. Drag may be forced with <code>force_drag()</code>.</p>
+<p>A preview that will follow the mouse that should represent the data can be set with <code>set_drag_preview()</code>. A good time to set the preview is in this method.</p>
+<p><strong>Note:</strong> If the drag was initiated by a keyboard shortcut or <code>accessibility_drag()</code>, <code>at_position</code> is set to <code>Vector2.INF</code>, and the currently selected item/text position should be used as the drag position.</p>
+<pre class="gdscript"><code>func _get_drag_data(position):
+    var mydata = make_data() # This is your custom method generating the drag data.
+    set_drag_preview(make_preview(mydata)) # This is your custom method generating the preview of the drag data.
+    return mydata</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> Variant <span class="fu">_GetDragData</span><span class="op">(</span>Vector2 atPosition<span class="op">)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> myData <span class="op">=</span> <span class="fu">MakeData</span><span class="op">();</span> <span class="co">// This is your custom method generating the drag data.</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SetDragPreview</span><span class="op">(</span><span class="fu">MakePreview</span><span class="op">(</span>myData<span class="op">));</span> <span class="co">// This is your custom method generating the preview of the drag data.</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> myData<span class="op">;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="vector2-_get_maximum_size-virtual-const"><code>Vector2 _get_maximum_size() virtual const</code></h3>
+<p>Virtual method to be implemented by the user. Returns the maximum size for this control. Alternative to <code>custom_maximum_size</code> for controlling maximum size via code. The actual maximum size will be the max value of these two (in each axis separately).</p>
+<p>If not overridden, defaults to <code>Vector2.ZERO</code>.</p>
+<p><strong>Note:</strong> This method will not be called when the script is attached to a <strong>Control</strong> node that already overrides its maximum size (e.g. <a href="ScrollContainer.html">ScrollContainer</a>).</p>
+<p><strong>Note:</strong> It is recommended to use <code>get_bound_minimum_size()</code> instead of <code>get_combined_minimum_size()</code> when implementing this method, as the former respects maximum size limits when calculating the minimum size, while the latter does not.</p>
+<h3 id="vector2-_get_minimum_size-virtual-const"><code>Vector2 _get_minimum_size() virtual const</code></h3>
+<p>Virtual method to be implemented by the user. Returns the minimum size for this control. Alternative to <code>custom_minimum_size</code> for controlling minimum size via code. The actual minimum size will be the max value of these two (in each axis separately).</p>
+<p>If not overridden, defaults to <code>Vector2.ZERO</code>.</p>
+<p><strong>Note:</strong> This method will not be called when the script is attached to a <strong>Control</strong> node that already overrides its minimum size (e.g. <a href="Label.html">Label</a>, <a href="Button.html">Button</a>, <a href="PanelContainer.html">PanelContainer</a> etc.). It can only be used with most basic GUI nodes, like <strong>Control</strong>, <a href="Container.html">Container</a>, <a href="Panel.html">Panel</a> etc.</p>
+<h3 id="string-_get_tooltipat_position-vector2-virtual-const"><code>String _get_tooltip(at_position: Vector2) virtual const</code></h3>
+<p>Virtual method to be implemented by the user. Returns the tooltip text for the position <code>at_position</code> in the control's local coordinates, which will typically appear when the cursor is resting over this control. See <code>get_tooltip()</code>.</p>
+<p><strong>Note:</strong> If this method returns an empty <a href="String.html">String</a> and <code>_make_custom_tooltip()</code> is not overridden, no tooltip is displayed.</p>
+<h3 id="nodeautotranslatemode-_get_tooltip_auto_translate_mode_atat_position-vector2-virtual-const">``Node.AutoTranslateMode<code> _get_tooltip_auto_translate_mode_at(at_position: Vector2) virtual const</code></h3>
+<p>Return the auto-translation mode at the given <code>at_position</code>. If not implemented, the <code>tooltip_auto_translate_mode</code> property will be used instead.</p>
+<h3 id="void-_gui_inputevent-inputevent-virtual"><code>void _gui_input(event: InputEvent) virtual</code></h3>
+<p>Virtual method to be implemented by the user. Override this method to handle and accept inputs on UI elements. See also <code>accept_event()</code>.</p>
+<p><strong>Example:</strong> Click on the control to print a message:</p>
+<pre class="gdscript"><code>func _gui_input(event):
+    if event is InputEventMouseButton:
+        if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+            print(&quot;I&#39;ve been clicked D:&quot;)</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_GuiInput</span><span class="op">(</span>InputEvent @event<span class="op">)</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>@event <span class="kw">is</span> InputEventMouseButton mb<span class="op">)</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>mb<span class="op">.</span><span class="fu">ButtonIndex</span> <span class="op">==</span> MouseButton<span class="op">.</span><span class="fu">Left</span> <span class="op">&amp;&amp;</span> mb<span class="op">.</span><span class="fu">Pressed</span><span class="op">)</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;I&#39;ve been clicked D:&quot;</span><span class="op">);</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>If the <code>event</code> inherits <a href="InputEventMouse.html">InputEventMouse</a>, this method will <strong>not</strong> be called when:</p>
+<ul>
+<li><p>the control's <code>mouse_filter</code> is set to <code>MOUSE_FILTER_IGNORE</code>;</p></li>
+<li><p>the control is obstructed by another control on top, that doesn't have <code>mouse_filter</code> set to <code>MOUSE_FILTER_IGNORE</code>;</p></li>
+<li><p>the control's parent has <code>mouse_filter</code> set to <code>MOUSE_FILTER_STOP</code> or has accepted the event;</p></li>
+<li><p>the control's parent has <code>clip_contents</code> enabled and the <code>event</code>'s position is outside the parent's rectangle;</p></li>
+<li><p>the <code>event</code>'s position is outside the control (see <code>_has_point()</code>).</p></li>
+</ul>
+<p><strong>Note:</strong> The <code>event</code>'s position is relative to this control's origin.</p>
+<h3 id="bool-_has_pointpoint-vector2-virtual-const"><code>bool _has_point(point: Vector2) virtual const</code></h3>
+<p>Virtual method to be implemented by the user. Returns whether the given <code>point</code> is inside this control.</p>
+<p>If not overridden, default behavior is checking if the point is within the control's Rect.</p>
+<p><strong>Note:</strong> If you want to check if a point is inside the control, you can use <code>Rect2(Vector2.ZERO, size).has_point(point)</code>.</p>
+<h3 id="object-_make_custom_tooltipfor_text-string-virtual-const"><code>Object _make_custom_tooltip(for_text: String) virtual const</code></h3>
+<p>Virtual method to be implemented by the user. Returns a <strong>Control</strong> node that should be used as a tooltip instead of the default one. <code>for_text</code> is the return value of <code>get_tooltip()</code>.</p>
+<p>The returned node must be of type <strong>Control</strong> or Control-derived. It can have child nodes of any type. It is freed when the tooltip disappears, so make sure you always provide a new instance (if you want to use a pre-existing node from your scene tree, you can duplicate it and pass the duplicated instance). When <code>null</code> or a non-Control node is returned, the default tooltip will be used instead.</p>
+<p>The returned node will be added as child to a <a href="PopupPanel.html">PopupPanel</a>, so you should only provide the contents of that panel. That <a href="PopupPanel.html">PopupPanel</a> can be themed using <code>Theme.set_stylebox()</code> for the type <code>"TooltipPanel"</code> (see <code>tooltip_text</code> for an example).</p>
+<p><strong>Note:</strong> The tooltip is shrunk to minimal size. If you want to ensure it's fully visible, you might want to set its <code>custom_minimum_size</code> to some non-zero value.</p>
+<p><strong>Note:</strong> The node (and any relevant children) should have their <code>CanvasItem.visible</code> set to <code>true</code> when returned, otherwise, the viewport that instantiates it will not be able to calculate its minimum size reliably.</p>
+<p><strong>Note:</strong> If overridden, this method is called even if <code>get_tooltip()</code> returns an empty string. When this happens with the default tooltip, it is not displayed. To copy this behavior, return <code>null</code> in this method when <code>for_text</code> is empty.</p>
+<p><strong>Example:</strong> Use a constructed node as a tooltip:</p>
+<pre class="gdscript"><code>func _make_custom_tooltip(for_text):
+    var label = Label.new()
+    label.text = for_text
+    return label</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> Control <span class="fu">_MakeCustomTooltip</span><span class="op">(</span><span class="dt">string</span> forText<span class="op">)</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> label <span class="op">=</span> <span class="kw">new</span> <span class="fu">Label</span><span class="op">();</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    label<span class="op">.</span><span class="fu">Text</span> <span class="op">=</span> forText<span class="op">;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> label<span class="op">;</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>Example:</strong> Use a scene instance as a tooltip:</p>
+<pre class="gdscript"><code>func _make_custom_tooltip(for_text):
+    var tooltip = preload(&quot;res://some_tooltip_scene.tscn&quot;).instantiate()
+    tooltip.get_node(&quot;Label&quot;).text = for_text
+    return tooltip</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> Control <span class="fu">_MakeCustomTooltip</span><span class="op">(</span><span class="dt">string</span> forText<span class="op">)</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    Node tooltip <span class="op">=</span> ResourceLoader<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>PackedScene<span class="op">&gt;(</span><span class="st">&quot;res://some_tooltip_scene.tscn&quot;</span><span class="op">).</span><span class="fu">Instantiate</span><span class="op">();</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    tooltip<span class="op">.</span><span class="fu">GetNode</span><span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;Label&quot;</span><span class="op">).</span><span class="fu">Text</span> <span class="op">=</span> forText<span class="op">;</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> tooltip<span class="op">;</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="arrayvector3i-_structured_text_parserargs-array-text-string-virtual-const"><code>Array\[Vector3i\] _structured_text_parser(args: Array, text: String) virtual const</code></h3>
+<p>User defined BiDi algorithm override function.</p>
+<p>Returns an <a href="Array.html">Array</a> of <a href="Vector3i.html">Vector3i</a> text ranges and text base directions, in the left-to-right order. Ranges should cover full source <code>text</code> without overlaps. BiDi algorithm will be used on each range separately.</p>
+<h3 id="void-accept_event"><code>void accept_event()</code></h3>
+<p>Marks an input event as handled. Once you accept an input event, it stops propagating, even to nodes listening to <code>Node._unhandled_input()</code> or <code>Node._unhandled_key_input()</code>.</p>
+<p><strong>Note:</strong> This does not affect the methods in <a href="Input.html">Input</a>, only the way events are propagated.</p>
+<h3 id="void-accessibility_drag"><code>void accessibility_drag()</code></h3>
+<p>Starts drag-and-drop operation without using a mouse.</p>
+<h3 id="void-accessibility_drop"><code>void accessibility_drop()</code></h3>
+<p>Ends drag-and-drop operation without using a mouse.</p>
+<h3 id="void-add_theme_color_overridename-stringname-color-color"><code>void add_theme_color_override(name: StringName, color: Color)</code></h3>
+<p>Creates a local override for a theme <a href="Color.html">Color</a> with the specified <code>name</code>. Local overrides always take precedence when fetching theme items for the control. An override can be removed with <code>remove_theme_color_override()</code>.</p>
+<p>See also <code>get_theme_color()</code>.</p>
+<p><strong>Example:</strong> Override a <a href="Label.html">Label</a>'s color and reset it later:</p>
+<pre class="gdscript"><code># Given the child Label node &quot;MyLabel&quot;, override its font color with a custom value.
+$MyLabel.add_theme_color_override(&quot;font_color&quot;, Color(1, 0.5, 0))
+# Reset the font color of the child label.
+$MyLabel.remove_theme_color_override(&quot;font_color&quot;)
+# Alternatively it can be overridden with the default value from the Label type.
+$MyLabel.add_theme_color_override(&quot;font_color&quot;, get_theme_color(&quot;font_color&quot;, &quot;Label&quot;))</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Given the child Label node &quot;MyLabel&quot;, override its font color with a custom value.</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;MyLabel&quot;</span><span class="op">).</span><span class="fu">AddThemeColorOverride</span><span class="op">(</span><span class="st">&quot;font_color&quot;</span><span class="op">,</span> <span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="fl">0.5f</span><span class="op">,</span> <span class="dv">0</span><span class="op">));</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Reset the font color of the child label.</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;MyLabel&quot;</span><span class="op">).</span><span class="fu">RemoveThemeColorOverride</span><span class="op">(</span><span class="st">&quot;font_color&quot;</span><span class="op">);</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">// Alternatively it can be overridden with the default value from the Label type.</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;MyLabel&quot;</span><span class="op">).</span><span class="fu">AddThemeColorOverride</span><span class="op">(</span><span class="st">&quot;font_color&quot;</span><span class="op">,</span> <span class="fu">GetThemeColor</span><span class="op">(</span><span class="st">&quot;font_color&quot;</span><span class="op">,</span> <span class="st">&quot;Label&quot;</span><span class="op">));</span></span></code></pre></div>
+<h3 id="void-add_theme_constant_overridename-stringname-constant-int"><code>void add_theme_constant_override(name: StringName, constant: int)</code></h3>
+<p>Creates a local override for a theme constant with the specified <code>name</code>. Local overrides always take precedence when fetching theme items for the control. An override can be removed with <code>remove_theme_constant_override()</code>.</p>
+<p>See also <code>get_theme_constant()</code>.</p>
+<h3 id="void-add_theme_font_overridename-stringname-font-font"><code>void add_theme_font_override(name: StringName, font: Font)</code></h3>
+<p>Creates a local override for a theme <a href="Font.html">Font</a> with the specified <code>name</code>. Local overrides always take precedence when fetching theme items for the control. An override can be removed with <code>remove_theme_font_override()</code>.</p>
+<p>See also <code>get_theme_font()</code>.</p>
+<h3 id="void-add_theme_font_size_overridename-stringname-font_size-int"><code>void add_theme_font_size_override(name: StringName, font_size: int)</code></h3>
+<p>Creates a local override for a theme font size with the specified <code>name</code>. Local overrides always take precedence when fetching theme items for the control. An override can be removed with <code>remove_theme_font_size_override()</code>.</p>
+<p>See also <code>get_theme_font_size()</code>.</p>
+<h3 id="void-add_theme_icon_overridename-stringname-texture-texture2d"><code>void add_theme_icon_override(name: StringName, texture: Texture2D)</code></h3>
+<p>Creates a local override for a theme icon with the specified <code>name</code>. Local overrides always take precedence when fetching theme items for the control. An override can be removed with <code>remove_theme_icon_override()</code>.</p>
+<p>See also <code>get_theme_icon()</code>.</p>
+<h3 id="void-add_theme_stylebox_overridename-stringname-stylebox-stylebox"><code>void add_theme_stylebox_override(name: StringName, stylebox: StyleBox)</code></h3>
+<p>Creates a local override for a theme <a href="StyleBox.html">StyleBox</a> with the specified <code>name</code>. Local overrides always take precedence when fetching theme items for the control. An override can be removed with <code>remove_theme_stylebox_override()</code>.</p>
+<p>See also <code>get_theme_stylebox()</code>.</p>
+<p><strong>Example:</strong> Modify a property in a <a href="StyleBox.html">StyleBox</a> by duplicating it:</p>
+<pre class="gdscript"><code># The snippet below assumes the child node &quot;MyButton&quot; has a StyleBoxFlat assigned.
+# Resources are shared across instances, so we need to duplicate it
+# to avoid modifying the appearance of all other buttons.
+var new_stylebox_normal = $MyButton.get_theme_stylebox(&quot;normal&quot;).duplicate()
+new_stylebox_normal.border_width_top = 3
+new_stylebox_normal.border_color = Color(0, 1, 0.5)
+$MyButton.add_theme_stylebox_override(&quot;normal&quot;, new_stylebox_normal)
+# Remove the stylebox override.
+$MyButton.remove_theme_stylebox_override(&quot;normal&quot;)</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">// The snippet below assumes the child node &quot;MyButton&quot; has a StyleBoxFlat assigned.</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Resources are shared across instances, so we need to duplicate it</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co">// to avoid modifying the appearance of all other buttons.</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>StyleBoxFlat newStyleboxNormal <span class="op">=</span> GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;MyButton&quot;</span><span class="op">).</span><span class="fu">GetThemeStylebox</span><span class="op">(</span><span class="st">&quot;normal&quot;</span><span class="op">).</span><span class="fu">Duplicate</span><span class="op">()</span> <span class="kw">as</span> StyleBoxFlat<span class="op">;</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>newStyleboxNormal<span class="op">.</span><span class="fu">BorderWidthTop</span> <span class="op">=</span> <span class="dv">3</span><span class="op">;</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>newStyleboxNormal<span class="op">.</span><span class="fu">BorderColor</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="fl">0.5f</span><span class="op">);</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;MyButton&quot;</span><span class="op">).</span><span class="fu">AddThemeStyleboxOverride</span><span class="op">(</span><span class="st">&quot;normal&quot;</span><span class="op">,</span> newStyleboxNormal<span class="op">);</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="co">// Remove the stylebox override.</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>Button<span class="op">&gt;(</span><span class="st">&quot;MyButton&quot;</span><span class="op">).</span><span class="fu">RemoveThemeStyleboxOverride</span><span class="op">(</span><span class="st">&quot;normal&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="void-begin_bulk_theme_override"><code>void begin_bulk_theme_override()</code></h3>
+<p>Prevents <code>*_theme_*_override</code> methods from emitting <code>NOTIFICATION_THEME_CHANGED</code> until <code>end_bulk_theme_override()</code> is called.</p>
+<h3 id="void-end_bulk_theme_override"><code>void end_bulk_theme_override()</code></h3>
+<p>Ends a bulk theme override update. See <code>begin_bulk_theme_override()</code>.</p>
+<h3 id="control-find_next_valid_focus-const"><code>Control find_next_valid_focus() const</code></h3>
+<p>Finds the next (below in the tree) <strong>Control</strong> that can receive the focus.</p>
+<h3 id="control-find_prev_valid_focus-const"><code>Control find_prev_valid_focus() const</code></h3>
+<p>Finds the previous (above in the tree) <strong>Control</strong> that can receive the focus.</p>
+<h3 id="control-find_valid_focus_neighborside-globalscopeside-const"><code>Control find_valid_focus_neighbor(side: </code>@GlobalScope.Side<code>) const</code></h3>
+<p>Finds the next <strong>Control</strong> that can receive the focus on the specified <code>@GlobalScope.Side</code>.</p>
+<p><strong>Note:</strong> This is different from <code>get_focus_neighbor()</code>, which returns the path of a specified focus neighbor.</p>
+<h3 id="void-force_dragdata-variant-preview-control"><code>void force_drag(data: Variant, preview: Control)</code></h3>
+<p>Forces drag and bypasses <code>_get_drag_data()</code> and <code>set_drag_preview()</code> by passing <code>data</code> and <code>preview</code>. Drag will start even if the mouse is neither over nor pressed on this control.</p>
+<p>The methods <code>_can_drop_data()</code> and <code>_drop_data()</code> must be implemented on controls that want to receive drop data.</p>
+<h3 id="float-get_anchorside-globalscopeside-const"><code>float get_anchor(side: </code>@GlobalScope.Side<code>) const</code></h3>
+<p>Returns the anchor for the specified <code>@GlobalScope.Side</code>. A getter method for <code>anchor_bottom</code>, <code>anchor_left</code>, <code>anchor_right</code> and <code>anchor_top</code>.</p>
+<h3 id="vector2-get_begin-const"><code>Vector2 get_begin() const</code></h3>
+<p>Returns <code>offset_left</code> and <code>offset_top</code>. See also <code>position</code>.</p>
+<h3 id="vector2-get_bound_minimum_size-const"><code>Vector2 get_bound_minimum_size() const</code></h3>
+<p>Returns the bound value of <code>get_combined_minimum_size()</code> by <code>get_combined_maximum_size()</code>.</p>
+<p>This value is the true minimum size of the container, as the maximum size has priority over the minimum size.</p>
+<p>For example, if the combined minimum size is (100, 100) and the combined maximum size is (50, 150), the bound minimum size will be (50, 100).</p>
+<h3 id="vector2-get_combined_maximum_size-const"><code>Vector2 get_combined_maximum_size() const</code></h3>
+<p>Returns the combined maximum size from <code>custom_maximum_size</code> and <code>get_maximum_size()</code>, as well as the <code>custom_maximum_size</code> of this node's parent if it is a Control node with <code>propagate_maximum_size</code> set to <code>true</code>.</p>
+<h3 id="vector2-get_combined_minimum_size-const"><code>Vector2 get_combined_minimum_size() const</code></h3>
+<p>Returns the combined minimum size from <code>custom_minimum_size</code> and <code>get_minimum_size()</code>.</p>
+<h3 id="vector2-get_combined_pivot_offset-const"><code>Vector2 get_combined_pivot_offset() const</code></h3>
+<p>Returns the combined value of <code>pivot_offset</code> and <code>pivot_offset_ratio</code>, in pixels. The ratio is multiplied by the control's size.</p>
+<h3 id="cursorshape-get_cursor_shapeat_position-vector2--vector20-0-const">``CursorShape<code> get_cursor_shape(at_position: Vector2 = Vector2(0, 0)) const</code></h3>
+<p>Returns the mouse cursor shape for this control when hovered over <code>at_position</code> in local coordinates. For most controls, this is the same as <code>mouse_default_cursor_shape</code>, but some built-in controls implement more complex logic.</p>
+<p>You can override <code>_get_cursor_shape()</code> to implement custom behavior for this method.</p>
+<h3 id="vector2-get_end-const"><code>Vector2 get_end() const</code></h3>
+<p>Returns <code>offset_right</code> and <code>offset_bottom</code>.</p>
+<h3 id="focusmode-get_focus_mode_with_override-const">``FocusMode<code> get_focus_mode_with_override() const</code></h3>
+<p>Returns the <code>focus_mode</code>, but takes the <code>focus_behavior_recursive</code> into account. If <code>focus_behavior_recursive</code> is set to <code>FOCUS_BEHAVIOR_DISABLED</code>, or it is set to <code>FOCUS_BEHAVIOR_INHERITED</code> and its ancestor is set to <code>FOCUS_BEHAVIOR_DISABLED</code>, then this returns <code>FOCUS_NONE</code>.</p>
+<h3 id="nodepath-get_focus_neighborside-globalscopeside-const"><code>NodePath get_focus_neighbor(side: </code>@GlobalScope.Side<code>) const</code></h3>
+<p>Returns the focus neighbor for the specified <code>@GlobalScope.Side</code>. A getter method for <code>focus_neighbor_bottom</code>, <code>focus_neighbor_left</code>, <code>focus_neighbor_right</code> and <code>focus_neighbor_top</code>.</p>
+<p><strong>Note:</strong> To find the next <strong>Control</strong> on the specific <code>@GlobalScope.Side</code>, even if a neighbor is not assigned, use <code>find_valid_focus_neighbor()</code>.</p>
+<h3 id="rect2-get_global_rect-const"><code>Rect2 get_global_rect() const</code></h3>
+<p>Returns the position and size of the control relative to the containing canvas. See <code>global_position</code> and <code>size</code>.</p>
+<p><strong>Note:</strong> If the node itself or any parent <a href="CanvasItem.html">CanvasItem</a> between the node and the canvas have a non default rotation or skew, the resulting size is likely not meaningful.</p>
+<p><strong>Note:</strong> Setting <code>Viewport.gui_snap_controls_to_pixels</code> to <code>true</code> can lead to rounding inaccuracies between the displayed control and the returned <a href="Rect2.html">Rect2</a>.</p>
+<h3 id="vector2-get_maximum_size-const"><code>Vector2 get_maximum_size() const</code></h3>
+<p>Returns the maximum size for this control. See <code>custom_maximum_size</code>.</p>
+<h3 id="vector2-get_minimum_size-const"><code>Vector2 get_minimum_size() const</code></h3>
+<p>Returns the minimum size for this control. See <code>custom_minimum_size</code>.</p>
+<h3 id="mousefilter-get_mouse_filter_with_override-const">``MouseFilter<code> get_mouse_filter_with_override() const</code></h3>
+<p>Returns the <code>mouse_filter</code>, but takes the <code>mouse_behavior_recursive</code> into account. If <code>mouse_behavior_recursive</code> is set to <code>MOUSE_BEHAVIOR_DISABLED</code>, or it is set to <code>MOUSE_BEHAVIOR_INHERITED</code> and its ancestor is set to <code>MOUSE_BEHAVIOR_DISABLED</code>, then this returns <code>MOUSE_FILTER_IGNORE</code>.</p>
+<h3 id="float-get_offsetoffset-globalscopeside-const"><code>float get_offset(offset: </code>@GlobalScope.Side<code>) const</code></h3>
+<p>Returns the offset for the specified <code>@GlobalScope.Side</code>. A getter method for <code>offset_bottom</code>, <code>offset_left</code>, <code>offset_right</code> and <code>offset_top</code>.</p>
+<h3 id="vector2-get_parent_area_size-const"><code>Vector2 get_parent_area_size() const</code></h3>
+<p>Returns the width/height occupied in the parent control.</p>
+<h3 id="control-get_parent_control-const"><code>Control get_parent_control() const</code></h3>
+<p>Returns the parent control node.</p>
+<h3 id="rect2-get_rect-const"><code>Rect2 get_rect() const</code></h3>
+<p>Returns the position and size of the control in the coordinate system of the containing node. See <code>position</code>, <code>scale</code> and <code>size</code>.</p>
+<p><strong>Note:</strong> If <code>rotation</code> is not the default rotation, the resulting size is not meaningful.</p>
+<p><strong>Note:</strong> Setting <code>Viewport.gui_snap_controls_to_pixels</code> to <code>true</code> can lead to rounding inaccuracies between the displayed control and the returned <a href="Rect2.html">Rect2</a>.</p>
+<h3 id="vector2-get_screen_position-const"><code>Vector2 get_screen_position() const</code></h3>
+<p>Returns the position of this <strong>Control</strong> in global screen coordinates (i.e. taking window position into account). Mostly useful for editor plugins.</p>
+<p>Equivalent to <code>get_screen_transform().origin</code> (see <code>CanvasItem.get_screen_transform()</code>).</p>
+<p><strong>Example:</strong> Show a popup at the mouse position:</p>
+<pre class="gdscript"><code>popup_menu.position = get_screen_position() + get_screen_transform().basis_xform(get_local_mouse_position())
+
+# The above code is equivalent to:
+popup_menu.position = get_screen_transform() * get_local_mouse_position()
+
+popup_menu.reset_size()
+popup_menu.popup()</code></pre>
+<h3 id="color-get_theme_colorname-stringname-theme_type-stringname---const"><code>Color get_theme_color(name: StringName, theme_type: StringName = &amp;"") const</code></h3>
+<p>Returns a <a href="Color.html">Color</a> from the first matching <a href="Theme.html">Theme</a> in the tree if that <a href="Theme.html">Theme</a> has a color item with the specified <code>name</code> and <code>theme_type</code>. If <code>theme_type</code> is omitted the class name of the current control is used as the type, or <code>theme_type_variation</code> if it is defined. If the type is a class name its parent classes are also checked, in order of inheritance. If the type is a variation its base types are checked, in order of dependency, then the control's class name and its parent classes are checked.</p>
+<p>For the current control its local overrides are considered first (see <code>add_theme_color_override()</code>), then its assigned <code>theme</code>. After the current control, each parent control and its assigned <code>theme</code> are considered; controls without a <code>theme</code> assigned are skipped. If no matching <a href="Theme.html">Theme</a> is found in the tree, the custom project <a href="Theme.html">Theme</a> (see <code>ProjectSettings.gui/theme/custom</code>) and the default <a href="Theme.html">Theme</a> are used (see <a href="ThemeDB.html">ThemeDB</a>).</p>
+<pre class="gdscript"><code>func _ready():
+    # Get the font color defined for the current Control&#39;s class, if it exists.
+    modulate = get_theme_color(&quot;font_color&quot;)
+    # Get the font color defined for the Button class.
+    modulate = get_theme_color(&quot;font_color&quot;, &quot;Button&quot;)</code></pre>
+<div class="sourceCode" id="cb21"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Get the font color defined for the current Control&#39;s class, if it exists.</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    Modulate <span class="op">=</span> <span class="fu">GetThemeColor</span><span class="op">(</span><span class="st">&quot;font_color&quot;</span><span class="op">);</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Get the font color defined for the Button class.</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    Modulate <span class="op">=</span> <span class="fu">GetThemeColor</span><span class="op">(</span><span class="st">&quot;font_color&quot;</span><span class="op">,</span> <span class="st">&quot;Button&quot;</span><span class="op">);</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="int-get_theme_constantname-stringname-theme_type-stringname---const"><code>int get_theme_constant(name: StringName, theme_type: StringName = &amp;"") const</code></h3>
+<p>Returns a constant from the first matching <a href="Theme.html">Theme</a> in the tree if that <a href="Theme.html">Theme</a> has a constant item with the specified <code>name</code> and <code>theme_type</code>.</p>
+<p>See <code>get_theme_color()</code> for details.</p>
+<h3 id="float-get_theme_default_base_scale-const"><code>float get_theme_default_base_scale() const</code></h3>
+<p>Returns the default base scale value from the first matching <a href="Theme.html">Theme</a> in the tree if that <a href="Theme.html">Theme</a> has a valid <code>Theme.default_base_scale</code> value.</p>
+<p>See <code>get_theme_color()</code> for details.</p>
+<h3 id="font-get_theme_default_font-const"><code>Font get_theme_default_font() const</code></h3>
+<p>Returns the default font from the first matching <a href="Theme.html">Theme</a> in the tree if that <a href="Theme.html">Theme</a> has a valid <code>Theme.default_font</code> value.</p>
+<p>See <code>get_theme_color()</code> for details.</p>
+<h3 id="int-get_theme_default_font_size-const"><code>int get_theme_default_font_size() const</code></h3>
+<p>Returns the default font size value from the first matching <a href="Theme.html">Theme</a> in the tree if that <a href="Theme.html">Theme</a> has a valid <code>Theme.default_font_size</code> value.</p>
+<p>See <code>get_theme_color()</code> for details.</p>
+<h3 id="font-get_theme_fontname-stringname-theme_type-stringname---const"><code>Font get_theme_font(name: StringName, theme_type: StringName = &amp;"") const</code></h3>
+<p>Returns a <a href="Font.html">Font</a> from the first matching <a href="Theme.html">Theme</a> in the tree if that <a href="Theme.html">Theme</a> has a font item with the specified <code>name</code> and <code>theme_type</code>.</p>
+<p>See <code>get_theme_color()</code> for details.</p>
+<h3 id="int-get_theme_font_sizename-stringname-theme_type-stringname---const"><code>int get_theme_font_size(name: StringName, theme_type: StringName = &amp;"") const</code></h3>
+<p>Returns a font size from the first matching <a href="Theme.html">Theme</a> in the tree if that <a href="Theme.html">Theme</a> has a font size item with the specified <code>name</code> and <code>theme_type</code>.</p>
+<p>See <code>get_theme_color()</code> for details.</p>
+<h3 id="texture2d-get_theme_iconname-stringname-theme_type-stringname---const"><code>Texture2D get_theme_icon(name: StringName, theme_type: StringName = &amp;"") const</code></h3>
+<p>Returns an icon from the first matching <a href="Theme.html">Theme</a> in the tree if that <a href="Theme.html">Theme</a> has an icon item with the specified <code>name</code> and <code>theme_type</code>.</p>
+<p>See <code>get_theme_color()</code> for details.</p>
+<h3 id="stylebox-get_theme_styleboxname-stringname-theme_type-stringname---const"><code>StyleBox get_theme_stylebox(name: StringName, theme_type: StringName = &amp;"") const</code></h3>
+<p>Returns a <a href="StyleBox.html">StyleBox</a> from the first matching <a href="Theme.html">Theme</a> in the tree if that <a href="Theme.html">Theme</a> has a stylebox item with the specified <code>name</code> and <code>theme_type</code>.</p>
+<p>See <code>get_theme_color()</code> for details.</p>
+<h3 id="string-get_tooltipat_position-vector2--vector20-0-const"><code>String get_tooltip(at_position: Vector2 = Vector2(0, 0)) const</code></h3>
+<p>Returns the tooltip text for the position <code>at_position</code> in the control's local coordinates, which will typically appear when the cursor is resting over this control. By default, it returns <code>tooltip_text</code>.</p>
+<p>You can override <code>_get_tooltip()</code> to implement custom behavior for this method.</p>
+<p><strong>Note:</strong> If this method returns an empty <a href="String.html">String</a> and <code>_make_custom_tooltip()</code> is not overridden, no tooltip is displayed.</p>
+<h3 id="void-grab_click_focus"><code>void grab_click_focus()</code></h3>
+<p>Creates an <a href="InputEventMouseButton.html">InputEventMouseButton</a> that attempts to click the control. If the event is received, the control gains focus.</p>
+<pre class="gdscript"><code>func _process(delta):
+    grab_click_focus() # When clicking another Control node, this node will be clicked instead.</code></pre>
+<div class="sourceCode" id="cb23"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">double</span> delta<span class="op">)</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">GrabClickFocus</span><span class="op">();</span> <span class="co">// When clicking another Control node, this node will be clicked instead.</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="void-grab_focushide_focus-bool--false"><code>void grab_focus(hide_focus: bool = false)</code></h3>
+<p>Steal the focus from another control and become the focused control (see <code>focus_mode</code>).</p>
+<p>If <code>hide_focus</code> is <code>true</code>, the control will not visually show its focused state. Has no effect for <a href="LineEdit.html">LineEdit</a> and <a href="TextEdit.html">TextEdit</a> when <code>ProjectSettings.gui/common/show_focus_state_on_pointer_event</code> is set to <code>Text Input Controls</code>, or for any control when it is set to <code>Always</code>.</p>
+<p><strong>Note:</strong> Using this method together with <code>Callable.call_deferred()</code> makes it more reliable, especially when called inside <code>Node._ready()</code>.</p>
+<h3 id="bool-has_focusignore_hidden_focus-bool--false-const"><code>bool has_focus(ignore_hidden_focus: bool = false) const</code></h3>
+<p>Returns <code>true</code> if this is the current focused control. See <code>focus_mode</code>.</p>
+<p>If <code>ignore_hidden_focus</code> is <code>true</code>, controls that have their focus hidden will always return <code>false</code>. Hidden focus happens automatically when controls gain focus via mouse input, or manually using <code>grab_focus()</code> with <code>hide_focus</code> set to <code>true</code>.</p>
+<h3 id="bool-has_theme_colorname-stringname-theme_type-stringname---const"><code>bool has_theme_color(name: StringName, theme_type: StringName = &amp;"") const</code></h3>
+<p>Returns <code>true</code> if there is a matching <a href="Theme.html">Theme</a> in the tree that has a color item with the specified <code>name</code> and <code>theme_type</code>.</p>
+<p>See <code>get_theme_color()</code> for details.</p>
+<h3 id="bool-has_theme_color_overridename-stringname-const"><code>bool has_theme_color_override(name: StringName) const</code></h3>
+<p>Returns <code>true</code> if there is a local override for a theme <a href="Color.html">Color</a> with the specified <code>name</code> in this <strong>Control</strong> node.</p>
+<p>See <code>add_theme_color_override()</code>.</p>
+<h3 id="bool-has_theme_constantname-stringname-theme_type-stringname---const"><code>bool has_theme_constant(name: StringName, theme_type: StringName = &amp;"") const</code></h3>
+<p>Returns <code>true</code> if there is a matching <a href="Theme.html">Theme</a> in the tree that has a constant item with the specified <code>name</code> and <code>theme_type</code>.</p>
+<p>See <code>get_theme_color()</code> for details.</p>
+<h3 id="bool-has_theme_constant_overridename-stringname-const"><code>bool has_theme_constant_override(name: StringName) const</code></h3>
+<p>Returns <code>true</code> if there is a local override for a theme constant with the specified <code>name</code> in this <strong>Control</strong> node.</p>
+<p>See <code>add_theme_constant_override()</code>.</p>
+<h3 id="bool-has_theme_fontname-stringname-theme_type-stringname---const"><code>bool has_theme_font(name: StringName, theme_type: StringName = &amp;"") const</code></h3>
+<p>Returns <code>true</code> if there is a matching <a href="Theme.html">Theme</a> in the tree that has a font item with the specified <code>name</code> and <code>theme_type</code>.</p>
+<p>See <code>get_theme_color()</code> for details.</p>
+<h3 id="bool-has_theme_font_overridename-stringname-const"><code>bool has_theme_font_override(name: StringName) const</code></h3>
+<p>Returns <code>true</code> if there is a local override for a theme <a href="Font.html">Font</a> with the specified <code>name</code> in this <strong>Control</strong> node.</p>
+<p>See <code>add_theme_font_override()</code>.</p>
+<h3 id="bool-has_theme_font_sizename-stringname-theme_type-stringname---const"><code>bool has_theme_font_size(name: StringName, theme_type: StringName = &amp;"") const</code></h3>
+<p>Returns <code>true</code> if there is a matching <a href="Theme.html">Theme</a> in the tree that has a font size item with the specified <code>name</code> and <code>theme_type</code>.</p>
+<p>See <code>get_theme_color()</code> for details.</p>
+<h3 id="bool-has_theme_font_size_overridename-stringname-const"><code>bool has_theme_font_size_override(name: StringName) const</code></h3>
+<p>Returns <code>true</code> if there is a local override for a theme font size with the specified <code>name</code> in this <strong>Control</strong> node.</p>
+<p>See <code>add_theme_font_size_override()</code>.</p>
+<h3 id="bool-has_theme_iconname-stringname-theme_type-stringname---const"><code>bool has_theme_icon(name: StringName, theme_type: StringName = &amp;"") const</code></h3>
+<p>Returns <code>true</code> if there is a matching <a href="Theme.html">Theme</a> in the tree that has an icon item with the specified <code>name</code> and <code>theme_type</code>.</p>
+<p>See <code>get_theme_color()</code> for details.</p>
+<h3 id="bool-has_theme_icon_overridename-stringname-const"><code>bool has_theme_icon_override(name: StringName) const</code></h3>
+<p>Returns <code>true</code> if there is a local override for a theme icon with the specified <code>name</code> in this <strong>Control</strong> node.</p>
+<p>See <code>add_theme_icon_override()</code>.</p>
+<h3 id="bool-has_theme_styleboxname-stringname-theme_type-stringname---const"><code>bool has_theme_stylebox(name: StringName, theme_type: StringName = &amp;"") const</code></h3>
+<p>Returns <code>true</code> if there is a matching <a href="Theme.html">Theme</a> in the tree that has a stylebox item with the specified <code>name</code> and <code>theme_type</code>.</p>
+<p>See <code>get_theme_color()</code> for details.</p>
+<h3 id="bool-has_theme_stylebox_overridename-stringname-const"><code>bool has_theme_stylebox_override(name: StringName) const</code></h3>
+<p>Returns <code>true</code> if there is a local override for a theme <a href="StyleBox.html">StyleBox</a> with the specified <code>name</code> in this <strong>Control</strong> node.</p>
+<p>See <code>add_theme_stylebox_override()</code>.</p>
+<h3 id="bool-is_drag_successful-const"><code>bool is_drag_successful() const</code></h3>
+<p>Returns <code>true</code> if a drag operation is successful. Alternative to <code>Viewport.gui_is_drag_successful()</code>.</p>
+<p>Best used with <code>Node.NOTIFICATION_DRAG_END</code>.</p>
+<h3 id="bool-is_layout_rtl-const"><code>bool is_layout_rtl() const</code></h3>
+<p>Returns <code>true</code> if the layout is right-to-left. See also <code>layout_direction</code>.</p>
+<h3 id="void-release_focus"><code>void release_focus()</code></h3>
+<p>Give up the focus. No other control will be able to receive input.</p>
+<h3 id="void-remove_theme_color_overridename-stringname"><code>void remove_theme_color_override(name: StringName)</code></h3>
+<p>Removes a local override for a theme <a href="Color.html">Color</a> with the specified <code>name</code> previously added by <code>add_theme_color_override()</code> or via the Inspector dock.</p>
+<h3 id="void-remove_theme_constant_overridename-stringname"><code>void remove_theme_constant_override(name: StringName)</code></h3>
+<p>Removes a local override for a theme constant with the specified <code>name</code> previously added by <code>add_theme_constant_override()</code> or via the Inspector dock.</p>
+<h3 id="void-remove_theme_font_overridename-stringname"><code>void remove_theme_font_override(name: StringName)</code></h3>
+<p>Removes a local override for a theme <a href="Font.html">Font</a> with the specified <code>name</code> previously added by <code>add_theme_font_override()</code> or via the Inspector dock.</p>
+<h3 id="void-remove_theme_font_size_overridename-stringname"><code>void remove_theme_font_size_override(name: StringName)</code></h3>
+<p>Removes a local override for a theme font size with the specified <code>name</code> previously added by <code>add_theme_font_size_override()</code> or via the Inspector dock.</p>
+<h3 id="void-remove_theme_icon_overridename-stringname"><code>void remove_theme_icon_override(name: StringName)</code></h3>
+<p>Removes a local override for a theme icon with the specified <code>name</code> previously added by <code>add_theme_icon_override()</code> or via the Inspector dock.</p>
+<h3 id="void-remove_theme_stylebox_overridename-stringname"><code>void remove_theme_stylebox_override(name: StringName)</code></h3>
+<p>Removes a local override for a theme <a href="StyleBox.html">StyleBox</a> with the specified <code>name</code> previously added by <code>add_theme_stylebox_override()</code> or via the Inspector dock.</p>
+<h3 id="void-reset_size"><code>void reset_size()</code></h3>
+<p>Resets the size to <code>get_combined_minimum_size()</code>. This is equivalent to calling <code>set_size(Vector2())</code> (or any size below the minimum).</p>
+<h3 id="void-set_anchorside-globalscopeside-anchor-float-keep_offset-bool--false-push_opposite_anchor-bool--true"><code>void set_anchor(side: </code>@GlobalScope.Side<code>, anchor: float, keep_offset: bool = false, push_opposite_anchor: bool = true)</code></h3>
+<p>Sets the anchor for the specified <code>@GlobalScope.Side</code> to <code>anchor</code>. A setter method for <code>anchor_bottom</code>, <code>anchor_left</code>, <code>anchor_right</code> and <code>anchor_top</code>.</p>
+<p>If <code>keep_offset</code> is <code>true</code>, offsets aren't updated after this operation.</p>
+<p>If <code>push_opposite_anchor</code> is <code>true</code> and the opposite anchor overlaps this anchor, the opposite one will have its value overridden. For example, when setting left anchor to 1 and the right anchor has value of 0.5, the right anchor will also get value of 1. If <code>push_opposite_anchor</code> was <code>false</code>, the left anchor would get value 0.5.</p>
+<h3 id="void-set_anchor_and_offsetside-globalscopeside-anchor-float-offset-float-push_opposite_anchor-bool--false"><code>void set_anchor_and_offset(side: </code>@GlobalScope.Side<code>, anchor: float, offset: float, push_opposite_anchor: bool = false)</code></h3>
+<p>Works the same as <code>set_anchor()</code>, but instead of <code>keep_offset</code> argument and automatic update of offset, it allows to set the offset yourself (see <code>set_offset()</code>).</p>
+<h3 id="void-set_anchors_and_offsets_presetpreset-layoutpreset-resize_mode-layoutpresetmode--0-margin-int--0"><code>void set_anchors_and_offsets_preset(preset: </code>LayoutPreset<code>, resize_mode: </code>LayoutPresetMode<code> = 0, margin: int = 0)</code></h3>
+<p>Sets both anchor preset and offset preset. See <code>set_anchors_preset()</code> and <code>set_offsets_preset()</code>.</p>
+<h3 id="void-set_anchors_presetpreset-layoutpreset-keep_offsets-bool--false"><code>void set_anchors_preset(preset: </code>LayoutPreset<code>, keep_offsets: bool = false)</code></h3>
+<p>Sets the anchors to a <code>preset</code> from <code>LayoutPreset</code> enum. This is the code equivalent to using the Layout menu in the 2D editor.</p>
+<p>If <code>keep_offsets</code> is <code>true</code>, control's position will also be updated.</p>
+<h3 id="void-set_beginposition-vector2"><code>void set_begin(position: Vector2)</code></h3>
+<p>Sets <code>offset_left</code> and <code>offset_top</code> at the same time. Equivalent of changing <code>position</code>.</p>
+<h3 id="void-set_drag_forwardingdrag_func-callable-can_drop_func-callable-drop_func-callable"><code>void set_drag_forwarding(drag_func: Callable, can_drop_func: Callable, drop_func: Callable)</code></h3>
+<p>Sets the given callables to be used instead of the control's own drag-and-drop virtual methods. If a callable is empty, its respective virtual method is used as normal.</p>
+<p>The arguments for each callable should be exactly the same as their respective virtual methods, which would be:</p>
+<ul>
+<li><p><code>drag_func</code> corresponds to <code>_get_drag_data()</code> and requires a <a href="Vector2.html">Vector2</a>;</p></li>
+<li><p><code>can_drop_func</code> corresponds to <code>_can_drop_data()</code> and requires both a <a href="Vector2.html">Vector2</a> and a <a href="Variant.html">Variant</a>;</p></li>
+<li><p><code>drop_func</code> corresponds to <code>_drop_data()</code> and requires both a <a href="Vector2.html">Vector2</a> and a <a href="Variant.html">Variant</a>.</p></li>
+</ul>
+<h3 id="void-set_drag_previewcontrol-control"><code>void set_drag_preview(control: Control)</code></h3>
+<p>Shows the given control at the mouse pointer. A good time to call this method is in <code>_get_drag_data()</code>. The control must not be in the scene tree. You should not free the control, and you should not keep a reference to the control beyond the duration of the drag. It will be deleted automatically after the drag has ended.</p>
+<pre class="gdscript"><code>@export var color = Color(1, 0, 0, 1)
+
+func _get_drag_data(position):
+    # Use a control that is not in the tree
+    var cpb = ColorPickerButton.new()
+    cpb.color = color
+    cpb.size = Vector2(50, 50)
+    set_drag_preview(cpb)
+    return color</code></pre>
+<div class="sourceCode" id="cb25"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Color _color <span class="op">=</span> <span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> Variant <span class="fu">_GetDragData</span><span class="op">(</span>Vector2 atPosition<span class="op">)</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Use a control that is not in the tree</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> cpb <span class="op">=</span> <span class="kw">new</span> <span class="fu">ColorPickerButton</span><span class="op">();</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    cpb<span class="op">.</span><span class="fu">Color</span> <span class="op">=</span> _color<span class="op">;</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>    cpb<span class="op">.</span><span class="fu">Size</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">50</span><span class="op">,</span> <span class="dv">50</span><span class="op">);</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SetDragPreview</span><span class="op">(</span>cpb<span class="op">);</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> _color<span class="op">;</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="void-set_endposition-vector2"><code>void set_end(position: Vector2)</code></h3>
+<p>Sets <code>offset_right</code> and <code>offset_bottom</code> at the same time.</p>
+<h3 id="void-set_focus_neighborside-globalscopeside-neighbor-nodepath"><code>void set_focus_neighbor(side: </code>@GlobalScope.Side<code>, neighbor: NodePath)</code></h3>
+<p>Sets the focus neighbor for the specified <code>@GlobalScope.Side</code> to the <strong>Control</strong> at <code>neighbor</code> node path. A setter method for <code>focus_neighbor_bottom</code>, <code>focus_neighbor_left</code>, <code>focus_neighbor_right</code> and <code>focus_neighbor_top</code>.</p>
+<h3 id="void-set_global_positionposition-vector2-keep_offsets-bool--false"><code>void set_global_position(position: Vector2, keep_offsets: bool = false)</code></h3>
+<p>Sets the <code>global_position</code> to given <code>position</code>.</p>
+<p>If <code>keep_offsets</code> is <code>true</code>, control's anchors will be updated instead of offsets.</p>
+<h3 id="void-set_offsetside-globalscopeside-offset-float"><code>void set_offset(side: </code>@GlobalScope.Side<code>, offset: float)</code></h3>
+<p>Sets the offset for the specified <code>@GlobalScope.Side</code> to <code>offset</code>. A setter method for <code>offset_bottom</code>, <code>offset_left</code>, <code>offset_right</code> and <code>offset_top</code>.</p>
+<h3 id="void-set_offsets_presetpreset-layoutpreset-resize_mode-layoutpresetmode--0-margin-int--0"><code>void set_offsets_preset(preset: </code>LayoutPreset<code>, resize_mode: </code>LayoutPresetMode<code> = 0, margin: int = 0)</code></h3>
+<p>Sets the offsets to a <code>preset</code> from <code>LayoutPreset</code> enum. This is the code equivalent to using the Layout menu in the 2D editor.</p>
+<p>Use parameter <code>resize_mode</code> with constants from <code>LayoutPresetMode</code> to better determine the resulting size of the <strong>Control</strong>. Constant size will be ignored if used with presets that change size, e.g. <code>PRESET_LEFT_WIDE</code>.</p>
+<p>Use parameter <code>margin</code> to determine the gap between the <strong>Control</strong> and the edges.</p>
+<h3 id="void-set_positionposition-vector2-keep_offsets-bool--false"><code>void set_position(position: Vector2, keep_offsets: bool = false)</code></h3>
+<p>Sets the <code>position</code> to given <code>position</code>.</p>
+<p>If <code>keep_offsets</code> is <code>true</code>, control's anchors will be updated instead of offsets.</p>
+<h3 id="void-set_sizesize-vector2-keep_offsets-bool--false"><code>void set_size(size: Vector2, keep_offsets: bool = false)</code></h3>
+<p>Sets the size (see <code>size</code>).</p>
+<p>If <code>keep_offsets</code> is <code>true</code>, control's anchors will be updated instead of offsets.</p>
+<h3 id="void-update_maximum_size"><code>void update_maximum_size()</code></h3>
+<p>Invalidates the maximum size cache in this node and in parent nodes up to top level. Intended to be used with <code>get_maximum_size()</code> when the return value is changed. Setting <code>custom_maximum_size</code> directly calls this method automatically.</p>
+<p><strong>Note:</strong> Calling this method also calls <code>update_minimum_size()</code> since the combined minimum size may be affected by the maximum size change.</p>
+<h3 id="void-update_minimum_size"><code>void update_minimum_size()</code></h3>
+<p>Invalidates the minimum size cache in this node and in parent nodes up to top level. Intended to be used with <code>get_minimum_size()</code> when the return value is changed. Setting <code>custom_minimum_size</code> directly calls this method automatically.</p>
+<h3 id="void-warp_mouseposition-vector2"><code>void warp_mouse(position: Vector2)</code></h3>
+<p>Moves the mouse cursor to <code>position</code>, relative to <code>position</code> of this <strong>Control</strong>.</p>
+<p><strong>Note:</strong> <code>warp_mouse()</code> is only supported on Windows, macOS and Linux. It has no effect on Android, iOS and Web.</p>
+<h2 id="signals">Signals</h2>
+<h3 id="focus_entered"><code>focus_entered()</code></h3>
+<p>Emitted when the node gains focus.</p>
+<h3 id="focus_exited"><code>focus_exited()</code></h3>
+<p>Emitted when the node loses focus.</p>
+<h3 id="gui_inputevent-inputevent"><code>gui_input(event: InputEvent)</code></h3>
+<p>Emitted when the node receives an <a href="InputEvent.html">InputEvent</a>.</p>
+<h3 id="maximum_size_changed"><code>maximum_size_changed()</code></h3>
+<p>Emitted when the node's maximum size changes.</p>
+<h3 id="minimum_size_changed"><code>minimum_size_changed()</code></h3>
+<p>Emitted when the node's minimum size changes.</p>
+<h3 id="mouse_entered"><code>mouse_entered()</code></h3>
+<p>Emitted when the mouse cursor enters the control's (or any child control's) visible area, that is not occluded behind other Controls or Windows, provided its <code>mouse_filter</code> lets the event reach it and regardless if it's currently focused or not.</p>
+<p><strong>Note:</strong> <code>CanvasItem.z_index</code> doesn't affect, which Control receives the signal.</p>
+<h3 id="mouse_exited"><code>mouse_exited()</code></h3>
+<p>Emitted when the mouse cursor leaves the control's (and all child control's) visible area, that is not occluded behind other Controls or Windows, provided its <code>mouse_filter</code> lets the event reach it and regardless if it's currently focused or not.</p>
+<p><strong>Note:</strong> <code>CanvasItem.z_index</code> doesn't affect, which Control receives the signal.</p>
+<p><strong>Note:</strong> If you want to check whether the mouse truly left the area, ignoring any top nodes, you can use code like this:</p>
+<pre class="gdscript"><code>func _on_mouse_exited():
+    if not Rect2(Vector2(), size).has_point(get_local_mouse_position()):
+        # Not hovering over area.</code></pre>
+<h3 id="resized"><code>resized()</code></h3>
+<p>Emitted when the control changes size.</p>
+<h3 id="size_flags_changed"><code>size_flags_changed()</code></h3>
+<p>Emitted when one of the size flags changes. See <code>size_flags_horizontal</code> and <code>size_flags_vertical</code>.</p>
+<h3 id="theme_changed"><code>theme_changed()</code></h3>
+<p>Emitted when the <code>NOTIFICATION_THEME_CHANGED</code> notification is sent.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-focusmode"><code>enum FocusMode</code></h3>
+<ul>
+<li><p><code>FOCUS_NONE = 0</code></p>
+<p>The node cannot grab focus. Use with <code>focus_mode</code>.</p></li>
+<li><p><code>FOCUS_CLICK = 1</code></p>
+<p>The node can only grab focus on mouse clicks. Use with <code>focus_mode</code>.</p></li>
+<li><p><code>FOCUS_ALL = 2</code></p>
+<p>The node can grab focus on mouse click, using the arrows and the Tab keys on the keyboard, or using the D-pad buttons on a gamepad. Use with <code>focus_mode</code>.</p></li>
+<li><p><code>FOCUS_ACCESSIBILITY = 3</code></p>
+<p>The node can grab focus only when screen reader is active. Use with <code>focus_mode</code>.</p></li>
+</ul>
+<h3 id="enum-focusbehaviorrecursive"><code>enum FocusBehaviorRecursive</code></h3>
+<ul>
+<li><p><code>FOCUS_BEHAVIOR_INHERITED = 0</code></p>
+<p>Inherits the <code>focus_behavior_recursive</code> from the parent control. If there is no parent control, this is the same as <code>FOCUS_BEHAVIOR_ENABLED</code>.</p></li>
+<li><p><code>FOCUS_BEHAVIOR_DISABLED = 1</code></p>
+<p>Prevents the control from getting focused. <code>get_focus_mode_with_override()</code> will return <code>FOCUS_NONE</code>.</p></li>
+<li><p><code>FOCUS_BEHAVIOR_ENABLED = 2</code></p>
+<p>Allows the control to be focused, depending on the <code>focus_mode</code>. This can be used to ignore the parent's <code>focus_behavior_recursive</code>. <code>get_focus_mode_with_override()</code> will return the <code>focus_mode</code>.</p></li>
+</ul>
+<h3 id="enum-mousebehaviorrecursive"><code>enum MouseBehaviorRecursive</code></h3>
+<ul>
+<li><p><code>MOUSE_BEHAVIOR_INHERITED = 0</code></p>
+<p>Inherits the <code>mouse_behavior_recursive</code> from the parent control. If there is no parent control, this is the same as <code>MOUSE_BEHAVIOR_ENABLED</code>.</p></li>
+<li><p><code>MOUSE_BEHAVIOR_DISABLED = 1</code></p>
+<p>Prevents the control from receiving mouse input. <code>get_mouse_filter_with_override()</code> will return <code>MOUSE_FILTER_IGNORE</code>.</p></li>
+<li><p><code>MOUSE_BEHAVIOR_ENABLED = 2</code></p>
+<p>Allows the control to receive mouse input, depending on the <code>mouse_filter</code>. This can be used to ignore the parent's <code>mouse_behavior_recursive</code>. <code>get_mouse_filter_with_override()</code> will return the <code>mouse_filter</code>.</p></li>
+</ul>
+<h3 id="enum-cursorshape"><code>enum CursorShape</code></h3>
+<ul>
+<li><p><code>CURSOR_ARROW = 0</code></p>
+<p>Show the system's arrow mouse cursor when the user hovers the node. Use with <code>mouse_default_cursor_shape</code>.</p></li>
+<li><p><code>CURSOR_IBEAM = 1</code></p>
+<p>Show the system's I-beam mouse cursor when the user hovers the node. The I-beam pointer has a shape similar to "I". It tells the user they can highlight or insert text.</p></li>
+<li><p><code>CURSOR_POINTING_HAND = 2</code></p>
+<p>Show the system's pointing hand mouse cursor when the user hovers the node.</p></li>
+<li><p><code>CURSOR_CROSS = 3</code></p>
+<p>Show the system's cross mouse cursor when the user hovers the node.</p></li>
+<li><p><code>CURSOR_WAIT = 4</code></p>
+<p>Show the system's wait mouse cursor when the user hovers the node. Often an hourglass.</p></li>
+<li><p><code>CURSOR_BUSY = 5</code></p>
+<p>Show the system's busy mouse cursor when the user hovers the node. Often an arrow with a small hourglass.</p></li>
+<li><p><code>CURSOR_DRAG = 6</code></p>
+<p>Show the system's drag mouse cursor, often a closed fist or a cross symbol, when the user hovers the node. It tells the user they're currently dragging an item, like a node in the Scene dock.</p></li>
+<li><p><code>CURSOR_CAN_DROP = 7</code></p>
+<p>Show the system's drop mouse cursor when the user hovers the node. It can be an open hand. It tells the user they can drop an item they're currently grabbing, like a node in the Scene dock.</p></li>
+<li><p><code>CURSOR_FORBIDDEN = 8</code></p>
+<p>Show the system's forbidden mouse cursor when the user hovers the node. Often a crossed circle.</p></li>
+<li><p><code>CURSOR_VSIZE = 9</code></p>
+<p>Show the system's vertical resize mouse cursor when the user hovers the node. A double-headed vertical arrow. It tells the user they can resize the window or the panel vertically.</p></li>
+<li><p><code>CURSOR_HSIZE = 10</code></p>
+<p>Show the system's horizontal resize mouse cursor when the user hovers the node. A double-headed horizontal arrow. It tells the user they can resize the window or the panel horizontally.</p></li>
+<li><p><code>CURSOR_BDIAGSIZE = 11</code></p>
+<p>Show the system's window resize mouse cursor when the user hovers the node. The cursor is a double-headed arrow that goes from the bottom left to the top right. It tells the user they can resize the window or the panel both horizontally and vertically.</p></li>
+<li><p><code>CURSOR_FDIAGSIZE = 12</code></p>
+<p>Show the system's window resize mouse cursor when the user hovers the node. The cursor is a double-headed arrow that goes from the top left to the bottom right, the opposite of <code>CURSOR_BDIAGSIZE</code>. It tells the user they can resize the window or the panel both horizontally and vertically.</p></li>
+<li><p><code>CURSOR_MOVE = 13</code></p>
+<p>Show the system's move mouse cursor when the user hovers the node. It shows 2 double-headed arrows at a 90 degree angle. It tells the user they can move a UI element freely.</p></li>
+<li><p><code>CURSOR_VSPLIT = 14</code></p>
+<p>Show the system's vertical split mouse cursor when the user hovers the node. On Windows, it's the same as <code>CURSOR_VSIZE</code>.</p></li>
+<li><p><code>CURSOR_HSPLIT = 15</code></p>
+<p>Show the system's horizontal split mouse cursor when the user hovers the node. On Windows, it's the same as <code>CURSOR_HSIZE</code>.</p></li>
+<li><p><code>CURSOR_HELP = 16</code></p>
+<p>Show the system's help mouse cursor when the user hovers the node, a question mark.</p></li>
+</ul>
+<h3 id="enum-layoutpreset"><code>enum LayoutPreset</code></h3>
+<ul>
+<li><p><code>PRESET_TOP_LEFT = 0</code></p>
+<p>Snap all 4 anchors to the top-left of the parent control's bounds. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_TOP_RIGHT = 1</code></p>
+<p>Snap all 4 anchors to the top-right of the parent control's bounds. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_BOTTOM_LEFT = 2</code></p>
+<p>Snap all 4 anchors to the bottom-left of the parent control's bounds. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_BOTTOM_RIGHT = 3</code></p>
+<p>Snap all 4 anchors to the bottom-right of the parent control's bounds. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_CENTER_LEFT = 4</code></p>
+<p>Snap all 4 anchors to the center of the left edge of the parent control's bounds. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_CENTER_TOP = 5</code></p>
+<p>Snap all 4 anchors to the center of the top edge of the parent control's bounds. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_CENTER_RIGHT = 6</code></p>
+<p>Snap all 4 anchors to the center of the right edge of the parent control's bounds. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_CENTER_BOTTOM = 7</code></p>
+<p>Snap all 4 anchors to the center of the bottom edge of the parent control's bounds. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_CENTER = 8</code></p>
+<p>Snap all 4 anchors to the center of the parent control's bounds. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_LEFT_WIDE = 9</code></p>
+<p>Snap all 4 anchors to the left edge of the parent control. The left offset becomes relative to the left edge and the top offset relative to the top left corner of the node's parent. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_TOP_WIDE = 10</code></p>
+<p>Snap all 4 anchors to the top edge of the parent control. The left offset becomes relative to the top left corner, the top offset relative to the top edge, and the right offset relative to the top right corner of the node's parent. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_RIGHT_WIDE = 11</code></p>
+<p>Snap all 4 anchors to the right edge of the parent control. The right offset becomes relative to the right edge and the top offset relative to the top right corner of the node's parent. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_BOTTOM_WIDE = 12</code></p>
+<p>Snap all 4 anchors to the bottom edge of the parent control. The left offset becomes relative to the bottom left corner, the bottom offset relative to the bottom edge, and the right offset relative to the bottom right corner of the node's parent. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_VCENTER_WIDE = 13</code></p>
+<p>Snap all 4 anchors to a vertical line that cuts the parent control in half. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_HCENTER_WIDE = 14</code></p>
+<p>Snap all 4 anchors to a horizontal line that cuts the parent control in half. Use with <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>PRESET_FULL_RECT = 15</code></p>
+<p>Snap all 4 anchors to the respective corners of the parent control. Set all 4 offsets to 0 after you applied this preset and the <strong>Control</strong> will fit its parent control. Use with <code>set_anchors_preset()</code>.</p></li>
+</ul>
+<h3 id="enum-layoutpresetmode"><code>enum LayoutPresetMode</code></h3>
+<ul>
+<li><p><code>PRESET_MODE_MINSIZE = 0</code></p>
+<p>The control will be resized to its minimum size.</p></li>
+<li><p><code>PRESET_MODE_KEEP_WIDTH = 1</code></p>
+<p>The control's width will not change.</p></li>
+<li><p><code>PRESET_MODE_KEEP_HEIGHT = 2</code></p>
+<p>The control's height will not change.</p></li>
+<li><p><code>PRESET_MODE_KEEP_SIZE = 3</code></p>
+<p>The control's size will not change.</p></li>
+</ul>
+<h3 id="flags-sizeflags"><code>flags SizeFlags</code></h3>
+<ul>
+<li><p><code>SIZE_SHRINK_BEGIN = 0</code></p>
+<p>Tells the parent <a href="Container.html">Container</a> to align the node with its start, either the top or the left edge. It is mutually exclusive with <code>SIZE_FILL</code> and other shrink size flags, but can be used with <code>SIZE_EXPAND</code> in some containers. Use with <code>size_flags_horizontal</code> and <code>size_flags_vertical</code>.</p>
+<p><strong>Note:</strong> Setting this flag is equal to not having any size flags.</p></li>
+<li><p><code>SIZE_FILL = 1</code></p>
+<p>Tells the parent <a href="Container.html">Container</a> to expand the bounds of this node to fill all the available space without pushing any other node. It is mutually exclusive with shrink size flags. Use with <code>size_flags_horizontal</code> and <code>size_flags_vertical</code>.</p></li>
+<li><p><code>SIZE_EXPAND = 2</code></p>
+<p>Tells the parent <a href="Container.html">Container</a> to let this node take all the available space on the axis you flag. If multiple neighboring nodes are set to expand, they'll share the space based on their stretch ratio. See <code>size_flags_stretch_ratio</code>. Use with <code>size_flags_horizontal</code> and <code>size_flags_vertical</code>.</p></li>
+<li><p><code>SIZE_EXPAND_FILL = 3</code></p>
+<p>Sets the node's size flags to both fill and expand. See <code>SIZE_FILL</code> and <code>SIZE_EXPAND</code> for more information.</p></li>
+<li><p><code>SIZE_SHRINK_CENTER = 4</code></p>
+<p>Tells the parent <a href="Container.html">Container</a> to center the node in the available space. It is mutually exclusive with <code>SIZE_FILL</code> and other shrink size flags, but can be used with <code>SIZE_EXPAND</code> in some containers. Use with <code>size_flags_horizontal</code> and <code>size_flags_vertical</code>.</p></li>
+<li><p><code>SIZE_SHRINK_END = 8</code></p>
+<p>Tells the parent <a href="Container.html">Container</a> to align the node with its end, either the bottom or the right edge. It is mutually exclusive with <code>SIZE_FILL</code> and other shrink size flags, but can be used with <code>SIZE_EXPAND</code> in some containers. Use with <code>size_flags_horizontal</code> and <code>size_flags_vertical</code>.</p></li>
+</ul>
+<h3 id="enum-mousefilter"><code>enum MouseFilter</code></h3>
+<ul>
+<li><p><code>MOUSE_FILTER_STOP = 0</code></p>
+<p>The control will receive mouse movement input events and mouse button input events if clicked on through <code>_gui_input()</code>. The control will also receive the <code>mouse_entered</code> and <code>mouse_exited</code> signals. These events are automatically marked as handled, and they will not propagate further to other controls. This also results in blocking signals in other controls.</p></li>
+<li><p><code>MOUSE_FILTER_PASS = 1</code></p>
+<p>The control will receive mouse movement input events and mouse button input events if clicked on through <code>_gui_input()</code>. The control will also receive the <code>mouse_entered</code> and <code>mouse_exited</code> signals.</p>
+<p>If this control does not handle the event, the event will propagate up to its parent control if it has one. The event is bubbled up the node hierarchy until it reaches a non-<a href="CanvasItem.html">CanvasItem</a>, a control with <code>MOUSE_FILTER_STOP</code>, or a <a href="CanvasItem.html">CanvasItem</a> with <code>CanvasItem.top_level</code> enabled. This will allow signals to fire in all controls it reaches. If no control handled it, the event will be passed to <code>Node._shortcut_input()</code> for further processing.</p></li>
+<li><p><code>MOUSE_FILTER_IGNORE = 2</code></p>
+<p>The control will not receive any mouse movement input events nor mouse button input events through <code>_gui_input()</code>. The control will also not receive the <code>mouse_entered</code> nor <code>mouse_exited</code> signals. This will not block other controls from receiving these events or firing the signals. Ignored events will not be handled automatically. If a child has <code>MOUSE_FILTER_PASS</code> and an event was passed to this control, the event will further propagate up to the control's parent.</p>
+<p><strong>Note:</strong> If the control has received <code>mouse_entered</code> but not <code>mouse_exited</code>, changing the <code>mouse_filter</code> to <code>MOUSE_FILTER_IGNORE</code> will cause <code>mouse_exited</code> to be emitted.</p></li>
+</ul>
+<h3 id="enum-growdirection"><code>enum GrowDirection</code></h3>
+<ul>
+<li><p><code>GROW_DIRECTION_BEGIN = 0</code></p>
+<p>The control will grow to the left or top to make up if its minimum size is changed to be greater than its current size on the respective axis.</p></li>
+<li><p><code>GROW_DIRECTION_END = 1</code></p>
+<p>The control will grow to the right or bottom to make up if its minimum size is changed to be greater than its current size on the respective axis.</p></li>
+<li><p><code>GROW_DIRECTION_BOTH = 2</code></p>
+<p>The control will grow in both directions equally to make up if its minimum size is changed to be greater than its current size.</p></li>
+</ul>
+<h3 id="enum-anchor"><code>enum Anchor</code></h3>
+<ul>
+<li><p><code>ANCHOR_BEGIN = 0</code></p>
+<p>Snaps one of the 4 anchor's sides to the origin of the node's <code>Rect</code>, in the top left. Use it with one of the <code>anchor_*</code> member variables, like <code>anchor_left</code>. To change all 4 anchors at once, use <code>set_anchors_preset()</code>.</p></li>
+<li><p><code>ANCHOR_END = 1</code></p>
+<p>Snaps one of the 4 anchor's sides to the end of the node's <code>Rect</code>, in the bottom right. Use it with one of the <code>anchor_*</code> member variables, like <code>anchor_left</code>. To change all 4 anchors at once, use <code>set_anchors_preset()</code>.</p></li>
+</ul>
+<h3 id="enum-layoutdirection"><code>enum LayoutDirection</code></h3>
+<ul>
+<li><p><code>LAYOUT_DIRECTION_INHERITED = 0</code></p>
+<p>Automatic layout direction, determined from the parent control layout direction.</p></li>
+<li><p><code>LAYOUT_DIRECTION_APPLICATION_LOCALE = 1</code></p>
+<p>Automatic layout direction, determined from the current locale. Right-to-left layout direction is automatically used for languages that require it such as Arabic and Hebrew, but only if a valid translation file is loaded for the given language (unless said language is configured as a fallback in <code>ProjectSettings.internationalization/locale/fallback</code>). For all other languages (or if no valid translation file is found by Godot), left-to-right layout direction is used. If using <a href="TextServerFallback.html">TextServerFallback</a> (<code>ProjectSettings.internationalization/rendering/text_driver</code>), left-to-right layout direction is always used regardless of the language. Right-to-left layout direction can also be forced using <code>ProjectSettings.internationalization/rendering/force_right_to_left_layout_direction</code>.</p></li>
+<li><p><code>LAYOUT_DIRECTION_LTR = 2</code></p>
+<p>Left-to-right layout direction.</p></li>
+<li><p><code>LAYOUT_DIRECTION_RTL = 3</code></p>
+<p>Right-to-left layout direction.</p></li>
+<li><p><code>LAYOUT_DIRECTION_SYSTEM_LOCALE = 4</code></p>
+<p>Automatic layout direction, determined from the system locale. Right-to-left layout direction is automatically used for languages that require it such as Arabic and Hebrew, but only if a valid translation file is loaded for the given language. For all other languages (or if no valid translation file is found by Godot), left-to-right layout direction is used. If using <a href="TextServerFallback.html">TextServerFallback</a> (<code>ProjectSettings.internationalization/rendering/text_driver</code>), left-to-right layout direction is always used regardless of the language.</p></li>
+<li><p><code>LAYOUT_DIRECTION_MAX = 5</code></p>
+<p>Represents the size of the <code>LayoutDirection</code> enum.</p></li>
+<li><p><code>LAYOUT_DIRECTION_LOCALE = 1</code></p>
+<p><strong>Deprecated:</strong> Use <code>LAYOUT_DIRECTION_APPLICATION_LOCALE</code> instead.</p></li>
+</ul>
+<h3 id="enum-textdirection"><code>enum TextDirection</code></h3>
+<ul>
+<li><p><code>TEXT_DIRECTION_INHERITED = 3</code></p>
+<p>Text writing direction is the same as layout direction.</p></li>
+<li><p><code>TEXT_DIRECTION_AUTO = 0</code></p>
+<p>Automatic text writing direction, determined from the current locale and text content.</p></li>
+<li><p><code>TEXT_DIRECTION_LTR = 1</code></p>
+<p>Left-to-right text writing direction.</p></li>
+<li><p><code>TEXT_DIRECTION_RTL = 2</code></p>
+<p>Right-to-left text writing direction.</p></li>
+</ul>
+<h2 id="constants">Constants</h2>
+<h3 id="notification_resized--40"><code>NOTIFICATION_RESIZED = 40</code></h3>
+<p>Sent when the node changes size. Use <code>size</code> to get the new size.</p>
+<h3 id="notification_mouse_enter--41"><code>NOTIFICATION_MOUSE_ENTER = 41</code></h3>
+<p>Sent when the mouse cursor enters the control's (or any child control's) visible area, that is not occluded behind other Controls or Windows, provided its <code>mouse_filter</code> lets the event reach it and regardless if it's currently focused or not.</p>
+<p><strong>Note:</strong> <code>CanvasItem.z_index</code> doesn't affect which Control receives the notification.</p>
+<p>See also <code>NOTIFICATION_MOUSE_ENTER_SELF</code>.</p>
+<h3 id="notification_mouse_exit--42"><code>NOTIFICATION_MOUSE_EXIT = 42</code></h3>
+<p>Sent when the mouse cursor leaves the control's (and all child control's) visible area, that is not occluded behind other Controls or Windows, provided its <code>mouse_filter</code> lets the event reach it and regardless if it's currently focused or not.</p>
+<p><strong>Note:</strong> <code>CanvasItem.z_index</code> doesn't affect which Control receives the notification.</p>
+<p>See also <code>NOTIFICATION_MOUSE_EXIT_SELF</code>.</p>
+<h3 id="notification_mouse_enter_self--60"><code>NOTIFICATION_MOUSE_ENTER_SELF = 60</code></h3>
+<p><strong>Experimental:</strong> The reason this notification is sent may change in the future.</p>
+<p>Sent when the mouse cursor enters the control's visible area, that is not occluded behind other Controls or Windows, provided its <code>mouse_filter</code> lets the event reach it and regardless if it's currently focused or not.</p>
+<p><strong>Note:</strong> <code>CanvasItem.z_index</code> doesn't affect which Control receives the notification.</p>
+<p>See also <code>NOTIFICATION_MOUSE_ENTER</code>.</p>
+<h3 id="notification_mouse_exit_self--61"><code>NOTIFICATION_MOUSE_EXIT_SELF = 61</code></h3>
+<p><strong>Experimental:</strong> The reason this notification is sent may change in the future.</p>
+<p>Sent when the mouse cursor leaves the control's visible area, that is not occluded behind other Controls or Windows, provided its <code>mouse_filter</code> lets the event reach it and regardless if it's currently focused or not.</p>
+<p><strong>Note:</strong> <code>CanvasItem.z_index</code> doesn't affect which Control receives the notification.</p>
+<p>See also <code>NOTIFICATION_MOUSE_EXIT</code>.</p>
+<h3 id="notification_focus_enter--43"><code>NOTIFICATION_FOCUS_ENTER = 43</code></h3>
+<p>Sent when the node grabs focus.</p>
+<h3 id="notification_focus_exit--44"><code>NOTIFICATION_FOCUS_EXIT = 44</code></h3>
+<p>Sent when the node loses focus.</p>
+<p>This notification is sent in reversed order.</p>
+<h3 id="notification_theme_changed--45"><code>NOTIFICATION_THEME_CHANGED = 45</code></h3>
+<p>Sent when the node needs to refresh its theme items. This happens in one of the following cases:</p>
+<ul>
+<li><p>The <code>theme</code> property is changed on this node or any of its ancestors.</p></li>
+<li><p>The <code>theme_type_variation</code> property is changed on this node.</p></li>
+<li><p>One of the node's theme property overrides is changed.</p></li>
+<li><p>The node enters the scene tree.</p></li>
+</ul>
+<p><strong>Note:</strong> As an optimization, this notification won't be sent from changes that occur while this node is outside of the scene tree. Instead, all of the theme item updates can be applied at once when the node enters the scene tree.</p>
+<p><strong>Note:</strong> This notification is received alongside <code>Node.NOTIFICATION_ENTER_TREE</code>, so if you are instantiating a scene, the child nodes will not be initialized yet. You can use it to setup theming for this node, child nodes created from script, or if you want to access child nodes added in the editor, make sure the node is ready using <code>Node.is_node_ready()</code>.</p>
+<pre class="gdscript"><code>func _notification(what):
+    if what == NOTIFICATION_THEME_CHANGED:
+        if not is_node_ready():
+            await ready # Wait until ready signal.
+        $Label.add_theme_color_override(&quot;font_color&quot;, Color.YELLOW)</code></pre>
+<h3 id="notification_scroll_begin--47"><code>NOTIFICATION_SCROLL_BEGIN = 47</code></h3>
+<p>Sent when this node is inside a <a href="ScrollContainer.html">ScrollContainer</a> which has begun being scrolled when dragging the scrollable area <em>with a touch event</em>. This notification is <em>not</em> sent when scrolling by dragging the scrollbar, scrolling with the mouse wheel or scrolling with keyboard/gamepad events.</p>
+<p><strong>Note:</strong> This signal is only emitted on Android or iOS, or on desktop/web platforms when <code>ProjectSettings.input_devices/pointing/emulate_touch_from_mouse</code> is enabled.</p>
+<h3 id="notification_scroll_end--48"><code>NOTIFICATION_SCROLL_END = 48</code></h3>
+<p>Sent when this node is inside a <a href="ScrollContainer.html">ScrollContainer</a> which has stopped being scrolled when dragging the scrollable area <em>with a touch event</em>. This notification is <em>not</em> sent when scrolling by dragging the scrollbar, scrolling with the mouse wheel or scrolling with keyboard/gamepad events.</p>
+<p><strong>Note:</strong> This signal is only emitted on Android or iOS, or on desktop/web platforms when <code>ProjectSettings.input_devices/pointing/emulate_touch_from_mouse</code> is enabled.</p>
+<h3 id="notification_layout_direction_changed--49"><code>NOTIFICATION_LAYOUT_DIRECTION_CHANGED = 49</code></h3>
+<p>Sent when the control layout direction is changed from LTR or RTL or vice versa. This notification is propagated to child Control nodes as result of a change to <code>layout_direction</code>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

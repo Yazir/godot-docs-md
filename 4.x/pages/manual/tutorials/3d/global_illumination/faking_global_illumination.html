@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Faking global illumination — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="faking-global-illumination">Faking global illumination</h1>
+<h2 id="why-fake-global-illumination">Why fake global illumination?</h2>
+<p>Godot provides several global illumination (GI) techniques, all with their advantages and drawbacks. Nonetheless, it remains possible to avoid using any GI technique and use a handmade approach instead. There are a few reasons for using a "handmade" approach to global illumination instead of VoxelGI, SDFGI or baked lightmaps:</p>
+<ul>
+<li>You need to have good rendering performance, but can't afford going through a potentially cumbersome lightmap baking process.</li>
+<li>You need an approach to GI that is fully real-time <em>and</em> works in procedurally generated levels.</li>
+<li>You need an approach to GI that is fully real-time <em>and</em> does not suffer from significant light leaks.</li>
+</ul>
+<p>The approaches described below only cover indirect diffuse lighting, not specular lighting. For specular lighting, consider using ReflectionProbes which are usually cheap enough to be used in conjunction with this fake GI approach.</p>
+<blockquote>
+<p><strong>See also:</strong> Not sure if faking global illumination with lights is suited to your needs? See <code>doc_introduction_to_global_illumination_comparison</code> for a comparison of GI techniques available in Godot 4.</p>
+</blockquote>
+<h2 id="faking-directionallight3d-global-illumination">Faking DirectionalLight3D global illumination</h2>
+<p>While the sky provides its own directional lighting, the scene's main DirectionalLight3D node typically emits a large amount of light. When using a GI technique, this light would be reflected on solid surfaces and would bounce back on most outdoors shaded surfaces.</p>
+<p>We can fake this by adding a second DirectionalLight3D node with the following changes:</p>
+<ul>
+<li>Rotate the light by 180 degrees. This allows it to represent lighting bounced by the main DirectionalLight3D node.</li>
+<li>Set <strong>Shadows</strong> to <strong>Off</strong>. This reduces the secondary light's performance burden while also allowing shaded areas to receive <em>some</em> lighting (which is what we want here).</li>
+<li>Set <strong>Energy</strong> to 10-40% of the original value. There is no "perfect" value, so experiment with various energy values depending on the light and your typical material colors.</li>
+<li>Set <strong>Specular</strong> to <code>0.0</code>. Indirect lighting shouldn't emit visible specular lobes, so we need to disable specular lighting entirely for the secondary light.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> This approach works best in scenes that are mostly outdoors. When going indoors, the secondary DirectionalLight3D's light will still be visible as this light has shadows disabled.</p>
+<p>This can be worked around by smoothly decreasing the secondary DirectionalLight3D's energy when entering an indoor area (and doing the opposite when leaving the indoor area). For instance, this can be achieved using an Area3D node and AnimationPlayer.</p>
+</blockquote>
+<h2 id="faking-positional-light-global-illumination">Faking positional light global illumination</h2>
+<p>It's possible to follow the same approach as DirectionalLight3D for positional lights (OmniLight3D and SpotLight3D). However, this will require more manual work as this operation needs to be repeated for every positional light node in the scene to look good.</p>
+<p>In an ideal scenario, additional OmniLight3Ds should be added at every location where a significant amount of light hits a bright enough surface. However, due to time constraints, this isn't always easily feasible (especially when performing procedural level generation).</p>
+<p>If you're in a hurry, you can place a secondary OmniLight3D node at the same position as the main OmniLight3D node. You can add this node as a child of the main OmniLight3D node to make it easy to move and hide both nodes at the same time.</p>
+<p>In the secondary OmniLight3D node, perform the following changes:</p>
+<ul>
+<li>Increase the light's <strong>Range</strong> by 25-50%. This allows the secondary light to lighten what was previously not lit by the original light.</li>
+<li>Set <strong>Shadows</strong> to <strong>Off</strong>. This reduces the secondary light's performance burden while also allowing shaded areas to receive <em>some</em> lighting (which is what we want here).</li>
+<li>Set <strong>Energy</strong> to 10-40% of the original value. There is no "perfect" value, so experiment with various energy values depending on the light and its surroundings.</li>
+<li>Set <strong>Specular</strong> to 0. Indirect lighting shouldn't emit visible specular lobes, so we need to disable specular lighting entirely for the secondary light.</li>
+</ul>
+<p>For SpotLight3D, the same trick can be used. In this case, the secondary OmniLight3D should be placed in a way that reflects where <em>most</em> light will be bounced. This is usually close to the SpotLight3D's primary impact location.</p>
+<p>In the example below, a SpotLight3D node is used to light up the room's floor. However, since there is no indirect lighting, the rest of the room remains entirely dark. In real life, the room's walls and ceiling would be lit up by light bouncing around. Using an OmniLight3D node positioned between the SpotLight3D's origin and the floor allows simulating this effect:</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

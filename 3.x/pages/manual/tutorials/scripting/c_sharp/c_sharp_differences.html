@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C# API differences to GDScript — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="c-api-differences-to-gdscript">C# API differences to GDScript</h1>
+<p>This is a (incomplete) list of API differences between C# and GDScript.</p>
+<h2 id="general-differences">General differences</h2>
+<p>As explained in the <code>doc_c_sharp</code>, C# generally uses <code>PascalCase</code> instead of the <code>snake_case</code> used in GDScript and C++.</p>
+<h2 id="global-scope">Global scope</h2>
+<p>Global functions and some constants had to be moved to classes, since C# does not allow declaring them in namespaces. Most global constants were moved to their own enums.</p>
+<h3 id="constants">Constants</h3>
+<p>Global constants were moved to their own enums. For example, <code>ERR_*</code> constants were moved to the <code>Error</code> enum.</p>
+<p>Special cases:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>SPKEY</code></td>
+<td><code>GD.SpKey</code></td>
+</tr>
+<tr class="even">
+<td><code>TYPE_*</code></td>
+<td><code>Variant.Type</code> enum</td>
+</tr>
+<tr class="odd">
+<td><code>OP_*</code></td>
+<td><code>Variant.Operator</code> enum</td>
+</tr>
+</tbody>
+</table>
+<h3 id="math-functions">Math functions</h3>
+<p>Math global functions, like <code>abs</code>, <code>acos</code>, <code>asin</code>, <code>atan</code> and <code>atan2</code>, are located under <code>Mathf</code> as <code>Abs</code>, <code>Acos</code>, <code>Asin</code>, <code>Atan</code> and <code>Atan2</code>. The <code>PI</code> constant can be found as <code>Mathf.Pi</code>.</p>
+<h3 id="random-functions">Random functions</h3>
+<p>Random global functions, like <code>rand_range</code> and <code>rand_seed</code>, are located under <code>GD</code>. Example: <code>GD.RandRange</code> and <code>GD.RandSeed</code>.</p>
+<h3 id="other-functions">Other functions</h3>
+<p>Many other global functions like <code>print</code> and <code>var2str</code> are located under <code>GD</code>. Example: <code>GD.Print</code> and <code>GD.Var2Str</code>.</p>
+<p>Exceptions:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>weakref(obj)</code></td>
+<td><code>Object.WeakRef(obj)</code></td>
+</tr>
+<tr class="even">
+<td><code>is_instance_valid(obj)</code></td>
+<td><code>Object.IsInstanceValid(obj)</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="tips">Tips</h3>
+<p>Sometimes it can be useful to use the <code>using static</code> directive. This directive allows to access the members and nested types of a class without specifying the class name.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">static</span> Godot<span class="op">.</span><span class="fu">GD</span><span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Test</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">static</span> <span class="fu">Test</span><span class="op">()</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">Print</span><span class="op">(</span><span class="st">&quot;Hello&quot;</span><span class="op">);</span> <span class="co">// Instead of GD.Print(&quot;Hello&quot;);</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="export-keyword">Export keyword</h2>
+<p>Use the <code>[Export]</code> attribute instead of the GDScript <code>export</code> keyword. This attribute can also be provided with optional ref and <code>hintString</code> parameters. Default values can be set by assigning a value.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> MyNode <span class="op">:</span> Node</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> NodePath _nodePath<span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">string</span> _name <span class="op">=</span> <span class="st">&quot;default&quot;</span><span class="op">;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span><span class="fu">Export</span><span class="op">(</span>PropertyHint<span class="op">.</span><span class="fu">Range</span><span class="op">,</span> <span class="st">&quot;0,100000,1000,or_greater&quot;</span><span class="op">)]</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">int</span> _income<span class="op">;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span><span class="fu">Export</span><span class="op">(</span>PropertyHint<span class="op">.</span><span class="fu">File</span><span class="op">,</span> <span class="st">&quot;*.png,*.jpg&quot;</span><span class="op">)]</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">string</span> _icon<span class="op">;</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="signal-keyword">Signal keyword</h2>
+<p>Use the <code>[Signal]</code> attribute to declare a signal instead of the GDScript <code>signal</code> keyword. This attribute should be used on a delegate, whose name signature will be used to define the signal.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">MySignal</span><span class="op">(</span><span class="dt">string</span> willSendsAString<span class="op">);</span></span></code></pre></div>
+<p>See also: <code>doc_c_sharp_signals</code>.</p>
+<h2 id="onready-keyword">onready keyword</h2>
+<p>GDScript has the ability to defer the initialization of a member variable until the ready function is called with onready (cf. <code>doc_gdscript_onready_keyword</code>). For example:</p>
+<pre class="gdscript"><code>onready var my_label = get_node(&quot;MyLabel&quot;)</code></pre>
+<p>However C# does not have this ability. To achieve the same effect you need to do this.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Label _myLabel<span class="op">;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    _myLabel <span class="op">=</span> GetNode<span class="op">&lt;</span>Label<span class="op">&gt;(</span><span class="st">&quot;MyLabel&quot;</span><span class="op">);</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="singletons">Singletons</h2>
+<p>Singletons are available as static classes rather than using the singleton pattern. This is to make code less verbose than it would be with an <code>Instance</code> property.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>Input<span class="op">.</span><span class="fu">IsActionPressed</span><span class="op">(</span><span class="st">&quot;ui_down&quot;</span><span class="op">)</span></span></code></pre></div>
+<p>However, in some very rare cases this is not enough. For example, you may want to access a member from the base class <code>Godot.Object</code>, like <code>Connect</code>. For such use cases we provide a static property named <code>Singleton</code> that returns the singleton instance. The type of this instance is <code>Godot.Object</code>.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>Input<span class="op">.</span><span class="fu">Singleton</span><span class="op">.</span><span class="fu">Connect</span><span class="op">(</span><span class="st">&quot;joy_connection_changed&quot;</span><span class="op">,</span> <span class="kw">this</span><span class="op">,</span> <span class="fu">nameof</span><span class="op">(</span>Input_JoyConnectionChanged<span class="op">));</span></span></code></pre></div>
+<h2 id="string">String</h2>
+<p>Use <code>System.String</code> (<code>string</code>). Most of Godot's String methods are provided by the <code>StringExtensions</code> class as extension methods.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="dt">string</span> upper <span class="op">=</span> <span class="st">&quot;I LIKE SALAD FORKS&quot;</span><span class="op">;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="dt">string</span> lower <span class="op">=</span> upper<span class="op">.</span><span class="fu">ToLower</span><span class="op">();</span></span></code></pre></div>
+<p>There are a few differences, though:</p>
+<ul>
+<li><code>erase</code>: Strings are immutable in C#, so we cannot modify the string passed to the extension method. For this reason, <code>Erase</code> was added as an extension method of <code>StringBuilder</code> instead of string. Alternatively, you can use <code>string.Remove</code>.</li>
+<li><code>IsSubsequenceOf</code>/<code>IsSubsequenceOfi</code>: An additional method is provided, which is an overload of <code>IsSubsequenceOf</code>, allowing you to explicitly specify case sensitivity:</li>
+</ul>
+<div class="sourceCode" id="cb9"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>str<span class="op">.</span><span class="fu">IsSubsequenceOf</span><span class="op">(</span><span class="st">&quot;ok&quot;</span><span class="op">);</span> <span class="co">// Case sensitive</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>str<span class="op">.</span><span class="fu">IsSubsequenceOf</span><span class="op">(</span><span class="st">&quot;ok&quot;</span><span class="op">,</span> <span class="kw">true</span><span class="op">);</span> <span class="co">// Case sensitive</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>str<span class="op">.</span><span class="fu">IsSubsequenceOfi</span><span class="op">(</span><span class="st">&quot;ok&quot;</span><span class="op">);</span> <span class="co">// Case insensitive</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>str<span class="op">.</span><span class="fu">IsSubsequenceOf</span><span class="op">(</span><span class="st">&quot;ok&quot;</span><span class="op">,</span> <span class="kw">false</span><span class="op">);</span> <span class="co">// Case insensitive</span></span></code></pre></div>
+<ul>
+<li><code>Match</code>/<code>Matchn</code>/<code>ExprMatch</code>: An additional method is provided besides <code>Match</code> and <code>Matchn</code>, which allows you to explicitly specify case sensitivity:</li>
+</ul>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>str<span class="op">.</span><span class="fu">Match</span><span class="op">(</span><span class="st">&quot;*.txt&quot;</span><span class="op">);</span> <span class="co">// Case sensitive</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>str<span class="op">.</span><span class="fu">ExprMatch</span><span class="op">(</span><span class="st">&quot;*.txt&quot;</span><span class="op">,</span> <span class="kw">true</span><span class="op">);</span> <span class="co">// Case sensitive</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>str<span class="op">.</span><span class="fu">Matchn</span><span class="op">(</span><span class="st">&quot;*.txt&quot;</span><span class="op">);</span> <span class="co">// Case insensitive</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>str<span class="op">.</span><span class="fu">ExprMatch</span><span class="op">(</span><span class="st">&quot;*.txt&quot;</span><span class="op">,</span> <span class="kw">false</span><span class="op">);</span> <span class="co">// Case insensitive</span></span></code></pre></div>
+<h2 id="basis">Basis</h2>
+<p>Structs cannot have parameterless constructors in C#. Therefore, <code>new Basis()</code> initializes all primitive members to their default value. Use <code>Basis.Identity</code> for the equivalent of <code>Basis()</code> in GDScript and C++.</p>
+<p>The following method was converted to a property with a different name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>get_scale()</code></td>
+<td><code>Scale</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="transform2d">Transform2D</h2>
+<p>Structs cannot have parameterless constructors in C#. Therefore, <code>new Transform2D()</code> initializes all primitive members to their default value. Please use <code>Transform2D.Identity</code> for the equivalent of <code>Transform2D()</code> in GDScript and C++.</p>
+<p>The following methods were converted to properties with their respective names changed:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>get_rotation()</code></td>
+<td><code>Rotation</code></td>
+</tr>
+<tr class="even">
+<td><code>get_scale()</code></td>
+<td><code>Scale</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="plane">Plane</h2>
+<p>The following method was converted to a property with a <em>slightly</em> different name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>center()</code></td>
+<td><code>Center</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="rect2">Rect2</h2>
+<p>The following field was converted to a property with a <em>slightly</em> different name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>end</code></td>
+<td><code>End</code></td>
+</tr>
+</tbody>
+</table>
+<p>The following method was converted to a property with a different name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>get_area()</code></td>
+<td><code>Area</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="quat">Quat</h2>
+<p>Structs cannot have parameterless constructors in C#. Therefore, <code>new Quat()</code> initializes all primitive members to their default value. Please use <code>Quat.Identity</code> for the equivalent of <code>Quat()</code> in GDScript and C++.</p>
+<p>The following methods were converted to a property with a different name:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>length()</code></td>
+<td><code>Length</code></td>
+</tr>
+<tr class="even">
+<td><code>length_squared()</code></td>
+<td><code>LengthSquared</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="array">Array</h2>
+<p><em>This is temporary. PoolArrays will need their own types to be used the way they are meant to.</em></p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Array</code></td>
+<td><code>Godot.Collections.Array</code></td>
+</tr>
+<tr class="even">
+<td><code>PoolIntArray</code></td>
+<td><code>int[]</code></td>
+</tr>
+<tr class="odd">
+<td><code>PoolByteArray</code></td>
+<td><code>byte[]</code></td>
+</tr>
+<tr class="even">
+<td><code>PoolFloatArray</code></td>
+<td><code>float[]</code></td>
+</tr>
+<tr class="odd">
+<td><code>PoolStringArray</code></td>
+<td><code>String[]</code></td>
+</tr>
+<tr class="even">
+<td><code>PoolColorArray</code></td>
+<td><code>Color[]</code></td>
+</tr>
+<tr class="odd">
+<td><code>PoolVector2Array</code></td>
+<td><code>Vector2[]</code></td>
+</tr>
+<tr class="even">
+<td><code>PoolVector3Array</code></td>
+<td><code>Vector3[]</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>Godot.Collections.Array&lt;T&gt;</code> is a type-safe wrapper around <code>Godot.Collections.Array</code>. Use the <code>Godot.Collections.Array&lt;T&gt;(Godot.Collections.Array)</code> constructor to create one.</p>
+<h2 id="dictionary">Dictionary</h2>
+<p>Use <code>Godot.Collections.Dictionary</code>.</p>
+<p><code>Godot.Collections.Dictionary&lt;T&gt;</code> is a type-safe wrapper around <code>Godot.Collections.Dictionary</code>. Use the <code>Godot.Collections.Dictionary&lt;T&gt;(Godot.Collections.Dictionary)</code> constructor to create one.</p>
+<h2 id="variant">Variant</h2>
+<p><code>System.Object</code> (<code>object</code>) is used instead of <code>Variant</code>.</p>
+<h2 id="communicating-with-other-scripting-languages">Communicating with other scripting languages</h2>
+<p>This is explained extensively in <code>doc_cross_language_scripting</code>.</p>
+<h2 id="yield">Yield</h2>
+<p>Something similar to GDScript's <code>yield</code> with a single parameter can be achieved with C#'s <a href="https://docs.microsoft.com/en-US/dotnet/csharp/language-reference/keywords/yield">yield keyword</a>.</p>
+<p>The equivalent of yield on signal can be achieved with async/await and <code>Godot.Object.ToSignal</code>.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>await <span class="fu">ToSignal</span><span class="op">(</span>timer<span class="op">,</span> <span class="st">&quot;timeout&quot;</span><span class="op">);</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;After timeout&quot;</span><span class="op">);</span></span></code></pre></div>
+<h2 id="other-differences">Other differences</h2>
+<p><code>preload</code>, as it works in GDScript, is not available in C#. Use <code>GD.Load</code> or <code>ResourceLoader.Load</code> instead.</p>
+<p>Other differences:</p>
+<table>
+<thead>
+<tr class="header">
+<th>GDScript</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Color8</code></td>
+<td><code>Color.Color8</code></td>
+</tr>
+<tr class="even">
+<td><code>is_inf</code></td>
+<td><code>float.IsInfinity</code></td>
+</tr>
+<tr class="odd">
+<td><code>is_nan</code></td>
+<td><code>float.IsNaN</code></td>
+</tr>
+<tr class="even">
+<td><code>dict2inst</code></td>
+<td>TODO</td>
+</tr>
+<tr class="odd">
+<td><code>inst2dict</code></td>
+<td>TODO</td>
+</tr>
+</tbody>
+</table>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

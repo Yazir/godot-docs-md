@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using the SurfaceTool — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-the-surfacetool">Using the SurfaceTool</h1>
+<p>The ref provides a useful interface for constructing geometry. The interface is similar to the ref node. You set each per-vertex attribute (e.g. normal, uv, color) and then when you add a vertex it captures the attributes.</p>
+<p>The SurfaceTool also provides some useful helper functions like <code>index()</code> and <code>generate_normals()</code>.</p>
+<p>Attributes are added before each vertex is added:</p>
+<pre class="gdscript"><code>st.add_normal() # Overwritten by normal below.
+st.add_normal() # Added to next vertex.
+st.add_color() # Added to next vertex.
+st.add_vertex() # Captures normal and color above.
+st.add_normal() # Normal never added to a vertex.</code></pre>
+<p>When finished generating your geometry with the ref call <code>commit()</code> to finish generating the mesh. If an ref is passed to <code>commit()</code> then it appends a new surface to the end of the ArrayMesh. While if nothing is passed in, <code>commit()</code> returns an ArrayMesh.</p>
+<pre class="gdscript"><code>st.commit(mesh)
+# Or:
+var mesh = st.commit()</code></pre>
+<p>Code creates a triangle with indices</p>
+<pre class="gdscript"><code>var st = SurfaceTool.new()
+
+st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+# Prepare attributes for add_vertex.
+st.add_normal(Vector3(0, 0, 1))
+st.add_uv(Vector2(0, 0))
+# Call last for each vertex, adds the above attributes.
+st.add_vertex(Vector3(-1, -1, 0))
+
+st.add_normal(Vector3(0, 0, 1))
+st.add_uv(Vector2(0, 1))
+st.add_vertex(Vector3(-1, 1, 0))
+
+st.add_normal(Vector3(0, 0, 1))
+st.add_uv(Vector2(1, 1))
+st.add_vertex(Vector3(1, 1, 0))
+
+# Commit to a mesh.
+var mesh = st.commit()</code></pre>
+<p>You can optionally add an index array, either by calling <code>add_index()</code> and adding vertices to the index array or by calling <code>index()</code> which shrinks the vertex array to remove duplicate vertices.</p>
+<pre class="gdscript"><code># Creates a quad from four corner vertices.
+# Add_index does not need to be called before add_vertex.
+st.add_index(0)
+st.add_index(1)
+st.add_index(2)
+
+st.add_index(1)
+st.add_index(3)
+st.add_index(2)
+
+# Alternatively:
+st.index()</code></pre>
+<p>Similarly, if you have an index array, but you want each vertex to be unique (e.g. because you want to use unique normals or colors per face instead of per-vertex), you can call <code>deindex()</code>.</p>
+<pre class="gdscript"><code>st.deindex()</code></pre>
+<p>If you don't add custom normals yourself, you can add them using <code>generate_normals()</code>, which should be called after generating geometry and before committing the mesh using <code>commit()</code> or <code>commit_to_arrays()</code>. Calling <code>generate_normals(true)</code> will flip the resulting normals. As a side note, <code>generate_normals()</code> only works if the primitive type is set to <code>Mesh.PRIMITIVE_TRIANGLES</code>.</p>
+<p>You may notice that normal mapping or other material properties look broken on the generated mesh. This is because normal mapping <strong>requires</strong> the mesh to feature <em>tangents</em>, which are separate from <em>normals</em>. You can either add custom tangents manually, or generate them automatically with with <code>generate_tangents()</code>. This method requires that each vertex have UVs and normals set already.</p>
+<pre class="gdscript"><code>st.generate_normals()
+st.generate_tangents()</code></pre>
+<p>By default, when generating normals, they will be calculated on a per-face basis. If you want smooth vertex normals, when adding vertices, call <code>add_smooth_group()</code>. <code>add_smooth_group()</code> needs to be called while building the geometry, e.g. before the call to <code>add_vertex()</code> (if non-indexed) or <code>add_index()</code> (if indexed).</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

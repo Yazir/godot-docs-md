@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scene organization — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="scene-organization">Scene organization</h1>
+<p>This article covers topics related to the effective organization of scene content. Which nodes should one use? Where should one place them? How should they interact?</p>
+<h2 id="how-to-build-relationships-effectively">How to build relationships effectively</h2>
+<p>When Godot users begin crafting their own scenes, they often run into the following problem:</p>
+<p>They create their first scene and fill it with content only to eventually end up saving branches of their scene into separate scenes as the nagging feeling that they should split things up starts to accumulate. However, they then notice that the hard references they were able to rely on before are no longer possible. Reusing the scene in multiple places creates issues because the node paths do not find their targets and signal connections established in the editor break.</p>
+<p>To fix these problems, one must instantiate the sub-scenes without them requiring details about their environment. One needs to be able to trust that the sub-scene will create itself without being picky about how one uses it.</p>
+<p>One of the biggest things to consider in OOP is maintaining focused, singular-purpose classes with <a href="https://en.wikipedia.org/wiki/Loose_coupling">loose coupling</a> to other parts of the codebase. This keeps the size of objects small (for maintainability) and improves their reusability.</p>
+<p>These OOP best practices have <em>several</em> implications for best practices in scene structure and script usage.</p>
+<p><strong>If at all possible, one should design scenes to have no dependencies.</strong> That is, one should create scenes that keep everything they need within themselves.</p>
+<p>If a scene must interact with an external context, experienced developers recommend the use of <a href="https://en.wikipedia.org/wiki/Dependency_injection">Dependency Injection</a>. This technique involves having a high-level API provide the dependencies of the low-level API. Why do this? Because classes which rely on their external environment can inadvertently trigger bugs and unexpected behavior.</p>
+<p>To do this, one must expose data and then rely on a parent context to initialize it:</p>
+<ol type="1">
+<li>Connect to a signal. Extremely safe, but should be used only to "respond" to behavior, not start it. Note that signal names are usually past-tense verbs like "entered", "skill_activated", or "item_collected".</li>
+</ol>
+<pre class="gdscript"><code># Parent
+$Child.connect(&quot;signal_name&quot;, object_with_method, &quot;method_on_the_object&quot;)
+
+# Child
+emit_signal(&quot;signal_name&quot;) # Triggers parent-defined behavior.</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Child&quot;</span><span class="op">).</span><span class="fu">Connect</span><span class="op">(</span><span class="st">&quot;SignalName&quot;</span><span class="op">,</span> ObjectWithMethod<span class="op">,</span> <span class="st">&quot;MethodOnTheObject&quot;</span><span class="op">);</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">EmitSignal</span><span class="op">(</span><span class="st">&quot;SignalName&quot;</span><span class="op">);</span> <span class="co">// Triggers parent-defined behavior.</span></span></code></pre></div>
+<ol start="2" type="1">
+<li>Call a method. Used to start behavior.</li>
+</ol>
+<pre class="gdscript"><code># Parent
+$Child.method_name = &quot;do&quot;
+
+# Child, assuming it has String property &#39;method_name&#39; and method &#39;do&#39;.
+call(method_name) # Call parent-defined method (which child must own).</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Child&quot;</span><span class="op">).</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;MethodName&quot;</span><span class="op">,</span> <span class="st">&quot;Do&quot;</span><span class="op">);</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">Call</span><span class="op">(</span>MethodName<span class="op">);</span> <span class="co">// Call parent-defined method (which child must own).</span></span></code></pre></div>
+<ol start="3" type="1">
+<li>Initialize a ref property. Safer than a method as ownership of the method is unnecessary. Used to start behavior.</li>
+</ol>
+<pre class="gdscript"><code># Parent
+$Child.func_property = funcref(object_with_method, &quot;method_on_the_object&quot;)
+
+# Child
+func_property.call_func() # Call parent-defined method (can come from anywhere).</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Child&quot;</span><span class="op">).</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;FuncProperty&quot;</span><span class="op">,</span> GD<span class="op">.</span><span class="fu">FuncRef</span><span class="op">(</span>ObjectWithMethod<span class="op">,</span> <span class="st">&quot;MethodOnTheObject&quot;</span><span class="op">));</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>FuncProperty<span class="op">.</span><span class="fu">CallFunc</span><span class="op">();</span> <span class="co">// Call parent-defined method (can come from anywhere).</span></span></code></pre></div>
+<ol start="4" type="1">
+<li>Initialize a Node or other Object reference.</li>
+</ol>
+<pre class="gdscript"><code># Parent
+$Child.target = self
+
+# Child
+print(target) # Use parent-defined node.</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Child&quot;</span><span class="op">).</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;Target&quot;</span><span class="op">,</span> <span class="kw">this</span><span class="op">);</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>Target<span class="op">);</span> <span class="co">// Use parent-defined node.</span></span></code></pre></div>
+<ol start="5" type="1">
+<li>Initialize a NodePath.</li>
+</ol>
+<pre class="gdscript"><code># Parent
+$Child.target_path = &quot;..&quot;
+
+# Child
+get_node(target_path) # Use parent-defined NodePath.</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Child&quot;</span><span class="op">).</span><span class="fu">Set</span><span class="op">(</span><span class="st">&quot;TargetPath&quot;</span><span class="op">,</span> <span class="fu">NodePath</span><span class="op">(</span><span class="st">&quot;..&quot;</span><span class="op">));</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Child</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">GetNode</span><span class="op">(</span>TargetPath<span class="op">);</span> <span class="co">// Use parent-defined NodePath.</span></span></code></pre></div>
+<p>These options hide the points of access from the child node. This in turn keeps the child <strong>loosely coupled</strong> to its environment. One can reuse it in another context without any extra changes to its API.</p>
+<blockquote>
+<p><strong>Note:</strong> Although the examples above illustrate parent-child relationships, the same principles apply towards all object relations. Nodes which are siblings should only be aware of their hierarchies while an ancestor mediates their communications and references.</p>
+</blockquote>
+<pre class="gdscript"><code># Parent
+$Left.target = $Right.get_node(&quot;Receiver&quot;)
+
+# Left
+var target: Node
+func execute():
+    # Do something with &#39;target&#39;.
+
+# Right
+func _init():
+    var receiver = Receiver.new()
+    add_child(receiver)</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parent</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>GetNode<span class="op">&lt;</span>Left<span class="op">&gt;(</span><span class="st">&quot;Left&quot;</span><span class="op">).</span><span class="fu">Target</span> <span class="op">=</span> <span class="fu">GetNode</span><span class="op">(</span><span class="st">&quot;Right/Receiver&quot;</span><span class="op">);</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Left <span class="op">:</span> Node</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Node Target <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">Execute</span><span class="op">()</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Do something with &#39;Target&#39;.</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Right <span class="op">:</span> Node</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Node Receiver <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="fu">Right</span><span class="op">()</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        Receiver <span class="op">=</span> ResourceLoader<span class="op">.</span><span class="fu">Load</span><span class="op">&lt;</span>Script<span class="op">&gt;(</span><span class="st">&quot;Receiver.cs&quot;</span><span class="op">).</span><span class="fu">New</span><span class="op">();</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">AddChild</span><span class="op">(</span>Receiver<span class="op">);</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>The same principles also apply to non<span class="op">-</span>Node objects that maintain dependencies</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>on other objects<span class="op">.</span> Whichever <span class="dt">object</span> actually owns the objects should manage</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>the relationships between them<span class="op">.</span></span></code></pre></div>
+<blockquote>
+<p><strong>Warning:</strong> One should favor keeping data in-house (internal to a scene) though as placing a dependency on an external context, even a loosely coupled one, still means that the node will expect something in its environment to be true. The project's design philosophies should prevent this from happening. If not, the code's inherent liabilities will force developers to use documentation to keep track of object relations on a microscopic scale; this is otherwise known as development hell. Writing code that relies on external documentation for one to use it safely is error-prone by default.</p>
+<p>To avoid creating and maintaining such documentation, one converts the dependent node ("child" above) into a tool script that implements ref. Returning a non-empty string from it will make the Scene dock generate a warning icon with the string as a tooltip by the node. This is the same icon that appears for nodes such as the ref node when it has no child ref nodes defined. The editor then self-documents the scene through the script code. No content duplication via documentation is necessary.</p>
+<p>A GUI like this can better inform project users of critical information about a Node. Does it have external dependencies? Have those dependencies been satisfied? Other programmers, and especially designers and writers, will need clear instructions in the messages telling them what to do to configure it.</p>
+</blockquote>
+<p>So, why do all this complex switcharoo work? Well, because scenes operate best when they operate alone. If unable to work alone, then working with others anonymously (with minimal hard dependencies, i.e. loose coupling) is the next best thing. Inevitably, changes may need to be made to a class and if these changes cause it to interact with other scenes in unforeseen ways, then things will start to break down. The whole point of all this indirection is to avoid ending up in a situation where changing one class results in adversely effecting other classes.</p>
+<p>Scripts and scenes, as extensions of engine classes, should abide by <em>all</em> OOP principles. Examples include...</p>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/SOLID">SOLID</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Don%27t_repeat_yourself">DRY</a></li>
+<li><a href="https://en.wikipedia.org/wiki/KISS_principle">KISS</a></li>
+<li><a href="https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it">YAGNI</a></li>
+</ul>
+<h2 id="choosing-a-node-tree-structure">Choosing a node tree structure</h2>
+<p>So, a developer starts work on a game only to stop at the vast possibilities before them. They might know what they want to do, what systems they want to have, but <em>where</em> to put them all? Well, how one goes about making their game is always up to them. One can construct node trees in countless ways. But, for those who are unsure, this helpful guide can give them a sample of a decent structure to start with.</p>
+<p>A game should always have a sort of "entry point"; somewhere the developer can definitively track where things begin so that they can follow the logic as it continues elsewhere. This place also serves as a bird's eye view of all of the other data and logic in the program. For traditional applications, this would be the "main" function. In this case, it would be a Main node.</p>
+<blockquote>
+<ul>
+<li>Node "Main" (main.gd)</li>
+</ul>
+</blockquote>
+<p>The <code>main.gd</code> script would then serve as the primary controller of one's game.</p>
+<p>Then one has their actual in-game "World" (a 2D or 3D one). This can be a child of Main. In addition, one will need a primary GUI for their game that manages the various menus and widgets the project needs.</p>
+<blockquote>
+<ul>
+<li>Node "Main" (main.gd)
+<ul>
+<li>Node2D/Spatial "World" (game_world.gd)</li>
+<li>Control "GUI" (gui.gd)</li>
+</ul></li>
+</ul>
+</blockquote>
+<p>When changing levels, one can then swap out the children of the "World" node. ref gives users full control over how their game world transitions.</p>
+<p>The next step is to consider what gameplay systems one's project requires. If one has a system that...</p>
+<ol type="1">
+<li>tracks all of its data internally</li>
+<li>should be globally accessible</li>
+<li>should exist in isolation</li>
+</ol>
+<p>... then one should create an ref.</p>
+<blockquote>
+<p><strong>Note:</strong> For smaller games, a simpler alternative with less control would be to have a "Game" singleton that simply calls the ref method to swap out the main scene's content. This structure more or less keeps the "World" as the main game node.</p>
+<p>Any GUI would need to also be a singleton; be a transitory part of the "World"; or be manually added as a direct child of the root. Otherwise, the GUI nodes would also delete themselves during scene transitions.</p>
+</blockquote>
+<p>If one has systems that modify other systems' data, one should define those as their own scripts or scenes rather than autoloads. For more information on the reasons, please see the ref documentation.</p>
+<p>Each subsystem within one's game should have its own section within the SceneTree. One should use parent-child relationships only in cases where nodes are effectively elements of their parents. Does removing the parent reasonably mean that one should also remove the children? If not, then it should have its own place in the hierarchy as a sibling or some other relation.</p>
+<blockquote>
+<p><strong>Note:</strong> In some cases, one needs these separated nodes to <em>also</em> position themselves relative to each other. One can use the ref / ref nodes for this purpose. They will allow a target node to conditionally inherit selected transform elements from the Remote* node. To assign the <code>target</code> ref, use one of the following:</p>
+<ol type="1">
+<li>A reliable third party, likely a parent node, to mediate the assignment.</li>
+<li>A group, to easily pull a reference to the desired node (assuming there will only ever be one of the targets).</li>
+</ol>
+<p>When should one do this? Well, this is subjective. The dilemma arises when one must micro-manage when a node must move around the SceneTree to preserve itself. For example...</p>
+<ul>
+<li><p>Add a "player" node to a "room".</p></li>
+<li><p>Need to change rooms, so one must delete the current room.</p></li>
+<li><p>Before the room can be deleted, one must preserve and/or move the player.</p>
+<p>Is memory a concern?</p>
+<ul>
+<li>If not, one can just create the two rooms, move the player and delete the old one. No problem.</li>
+</ul>
+<p>If so, one will need to...</p>
+<ul>
+<li>Move the player somewhere else in the tree.</li>
+<li>Delete the room.</li>
+<li>Instantiate and add the new room.</li>
+<li>Re-add the player.</li>
+</ul></li>
+</ul>
+<p>The issue is that the player here is a "special case"; one where the developers must <em>know</em> that they need to handle the player this way for the project. As such, the only way to reliably share this information as a team is to <em>document</em> it. Keeping implementation details in documentation however is dangerous. It's a maintenance burden, strains code readability, and bloats the intellectual content of a project unnecessarily.</p>
+<p>In a more complex game with larger assets, it can be a better idea to simply keep the player somewhere else in the SceneTree entirely. This results in:</p>
+<ol type="1">
+<li>More consistency.</li>
+<li>No "special cases" that must be documented and maintained somewhere.</li>
+<li>No opportunity for errors to occur because these details are not accounted for.</li>
+</ol>
+<p>In contrast, if one ever needs to have a child node that does <em>not</em> inherit the transform of their parent, one has the following options:</p>
+<ol type="1">
+<li>The <strong>declarative</strong> solution: place a ref in between them. As nodes with no transform, Nodes will not pass along such information to their children.</li>
+<li>The <strong>imperative</strong> solution: Use the <code>set_as_toplevel</code> setter for the ref or ref node. This will make the node ignore its inherited transform.</li>
+</ol>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> If building a networked game, keep in mind which nodes and gameplay systems are relevant to all players versus those just pertinent to the authoritative server. For example, users do not all need to have a copy of every players' "PlayerController" logic. Instead, they need only their own. As such, keeping these in a separate branch from the "world" can help simplify the management of game connections and the like.</p>
+</blockquote>
+<p>The key to scene organization is to consider the SceneTree in relational terms rather than spatial terms. Are the nodes dependent on their parent's existence? If not, then they can thrive all by themselves somewhere else. If they are dependent, then it stands to reason that they should be children of that parent (and likely part of that parent's scene if they aren't already).</p>
+<p>Does this mean nodes themselves are components? Not at all. Godot's node trees form an aggregation relationship, not one of composition. But while one still has the flexibility to move nodes around, it is still best when such moves are unnecessary by default.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

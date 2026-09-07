@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custom modules in C++ — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="custom-modules-in-c">Custom modules in C++</h1>
+<h2 id="modules">Modules</h2>
+<p>Godot allows extending the engine in a modular way. New modules can be created and then enabled/disabled. This allows for adding new engine functionality at every level without modifying the core, which can be split for use and reuse in different modules.</p>
+<p>Modules are located in the <code>modules/</code> subdirectory of the build system. By default, dozens of modules are enabled, such as GDScript (which, yes, is not part of the base engine), GridMap support, a regular expressions module, and others. As many new modules as desired can be created and combined. The SCons build system will take care of it transparently.</p>
+<h2 id="what-for">What for?</h2>
+<p>While it's recommended that most of a game be written in scripting (as it is an enormous time saver), it's perfectly possible to use C++ instead. Adding C++ modules can be useful in the following scenarios:</p>
+<ul>
+<li>Binding an external library to Godot (like PhysX, FMOD, etc).</li>
+<li>Optimize critical parts of a game.</li>
+<li>Adding new functionality to the engine and/or editor.</li>
+<li>Porting an existing game to Godot.</li>
+<li>Write a whole, new game in C++ because you can't live without C++.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> While it is possible to use modules for custom game logic, ref is generally more suited as it doesn't require recompiling the engine after every code change.</p>
+<p>C++ modules are mainly needed when GDExtension doesn't suffice and deeper engine integration is required.</p>
+</blockquote>
+<h2 id="creating-a-new-module">Creating a new module</h2>
+<p>Before creating a module, make sure to ref.</p>
+<p>To create a new module, the first step is creating a directory inside <code>modules/</code>. If you want to maintain the module separately, you can checkout a different VCS into modules and use it.</p>
+<p>The example module will be called "summator" (<code>godot/modules/summator</code>). Inside we will create a summator class:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma once</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;core/object/ref_counted.h&quot;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Summator <span class="op">:</span> <span class="kw">public</span> RefCounted <span class="op">{</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    GDCLASS<span class="op">(</span>Summator<span class="op">,</span> RefCounted<span class="op">);</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> count<span class="op">;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span><span class="op">:</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> _bind_methods<span class="op">();</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> add<span class="op">(</span><span class="dt">int</span> p_value<span class="op">);</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> reset<span class="op">();</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> get_total<span class="op">()</span> <span class="at">const</span><span class="op">;</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    Summator<span class="op">();</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>And then the cpp file.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;summator.h&quot;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;core/object/class_db.h&quot;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Summator<span class="op">::</span>add<span class="op">(</span><span class="dt">int</span> p_value<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    count <span class="op">+=</span> p_value<span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Summator<span class="op">::</span>reset<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    count <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> Summator<span class="op">::</span>get_total<span class="op">()</span> <span class="at">const</span> <span class="op">{</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> count<span class="op">;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> Summator<span class="op">::</span>_bind_methods<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;add&quot;</span><span class="op">,</span> <span class="st">&quot;value&quot;</span><span class="op">),</span> <span class="op">&amp;</span>Summator<span class="op">::</span>add<span class="op">);</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;reset&quot;</span><span class="op">),</span> <span class="op">&amp;</span>Summator<span class="op">::</span>reset<span class="op">);</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>bind_method<span class="op">(</span>D_METHOD<span class="op">(</span><span class="st">&quot;get_total&quot;</span><span class="op">),</span> <span class="op">&amp;</span>Summator<span class="op">::</span>get_total<span class="op">);</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>Summator<span class="op">::</span>Summator<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    count <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Then, the new class needs to be registered somehow, so two more files need to be created:</p>
+<pre class="none"><code>register_types.h
+register_types.cpp</code></pre>
+<blockquote>
+<p><strong>Important:</strong> These files must be in the top-level folder of your module (next to your <code>SCsub</code> and <code>config.py</code> files) for the module to be registered properly.</p>
+</blockquote>
+<p>These files should contain the following:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;modules/register_module_types.h&quot;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> initialize_summator_module<span class="op">(</span>ModuleInitializationLevel p_level<span class="op">);</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> uninitialize_summator_module<span class="op">(</span>ModuleInitializationLevel p_level<span class="op">);</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">/* yes, the word in the middle must be the same as the module folder name */</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;register_types.h&quot;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;core/object/class_db.h&quot;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;summator.h&quot;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> initialize_summator_module<span class="op">(</span>ModuleInitializationLevel p_level<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>p_level <span class="op">!=</span> MODULE_INITIALIZATION_LEVEL_SCENE<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>register_class<span class="op">&lt;</span>Summator<span class="op">&gt;();</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> uninitialize_summator_module<span class="op">(</span>ModuleInitializationLevel p_level<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>p_level <span class="op">!=</span> MODULE_INITIALIZATION_LEVEL_SCENE<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>   <span class="co">// Nothing to do here in this example.</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Next, we need to create an <code>SCsub</code> file so the build system compiles this module:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># SCsub</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>Import(<span class="st">&#39;env&#39;</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>env.add_source_files(env.modules_sources, <span class="st">&quot;*.cpp&quot;</span>) <span class="co"># Add all cpp files to the build</span></span></code></pre></div>
+<p>With multiple sources, you can also add each file individually to a Python string list:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>src_list <span class="op">=</span> [<span class="st">&quot;summator.cpp&quot;</span>, <span class="st">&quot;other.cpp&quot;</span>, <span class="st">&quot;etc.cpp&quot;</span>]</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>env.add_source_files(env.modules_sources, src_list)</span></code></pre></div>
+<p>This allows for powerful possibilities using Python to construct the file list using loops and logic statements. Look at some modules that ship with Godot by default for examples.</p>
+<p>To add include directories for the compiler to look at you can append it to the environment's paths:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>env.Append(CPPPATH<span class="op">=</span>[<span class="st">&quot;mylib/include&quot;</span>]) <span class="co"># this is a relative path</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>env.Append(CPPPATH<span class="op">=</span>[<span class="st">&quot;#myotherlib/include&quot;</span>]) <span class="co"># this is an &#39;absolute&#39; path</span></span></code></pre></div>
+<p>If you want to add custom compiler flags when building your module, you need to clone <code>env</code> first, so it won't add those flags to whole Godot build (which can cause errors). Example <code>SCsub</code> with custom flags:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>Import(<span class="st">&#39;env&#39;</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>module_env <span class="op">=</span> env.Clone()</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>module_env.add_source_files(env.modules_sources, <span class="st">&quot;*.cpp&quot;</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Append CCFLAGS flags for both C and C++ code.</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>module_env.Append(CCFLAGS<span class="op">=</span>[<span class="st">&#39;-O2&#39;</span>])</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co"># If you need to, you can:</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co"># - Append CFLAGS for C code only.</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co"># - Append CXXFLAGS for C++ code only.</span></span></code></pre></div>
+<p>And finally, the configuration file for the module, this is a Python script that must be named <code>config.py</code>:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># config.py</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> can_build(env, platform):</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="va">True</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> configure(env):</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">pass</span></span></code></pre></div>
+<p>The module is asked if it's OK to build for the specific platform (in this case, <code>True</code> means it will build for every platform).</p>
+<p>And that's it. Hope it was not too complex! Your module should look like this:</p>
+<pre class="none"><code>godot/modules/summator/config.py
+godot/modules/summator/summator.h
+godot/modules/summator/summator.cpp
+godot/modules/summator/register_types.h
+godot/modules/summator/register_types.cpp
+godot/modules/summator/SCsub</code></pre>
+<p>You can then zip it and share the module with everyone else. When building for every platform (instructions in the previous sections), your module will be included.</p>
+<h2 id="using-the-module">Using the module</h2>
+<p>You can now use your newly created module from any script:</p>
+<pre class="gdscript"><code>var s = Summator.new()
+s.add(10)
+s.add(20)
+s.add(30)
+print(s.get_total())
+s.reset()</code></pre>
+<p>The output will be <code>60</code>.</p>
+<blockquote>
+<p><strong>See also:</strong> The previous Summator example is great for small, custom modules, but what if you want to use a larger, external library? Refer to <code>doc_binding_to_external_libraries</code> for details about binding to external libraries.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> If your module is meant to be accessed from the running project (not just from the editor), you must also recompile every export template you plan to use, then specify the path to the custom template in each export preset. Otherwise, you'll get errors when running the project as the module isn't compiled in the export template. See the ref pages for more information.</p>
+</blockquote>
+<h2 id="compiling-a-module-externally">Compiling a module externally</h2>
+<p>Compiling a module involves moving the module's sources directly under the engine's <code>modules/</code> directory. While this is the most straightforward way to compile a module, there are a couple of reasons as to why this might not be a practical thing to do:</p>
+<ol type="1">
+<li>Having to manually copy modules sources every time you want to compile the engine with or without the module, or taking additional steps needed to manually disable a module during compilation with a build option similar to <code>module_summator_enabled=no</code>. Creating symbolic links may also be a solution, but you may additionally need to overcome OS restrictions like needing the symbolic link privilege if doing this via script.</li>
+<li>Depending on whether you have to work with the engine's source code, the module files added directly to <code>modules/</code> changes the working tree to the point where using a VCS (like <code>git</code>) proves to be cumbersome as you need to make sure that only the engine-related code is committed by filtering changes.</li>
+</ol>
+<p>So if you feel like the independent structure of custom modules is needed, lets take our "summator" module and move it to the engine's parent directory:</p>
+<pre class="shell"><code>mkdir ../modules
+mv modules/summator ../modules</code></pre>
+<p>Compile the engine with our module by providing <code>custom_modules</code> build option which accepts a comma-separated list of directory paths containing custom C++ modules, similar to the following:</p>
+<pre class="shell"><code>scons custom_modules=../modules</code></pre>
+<p>The build system shall detect all modules under the <code>../modules</code> directory and compile them accordingly, including our "summator" module.</p>
+<blockquote>
+<p><strong>Warning:</strong> Any path passed to <code>custom_modules</code> will be converted to an absolute path internally as a way to distinguish between custom and built-in modules. It means that things like generating module documentation may rely on a specific path structure on your machine.</p>
+</blockquote>
+<blockquote>
+<p><strong>See also:</strong> ref.</p>
+</blockquote>
+<h2 id="customizing-module-types-initialization">Customizing module types initialization</h2>
+<p>Modules can interact with other built-in engine classes during runtime and even affect the way core types are initialized. So far, we've been using <code>register_summator_types</code> as a way to bring in module classes to be available within the engine.</p>
+<p>A crude order of the engine setup can be summarized as a list of the following type registration methods:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>preregister_module_types<span class="op">();</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>preregister_server_types<span class="op">();</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>register_core_singletons<span class="op">();</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>register_server_types<span class="op">();</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>register_scene_types<span class="op">();</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>EditorNode<span class="op">::</span>register_editor_types<span class="op">();</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>register_platform_apis<span class="op">();</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>register_module_types<span class="op">();</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>initialize_physics<span class="op">();</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>initialize_navigation_server<span class="op">();</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>register_server_singletons<span class="op">();</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>register_driver_types<span class="op">();</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>ScriptServer<span class="op">::</span>init_languages<span class="op">();</span></span></code></pre></div>
+<p>Our <code>Summator</code> class is initialized during the <code>register_module_types()</code> call. Imagine that we need to satisfy some common module runtime dependency (like singletons), or allow us to override existing engine method callbacks before they can be assigned by the engine itself. In that case, we want to ensure that our module classes are registered <em>before</em> any other built-in type.</p>
+<p>This is where we can define an optional <code>preregister_summator_types()</code> method which will be called before anything else during the <code>preregister_module_types()</code> engine setup stage.</p>
+<p>We now need to add this method to <code>register_types</code> header and source files:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define MODULE_SUMMATOR_HAS_PREREGISTER</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> preregister_summator_types<span class="op">();</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> register_summator_types<span class="op">();</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> unregister_summator_types<span class="op">();</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> Unlike other register methods, we have to explicitly define <code>MODULE_SUMMATOR_HAS_PREREGISTER</code> to let the build system know what relevant method calls to include at compile time. The module's name has to be converted to uppercase as well.</p>
+</blockquote>
+<div class="sourceCode" id="cb17"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;register_types.h&quot;</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;core/object/class_db.h&quot;</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;summator.h&quot;</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> preregister_summator_types<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Called before any other core types are registered.</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Nothing to do here in this example.</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> register_summator_types<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>    ClassDB<span class="op">::</span>register_class<span class="op">&lt;</span>Summator<span class="op">&gt;();</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> unregister_summator_types<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>   <span class="co">// Nothing to do here in this example.</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="writing-custom-documentation">Writing custom documentation</h2>
+<p>Writing documentation may seem like a boring task, but it is highly recommended to document your newly created module to make it easier for users to benefit from it. Not to mention that the code you've written one year ago may become indistinguishable from the code that was written by someone else, so be kind to your future self!</p>
+<p>There are several steps in order to setup custom docs for the module:</p>
+<ol type="1">
+<li><p>Make a new directory in the root of the module. The directory name can be anything, but we'll be using the <code>doc_classes</code> name throughout this section.</p></li>
+<li><p>Now, we need to edit <code>config.py</code>, add the following snippet:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_doc_path():</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="st">&quot;doc_classes&quot;</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_doc_classes():</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Summator&quot;</span>,</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    ]</span></code></pre></div></li>
+</ol>
+<p>The <code>get_doc_path()</code> function is used by the build system to determine the location of the docs. In this case, they will be located in the <code>modules/summator/doc_classes</code> directory. If you don't define this, the doc path for your module will fall back to the main <code>doc/classes</code> directory.</p>
+<p>The <code>get_doc_classes()</code> method is necessary for the build system to know which registered classes belong to the module. You need to list all of your classes here. The classes that you don't list will end up in the main <code>doc/classes</code> directory.</p>
+<blockquote>
+<p><strong>Tip:</strong> You can use Git to check if you have missed some of your classes by checking the untracked files with <code>git status</code>. For example:</p>
+<pre><code>git status</code></pre>
+<p>Example output:</p>
+<pre><code>Untracked files:
+    (use &quot;git add &lt;file&gt;...&quot; to include in what will be committed)
+
+    doc/classes/MyClass2D.xml
+    doc/classes/MyClass4D.xml
+    doc/classes/MyClass5D.xml
+    doc/classes/MyClass6D.xml
+    ...</code></pre>
+</blockquote>
+<ol start="3" type="1">
+<li>Now we can generate the documentation:</li>
+</ol>
+<p>We can do this via running Godot's doctool i.e. godot --doctool, which will dump the engine API reference to the given <code>&lt;path&gt;</code> in XML format.</p>
+<p>In our case we'll point it to the root of the cloned repository. You can point it to an another folder, and just copy over the files that you need.</p>
+<p>Run command:</p>
+<pre><code>bin/&lt;godot_binary&gt; --doctool .</code></pre>
+<p>Now if you go to the <code>godot/modules/summator/doc_classes</code> folder, you will see that it contains a <code>Summator.xml</code> file, or any other classes, that you referenced in your <code>get_doc_classes</code> function.</p>
+<p>Edit the file(s) following the <a href="https://docs.godotengine.org/en/latest/engine_details/class_reference/index.html">class reference primer</a> and recompile the engine.</p>
+<p>Once the compilation process is finished, the docs will become accessible within the engine's built-in documentation system.</p>
+<p>In order to keep documentation up-to-date, all you'll have to do is simply modify one of the XML files and recompile the engine from now on.</p>
+<p>If you change your module's API, you can also re-extract the docs, they will contain the things that you previously added. Of course if you point it to your godot folder, make sure you don't lose work by extracting older docs from an older engine build on top of the newer ones.</p>
+<p>Note that if you don't have write access rights to your supplied <code>&lt;path&gt;</code>, you might encounter an error similar to the following:</p>
+<pre class="console"><code>ERROR: Can&#39;t write doc file: docs/doc/classes/@GDScript.xml
+   At: editor/doc/doc_data.cpp:956</code></pre>
+<h2 id="writing-custom-unit-tests">Writing custom unit tests</h2>
+<p>It's possible to write self-contained unit tests as part of a C++ module. If you are not familiar with the unit testing process in Godot yet, please refer to <code>doc_unit_testing</code>.</p>
+<p>The procedure is the following:</p>
+<ol type="1">
+<li>Create a new directory named <code>tests/</code> under your module's root:</li>
+</ol>
+<pre class="console"><code>cd modules/summator
+mkdir tests
+cd tests</code></pre>
+<ol start="2" type="1">
+<li>Create a new test suite: <code>test_summator.h</code>. The header must be prefixed with <code>test_</code> so that the build system can collect it and include it as part of the <code>tests/test_main.cpp</code> where the tests are run.</li>
+<li>Write some test cases. Here's an example:</li>
+</ol>
+<div class="sourceCode" id="cb24"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma once</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;tests/test_macros.h&quot;</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;modules/summator/summator.h&quot;</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> TestSummator <span class="op">{</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>TEST_CASE<span class="op">(</span><span class="st">&quot;[Modules][Summator] Adding numbers&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    Ref<span class="op">&lt;</span>Summator<span class="op">&gt;</span> s <span class="op">=</span> memnew<span class="op">(</span>Summator<span class="op">);</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    CHECK<span class="op">(</span>s<span class="op">-&gt;</span>get_total<span class="op">()</span> <span class="op">==</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>    s<span class="op">-&gt;</span>add<span class="op">(</span><span class="dv">10</span><span class="op">);</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>    CHECK<span class="op">(</span>s<span class="op">-&gt;</span>get_total<span class="op">()</span> <span class="op">==</span> <span class="dv">10</span><span class="op">);</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>    s<span class="op">-&gt;</span>add<span class="op">(</span><span class="dv">20</span><span class="op">);</span></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>    CHECK<span class="op">(</span>s<span class="op">-&gt;</span>get_total<span class="op">()</span> <span class="op">==</span> <span class="dv">30</span><span class="op">);</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>    s<span class="op">-&gt;</span>add<span class="op">(</span><span class="dv">30</span><span class="op">);</span></span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>    CHECK<span class="op">(</span>s<span class="op">-&gt;</span>get_total<span class="op">()</span> <span class="op">==</span> <span class="dv">60</span><span class="op">);</span></span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>    s<span class="op">-&gt;</span>reset<span class="op">();</span></span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>    CHECK<span class="op">(</span>s<span class="op">-&gt;</span>get_total<span class="op">()</span> <span class="op">==</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="co">// namespace TestSummator</span></span></code></pre></div>
+<ol start="4" type="1">
+<li>Compile the engine with <code>scons tests=yes</code>, and run the tests with the following command:</li>
+</ol>
+<pre class="console"><code>./bin/&lt;godot_binary&gt; --test --source-file=&quot;*test_summator*&quot; --success</code></pre>
+<p>You should see the passing assertions now.</p>
+<h2 id="adding-custom-editor-icons">Adding custom editor icons</h2>
+<p>Similarly to how you can write self-contained documentation within a module, you can also create your own custom icons for classes to appear in the editor.</p>
+<p>For the actual process of creating editor icons to be integrated within the engine, please refer to <code>doc_editor_icons</code> first.</p>
+<p>Once you've created your icon(s), proceed with the following steps:</p>
+<ol type="1">
+<li>Make a new directory in the root of the module named <code>icons</code>. This is the default path for the engine to look for module's editor icons.</li>
+<li>Move your newly created <code>svg</code> icons (optimized or not) into that folder.</li>
+<li>Recompile the engine and run the editor. Now the icon(s) will appear in editor's interface where appropriate.</li>
+</ol>
+<p>If you'd like to store your icons somewhere else within your module, add the following code snippet to <code>config.py</code> to override the default path:</p>
+<blockquote>
+<div class="sourceCode" id="cb26"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_icons_path():</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="st">&quot;path/to/icons&quot;</span></span></code></pre></div>
+</blockquote>
+<h2 id="summing-up">Summing up</h2>
+<p>Remember to:</p>
+<ul>
+<li>Use <code>GDCLASS</code> macro for inheritance, so Godot can wrap it.</li>
+<li>Use <code>_bind_methods</code> to bind your functions to scripting, and to allow them to work as callbacks for signals.</li>
+<li><strong>Avoid multiple inheritance for classes exposed to Godot</strong>, as <code>GDCLASS</code> doesn't support this. You can still use multiple inheritance in your own classes as long as they're not exposed to Godot's scripting API.</li>
+</ul>
+<p>But this is not all, depending what you do, you will be greeted with some (hopefully positive) surprises.</p>
+<ul>
+<li>If you inherit from <code>class_Node</code> (or any derived node type, such as Sprite2D), your new class will appear in the editor, in the inheritance tree in the "Add Node" dialog.</li>
+<li>If you inherit from <code>class_Resource</code>, it will appear in the resource list, and all the exposed properties can be serialized when saved/loaded.</li>
+<li>By this same logic, you can extend the Editor and almost any area of the engine.</li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

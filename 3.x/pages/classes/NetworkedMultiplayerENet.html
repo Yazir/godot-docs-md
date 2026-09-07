@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NetworkedMultiplayerENet — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="networkedmultiplayerenet">NetworkedMultiplayerENet</h1>
+<p><em>Inherits: <a href="NetworkedMultiplayerPeer.html">NetworkedMultiplayerPeer</a> &lt; <a href="PacketPeer.html">PacketPeer</a> &lt; <a href="Reference.html">Reference</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>PacketPeer implementation using the <a href="http://enet.bespin.org/index.html">ENet</a> library.</p>
+<h2 id="description">Description</h2>
+<p>A PacketPeer implementation that should be passed to <code>SceneTree.network_peer</code> after being initialized as either a client or server. Events can then be handled by connecting to <a href="SceneTree.html">SceneTree</a> signals.</p>
+<p>ENet's purpose is to provide a relatively thin, simple and robust network communication layer on top of UDP (User Datagram Protocol).</p>
+<p><strong>Note:</strong> ENet only uses UDP, not TCP. When forwarding the server port to make your server accessible on the public Internet, you only need to forward the server port in UDP. You can use the <a href="UPNP.html">UPNP</a> class to try to forward the server port automatically when starting the server.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li>:doc:<code>../tutorials/networking/high_level_multiplayer</code></li>
+<li><a href="http://enet.bespin.org/usergroup0.html"><span>http://enet.bespin.org/usergroup0.html</span></a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="bool-always_ordered--false"><code>bool always_ordered = false</code></h3>
+<ul>
+<li>Setter: <code>set_always_ordered(value: bool)</code></li>
+<li>Getter: <code>is_always_ordered()</code></li>
+</ul>
+<p>Enforce ordered packets when using <code>NetworkedMultiplayerPeer.TRANSFER_MODE_UNRELIABLE</code> (thus behaving similarly to <code>NetworkedMultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED</code>). This is the only way to use ordering with the RPC system.</p>
+<h3 id="int-channel_count--3"><code>int channel_count = 3</code></h3>
+<ul>
+<li>Setter: <code>set_channel_count(value: int)</code></li>
+<li>Getter: <code>get_channel_count()</code></li>
+</ul>
+<p>The number of channels to be used by ENet. Channels are used to separate different kinds of data. In reliable or ordered mode, for example, the packet delivery order is ensured on a per-channel basis. This is done to combat latency and reduces ordering restrictions on packets. The delivery status of a packet in one channel won't stall the delivery of other packets in another channel.</p>
+<h3 id="compressionmode-compression_mode--1">``CompressionMode<code> compression_mode = 1</code></h3>
+<ul>
+<li>Setter: <code>set_compression_mode(value: </code>CompressionMode<code>)</code></li>
+<li>Getter: <code>get_compression_mode()</code></li>
+</ul>
+<p>The compression method used for network packets. These have different tradeoffs of compression speed versus bandwidth, you may need to test which one works best for your use case if you use compression at all.</p>
+<p><strong>Note:</strong> Most games' network design involve sending many small packets frequently (smaller than 4 KB each). If in doubt, it is recommended to keep the default compression algorithm as it works best on these small packets.</p>
+<p><strong>Note:</strong> <code>compression_mode</code> must be set to the same value on both the server and all its clients. Clients will fail to connect if the <code>compression_mode</code> set on the client differs from the one set on the server. Prior to Godot 3.4, the default <code>compression_mode</code> was <code>COMPRESS_NONE</code>. Nonetheless, mixing engine versions between clients and server is not recommended and not officially supported.</p>
+<h3 id="string-dtls_hostname--"><code>String dtls_hostname = ""</code></h3>
+<ul>
+<li>Setter: <code>set_dtls_hostname(value: String)</code></li>
+<li>Getter: <code>get_dtls_hostname()</code></li>
+</ul>
+<p>The hostname used for DTLS verification, to be compared against the "CN" value in the certificate provided by the server.</p>
+<p>When set to an empty string, the <code>address</code> parameter passed to <code>create_client</code> is used instead.</p>
+<h3 id="bool-dtls_verify--true"><code>bool dtls_verify = true</code></h3>
+<ul>
+<li>Setter: <code>set_dtls_verify_enabled(value: bool)</code></li>
+<li>Getter: <code>is_dtls_verify_enabled()</code></li>
+</ul>
+<p>Enable or disable certificate verification when <code>use_dtls</code> is <code>true</code>.</p>
+<h3 id="bool-server_relay--true"><code>bool server_relay = true</code></h3>
+<ul>
+<li>Setter: <code>set_server_relay_enabled(value: bool)</code></li>
+<li>Getter: <code>is_server_relay_enabled()</code></li>
+</ul>
+<p>Enable or disable the server feature that notifies clients of other peers' connection/disconnection, and relays messages between them. When this option is <code>false</code>, clients won't be automatically notified of other peers and won't be able to send them packets through the server.</p>
+<h3 id="int-transfer_channel---1"><code>int transfer_channel = -1</code></h3>
+<ul>
+<li>Setter: <code>set_transfer_channel(value: int)</code></li>
+<li>Getter: <code>get_transfer_channel()</code></li>
+</ul>
+<p>Set the default channel to be used to transfer data. By default, this value is <code>-1</code> which means that ENet will only use 2 channels: one for reliable packets, and one for unreliable packets. The channel <code>0</code> is reserved and cannot be used. Setting this member to any value between <code>0</code> and <code>channel_count</code> (excluded) will force ENet to use that channel for sending data. See <code>channel_count</code> for more information about ENet channels.</p>
+<h3 id="bool-use_dtls--false"><code>bool use_dtls = false</code></h3>
+<ul>
+<li>Setter: <code>set_dtls_enabled(value: bool)</code></li>
+<li>Getter: <code>is_dtls_enabled()</code></li>
+</ul>
+<p>When enabled, the client or server created by this peer, will use <a href="PacketPeerDTLS.html">PacketPeerDTLS</a> instead of raw UDP sockets for communicating with the remote peer. This will make the communication encrypted with DTLS at the cost of higher resource usage and potentially larger packet size.</p>
+<p><strong>Note:</strong> When creating a DTLS server, make sure you setup the key/certificate pair via <code>set_dtls_key</code> and <code>set_dtls_certificate</code>. For DTLS clients, have a look at the <code>dtls_verify</code> option, and configure the certificate accordingly via <code>set_dtls_certificate</code>.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-close_connectionwait_usec100-int"><code>void close_connection(wait_usec=100: int)</code></h3>
+<p>Closes the connection. Ignored if no connection is currently established. If this is a server it tries to notify all clients before forcibly disconnecting them. If this is a client it simply closes the connection to the server.</p>
+<h3 id="globalscopeerror-create_clientaddress-string-port-int-in_bandwidth0-int-out_bandwidth0-int-client_port0-int">``@GlobalScope.Error<code> create_client(address: String, port: int, in_bandwidth=0: int, out_bandwidth=0: int, client_port=0: int)</code></h3>
+<p>Create client that connects to a server at <code>address</code> using specified <code>port</code>. The given address needs to be either a fully qualified domain name (e.g. <code>"www.example.com"</code>) or an IP address in IPv4 or IPv6 format (e.g. <code>"192.168.1.1"</code>). The <code>port</code> is the port the server is listening on. The <code>in_bandwidth</code> and <code>out_bandwidth</code> parameters can be used to limit the incoming and outgoing bandwidth to the given number of bytes per second. The default of 0 means unlimited bandwidth. Note that ENet will strategically drop packets on specific sides of a connection between peers to ensure the peer's bandwidth is not overwhelmed. The bandwidth parameters also determine the window size of a connection which limits the amount of reliable packets that may be in transit at any given time. Returns <code>@GlobalScope.OK</code> if a client was created, <code>@GlobalScope.ERR_ALREADY_IN_USE</code> if this NetworkedMultiplayerENet instance already has an open connection (in which case you need to call <code>close_connection</code> first) or <code>@GlobalScope.ERR_CANT_CREATE</code> if the client could not be created. If <code>client_port</code> is specified, the client will also listen to the given port; this is useful for some NAT traversal techniques.</p>
+<h3 id="globalscopeerror-create_serverport-int-max_clients32-int-in_bandwidth0-int-out_bandwidth0-int">``@GlobalScope.Error<code> create_server(port: int, max_clients=32: int, in_bandwidth=0: int, out_bandwidth=0: int)</code></h3>
+<p>Create server that listens to connections via <code>port</code>. The port needs to be an available, unused port between 0 and 65535. Note that ports below 1024 are privileged and may require elevated permissions depending on the platform. To change the interface the server listens on, use <code>set_bind_ip</code>. The default IP is the wildcard <code>"*"</code>, which listens on all available interfaces. <code>max_clients</code> is the maximum number of clients that are allowed at once, any number up to 4095 may be used, although the achievable number of simultaneous clients may be far lower and depends on the application. For additional details on the bandwidth parameters, see <code>create_client</code>. Returns <code>@GlobalScope.OK</code> if a server was created, <code>@GlobalScope.ERR_ALREADY_IN_USE</code> if this NetworkedMultiplayerENet instance already has an open connection (in which case you need to call <code>close_connection</code> first) or <code>@GlobalScope.ERR_CANT_CREATE</code> if the server could not be created.</p>
+<h3 id="void-disconnect_peerid-int-nowfalse-bool"><code>void disconnect_peer(id: int, now=false: bool)</code></h3>
+<p>Disconnect the given peer. If "now" is set to <code>true</code>, the connection will be closed immediately without flushing queued messages.</p>
+<h3 id="int-get_last_packet_channel-const"><code>int get_last_packet_channel() const</code></h3>
+<p>Returns the channel of the last packet fetched via <code>PacketPeer.get_packet</code>.</p>
+<h3 id="int-get_packet_channel-const"><code>int get_packet_channel() const</code></h3>
+<p>Returns the channel of the next packet that will be retrieved via <code>PacketPeer.get_packet</code>.</p>
+<h3 id="string-get_peer_addressid-int-const"><code>String get_peer_address(id: int) const</code></h3>
+<p>Returns the IP address of the given peer.</p>
+<h3 id="int-get_peer_portid-int-const"><code>int get_peer_port(id: int) const</code></h3>
+<p>Returns the remote port of the given peer.</p>
+<h3 id="void-set_bind_ipip-string"><code>void set_bind_ip(ip: String)</code></h3>
+<p>The IP used when creating a server. This is set to the wildcard <code>"*"</code> by default, which binds to all available interfaces. The given IP needs to be in IPv4 or IPv6 address format, for example: <code>"192.168.1.1"</code>.</p>
+<h3 id="void-set_dtls_certificatecertificate-x509certificate"><code>void set_dtls_certificate(certificate: X509Certificate)</code></h3>
+<p>Configure the <a href="X509Certificate.html">X509Certificate</a> to use when <code>use_dtls</code> is <code>true</code>. For servers, you must also setup the <a href="CryptoKey.html">CryptoKey</a> via <code>set_dtls_key</code>.</p>
+<h3 id="void-set_dtls_keykey-cryptokey"><code>void set_dtls_key(key: CryptoKey)</code></h3>
+<p>Configure the <a href="CryptoKey.html">CryptoKey</a> to use when <code>use_dtls</code> is <code>true</code>. Remember to also call <code>set_dtls_certificate</code> to setup your <a href="X509Certificate.html">X509Certificate</a>.</p>
+<h3 id="void-set_peer_timeoutid-int-timeout_limit-int-timeout_min-int-timeout_max-int"><code>void set_peer_timeout(id: int, timeout_limit: int, timeout_min: int, timeout_max: int)</code></h3>
+<p>Sets the timeout parameters for a peer. The timeout parameters control how and when a peer will timeout from a failure to acknowledge reliable traffic. Timeout values are expressed in milliseconds.</p>
+<p>The <code>timeout_limit</code> is a factor that, multiplied by a value based on the average round trip time, will determine the timeout limit for a reliable packet. When that limit is reached, the timeout will be doubled, and the peer will be disconnected if that limit has reached <code>timeout_min</code>. The <code>timeout_max</code> parameter, on the other hand, defines a fixed timeout for which any packet must be acknowledged or the peer will be dropped.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-compressionmode"><code>enum CompressionMode</code></h3>
+<ul>
+<li><p><code>COMPRESS_NONE = 0</code></p>
+<p>No compression. This uses the most bandwidth, but has the upside of requiring the fewest CPU resources. This option may also be used to make network debugging using tools like Wireshark easier.</p></li>
+<li><p><code>COMPRESS_RANGE_CODER = 1</code></p>
+<p>ENet's built-in range encoding. Works well on small packets, but is not the most efficient algorithm on packets larger than 4 KB.</p></li>
+<li><p><code>COMPRESS_FASTLZ = 2</code></p>
+<p><a href="http://fastlz.org/">FastLZ</a> compression. This option uses less CPU resources compared to <code>COMPRESS_ZLIB</code>, at the expense of using more bandwidth.</p></li>
+<li><p><code>COMPRESS_ZLIB = 3</code></p>
+<p><a href="https://www.zlib.net/">Zlib</a> compression. This option uses less bandwidth compared to <code>COMPRESS_FASTLZ</code>, at the expense of using more CPU resources. Note that this algorithm is not very efficient on packets smaller than 4 KB. Therefore, it's recommended to use other compression algorithms in most cases.</p></li>
+<li><p><code>COMPRESS_ZSTD = 4</code></p>
+<p><a href="https://facebook.github.io/zstd/">Zstandard</a> compression.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

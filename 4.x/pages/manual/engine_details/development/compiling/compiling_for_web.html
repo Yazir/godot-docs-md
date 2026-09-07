@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compiling for the Web — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="compiling-for-the-web">Compiling for the Web</h1>
+<blockquote>
+<p><strong>See also:</strong> This page describes how to compile HTML5 editor and export template binaries from source. If you're looking to export your project to HTML5 instead, read <code>doc_exporting_for_web</code>.</p>
+</blockquote>
+<h2 id="requirements">Requirements</h2>
+<p>To compile export templates for the Web, the following is required:</p>
+<ul>
+<li><a href="https://emscripten.org">Emscripten 4.0.0+</a>.</li>
+<li><a href="https://www.python.org/">Python 3.9+</a>.</li>
+<li><a href="https://scons.org/pages/download.html">SCons 4.4+</a> build system.</li>
+</ul>
+<blockquote>
+<p><strong>See also:</strong> To get the Godot source code for compiling, see <code>doc_getting_source</code>.</p>
+<p>For a general overview of SCons usage for Godot, see <code>doc_introduction_to_the_buildsystem</code>.</p>
+</blockquote>
+<h2 id="building-export-templates">Building export templates</h2>
+<p>Before starting, confirm that <code>emcc</code> is available in your PATH. This is usually configured by the Emscripten SDK, e.g. when invoking <code>emsdk activate</code> and <code>source ./emsdk_env.sh</code>/<code>emsdk_env.bat</code>.</p>
+<p>Open a terminal and navigate to the root directory of the engine source code. Then instruct SCons to build the Web platform. Specify <code>target</code> as either <code>template_release</code> for a release build or <code>template_debug</code> for a debug build:</p>
+<pre><code>scons platform=web target=template_release
+scons platform=web target=template_debug</code></pre>
+<p>By default, the ref will be built into the engine. Official export templates also have the JavaScript singleton enabled. Since <code>eval()</code> calls can be a security concern, the <code>javascript_eval</code> option can be used to build without the singleton:</p>
+<pre><code>scons platform=web target=template_release javascript_eval=no
+scons platform=web target=template_debug javascript_eval=no</code></pre>
+<p>By default, WebWorker threads support is enabled. To disable it and only use a single thread, the <code>threads</code> option can be used to build the web template without threads support:</p>
+<pre><code>scons platform=web target=template_release threads=no
+scons platform=web target=template_debug threads=no</code></pre>
+<p>The engine will now be compiled to WebAssembly by Emscripten. Once finished, the resulting file will be placed in the <code>bin</code> subdirectory. Its name is <code>godot.web.template_release.wasm32.zip</code> for release or <code>godot.web.template_debug.wasm32.zip</code> for debug.</p>
+<p>Finally, rename the zip archive to <code>web_release.zip</code> for the release template:</p>
+<pre><code>mv bin/godot.web.template_release.wasm32.zip bin/web_release.zip</code></pre>
+<p>And <code>web_debug.zip</code> for the debug template:</p>
+<pre><code>mv bin/godot.web.template_debug.wasm32.zip bin/web_debug.zip</code></pre>
+<h2 id="gdextension">GDExtension</h2>
+<p>The default export templates do not include GDExtension support for performance and compatibility reasons. See the ref for more info.</p>
+<p>You can build the export templates using the option <code>dlink_enabled=yes</code> to enable GDExtension support:</p>
+<pre><code>scons platform=web dlink_enabled=yes target=template_release
+scons platform=web dlink_enabled=yes target=template_debug</code></pre>
+<p>Once finished, the resulting file will be placed in the <code>bin</code> subdirectory. Its name will have <code>_dlink</code> added.</p>
+<p>Finally, rename the zip archives to <code>web_dlink_release.zip</code> and <code>web_dlink_release.zip</code> for the release template:</p>
+<pre><code>mv bin/godot.web.template_release.wasm32.dlink.zip bin/web_dlink_release.zip
+mv bin/godot.web.template_debug.wasm32.dlink.zip bin/web_dlink_debug.zip</code></pre>
+<h2 id="building-the-editor">Building the editor</h2>
+<p>It is also possible to build a version of the Godot editor that can run in the browser. The editor version is not recommended over the native build. You can build the editor with:</p>
+<pre><code>scons platform=web target=editor</code></pre>
+<p>Once finished, the resulting file will be placed in the <code>bin</code> subdirectory. Its name will be <code>godot.web.editor.wasm32.zip</code>. You can upload the zip content to your web server and visit it with your browser to use the editor.</p>
+<p>Refer to the ref for the web server requirements.</p>
+<blockquote>
+<p><strong>Tip:</strong> The Godot repository includes a <a href="https://raw.githubusercontent.com/godotengine/godot/master/platform/web/serve.py">Python script to host a local web server</a>. This can be used to test the web editor locally.</p>
+<p>After compiling the editor, extract the ZIP archive that was created in the <code>bin/</code> folder, then run the following command in the Godot repository root:</p>
+<pre><code># You may need to replace `python` with `python3` on some platforms.
+python platform/web/serve.py</code></pre>
+<p>This will serve the contents of the <code>bin/</code> folder and open the default web browser automatically. In the page that opens, access <code>godot.editor.html</code> and you should be able to test the web editor this way.</p>
+<p>Note that for production use cases, this Python-based web server should not be used. Instead, you should use an established web server such as Apache or nginx.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Large world coordinates — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="large-world-coordinates">Large world coordinates</h1>
+<blockquote>
+<p><strong>Note:</strong> Large world coordinates are mainly useful in 3D projects; they are rarely required in 2D projects. Also, unlike 3D rendering, 2D rendering currently doesn't benefit from increased precision when large world coordinates are enabled.</p>
+</blockquote>
+<h2 id="why-use-large-world-coordinates">Why use large world coordinates?</h2>
+<p>In Godot, physics simulation and rendering both rely on <em>floating-point</em> numbers. However, in computing, floating-point numbers have <strong>limited precision and range</strong>. This can be a problem for games with huge worlds, such as space or planetary-scale simulation games.</p>
+<p>Precision is the greatest when the value is close to <code>0.0</code>. Precision becomes gradually lower as the value increases or decreases away from <code>0.0</code>. This occurs every time the floating-point number's <em>exponent</em> increases, which happens when the floating-point number surpasses a power of 2 value (2, 4, 8, 16, …). Every time this occurs, the number's minimum step will <em>increase</em>, resulting in a loss of precision.</p>
+<p>In practice, this means that as the player moves away from the world origin (<code>Vector2(0, 0)</code> in 2D games or <code>Vector3(0, 0, 0)</code> in 3D games), precision will decrease.</p>
+<p>This loss of precision can result in objects appearing to "vibrate" when far away from the world origin, as the model's position will snap to the nearest value that can be represented in a floating-point number. This can also result in physics glitches that only occur when the player is far from the world origin.</p>
+<p>The range determines the minimum and maximum values that can be stored in the number. If the player tries to move past this range, they will simply not be able to. However, in practice, floating-point precision almost always becomes a problem before the range does.</p>
+<p>The range and precision (minimum step between two exponent intervals) are determined by the floating-point number type. The <em>theoretical</em> range allows extremely high values to be stored in single-precision floats, but with very low precision. In practice, a floating-point type that cannot represent all integer values is not very useful. At extreme values, precision becomes so low that the number cannot even distinguish two separate <em>integer</em> values from each other.</p>
+<p>This is the range where individual integer values can be represented in a floating-point number:</p>
+<ul>
+<li><strong>Single-precision float range (represent all integers):</strong> Between -16,777,216 and 16,777,216</li>
+<li><strong>Double-precision float range (represent all integers):</strong> Between -9 quadrillion and 9 quadrillion</li>
+</ul>
+<table>
+<tbody>
+<tr class="odd">
+<td>Range</td>
+<td>Single step</td>
+<td>Double step</td>
+<td>Comment</td>
+</tr>
+<tr class="even">
+<td>[1; 2]</td>
+<td>~0.0000001</td>
+<td>~1e-15</td>
+<td>Precision becomes greater near 0.0 (this table is abbreviated).</td>
+</tr>
+<tr class="odd">
+<td>[2; 4]</td>
+<td>~0.0000002</td>
+<td>~1e-15</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>[4; 8]</td>
+<td>~0.0000005</td>
+<td>~1e-15</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>[8; 16]</td>
+<td>~0.000001</td>
+<td>~1e-14</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>[16; 32]</td>
+<td>~0.000002</td>
+<td>~1e-14</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>[32; 64]</td>
+<td>~0.000004</td>
+<td>~1e-14</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>[64; 128]</td>
+<td>~0.000008</td>
+<td>~1e-13</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>[128; 256]</td>
+<td>~0.000015</td>
+<td>~1e-13</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>[256; 512]</td>
+<td>~0.00003</td>
+<td>~1e-13</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>[512; 1024]</td>
+<td>~0.00006</td>
+<td>~1e-12</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>[1024; 2048]</td>
+<td>~0.0001</td>
+<td>~1e-12</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>[2048; 4096]</td>
+<td>~0.0002</td>
+<td>~1e-12</td>
+<td>Maximum <em>recommended</em> single-precision range for a first-person 3D game without rendering artifacts or physics glitches.</td>
+</tr>
+<tr class="even">
+<td>[4096; 8192]</td>
+<td>~0.0005</td>
+<td>~1e-12</td>
+<td>Maximum <em>recommended</em> single-precision range for a third-person 3D game without rendering artifacts or physics glitches.</td>
+</tr>
+<tr class="odd">
+<td>[8192; 16384]</td>
+<td>~0.001</td>
+<td>~1e-12</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>[16384; 32768]</td>
+<td>~0.0019</td>
+<td>~1e-11</td>
+<td>Maximum <em>recommended</em> single-precision range for a top-down 3D game without rendering artifacts or physics glitches.</td>
+</tr>
+<tr class="odd">
+<td>[32768; 65536]</td>
+<td>~0.0039</td>
+<td>~1e-11</td>
+<td>Maximum <em>recommended</em> single-precision range for any 3D game. Double precision (large world coordinates) is usually required past this point.</td>
+</tr>
+<tr class="even">
+<td>[65536; 131072]</td>
+<td>~0.0078</td>
+<td>~1e-11</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>[131072; 262144]</td>
+<td>~0.0156</td>
+<td>~1e-10</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>&gt; 262144</td>
+<td>&gt; ~0.0313</td>
+<td>~1e-10 (0.0000000001)</td>
+<td>Double-precision remains far more precise than single-precision past this value.</td>
+</tr>
+</tbody>
+</table>
+<p>When using single-precision floats, it is possible to go past the suggested ranges, but more visible artifacting will occur and physics glitches will be more common (such as the player not walking straight in certain directions).</p>
+<blockquote>
+<p><strong>See also:</strong> See the <a href="https://blog.demofox.org/2017/11/21/">Demystifying Floating Point Precision</a> article for more information.</p>
+</blockquote>
+<h2 id="how-large-world-coordinates-work">How large world coordinates work</h2>
+<p>Large world coordinates (also known as <strong>double-precision physics</strong>) increase the precision level of all floating-point computations within the engine.</p>
+<p>By default, <code>class_float</code> is 64-bit in GDScript, but <code>class_Vector2</code>, <code>class_Vector3</code> and <code>class_Vector4</code> are 32-bit. This means that the precision of vector types is much more limited. To resolve this, we can increase the number of bits used to represent a floating-point number in a Vector type. This results in an <em>exponential</em> increase in precision, which means the final value is not just twice as precise, but potentially thousands of times more precise at high values. The maximum value that can be represented is also greatly increased by going from a single-precision float to a double-precision float.</p>
+<p>To avoid model snapping issues when far away from the world origin, Godot's 3D rendering engine will increase its precision for rendering operations when large world coordinates are enabled. The shaders do not use double-precision floats for performance reasons, but an <a href="https://github.com/godotengine/godot/pull/66178">alternative solution</a> is used to emulate double precision for rendering using single-precision floats.</p>
+<blockquote>
+<p><strong>Note:</strong> Enabling large world coordinates comes with a performance and memory usage penalty, especially on 32-bit CPUs. Only enable large world coordinates if you actually need them.</p>
+<p>This feature is tailored towards mid-range/high-end desktop platforms. Large world coordinates may not perform well on low-end mobile devices, unless you take steps to reduce CPU usage with other means (such as decreasing the number of physics ticks per second).</p>
+<p>On low-end platforms, an <em>origin shifting</em> approach can be used instead to allow for large worlds without using double-precision physics and rendering. Origin shifting works with single-precision floats, but it introduces more complexity to game logic, especially in multiplayer games. Therefore, origin shifting is not detailed on this page.</p>
+</blockquote>
+<h2 id="who-are-large-world-coordinates-for">Who are large world coordinates for?</h2>
+<p>Large world coordinates are typically required for 3D space or planetary-scale simulation games. This extends to games that require supporting <em>very</em> fast movement speeds, but also very slow <em>and</em> precise movements at times.</p>
+<p>On the other hand, it's important to only use large world coordinates when actually required (for performance reasons). Large world coordinates are usually <strong>not</strong> required for:</p>
+<ul>
+<li>2D games, as precision issues are usually less noticeable.</li>
+<li>Games with small-scale or medium-scale worlds.</li>
+<li>Games with large worlds, but split into different levels with loading sequences in between. You can center each level portion around the world origin to avoid precision issues without a performance penalty.</li>
+<li>Open world games with a <em>playable on-foot area</em> not exceeding 8192×8192 meters (centered around the world origin). As shown in the above table, the level of precision remains acceptable within that range, even for a first-person game.</li>
+</ul>
+<p><strong>If in doubt</strong>, you probably don't need to use large world coordinates in your project. For reference, most modern AAA open world titles don't use a large world coordinates system and still rely on single-precision floats for both rendering and physics.</p>
+<h2 id="enabling-large-world-coordinates">Enabling large world coordinates</h2>
+<p>This process requires recompiling the editor and all export template binaries you intend to use. If you only intend to export your project in release mode, you can skip the compilation of debug export templates. In any case, you'll need to compile an editor build so you can test your large precision world without having to export the project every time.</p>
+<p>See the ref section for compiling instructions for each target platform. You will need to add the <code>precision=double</code> SCons option when compiling the editor and export templates.</p>
+<p>The resulting binaries will be named with a <code>.double</code> suffix to distinguish them from single-precision binaries (which lack any precision suffix). You can then specify the binaries as custom export templates in your project's export presets in the Export dialog.</p>
+<h2 id="compatibility-between-single-precision-and-double-precision-builds">Compatibility between single-precision and double-precision builds</h2>
+<p>When saving a <em>binary</em> resource using the <code>class_ResourceSaver</code> singleton, a special flag is stored in the file if the resource was saved using a build that uses double-precision numbers. As a result, all binary resources will change on disk when you switch to a double-precision build and save over them.</p>
+<p>Both single-precision and double-precision builds support using the <code>class_ResourceLoader</code> singleton on resources that use this special flag. This means single-precision builds can load resources saved using double-precision builds and vice versa. Text-based resources don't store a double-precision flag, as they don't require such a flag for correct reading.</p>
+<h3 id="known-incompatibilities">Known incompatibilities</h3>
+<ul>
+<li>In a networked multiplayer game, the server and all clients should be using the same build type to ensure precision remains consistent across clients. Using different build types <em>may</em> work, but various issues can occur.</li>
+<li>The GDExtension API changes in an incompatible way in double-precision builds. This means extensions <strong>must</strong> be rebuilt to work with double-precision builds. On the extension developer's end, the <code>REAL_T_IS_DOUBLE</code> define is enabled when building a GDExtension with <code>precision=double</code>. <code>real_t</code> can be used as an alias for <code>float</code> in single-precision builds, and <code>double</code> in double-precision builds.</li>
+</ul>
+<h2 id="limitations">Limitations</h2>
+<p>Since 3D rendering shaders don't actually use double-precision floats, there are some limitations when it comes to 3D rendering precision:</p>
+<ul>
+<li><p>ref doesn't benefit from increased precision. Materials using triplanar mapping will exhibit visible jittering when far away from the world origin.</p></li>
+<li><p><code>class_GPUParticles3D</code> nodes with <strong>Local Coords</strong> disabled will not benefit from increased precision. This can cause visible particle snapping to occur when far away from the world origin. Nodes with <strong>Local Coords</strong> enabled, as well as <code>class_CPUParticles3D</code> nodes, will still benefit from increased precision.</p></li>
+<li><p>Shaders using the <code>skip_vertex_transform</code> or <code>world_vertex_coords</code> render modes don't benefit from increased precision.</p></li>
+<li><p>In double-precision builds, world space coordinates in a shader <code>fragment()</code> function can't be reconstructed from view space, for example:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">vec3</span> world <span class="op">=</span> <span class="op">(</span>INV_VIEW_MATRIX <span class="op">*</span> <span class="dt">vec4</span><span class="op">(</span>VERTEX<span class="op">,</span> <span class="fl">1.0</span><span class="op">)).</span><span class="fu">xyz</span><span class="op">;</span></span></code></pre></div>
+<p>Instead, calculate the world space coordinates in the <code>vertex()</code> function and pass them using a ref, for example:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">varying</span> <span class="dt">vec3</span> world<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">vertex</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    world <span class="op">=</span> <span class="op">(</span>MODEL_MATRIX <span class="op">*</span> <span class="dt">vec4</span><span class="op">(</span>VERTEX<span class="op">,</span> <span class="fl">1.0</span><span class="op">)).</span><span class="fu">xyz</span><span class="op">;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div></li>
+</ul>
+<p>2D rendering currently doesn't benefit from increased precision when large world coordinates are enabled. This can cause visible model snapping to occur when far away from the world origin (starting from a few million pixels at typical zoom levels). 2D physics calculations will still benefit from increased precision though.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

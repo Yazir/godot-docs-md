@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exporting for Android — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="exporting-for-android">Exporting for Android</h1>
+<blockquote>
+<p><strong>See also:</strong> This page describes how to export a Godot project to Android. If you're looking to compile export template binaries from source instead, read <code>doc_compiling_for_android</code>.</p>
+</blockquote>
+<p>Exporting for Android has fewer requirements than compiling Godot for Android. The following steps detail what is needed to set up the Android SDK and the engine.</p>
+<h2 id="install-openjdk-17">Install OpenJDK 17</h2>
+<p>Download and install <a href="https://adoptium.net/?variant=openjdk17">OpenJDK 17</a>.</p>
+<h2 id="download-the-android-sdk">Download the Android SDK</h2>
+<p>Download and install the Android SDK.</p>
+<ul>
+<li>You can install the Android SDK using <a href="https://developer.android.com/studio/">Android Studio version 4.1 or later</a>.
+<ul>
+<li>Run it once to complete the SDK setup using these <a href="https://developer.android.com/studio/intro/update#sdk-manager">instructions</a>.</li>
+<li>Ensure that the <a href="https://developer.android.com/studio/intro/update#recommended">required packages</a> are installed as well.
+<ul>
+<li>Android SDK Platform-Tools version 30.0.5 or later</li>
+<li>Android SDK Build-Tools version 34.0.0</li>
+<li>Android SDK Platform 34</li>
+<li>Android SDK Command-line Tools (latest)</li>
+<li>CMake version 3.10.2.4988404</li>
+<li>NDK version r23c (23.2.8568313)</li>
+</ul></li>
+</ul></li>
+<li>Alternatively, you can install the Android SDK using the <a href="https://developer.android.com/studio/#command-tools">command line tools</a>.
+<ul>
+<li>Once the command line tools are installed, run the <a href="https://developer.android.com/studio/command-line/sdkmanager">sdkmanager</a> command to complete the setup process:</li>
+</ul></li>
+</ul>
+<!-- -->
+
+<pre><code>sdkmanager --sdk_root=&lt;android_sdk_path&gt; &quot;platform-tools&quot; &quot;build-tools;34.0.0&quot; &quot;platforms;android-34&quot; &quot;cmdline-tools;latest&quot; &quot;cmake;3.10.2.4988404&quot; &quot;ndk;23.2.8568313&quot;</code></pre>
+<blockquote>
+<p><strong>Note:</strong> If you are using Linux, <strong>do not use an Android SDK provided by your distribution's repositories as it will often be outdated</strong>.</p>
+</blockquote>
+<h2 id="create-a-debugkeystore">Create a debug.keystore</h2>
+<p>Android needs a debug keystore file to install to devices and distribute non-release APKs. If you have used the SDK before and have built projects, ant or eclipse probably generated one for you (in the <code>~/.android</code> directory on Linux and macOS, in the <code>C:\Users\&lt;user&gt;\.android\</code> directory on Windows).</p>
+<p>If you can't find it or need to generate one, the keytool command from the JDK can be used for this purpose:</p>
+<pre><code>keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname &quot;CN=Android Debug,O=Android,C=US&quot; -validity 9999 -deststoretype pkcs12</code></pre>
+<p>This will create a <code>debug.keystore</code> file in your current directory. You should move it to a memorable location such as <code>%USERPROFILE%\.android\</code>, because you will need its location in a later step. For more information on <code>keytool</code> usage, see <a href="https://godotengine.org/qa/21349/jdk-android-file-missing">this Q&amp;A article</a>.</p>
+<h2 id="setting-it-up-in-godot">Setting it up in Godot</h2>
+<p>Enter the Editor Settings screen. This screen contains the editor settings for the user account in the computer (it's independent of the project).</p>
+<p>Scroll down to the section where the Android settings are located:</p>
+<p>In that screen, 2 paths need to be set:</p>
+<ul>
+<li>The <code>Android Sdk Path</code> should be the location where the Android SDK was installed.
+<ul>
+<li>For example <code>%LOCALAPPDATA%\Android\Sdk\</code> on Windows or <code>/Users/$USER/Library/Android/sdk/</code> on macOS.</li>
+</ul></li>
+<li>The debug <code>.keystore</code> file
+<ul>
+<li>It can be found in the folder where you put the <code>debug.keystore</code> file you created above.</li>
+</ul></li>
+</ul>
+<p>Once that is configured, everything is ready to export to Android!</p>
+<blockquote>
+<p><strong>Note:</strong> If you get an error saying <em>"Could not install to device."</em>, make sure you do not have an application with the same Android package name already installed on the device (but signed with a different key).</p>
+<p>If you have an application with the same Android package name but a different signing key already installed on the device, you <strong>must</strong> remove the application in question from the Android device before exporting to Android again.</p>
+</blockquote>
+<h2 id="providing-launcher-icons">Providing launcher icons</h2>
+<p>Launcher icons are used by Android launcher apps to represent your application to users. Godot only requires high-resolution icons (for <code>xxxhdpi</code> density screens) and will automatically generate lower-resolution variants.</p>
+<p>There are two types of icons required by Godot:</p>
+<ul>
+<li><strong>Main Icon:</strong> The "classic" icon. This will be used on all Android versions up to Android 8 (Oreo), exclusive. Must be at least 192×192 px.</li>
+<li><strong>Adaptive Icons:</strong> Starting from Android 8 (inclusive), <a href="https://developer.android.com/guide/practices/ui_guidelines/icon_design_adaptive">Adaptive Icons</a> were introduced. Applications will need to include separate background and foreground icons to have a native look. The user's launcher application will control the icon's animation and masking. Must be at least 432×432 px.</li>
+</ul>
+<blockquote>
+<p><strong>See also:</strong> It's important to adhere to some rules when designing adaptive icons. <a href="https://medium.com/google-design/designing-adaptive-icons-515af294c783">Google Design has provided a nice article</a> that helps to understand those rules and some of the capabilities of adaptive icons.</p>
+</blockquote>
+<blockquote>
+<p><strong>Caution:</strong> The most important adaptive icon design rule is to have your icon critical elements inside the safe zone: a centered circle with a diameter of 66dp (264 pixels on <code>xxxhdpi</code>) to avoid being clipped by the launcher.</p>
+</blockquote>
+<p>If you don't provide some of the requested icons, Godot will replace them using a fallback chain, trying the next in line when the current one fails:</p>
+<ul>
+<li><strong>Main Icon:</strong> Provided main icon -&gt; Project icon -&gt; Default Godot main icon.</li>
+<li><strong>Adaptive Icon Foreground:</strong> Provided foreground icon -&gt; Provided main icon -&gt; Project icon -&gt; Default Godot foreground icon.</li>
+<li><strong>Adaptive Icon Background:</strong> Provided background icon -&gt; Default Godot background icon.</li>
+</ul>
+<p>It's highly recommended to provide all the requested icons with their specified resolutions. This way, your application will look great on all Android devices and versions.</p>
+<h2 id="exporting-for-google-play-store">Exporting for Google Play Store</h2>
+<p>Uploading an APK to Google's Play Store requires you to sign using a non-debug keystore file; such file can be generated like this:</p>
+<pre class="shell"><code>keytool -v -genkey -keystore mygame.keystore -alias mygame -keyalg RSA -validity 10000</code></pre>
+<p>This keystore and key are used to verify your developer identity, remember the password and keep it in a safe place! Use Google's Android Developer guides to learn more about <a href="https://developer.android.com/studio/publish/app-signing">APK signing</a>.</p>
+<p>Now fill in the following forms in your Android Export Presets:</p>
+<ul>
+<li><strong>Release:</strong> Enter the path to the keystore file you just generated.</li>
+<li><strong>Release User:</strong> Replace with the key alias.</li>
+<li><strong>Release Password:</strong> Key password. Note that the keystore password and the key password currently have to be the same.</li>
+</ul>
+<p><strong>Your export_presets.cfg file now contains sensitive information.</strong> If you use a version control system, you should remove it from public repositories and add it to your <code>.gitignore</code> file or equivalent.</p>
+<p>Don't forget to uncheck the <strong>Export With Debug</strong> checkbox while exporting.</p>
+<h2 id="optimizing-the-apk-size">Optimizing the APK size</h2>
+<p>By default, the APK will contain native libraries for both ARMv7 and ARMv8 architectures. This increases its size significantly. To create a smaller APK, uncheck either <strong>Armeabi-v 7a</strong> or <strong>Arm 64 -v 8a</strong> in your project's Android export preset. This will create an APK that only contains a library for a single architecture. Note that applications targeting ARMv7 can also run on ARMv8 devices, but the opposite is not true.</p>
+<p>Since August 2019, Google Play requires all applications to be available in 64-bit form. This means you cannot upload an APK that contains <em>just</em> an ARMv7 library. To solve this, you can upload several APKs to Google Play using its <a href="https://developer.android.com/google/play/publishing/multiple-apks">Multiple APK support</a>. Each APK should target a single architecture; creating an APK for ARMv7 and ARMv8 is usually sufficient to cover most devices in use today.</p>
+<p>You can optimize the size further by compiling an Android export template with only the features you need. See <code>doc_optimizing_for_size</code> for more information.</p>
+<h2 id="troubleshooting-rendering-issues">Troubleshooting rendering issues</h2>
+<p>To improve out-of-the-box performance on mobile devices, Godot automatically uses low-end-friendly settings by default on both Android and iOS.</p>
+<p>This can cause rendering issues that do not occur when running the project on a desktop platform. See <code>doc_mobile_rendering_limitations</code> for more information.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

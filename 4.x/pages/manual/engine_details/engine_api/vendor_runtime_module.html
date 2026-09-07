@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vendor Runtime Module — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="vendor-runtime-module">Vendor Runtime Module</h1>
+<p>A Vendor Runtime Module is a ref which is only applicable at runtime in a running project. It is created like a regular ref, but is packaged using an ref to make the functionality it provides easily accessible and usable within a <em>stock</em> Godot project.</p>
+<h2 id="what-for">What for?</h2>
+<p>Vendor runtime modules provide developers with access to vendor-specific optimizations, features, and/or platforms for their running projects.</p>
+<p>This provides benefits to vendors who are able to expose their technologies to all developers, and improve and refine them in a rapid, iterative, and frictionless manner. This also provides benefits to developers and users who are able to access and use a diverse range of vendor technologies to improve their games.</p>
+<h2 id="creating-a-vendor-runtime-module">Creating a vendor runtime module</h2>
+<h3 id="generating-export-templates">Generating export templates</h3>
+<p>Make sure to follow the ref.</p>
+<p>Since this is a runtime module whose functionality is meant to only be accessed from the running project, you must generate an export template for every platform you plan to support. See the ref pages for more information.</p>
+<h3 id="creating-the-wrapper-editor-plugin">Creating the wrapper editor plugin</h3>
+<p>Once the export templates are generated, you must create an editor plugin to package them and make them easily accessible to end users via the <a href="https://store.godotengine.org/">Godot Asset Store</a>.</p>
+<p>Follow ref to start creating the plugin. Your base plugin script should look like the following:</p>
+<pre class="gdscript"><code>@tool
+extends EditorPlugin
+
+
+func _enter_tree():
+    # Initialization of the plugin goes here.
+    pass
+
+
+func _exit_tree():
+    # Clean-up of the plugin goes here.
+    pass</code></pre>
+<p>The next step is to define and instantiate an ref instance. The ref instance is used to hook into the export flow and replace the default export templates with the ones generated from the vendor runtime module.</p>
+<p>Using our base editor plugin template code above, an example implementation looks like this:</p>
+<pre class="gdscript"><code>@tool
+extends EditorPlugin
+
+# A class member to hold the editor export plugin during its lifecycle.
+var export_plugin: VRMExportPlugin
+
+func _enter_tree():
+    # Initialization of the plugin goes here.
+    export_plugin = VRMExportPlugin.new()
+    add_export_plugin(export_plugin)
+
+
+func _exit_tree():
+    # Clean-up of the plugin goes here.
+    remove_export_plugin(export_plugin)
+    export_plugin = null
+
+
+class VRMExportPlugin extends EditorExportPlugin:
+    var _path_to_debug_export_template = &quot;&quot;
+    var _path_to_release_export_template = &quot;&quot;
+
+    # Return true for all supported platforms.
+    func _supports_platform(platform):
+        return platform is EditorExportPlatformAndroid
+
+    # Overrides the default export templates.
+    func _get_export_options_overrides(platform):
+        var overrides = {}
+        if not _supports_platform(platform):
+            return overrides
+
+        # Overrides Android export preset&#39;s &quot;custom_template&quot; options.
+        overrides[&quot;custom_template/debug&quot;] = _path_to_debug_export_template
+        overrides[&quot;custom_template/release&quot;] = _path_to_release_export_template
+
+        return overrides
+
+    # Optional: specify additional export preset options to customize the export template.
+    func _get_export_options(platform):
+        pass
+
+    func _get_name():
+        return &quot;VRM Plugin&quot;</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> This section covers the basics to wrap and expose a vendor runtime module via an editor plugin, but editor plugins have a lot more functionality that can be used to customize the editor further. Feel free to ref to improve the user experience for your vendor runtime module.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EditorUndoRedoManager — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="editorundoredomanager">EditorUndoRedoManager</h1>
+<p><em>Inherits: <a href="Object.html">Object</a></em></p>
+<p>Manages undo history of scenes opened in the editor.</p>
+<h2 id="description">Description</h2>
+<p><strong>EditorUndoRedoManager</strong> is a manager for <a href="UndoRedo.html">UndoRedo</a> objects associated with edited scenes. Each scene has its own undo history and <strong>EditorUndoRedoManager</strong> ensures that each action performed in the editor gets associated with a proper scene. For actions not related to scenes (<a href="ProjectSettings.html">ProjectSettings</a> edits, external resources, etc.), a separate global history is used.</p>
+<p>The usage is mostly the same as <a href="UndoRedo.html">UndoRedo</a>. You create and commit actions and the manager automatically decides under-the-hood what scenes it belongs to. The scene is deduced based on the first operation in an action, using the object from the operation. The rules are as follows:</p>
+<ul>
+<li><p>If the object is a <a href="Node.html">Node</a>, use the currently edited scene;</p></li>
+<li><p>If the object is a built-in resource, use the scene from its path;</p></li>
+<li><p>If the object is external resource or anything else, use global history.</p></li>
+</ul>
+<p>This guessing can sometimes yield false results, so you can provide a custom context object when creating an action.</p>
+<p><strong>EditorUndoRedoManager</strong> is intended to be used by Godot editor plugins. You can obtain it using <code>EditorPlugin.get_undo_redo()</code>. For non-editor uses or plugins that don't need to integrate with the editor's undo history, use <a href="UndoRedo.html">UndoRedo</a> instead.</p>
+<p>The manager's API is mostly the same as in <a href="UndoRedo.html">UndoRedo</a>, so you can refer to its documentation for more examples. The main difference is that <strong>EditorUndoRedoManager</strong> uses object + method name for actions, instead of <a href="Callable.html">Callable</a>.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-add_do_methodobject-object-method-stringname-"><code>void add_do_method(object: Object, method: StringName, ...)</code></h3>
+<p>Register a method that will be called when the action is committed (i.e. the "do" action).</p>
+<p>If this is the first operation, the <code>object</code> will be used to deduce target undo history.</p>
+<h3 id="void-add_do_propertyobject-object-property-stringname-value-variant"><code>void add_do_property(object: Object, property: StringName, value: Variant)</code></h3>
+<p>Register a property value change for "do".</p>
+<p>If this is the first operation, the <code>object</code> will be used to deduce target undo history.</p>
+<h3 id="void-add_do_referenceobject-object"><code>void add_do_reference(object: Object)</code></h3>
+<p>Register a reference for "do" that will be erased if the "do" history is lost. This is useful mostly for new nodes created for the "do" call. Do not use for resources.</p>
+<h3 id="void-add_undo_methodobject-object-method-stringname-"><code>void add_undo_method(object: Object, method: StringName, ...)</code></h3>
+<p>Register a method that will be called when the action is undone (i.e. the "undo" action).</p>
+<p>If this is the first operation, the <code>object</code> will be used to deduce target undo history.</p>
+<h3 id="void-add_undo_propertyobject-object-property-stringname-value-variant"><code>void add_undo_property(object: Object, property: StringName, value: Variant)</code></h3>
+<p>Register a property value change for "undo".</p>
+<p>If this is the first operation, the <code>object</code> will be used to deduce target undo history.</p>
+<h3 id="void-add_undo_referenceobject-object"><code>void add_undo_reference(object: Object)</code></h3>
+<p>Register a reference for "undo" that will be erased if the "undo" history is lost. This is useful mostly for nodes removed with the "do" call (not the "undo" call!).</p>
+<h3 id="void-clear_historyid-int---99-increase_version-bool--true"><code>void clear_history(id: int = -99, increase_version: bool = true)</code></h3>
+<p>Clears the given undo history. You can clear history for a specific scene, global history, or for all histories at once (except <code>REMOTE_HISTORY</code>) if <code>id</code> is <code>INVALID_HISTORY</code>.</p>
+<p>If <code>increase_version</code> is <code>true</code>, the undo history version will be increased, marking it as unsaved. Useful for operations that modify the scene, but don't support undo.</p>
+<pre class="gdscript"><code>var scene_root = EditorInterface.get_edited_scene_root()
+var undo_redo = EditorInterface.get_editor_undo_redo()
+undo_redo.clear_history(undo_redo.get_object_history_id(scene_root))</code></pre>
+<p><strong>Note:</strong> If you want to mark an edited scene as unsaved without clearing its history, use <code>EditorInterface.mark_scene_as_unsaved()</code> instead.</p>
+<h3 id="void-commit_actionexecute-bool--true"><code>void commit_action(execute: bool = true)</code></h3>
+<p>Commits the action. If <code>execute</code> is <code>true</code> (default), all "do" methods/properties are called/set when this function is called.</p>
+<h3 id="void-create_actionname-string-merge_mode-undoredomergemode--0-custom_context-object--null-backward_undo_ops-bool--false-mark_unsaved-bool--true"><code>void create_action(name: String, merge_mode: </code>UndoRedo.MergeMode<code> = 0, custom_context: Object = null, backward_undo_ops: bool = false, mark_unsaved: bool = true)</code></h3>
+<p>Create a new action. After this is called, do all your calls to <code>add_do_method()</code>, <code>add_undo_method()</code>, <code>add_do_property()</code>, and <code>add_undo_property()</code>, then commit the action with <code>commit_action()</code>.</p>
+<p>The way actions are merged is dictated by the <code>merge_mode</code> argument.</p>
+<p>If <code>custom_context</code> object is provided, it will be used for deducing target history (instead of using the first operation).</p>
+<p>The way undo operation are ordered in actions is dictated by <code>backward_undo_ops</code>. When <code>backward_undo_ops</code> is <code>false</code> undo option are ordered in the same order they were added. Which means the first operation to be added will be the first to be undone.</p>
+<p>If <code>mark_unsaved</code> is <code>false</code>, the action will not mark the history as unsaved. This is useful for example for actions that change a selection, or a setting that will be saved automatically. Otherwise, this should be left to <code>true</code> if the action requires saving by the user or if it can cause data loss when left unsaved.</p>
+<h3 id="void-force_fixed_history"><code>void force_fixed_history()</code></h3>
+<p>Forces the next operation (e.g. <code>add_do_method()</code>) to use the action's history rather than guessing it from the object. This is sometimes needed when a history can't be correctly determined, like for a nested resource that doesn't have a path yet.</p>
+<p>This method should only be used when absolutely necessary, otherwise it might cause invalid history state. For most of complex cases, the <code>custom_context</code> parameter of <code>create_action()</code> is sufficient.</p>
+<h3 id="undoredo-get_history_undo_redoid-int-const"><code>UndoRedo get_history_undo_redo(id: int) const</code></h3>
+<p>Returns the <a href="UndoRedo.html">UndoRedo</a> object associated with the given history <code>id</code>.</p>
+<p><code>id</code> above <code>0</code> are mapped to the opened scene tabs (but it doesn't match their order). <code>id</code> of <code>0</code> or lower have special meaning (see <code>SpecialHistory</code>).</p>
+<p>Best used with <code>get_object_history_id()</code>. This method is only provided in case you need some more advanced methods of <a href="UndoRedo.html">UndoRedo</a> (but keep in mind that directly operating on the <a href="UndoRedo.html">UndoRedo</a> object might affect editor's stability).</p>
+<h3 id="int-get_object_history_idobject-object-const"><code>int get_object_history_id(object: Object) const</code></h3>
+<p>Returns the history ID deduced from the given <code>object</code>. It can be used with <code>get_history_undo_redo()</code>.</p>
+<h3 id="bool-is_committing_action-const"><code>bool is_committing_action() const</code></h3>
+<p>Returns <code>true</code> if the <strong>EditorUndoRedoManager</strong> is currently committing the action, i.e. running its "do" method or property change (see <code>commit_action()</code>).</p>
+<h2 id="signals">Signals</h2>
+<h3 id="history_changed"><code>history_changed()</code></h3>
+<p>Emitted when the list of actions in any history has changed, either when an action is committed or a history is cleared.</p>
+<h3 id="version_changed"><code>version_changed()</code></h3>
+<p>Emitted when the version of any history has changed as a result of undo or redo call.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-specialhistory"><code>enum SpecialHistory</code></h3>
+<ul>
+<li><p><code>GLOBAL_HISTORY = 0</code></p>
+<p>Global history not associated with any scene, but with external resources etc.</p></li>
+<li><p><code>REMOTE_HISTORY = -9</code></p>
+<p>History associated with remote inspector. Used when live editing a running project.</p></li>
+<li><p><code>INVALID_HISTORY = -99</code></p>
+<p>Invalid "null" history. It's a special value, not associated with any object.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

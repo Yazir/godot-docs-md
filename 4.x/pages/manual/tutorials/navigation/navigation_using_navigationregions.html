@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using NavigationRegions — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-navigationregions">Using NavigationRegions</h1>
+<p>NavigationRegions are the visual Node representation of a <strong>region</strong> of the navigation <strong>map</strong> on the NavigationServer. Each NavigationRegion node holds a resource for the navigation mesh data.</p>
+<p>Both 2D and 3D version are available as ref and ref respectively.</p>
+<p>Individual NavigationRegions upload their 2D NavigationPolygon or 3D NavigationMesh resource data to the NavigationServer. The NavigationServer map turns this information into a combined navigation map for pathfinding.</p>
+<p>To create a navigation region using the scene tree add a <code>NavigationRegion2D</code> or <code>NavigationRegion3D</code> node to the scene. All regions require a navigation mesh resource to function. See <code>doc_navigation_using_navigationmeshes</code> to learn how to create and apply navigation meshes.</p>
+<p>NavigationRegions will automatically push <code>global_transform</code> changes to the region on the NavigationServer which makes them suitable for moving platforms. The NavigationServer will attempt to connect the navigation meshes of individual regions when they are close enough. For more details see <code>doc_navigation_connecting_navmesh</code>. To connect NavigationRegions over arbitrary distances see <code>doc_navigation_using_navigationlinks</code> to learn how to create and use <code>NavigationLinks</code>.</p>
+<blockquote>
+<p><strong>Warning:</strong> While changing the transform of a NavigationRegion node does update the region position on the NavigationServer, changing the scale does not. A navigation mesh resource has no scale and needs to be fully updated when source geometry changes scale.</p>
+</blockquote>
+<p>Regions can be enabled / disabled and if disabled will not contribute to future pathfinding queries.</p>
+<blockquote>
+<p><strong>Note:</strong> Existing paths will not be automatically updated when a region gets enabled / disabled.</p>
+</blockquote>
+<h2 id="creating-new-navigation-regions">Creating new navigation regions</h2>
+<p>New NavigationRegion nodes will automatically register to the default world navigation map for their 2D/3D dimension.</p>
+<p>The region RID can then be obtained from NavigationRegion Nodes with <code>get_rid()</code>.</p>
+<pre class="gdscript"><code>extends NavigationRegion2D
+
+var navigationserver_region_rid: RID = get_rid()</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNavigationRegion2D <span class="op">:</span> NavigationRegion2D</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        Rid navigationServerRegionRid <span class="op">=</span> <span class="fu">GetRid</span><span class="op">();</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="gdscript"><code>extends NavigationRegion3D
+
+var navigationserver_region_rid: RID = get_rid()</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNavigationRegion3D <span class="op">:</span> NavigationRegion3D</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        Rid navigationServerRegionRid <span class="op">=</span> <span class="fu">GetRid</span><span class="op">();</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>New regions can also be created with the NavigationServer API and added to any existing map.</p>
+<p>If regions are created with the NavigationServer API directly they need to be assigned a navigation map manually.</p>
+<pre class="gdscript"><code>extends Node2D
+
+func _ready() -&gt; void:
+    var new_region_rid: RID = NavigationServer2D.region_create()
+    var default_map_rid: RID = get_world_2d().get_navigation_map()
+    NavigationServer2D.region_set_map(new_region_rid, default_map_rid)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode2D <span class="op">:</span> Node2D</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        Rid newRegionRid <span class="op">=</span> NavigationServer2D<span class="op">.</span><span class="fu">RegionCreate</span><span class="op">();</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        Rid defaultMapRid <span class="op">=</span> <span class="fu">GetWorld2D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        NavigationServer2D<span class="op">.</span><span class="fu">RegionSetMap</span><span class="op">(</span>newRegionRid<span class="op">,</span> defaultMapRid<span class="op">);</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="gdscript"><code>extends Node3D
+
+func _ready() -&gt; void:
+    var new_region_rid: RID = NavigationServer3D.region_create()
+    var default_map_rid: RID = get_world_3d().get_navigation_map()
+    NavigationServer3D.region_set_map(new_region_rid, default_map_rid)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode3D <span class="op">:</span> Node3D</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        Rid newRegionRid <span class="op">=</span> NavigationServer3D<span class="op">.</span><span class="fu">RegionCreate</span><span class="op">();</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        Rid defaultMapRid <span class="op">=</span> <span class="fu">GetWorld3D</span><span class="op">().</span><span class="fu">NavigationMap</span><span class="op">;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        NavigationServer3D<span class="op">.</span><span class="fu">RegionSetMap</span><span class="op">(</span>newRegionRid<span class="op">,</span> defaultMapRid<span class="op">);</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> Navigation regions can only be assigned to a single navigation map. If an existing region is assigned to a new navigation map it will leave the old map.</p>
+</blockquote>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

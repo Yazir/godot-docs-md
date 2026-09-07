@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The .gdextension file — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="the-gdextension-file">The .gdextension file</h1>
+<h2 id="introduction">Introduction</h2>
+<p>The <code>.gdextension</code> file in your project contains the instructions for how to load the GDExtension. The instructions are separated into specific sections. This page should give you a quick overview of the different options available to you. For an introduction how to get started with C++ (godot-cpp), take a look at the ref.</p>
+<h2 id="configuration-section">Configuration section</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Property</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>entry_symbol</strong></td>
+<td>String</td>
+<td>Name of the entry function for initializing the GDExtension. This function should be defined in the <code>register_types.cpp</code> file when using godot-cpp. Adding this is necessary for the extension to work.</td>
+</tr>
+<tr class="even">
+<td><strong>compatibility_minimum</strong></td>
+<td>String</td>
+<td>Minimum compatible version. This prevents older versions of Godot from loading extensions that depend on features from newer versions of Godot. <strong>Only supported in Godot 4.1 or later</strong></td>
+</tr>
+<tr class="odd">
+<td><strong>compatibility_maximum</strong></td>
+<td>String</td>
+<td>Maximum compatible version. This prevents newer versions of Godot from loading the extension. <strong>Only supported in Godot 4.3 or later</strong></td>
+</tr>
+<tr class="even">
+<td><strong>reloadable</strong></td>
+<td>Boolean</td>
+<td>Reloads the extension upon recompilation. Reloading is supported for the godot-cpp binding in Godot 4.2 or later. Other language bindings may or may not support it as well. This flag should be mainly used for developing or debugging an extension.</td>
+</tr>
+<tr class="odd">
+<td><strong>android_aar_plugin</strong></td>
+<td>Boolean</td>
+<td>The GDExtension is part of a ref. During export this flag | will indicate to the editor that the GDExtension native shared libraries are exported by the Android plugin AAR binaries.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="libraries-section">Libraries section</h2>
+<p>In this section you can set the paths to the compiled binaries of your GDExtension libraries. By specifying feature flags you can filter which version should be loaded and exported with your game depending on which feature flags are active. Every feature flag must match to Godot's feature flags or your custom export flags to be loaded in an exported game. For instance <code>macos.debug</code> means that it will be loaded if Godot has both the <code>macos</code> and <code>debug</code> flag active. Each line of the section is evaluated from top to bottom.</p>
+<p>Here is an example of what that can look like:</p>
+<pre class="none"><code>; A comment line starts with a semicolon. This line is ignored by the engine.
+[libraries]
+
+macos.debug = &quot;./bin/libgdexample.macos.template_debug.dylib&quot; ; Inline comments are also allowed.
+macos.release = &quot;./bin/libgdexample.macos.template_release.dylib&quot;
+windows.debug.x86_32 = &quot;./bin/libgdexample.windows.template_debug.x86_32.dll&quot;
+windows.release.x86_32 = &quot;./bin/libgdexample.windows.template_release.x86_32.dll&quot;
+windows.debug.x86_64 = &quot;./bin/libgdexample.windows.template_debug.x86_64.dll&quot;
+windows.release.x86_64 = &quot;./bin/libgdexample.windows.template_release.x86_64.dll&quot;
+linux.debug.x86_64 = &quot;./bin/libgdexample.linux.template_debug.x86_64.so&quot;
+linux.release.x86_64 = &quot;./bin/libgdexample.linux.template_release.x86_64.so&quot;
+linux.debug.arm64 = &quot;./bin/libgdexample.linux.template_debug.arm64.so&quot;
+linux.release.arm64 = &quot;./bin/libgdexample.linux.template_release.arm64.so&quot;
+linux.debug.rv64 = &quot;./bin/libgdexample.linux.template_debug.rv64.so&quot;
+linux.release.rv64 = &quot;./bin/libgdexample.linux.template_release.rv64.so&quot;</code></pre>
+<p>Paths can be relative or absolute (starting with <code>res://</code>). Relative paths are recommended, as they allow the extension to keep working if it's installed to a different folder than what's specified in the path.</p>
+<p>Entries are matched in order, so if two sets of feature tags could match the same system, be sure to put the more specific ones first:</p>
+<pre class="none"><code>[libraries]
+
+linux.release.editor.x86_64 = &quot;./bin/libgdexample.linux.template_release.x86_64.so&quot;
+linux.release.x86_64 = &quot;./bin/libgdexample.linux.noeditor.template_release.x86_64.so&quot;</code></pre>
+<p>Here are lists of some of the available built-in options (for more look at the ref):</p>
+<h3 id="running-system">Running system</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>windows</strong></td>
+<td>Windows operating system</td>
+</tr>
+<tr class="even">
+<td><strong>macos</strong></td>
+<td>Mac operating system</td>
+</tr>
+<tr class="odd">
+<td><strong>linux</strong></td>
+<td>Linux operating system</td>
+</tr>
+<tr class="even">
+<td><strong>bsd</strong></td>
+<td>BSD operating system</td>
+</tr>
+<tr class="odd">
+<td><strong>linuxbsd</strong></td>
+<td>Linux or BSD operating system</td>
+</tr>
+<tr class="even">
+<td><strong>android</strong></td>
+<td>Android operating system</td>
+</tr>
+<tr class="odd">
+<td><strong>ios</strong></td>
+<td>iOS operating system</td>
+</tr>
+<tr class="even">
+<td><strong>web</strong></td>
+<td>Web browser</td>
+</tr>
+</tbody>
+</table>
+<h3 id="build">Build</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>debug</strong></td>
+<td>Build with debugging features (editor builds always have debugging features)</td>
+</tr>
+<tr class="even">
+<td><strong>release</strong></td>
+<td>Optimized build without debugging features</td>
+</tr>
+<tr class="odd">
+<td><strong>editor</strong></td>
+<td>Editor build</td>
+</tr>
+</tbody>
+</table>
+<h3 id="architecture">Architecture</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>double</strong></td>
+<td>double-precision build</td>
+</tr>
+<tr class="even">
+<td><strong>single</strong></td>
+<td>single-precision build</td>
+</tr>
+<tr class="odd">
+<td><strong>x86_64</strong></td>
+<td>64-bit x86 build</td>
+</tr>
+<tr class="even">
+<td><strong>arm64</strong></td>
+<td>64-bit ARM build</td>
+</tr>
+<tr class="odd">
+<td><strong>rv64</strong></td>
+<td>64-bit RISC-V build</td>
+</tr>
+<tr class="even">
+<td><strong>riscv</strong></td>
+<td>RISC-V build (any bitness)</td>
+</tr>
+<tr class="odd">
+<td><strong>wasm32</strong></td>
+<td>32-bit WebAssembly build</td>
+</tr>
+</tbody>
+</table>
+<h2 id="icons-section">Icons section</h2>
+<p>By default, Godot uses the Node icon in the scene dock for GDExtension nodes. A custom icon can be set by reference to its name and resource path of an SVG file.</p>
+<p>For example:</p>
+<pre class="none"><code>[icons]
+
+GDExample = &quot;res://icons/gd_example.svg&quot;</code></pre>
+<p>The path should point to a 16×16 pixel SVG image, with two options enabled on the image in the Import dock:</p>
+<ul>
+<li><strong>Editor &gt; Scale with Editor Scale</strong>.</li>
+<li><strong>Editor &gt; Convert Colors with Editor Theme</strong>.</li>
+</ul>
+<p>Enabling both options ensures the icon behaves as closely as possible to the stock editor icons. Read the guide for ref for more information.</p>
+<h2 id="dependencies-section">Dependencies section</h2>
+<p>In this section, you set the paths of the GDExtension dependencies. This is used internally to export the dependencies when exporting your game executable. You are able to set which dependency is loaded depending on the feature flags of the exported executable. In addition, you are able to set an optional subdirectory to move your dependencies into. If no path is supplied, Godot will move the libraries into the same directory as your game executable.</p>
+<blockquote>
+<p><strong>Warning:</strong> On macOS, it is necessary to have shared libraries inside a folder called <code>Frameworks</code> with a directory structure like this: <code>Game.app/Contents/Frameworks</code>.</p>
+</blockquote>
+<pre class="none"><code>[dependencies]
+
+macos.debug = {
+    &quot;res://bin/libdependency.macos.template_debug.framework&quot; : &quot;Contents/Frameworks&quot;
+}
+macos.release = {
+    &quot;res://bin/libdependency.macos.template_release.framework&quot; : &quot;Contents/Frameworks&quot;
+}
+windows.debug = {
+    &quot;res://bin/libdependency.windows.template_debug.x86_64.dll&quot; : &quot;&quot;,
+    &quot;res://bin/libdependency.windows.template_debug.x86_32.dll&quot; : &quot;&quot;
+}
+windows.release = {
+    &quot;res://bin/libdependency.windows.template_release.x86_64.dll&quot; : &quot;&quot;,
+    &quot;res://bin/libdependency.windows.template_release.x86_32.dll&quot; : &quot;&quot;
+}
+linux.debug = {
+    &quot;res://bin/libdependency.linux.template_debug.x86_64.so&quot; : &quot;&quot;,
+    &quot;res://bin/libdependency.linux.template_debug.arm64.so&quot; : &quot;&quot;,
+    &quot;res://bin/libdependency.linux.template_debug.rv64.so&quot; : &quot;&quot;
+}
+linux.release = {
+    &quot;res://bin/libdependency.linux.template_release.x86_64.so&quot; : &quot;&quot;,
+    &quot;res://bin/libdependency.linux.template_release.arm64.so&quot; : &quot;&quot;,
+    &quot;res://bin/libdependency.linux.template_release.rv64.so&quot; : &quot;&quot;
+}</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

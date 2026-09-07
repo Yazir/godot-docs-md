@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenXR Settings — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="openxr-settings">OpenXR Settings</h1>
+<p>OpenXR has its own set of settings that are applied when OpenXR starts. While it is possible for OpenXR extensions implemented through Godot plugins to add additional settings, we will only discuss the settings in the core of Godot here.</p>
+<h2 id="general-settings">General settings</h2>
+<h3 id="enabled">Enabled</h3>
+<p>This setting enables the OpenXR module when Godot starts. This is required when the Vulkan backend is used. For other backends you can enable OpenXR at any time by calling <code>initialize</code> on the ref.</p>
+<p>This also needs to be enabled to get access to the action map editor.</p>
+<p>You can use the <code>--xr-mode on</code> command line switch to force this to on.</p>
+<h3 id="default-action-map">Default Action Map</h3>
+<p>This specifies the path of the action map file that OpenXR will load and communicate to the XR Runtime.</p>
+<h3 id="form-factor">Form Factor</h3>
+<p>This specifies whether your game is designed for:</p>
+<ul>
+<li><code>Head Mounted</code> devices such as a Meta Quest, Valve Index, or Magic Leap,</li>
+<li><code>Handheld</code> devices such as phones.</li>
+</ul>
+<p>If the device on which you run your game does not match the selection here, OpenXR will fail to initialise.</p>
+<h3 id="view-configuration">View Configuration</h3>
+<p>This specifies the view configuration your game is designed for:</p>
+<ul>
+<li><code>Mono</code>, your game provides a single image output. E.g. phone based AR;</li>
+<li><code>Stereo</code>, your game provides stereo image output. E.g. head mounted devices.</li>
+</ul>
+<p>If the device on which you run your game does not match the selection here, OpenXR will fail to initialise.</p>
+<blockquote>
+<p><strong>Note:</strong> OpenXR has additional view configurations for very specific devices that Godot doesn't support yet. For instance, Varjo headsets have a quad view configuration that outputs two sets of stereo images. These may be supported in the near future.</p>
+</blockquote>
+<h3 id="reference-space">Reference Space</h3>
+<p>Within XR all elements like the player's head and hands are tracked within a tracking volume. At the base of this tracking volume is our origin point, which maps our virtual space to the real space. There are however different scenarios that place this point in different locations, depending on the XR system used. In OpenXR these scenarios are well defined and selected by setting a reference space.</p>
+<h4 id="local">Local</h4>
+<p>The local reference space places our origin point at the player's head by default. Some XR runtimes will do this each time your game starts, others will make the position persist over sessions.</p>
+<p>This reference space however does not prevent the user from walking away so you will need to detect if the user does so if you wish to prevent the user from leaving the vehicle they are controlling, which could potentially be game breaking.</p>
+<p>This reference space is the best option for games like flight simulators or racing simulators where we want to place the ref node where the player's head should be.</p>
+<p>When the user enacts the recenter option on their headset, the method of which is different per XR runtime, the XR runtime will move the ref to the ref node. The ref will also emit the <code>pose_recentered</code> signal so your game can react accordingly.</p>
+<blockquote>
+<p><strong>Note:</strong> Any other XR tracked elements such as controllers or anchors will also be adjusted accordingly.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> You should <strong>not</strong> call <code>center_on_hmd</code> when using this reference space.</p>
+</blockquote>
+<h4 id="stage">Stage</h4>
+<p>The stage reference space is our default reference space and places our origin point at the center of our play space. For XR runtimes that allow you to draw out a guardian boundary this location and its orientation is often set by the user. Other XR runtimes may decide on the placement of this point by other means. It is however a stationary point in the real world.</p>
+<p>This reference space is the best option for room scale games where the user is expected to walk around a larger space, or for games where there is a need to switch between game modes. See ref for more information.</p>
+<p>When the user enacts the recenter option on their headset, the method of which is different per XR runtime, the XR runtime will not change the origin point. The ref will emit the <code>pose_recentered</code> signal and it is up to the game to react appropriately. Not doing so will prevent your game from being accepted on various stores.</p>
+<p>In Godot you can do this by calling the <code>center_on_hmd</code> function on the ref:</p>
+<ul>
+<li>Calling <code>XRServer.center_on_hmd(XRServer.RESET_BUT_KEEP_TILT, false)</code> will move the ref node to the ref node similar to the <code>Local</code> reference space.</li>
+<li>Calling <code>XRServer.center_on_hmd(XRServer.RESET_BUT_KEEP_TILT, true)</code> will move the ref node above the ref node keeping the player's height, similar to the <code>Local Floor</code> reference space.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> Any other XR tracked elements such as controllers or anchors will also be adjusted accordingly.</p>
+</blockquote>
+<h4 id="local-floor">Local Floor</h4>
+<p>The local floor reference space is similar to the local reference space as it positions the origin point where the player is. In this mode however the height of the player is kept. Same as with the local reference space, some XR runtimes will persist this location over sessions.</p>
+<p>It is thus not guaranteed the player will be standing on the origin point, the only guarantee is that they were standing there when the user last recentered. The player is thus also free to walk away.</p>
+<p>This reference space is the best option of games where the user is expected to stand in the same location or for AR type games where the user's interface elements are bound to the origin node and are quickly placed at the player's location on recenter.</p>
+<p>When the user enacts the recenter option on their headset, the method of which is different per XR runtime, the XR runtime will move the ref above the ref node but keeping the player's height. The ref will also emit the <code>pose_recentered</code> signal so your game can react accordingly.</p>
+<blockquote>
+<p><strong>Warning:</strong> Be careful using this mode in combination with virtual movement of the player. The user recentering in this scenario can be unpredictable unless you counter the move when handling the recenter signal. This can even be game breaking as the effect in this scenario would be the player teleporting to whatever abstract location the origin point was placed at during virtual movement, including the ability for players teleporting into locations that should be off limits. It is better to use the Stage mode in this scenario and limit resetting to orientation only when a <code>pose_recentered</code> signal is received.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> Any other XR tracked elements such as controllers or anchors will also be adjusted accordingly.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> You should <strong>not</strong> call <code>center_on_hmd</code> when using this reference space.</p>
+</blockquote>
+<h3 id="environment-blend-mode">Environment Blend Mode</h3>
+<p>The environment blend mode defines how our rendered output is blended into "the real world" provided this is supported by the headset.</p>
+<ul>
+<li><code>Opaque</code> means our output obscures the real world, we are in VR mode.</li>
+<li><code>Additive</code> means our output is added to the real world, this is an AR mode where optics do not allow us to fully obscure the real world (e.g. Hololens),</li>
+<li><code>Alpha</code> means our output is blended with the real world using the alpha output (viewport should have transparent background enabled), this is an AR mode where optics can fully obscure the real world (Magic Leap, all pass through devices, etc.).</li>
+</ul>
+<p>If a mode is selected that is not supported by the headset, the first available mode will be selected.</p>
+<blockquote>
+<p><strong>Note:</strong> Some OpenXR devices have separate systems for enabling/disabling passthrough. From Godot 4.3 onwards selecting the alpha blend mode will also perform these extra steps. This does require the latest vendor plugin to be installed.</p>
+</blockquote>
+<h3 id="foveation-level">Foveation Level</h3>
+<p>Sets the foveation level used when rendering provided this feature is supported by the hardware used. Foveation is a technique where the further away from the center of the viewport we render content, the lower resolution we render at. Most XR runtimes only support fixed foveation, but some will take eye tracking into account and use the focal point for this effect.</p>
+<p>The higher the level, the better the performance gains, but also the more reduction in quality there is in the user's peripheral vision.</p>
+<blockquote>
+<p><strong>Note:</strong> <strong>Compatibility renderer only</strong>, for Mobile and Forward+ renderer, set the <code>vrs_mode</code> property on ref to <code>VRS_XR</code>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> This feature is disabled if post effects are used such as glow, bloom, or DOF.</p>
+</blockquote>
+<h3 id="foveation-dynamic">Foveation Dynamic</h3>
+<p>When enabled the foveation level will be adjusted automatically depending on current GPU load. It will be adjusted between low and the select foveation level in the previous setting. It is therefore best to combine this setting with foveation level set to high.</p>
+<blockquote>
+<p><strong>Note:</strong> <strong>Compatibility renderer only</strong></p>
+</blockquote>
+<h3 id="submit-depth-buffer">Submit Depth Buffer</h3>
+<p>If enabled an OpenXR supplied depth buffer will be used while rendering which is submitted alongside the rendered image. The XR runtime can use this for improved reprojection.</p>
+<blockquote>
+<p><strong>Note:</strong> Enabling this feature will disable stencil support during rendering. Not many XR runtimes make use of this, it is advised to leave this setting off unless it provides noticeable benefits for your use case.</p>
+</blockquote>
+<h3 id="startup-alert">Startup Alert</h3>
+<p>If enabled, this will result in an alert message presented to the user if OpenXR fails to start. We don't always receive feedback from the XR system as to why starting fails. If we do, we log this to the console. Common failure reasons are:</p>
+<ul>
+<li>No OpenXR runtime is installed on the host system.</li>
+<li>Microsoft's WMR OpenXR runtime is currently active, this only supports DirectX and will fail if OpenGL or Vulkan is used.</li>
+<li>SteamVR is used but no headset is connected/turned on.</li>
+</ul>
+<p>Disable this if you support a fallback mode in your game so it can be played in desktop mode when no VR headset is connected, or if you're handling the failure condition yourself by checking <code>OpenXRInterface.is_initialized()</code>.</p>
+<h2 id="extensions">Extensions</h2>
+<p>This subsection allows you to enable to various optional OpenXR extensions. Keep in mind that the extensions will only work if the OpenXR runtime (SteamVR, Oculus, etc) the project is ran with supports them.</p>
+<h3 id="debug-utils">Debug Utils</h3>
+<p>Enabling this will log debug messages from the XR runtime.</p>
+<h3 id="debug-message-types">Debug Message Types</h3>
+<p>This allows you to choose which debug messages are logged.</p>
+<h3 id="frame-synthesis">Frame Synthesis</h3>
+<p>When enabled, provided it's supported by the XR runtime, lower resolution motion vector and depth buffers are rendered and provided to the XR runtime. The XR runtime can now inject reprojection frames and compensate for lower framerates.</p>
+<p>It currently has the following limitations:</p>
+<ul>
+<li>Does NOT work in the Forward+ renderer.</li>
+<li>Only works with stereo rendering.</li>
+</ul>
+<h3 id="hand-tracking">Hand Tracking</h3>
+<p>This enables the hand tracking extension when supported by the device used. This is on by default for legacy reasons. The hand tracking extension provides access to data that allows you to visualise the user's hands with correct finger positions. Depending on platform capabilities the hand tracking data can be inferred from controller inputs, come from data gloves, come from optical hand tracking sensors or any other applicable source.</p>
+<p>If your game only supports controllers this should be turned off.</p>
+<p>See the page on ref for additional details.</p>
+<h3 id="hand-tracking-unobstructed-data-source">Hand Tracking Unobstructed Data Source</h3>
+<p>Enabling this means hand tracking may use the exact position of fingers, usually what a headset camera sees.</p>
+<h3 id="hand-tracking-controller-data-source">Hand Tracking Controller Data Source</h3>
+<p>Enabling this means hand tracking may use the controller itself, and infer where fingers are based on controller input or sensors on the controller.</p>
+<h3 id="hand-interaction-profile">Hand Interaction Profile</h3>
+<p>Enabling this extension allows the use of two new hand tracking poses. Pinch pose which is the location between the thumb and index finger pointing forward, and poke pose which is at the tip of the index finger.</p>
+<p>This also allows 3 more gesture based inputs. Pinch, when the user pinches their thumb and index finger together. Aim activation, when the index finger is fully extended. And Grasps, when the user makes a fist.</p>
+<p>When a hand interaction profile and controller interaction profile are supplied, the runtime will switch between profiles depending on if optical tracking is used or if the user is holding a controller.</p>
+<p>If only a hand interaction profile is supplied any runtime should use hand interaction even if a controller is being held.</p>
+<h3 id="spatial-entities">Spatial Entities</h3>
+<p>This extension and its settings are used to obtain and interact with information about the user's real world environment. You can find more detailed information on how it works on the ref.</p>
+<h3 id="eye-gaze-interaction">Eye Gaze Interaction</h3>
+<p>This enables the eye gaze interaction extension when supported by the device used. When enabled we will get feedback from eye tracking through a pose situated between the user's eyes orientated in the direction the user is looking. This will be a unified orientation.</p>
+<p>In order to use this functionality you need to edit your action map and add a new pose action, say <code>eye_pose</code>. Now add a new interaction profile for the eye gaze interaction and map the <code>eye_pose</code>:</p>
+<p>Don't forget to save!</p>
+<p>Next add a new ref node to your origin node and set its <code>tracker</code> property to <code>/user/eyes_ext</code> and set its <code>pose</code> property to <code>eye_pose</code>.</p>
+<p>Now you can add things to this controller node such as a raycast, and control things with your eyes.</p>
+<h3 id="render-models">Render Models</h3>
+<p>This extension is used to query the XR runtime for 3D assets of the hardware being used, usually a controller, as well as the position of that hardware. You can find a detailed guide on how to use it ref.</p>
+<h2 id="binding-modifiers">Binding Modifiers</h2>
+<p>These control whether or not binding modifiers can be used. Binding modifiers are used to apply thresholds or offset values. You can find information on how to use and set them up on the XR action map page ref.</p>
+<h3 id="analog-threshold">Analog Threshold</h3>
+<p>Allow analog threshold binding modifiers.</p>
+<h3 id="dpad-binding">Dpad Binding</h3>
+<p>Allow D-pad binding modifiers.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

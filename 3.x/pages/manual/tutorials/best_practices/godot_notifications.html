@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Godot notifications — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="godot-notifications">Godot notifications</h1>
+<p>Every Object in Godot implements a ref method. Its purpose is to allow the Object to respond to a variety of engine-level callbacks that may relate to it. For example, if the engine tells a ref to "draw", it will call <code>_notification(NOTIFICATION_DRAW)</code>.</p>
+<p>Some of these notifications, like draw, are useful to override in scripts. So much so that Godot exposes many of them with dedicated functions:</p>
+<ul>
+<li><code>_ready()</code> : NOTIFICATION_READY</li>
+<li><code>_enter_tree()</code> : NOTIFICATION_ENTER_TREE</li>
+<li><code>_exit_tree()</code> : NOTIFICATION_EXIT_TREE</li>
+<li><code>_process(delta)</code> : NOTIFICATION_PROCESS</li>
+<li><code>_physics_process(delta)</code> : NOTIFICATION_PHYSICS_PROCESS</li>
+<li><code>_draw()</code> : NOTIFICATION_DRAW</li>
+</ul>
+<p>What users might <em>not</em> realize is that notifications exist for types other than Node alone:</p>
+<ul>
+<li>ref: a callback that triggers during object initialization. Not accessible to scripts.</li>
+<li>ref: a callback that triggers before the engine deletes an Object, i.e. a 'destructor'.</li>
+<li>ref: a callback that triggers when the mouse enters the window in the operating system that displays the game content.</li>
+</ul>
+<p>And many of the callbacks that <em>do</em> exist in Nodes don't have any dedicated methods, but are still quite useful.</p>
+<ul>
+<li>ref: a callback that triggers anytime one adds a child node to another node.</li>
+<li>ref: a callback that triggers anytime one removes a child node from another node.</li>
+<li>ref: a callback that triggers after a Popup node completes any <code>popup*</code> method. Note the difference from its <code>about_to_show</code> signal which triggers <em>before</em> its appearance.</li>
+</ul>
+<p>One can access all these custom notifications from the universal <code>_notification</code> method.</p>
+<blockquote>
+<p><strong>Note:</strong> Methods in the documentation labeled as "virtual" are also intended to be overridden by scripts.</p>
+<p>A classic example is the ref method in Object. While it has no <code>NOTIFICATION_*</code> equivalent, the engine still calls the method. Most languages (except C#) rely on it as a constructor.</p>
+</blockquote>
+<p>So, in which situation should one use each of these notifications or virtual functions?</p>
+<h2 id="_process-vs-_physics_process-vs-_input">_process vs. _physics_process vs. *_input</h2>
+<p>Use <code>_process</code> when one needs a framerate-dependent deltatime between frames. If code that updates object data needs to update as often as possible, this is the right place. Recurring logic checks and data caching often execute here, but it comes down to the frequency at which one needs the evaluations to update. If they don't need to execute every frame, then implementing a Timer-yield-timeout loop is another option.</p>
+<pre class="gdscript"><code># Infinitely loop, but only execute whenever the Timer fires.
+# Allows for recurring operations that don&#39;t trigger script logic
+# every frame (or even every fixed frame).
+while true:
+    my_method()
+    $Timer.start()
+    yield($Timer, &quot;timeout&quot;)</code></pre>
+<p>Use <code>_physics_process</code> when one needs a framerate-independent deltatime between frames. If code needs consistent updates over time, regardless of how fast or slow time advances, this is the right place. Recurring kinematic and object transform operations should execute here.</p>
+<p>While it is possible, to achieve the best performance, one should avoid making input checks during these callbacks. <code>_process</code> and <code>_physics_process</code> will trigger at every opportunity (they do not "rest" by default). In contrast, <code>*_input</code> callbacks will trigger only on frames in which the engine has actually detected the input.</p>
+<p>One can check for input actions within the input callbacks just the same. If one wants to use delta time, one can fetch it from the related deltatime methods as needed.</p>
+<pre class="gdscript"><code># Called every frame, even when the engine detects no input.
+func _process(delta):
+    if Input.is_action_just_pressed(&quot;ui_select&quot;):
+        print(delta)
+
+# Called during every input event.
+func _unhandled_input(event):
+    match event.get_class():
+        &quot;InputEventKey&quot;:
+            if Input.is_action_just_pressed(&quot;ui_accept&quot;):
+                print(get_process_delta_time())</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> MyNode <span class="op">:</span> Node</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Called every frame, even when the engine detects no input.</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionJustPressed</span><span class="op">(</span><span class="st">&quot;ui_select&quot;</span><span class="op">))</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>delta<span class="op">);</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Called during every input event. Equally true for _input().</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">_UnhandledInput</span><span class="op">(</span>InputEvent <span class="kw">event</span><span class="op">)</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>        <span class="kw">switch</span> <span class="op">(</span><span class="kw">event</span><span class="op">)</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>            <span class="kw">case</span> InputEventKey keyEvent<span class="op">:</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>                <span class="kw">if</span> <span class="op">(</span>Input<span class="op">.</span><span class="fu">IsActionJustPressed</span><span class="op">(</span><span class="st">&quot;ui_accept&quot;</span><span class="op">))</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>                    GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="fu">GetProcessDeltaTime</span><span class="op">());</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>                <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>            <span class="kw">default</span><span class="op">:</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>                <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="_init-vs-initialization-vs-export">_init vs. initialization vs. export</h2>
+<p>If the script initializes its own node subtree, without a scene, that code should execute here. Other property or SceneTree-independent initializations should also run here. This triggers before <code>_ready</code> or <code>_enter_tree</code>, but after a script creates and initializes its properties.</p>
+<p>Scripts have three types of property assignments that can occur during instantiation:</p>
+<pre class="gdscript"><code># &quot;one&quot; is an &quot;initialized value&quot;. These DO NOT trigger the setter.
+# If someone set the value as &quot;two&quot; from the Inspector, this would be an
+# &quot;exported value&quot;. These DO trigger the setter.
+export(String) var test = &quot;one&quot; setget set_test
+
+func _init():
+    # &quot;three&quot; is an &quot;init assignment value&quot;.
+    # These DO NOT trigger the setter, but...
+    test = &quot;three&quot;
+    # These DO trigger the setter. Note the `self` prefix.
+    self.test = &quot;three&quot;
+
+func set_test(value):
+    test = value
+    print(&quot;Setting: &quot;, test)</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> MyNode <span class="op">:</span> Node</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">string</span> _test <span class="op">=</span> <span class="st">&quot;one&quot;</span><span class="op">;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Changing the value from the inspector does trigger the setter in C#.</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">string</span> Test</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">get</span> <span class="op">{</span> <span class="kw">return</span> _test<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        set</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>            _test <span class="op">=</span> value<span class="op">;</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;Setting: &quot;</span> <span class="op">+</span> _test<span class="op">);</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="fu">MyNode</span><span class="op">()</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Triggers the setter as well</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>        Test <span class="op">=</span> <span class="st">&quot;three&quot;</span><span class="op">;</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>When instantiating a scene, property values will set up according to the following sequence:</p>
+<ol type="1">
+<li><strong>Initial value assignment:</strong> instantiation will assign either the initialization value or the init assignment value. Init assignments take priority over initialization values.</li>
+<li><strong>Exported value assignment:</strong> If instancing from a scene rather than a script, Godot will assign the exported value to replace the initial value defined in the script.</li>
+</ol>
+<p>As a result, instantiating a script versus a scene will affect both the initialization <em>and</em> the number of times the engine calls the setter.</p>
+<h2 id="_ready-vs-_enter_tree-vs-notification_parented">_ready vs. _enter_tree vs. NOTIFICATION_PARENTED</h2>
+<p>When instantiating a scene connected to the first executed scene, Godot will instantiate nodes down the tree (making <code>_init</code> calls) and build the tree going downwards from the root. This causes <code>_enter_tree</code> calls to cascade down the tree. Once the tree is complete, leaf nodes call <code>_ready</code>. A node will call this method once all child nodes have finished calling theirs. This then causes a reverse cascade going up back to the tree's root.</p>
+<p>When instantiating a script or a standalone scene, nodes are not added to the SceneTree upon creation, so no <code>_enter_tree</code> callbacks trigger. Instead, only the <code>_init</code> call occurs. When the scene is added to the SceneTree, the <code>_enter_tree</code> and <code>_ready</code> calls occur.</p>
+<p>If one needs to trigger behavior that occurs as nodes parent to another, regardless of whether it occurs as part of the main/active scene or not, one can use the ref notification. For example, here is a snippet that connects a node's method to a custom signal on the parent node without failing. Useful on data-centric nodes that one might create at runtime.</p>
+<pre class="gdscript"><code>extends Node
+
+var parent_cache
+
+func connection_check():
+    return parent.has_user_signal(&quot;interacted_with&quot;)
+
+func _notification(what):
+    match what:
+        NOTIFICATION_PARENTED:
+            parent_cache = get_parent()
+            if connection_check():
+                parent_cache.connect(&quot;interacted_with&quot;, self, &quot;_on_parent_interacted_with&quot;)
+        NOTIFICATION_UNPARENTED:
+            if connection_check():
+                parent_cache.disconnect(&quot;interacted_with&quot;, self, &quot;_on_parent_interacted_with&quot;)
+
+func _on_parent_interacted_with():
+    print(&quot;I&#39;m reacting to my parent&#39;s interaction!&quot;)</code></pre>
+<div class="sourceCode" id="cb7"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> MyNode <span class="op">:</span> Node</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Node ParentCache <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">ConnectionCheck</span><span class="op">()</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> ParentCache<span class="op">.</span><span class="fu">HasUserSignal</span><span class="op">(</span><span class="st">&quot;InteractedWith&quot;</span><span class="op">);</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">_Notification</span><span class="op">(</span><span class="dt">int</span> what<span class="op">)</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">switch</span> <span class="op">(</span>what<span class="op">)</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>            <span class="kw">case</span> NOTIFICATION_PARENTED<span class="op">:</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>                ParentCache <span class="op">=</span> <span class="fu">GetParent</span><span class="op">();</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>                <span class="kw">if</span> <span class="op">(</span><span class="fu">ConnectionCheck</span><span class="op">())</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>                    ParentCache<span class="op">.</span><span class="fu">Connect</span><span class="op">(</span><span class="st">&quot;InteractedWith&quot;</span><span class="op">,</span> <span class="kw">this</span><span class="op">,</span> <span class="st">&quot;OnParentInteractedWith&quot;</span><span class="op">);</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>                <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>            <span class="kw">case</span> NOTIFICATION_UNPARENTED<span class="op">:</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>                <span class="kw">if</span> <span class="op">(</span><span class="fu">ConnectionCheck</span><span class="op">())</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>                    ParentCache<span class="op">.</span><span class="fu">Disconnect</span><span class="op">(</span><span class="st">&quot;InteractedWith&quot;</span><span class="op">,</span> <span class="kw">this</span><span class="op">,</span> <span class="st">&quot;OnParentInteractedWith&quot;</span><span class="op">);</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>                <span class="kw">break</span><span class="op">;</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">OnParentInteractedWith</span><span class="op">()</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;I&#39;m reacting to my parent&#39;s interaction!&quot;</span><span class="op">);</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

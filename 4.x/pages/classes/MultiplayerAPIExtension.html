@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MultiplayerAPIExtension — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="multiplayerapiextension">MultiplayerAPIExtension</h1>
+<p><em>Inherits: <a href="MultiplayerAPI.html">MultiplayerAPI</a> &lt; <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>Base class used for extending the <a href="MultiplayerAPI.html">MultiplayerAPI</a>.</p>
+<h2 id="description">Description</h2>
+<p>This class can be used to extend or replace the default <a href="MultiplayerAPI.html">MultiplayerAPI</a> implementation via script or extensions.</p>
+<p>The following example extend the default implementation (<a href="SceneMultiplayer.html">SceneMultiplayer</a>) by logging every RPC being made, and every object being configured for replication.</p>
+<pre class="gdscript"><code>extends MultiplayerAPIExtension
+class_name LogMultiplayer
+
+# We want to extend the default SceneMultiplayer.
+var base_multiplayer = SceneMultiplayer.new()
+
+func _init():
+    # Just passthrough base signals (copied to var to avoid cyclic reference)
+    var cts = connected_to_server
+    var cf = connection_failed
+    var sd = server_disconnected
+    var pc = peer_connected
+    var pd = peer_disconnected
+    base_multiplayer.connected_to_server.connect(func(): cts.emit())
+    base_multiplayer.connection_failed.connect(func(): cf.emit())
+    base_multiplayer.server_disconnected.connect(func(): sd.emit())
+    base_multiplayer.peer_connected.connect(func(id): pc.emit(id))
+    base_multiplayer.peer_disconnected.connect(func(id): pd.emit(id))
+
+func _poll():
+    return base_multiplayer.poll()
+
+# Log RPC being made and forward it to the default multiplayer.
+func _rpc(peer: int, object: Object, method: StringName, args: Array) -&gt; Error:
+    print(&quot;Got RPC for %d: %s::%s(%s)&quot; % [peer, object, method, args])
+    return base_multiplayer.rpc(peer, object, method, args)
+
+# Log configuration add. E.g. root path (nullptr, NodePath), replication (Node, Spawner|Synchronizer), custom.
+func _object_configuration_add(object, config: Variant) -&gt; Error:
+    if config is MultiplayerSynchronizer:
+        print(&quot;Adding synchronization configuration for %s. Synchronizer: %s&quot; % [object, config])
+    elif config is MultiplayerSpawner:
+        print(&quot;Adding node %s to the spawn list. Spawner: %s&quot; % [object, config])
+    return base_multiplayer.object_configuration_add(object, config)
+
+# Log configuration remove. E.g. root path (nullptr, NodePath), replication (Node, Spawner|Synchronizer), custom.
+func _object_configuration_remove(object, config: Variant) -&gt; Error:
+    if config is MultiplayerSynchronizer:
+        print(&quot;Removing synchronization configuration for %s. Synchronizer: %s&quot; % [object, config])
+    elif config is MultiplayerSpawner:
+        print(&quot;Removing node %s from the spawn list. Spawner: %s&quot; % [object, config])
+    return base_multiplayer.object_configuration_remove(object, config)
+
+# These can be optional, but in our case we want to extend SceneMultiplayer, so forward everything.
+func _set_multiplayer_peer(p_peer: MultiplayerPeer):
+    base_multiplayer.multiplayer_peer = p_peer
+
+func _get_multiplayer_peer() -&gt; MultiplayerPeer:
+    return base_multiplayer.multiplayer_peer
+
+func _get_unique_id() -&gt; int:
+    return base_multiplayer.get_unique_id()
+
+func _get_remote_sender_id() -&gt; int:
+    return base_multiplayer.get_remote_sender_id()
+
+func _get_peer_ids() -&gt; PackedInt32Array:
+    return base_multiplayer.get_peers()</code></pre>
+<p>Then in your main scene or in an autoload call <code>SceneTree.set_multiplayer()</code> to start using your custom <a href="MultiplayerAPI.html">MultiplayerAPI</a>:</p>
+<pre class="gdscript"><code># autoload.gd
+func _enter_tree():
+    # Sets our custom multiplayer as the main one in SceneTree.
+    get_tree().set_multiplayer(LogMultiplayer.new())</code></pre>
+<p>Native extensions can alternatively use the <code>MultiplayerAPI.set_default_interface()</code> method during initialization to configure themselves as the default implementation.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="multiplayerpeer-_get_multiplayer_peer-virtual"><code>MultiplayerPeer _get_multiplayer_peer() virtual</code></h3>
+<p>Called when the <code>MultiplayerAPI.multiplayer_peer</code> is retrieved.</p>
+<h3 id="packedint32array-_get_peer_ids-virtual-const"><code>PackedInt32Array _get_peer_ids() virtual const</code></h3>
+<p>Callback for <code>MultiplayerAPI.get_peers()</code>.</p>
+<h3 id="int-_get_remote_sender_id-virtual-const"><code>int _get_remote_sender_id() virtual const</code></h3>
+<p>Callback for <code>MultiplayerAPI.get_remote_sender_id()</code>.</p>
+<h3 id="int-_get_unique_id-virtual-const"><code>int _get_unique_id() virtual const</code></h3>
+<p>Callback for <code>MultiplayerAPI.get_unique_id()</code>.</p>
+<h3 id="globalscopeerror-_object_configuration_addobject-object-configuration-variant-virtual">``@GlobalScope.Error<code> _object_configuration_add(object: Object, configuration: Variant) virtual</code></h3>
+<p>Callback for <code>MultiplayerAPI.object_configuration_add()</code>.</p>
+<h3 id="globalscopeerror-_object_configuration_removeobject-object-configuration-variant-virtual">``@GlobalScope.Error<code> _object_configuration_remove(object: Object, configuration: Variant) virtual</code></h3>
+<p>Callback for <code>MultiplayerAPI.object_configuration_remove()</code>.</p>
+<h3 id="globalscopeerror-_poll-virtual">``@GlobalScope.Error<code> _poll() virtual</code></h3>
+<p>Callback for <code>MultiplayerAPI.poll()</code>.</p>
+<h3 id="globalscopeerror-_rpcpeer-int-object-object-method-stringname-args-array-virtual">``@GlobalScope.Error<code> _rpc(peer: int, object: Object, method: StringName, args: Array) virtual</code></h3>
+<p>Callback for <code>MultiplayerAPI.rpc()</code>.</p>
+<h3 id="void-_set_multiplayer_peermultiplayer_peer-multiplayerpeer-virtual"><code>void _set_multiplayer_peer(multiplayer_peer: MultiplayerPeer) virtual</code></h3>
+<p>Called when the <code>MultiplayerAPI.multiplayer_peer</code> is set.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

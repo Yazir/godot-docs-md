@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A better XR start script — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="a-better-xr-start-script">A better XR start script</h1>
+<p>In <code>doc_setting_up_xr</code> we introduced a startup script that initialises our setup which we used as our script on our main node. This script performs the minimum steps required for any given interface.</p>
+<p>When using OpenXR there are a number of improvements we should do here. For this we've created a more elaborate starting script. You will find these used in our demo projects.</p>
+<p>Alternatively, if you are using XR Tools (see <code>doc_introducing_xr_tools</code>) it contains a version of this script updated with some features related to XR tools.</p>
+<p>Below we will detail out the script used in our demos and explain the parts that are added.</p>
+<h2 id="signals-for-our-script">Signals for our script</h2>
+<p>We are introducing 3 signals to our script so that our game can add further logic:</p>
+<ul>
+<li><code>focus_lost</code> is emitted when the player takes off their headset or when the player enters the menu system of the headset.</li>
+<li><code>focus_gained</code> is emitted when the player puts their headset back on or exits the menu system and returns to the game.</li>
+<li><code>pose_recentered</code> is emitted when the headset requests the player's position to be reset.</li>
+</ul>
+<p>Our game should react accordingly to these signals.</p>
+<pre class="gdscript"><code>extends Node3D
+
+signal focus_lost
+signal focus_gained
+signal pose_recentered
+
+...</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyNode3D <span class="op">:</span> Node3D</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">FocusLostEventHandler</span><span class="op">();</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">FocusGainedEventHandler</span><span class="op">();</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Signal<span class="op">]</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">delegate</span> <span class="dt">void</span> <span class="fu">PoseRecenteredEventHandler</span><span class="op">();</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<h2 id="variables-for-our-script">Variables for our script</h2>
+<p>We introduce a few new variables to our script as well:</p>
+<ul>
+<li><code>maximum_refresh_rate</code> will control the headset's refresh rate if this is supported by the headset.</li>
+<li><code>xr_interface</code> holds a reference to our XR interface, this already existed but we now type it to get full access to our ref API.</li>
+<li><code>xr_is_focussed</code> will be set to true whenever our game has focus.</li>
+</ul>
+<pre class="gdscript"><code>...
+
+@export var maximum_refresh_rate : int = 90
+
+var xr_interface : OpenXRInterface
+var xr_is_focussed = false
+
+...</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>Export<span class="op">]</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> MaximumRefreshRate <span class="op">{</span> <span class="kw">get</span><span class="op">;</span> <span class="kw">set</span><span class="op">;</span> <span class="op">}</span> <span class="op">=</span> <span class="dv">90</span><span class="op">;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> OpenXRInterface _xrInterface<span class="op">;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">bool</span> _xrIsFocused<span class="op">;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<h2 id="our-updated-ready-function">Our updated ready function</h2>
+<p>We add a few things to the ready function.</p>
+<p>If we're using the mobile or forward+ renderer we set the viewport's <code>vrs_mode</code> to <code>VRS_XR</code>. On platforms that support this, this will enable foveated rendering.</p>
+<p>If we're using the compatibility renderer, we check if the OpenXR foveated rendering settings are configured and if not, we output a warning. See ref for further details.</p>
+<p>We hook up a number of signals that will be emitted by the ref. We'll provide more detail about these signals as we implement them.</p>
+<p>We also quit our application if we couldn't successfully initialise OpenXR. Now this can be a choice. If you are making a mixed mode game you setup the VR mode of your game on success, and setup the non-VR mode of your game on failure. However, when running a VR only application on a standalone headset, it is nicer to exit on failure than to hang the system.</p>
+<pre class="gdscript"><code>...
+
+# Called when the node enters the scene tree for the first time.
+func _ready():
+    xr_interface = XRServer.find_interface(&quot;OpenXR&quot;)
+    if xr_interface and xr_interface.is_initialized():
+        print(&quot;OpenXR instantiated successfully.&quot;)
+        var vp : Viewport = get_viewport()
+
+        # Enable XR on our viewport
+        vp.use_xr = true
+
+        # Make sure v-sync is off, v-sync is handled by OpenXR
+        DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+
+        # Enable VRS
+        if RenderingServer.get_rendering_device():
+            vp.vrs_mode = Viewport.VRS_XR
+        elif int(ProjectSettings.get_setting(&quot;xr/openxr/foveation_level&quot;)) == 0:
+            push_warning(&quot;OpenXR: Recommend setting Foveation level to High in Project Settings&quot;)
+
+        # Connect the OpenXR events
+        xr_interface.session_begun.connect(_on_openxr_session_begun)
+        xr_interface.session_visible.connect(_on_openxr_visible_state)
+        xr_interface.session_focussed.connect(_on_openxr_focused_state)
+        xr_interface.session_stopping.connect(_on_openxr_stopping)
+        xr_interface.pose_recentered.connect(_on_openxr_pose_recentered)
+    else:
+        # We couldn&#39;t start OpenXR.
+        print(&quot;OpenXR not instantiated!&quot;)
+        get_tree().quit()
+
+...</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// </span><span class="kw">&lt;summary&gt;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// Called when the node enters the scene tree for the first time.</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// </span><span class="kw">&lt;/summary&gt;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Ready</span><span class="op">()</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        _xrInterface <span class="op">=</span> <span class="op">(</span>OpenXRInterface<span class="op">)</span>XRServer<span class="op">.</span><span class="fu">FindInterface</span><span class="op">(</span><span class="st">&quot;OpenXR&quot;</span><span class="op">);</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>_xrInterface <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span> _xrInterface<span class="op">.</span><span class="fu">IsInitialized</span><span class="op">())</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;OpenXR instantiated successfully.&quot;</span><span class="op">);</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>            <span class="dt">var</span> vp <span class="op">=</span> <span class="fu">GetViewport</span><span class="op">();</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Enable XR on our viewport</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>            vp<span class="op">.</span><span class="fu">UseXR</span> <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Make sure v-sync is off, v-sync is handled by OpenXR</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>            DisplayServer<span class="op">.</span><span class="fu">WindowSetVsyncMode</span><span class="op">(</span>DisplayServer<span class="op">.</span><span class="fu">VSyncMode</span><span class="op">.</span><span class="fu">Disabled</span><span class="op">);</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Enable VRS</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(</span>RenderingServer<span class="op">.</span><span class="fu">GetRenderingDevice</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>                vp<span class="op">.</span><span class="fu">VrsMode</span> <span class="op">=</span> Viewport<span class="op">.</span><span class="fu">VrsModeEnum</span><span class="op">.</span><span class="fu">XR</span><span class="op">;</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>            <span class="kw">else</span> <span class="kw">if</span> <span class="op">((</span><span class="dt">int</span><span class="op">)</span>ProjectSettings<span class="op">.</span><span class="fu">GetSetting</span><span class="op">(</span><span class="st">&quot;xr/openxr/foveation_level&quot;</span><span class="op">)</span> <span class="op">==</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>                GD<span class="op">.</span><span class="fu">PushWarning</span><span class="op">(</span><span class="st">&quot;OpenXR: Recommend setting Foveation level to High in Project Settings&quot;</span><span class="op">);</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Connect the OpenXR events</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>            _xrInterface<span class="op">.</span><span class="fu">SessionBegun</span> <span class="op">+=</span> OnOpenXRSessionBegun<span class="op">;</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>            _xrInterface<span class="op">.</span><span class="fu">SessionVisible</span> <span class="op">+=</span> OnOpenXRVisibleState<span class="op">;</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>            _xrInterface<span class="op">.</span><span class="fu">SessionFocussed</span> <span class="op">+=</span> OnOpenXRFocusedState<span class="op">;</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>            _xrInterface<span class="op">.</span><span class="fu">SessionStopping</span> <span class="op">+=</span> OnOpenXRStopping<span class="op">;</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>            _xrInterface<span class="op">.</span><span class="fu">PoseRecentered</span> <span class="op">+=</span> OnOpenXRPoseRecentered<span class="op">;</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>        <span class="kw">else</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>            <span class="co">// We couldn&#39;t start OpenXR.</span></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;OpenXR not instantiated!&quot;</span><span class="op">);</span></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>            <span class="fu">GetTree</span><span class="op">().</span><span class="fu">Quit</span><span class="op">();</span></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<h2 id="on-session-begun">On session begun</h2>
+<p>This signal is emitted by OpenXR when our session is setup. This means the headset has run through setting everything up and is ready to begin receiving content from us. Only at this time various information is properly available.</p>
+<p>The main thing we do here is to check our headset's refresh rate. We also check the available refresh rates reported by the XR runtime to determine if we want to set our headset to a higher refresh rate.</p>
+<p>Finally we match our physics update rate to our headset update rate. Godot runs at a physics update rate of 60 updates per second by default while headsets run at a minimum of 72, and for modern headsets often up to 144 frames per second. Not matching the physics update rate will cause stuttering as frames are rendered without objects moving.</p>
+<pre class="gdscript"><code>...
+
+# Handle OpenXR session ready
+func _on_openxr_session_begun() -&gt; void:
+    # Get the reported refresh rate
+    var current_refresh_rate = xr_interface.get_display_refresh_rate()
+    if current_refresh_rate &gt; 0:
+        print(&quot;OpenXR: Refresh rate reported as &quot;, str(current_refresh_rate))
+    else:
+        print(&quot;OpenXR: No refresh rate given by XR runtime&quot;)
+
+    # See if we have a better refresh rate available
+    var new_rate = current_refresh_rate
+    var available_rates : Array = xr_interface.get_available_display_refresh_rates()
+    if available_rates.size() == 0:
+        print(&quot;OpenXR: Target does not support refresh rate extension&quot;)
+    elif available_rates.size() == 1:
+        # Only one available, so use it
+        new_rate = available_rates[0]
+    else:
+        for rate in available_rates:
+            if rate &gt; new_rate and rate &lt;= maximum_refresh_rate:
+                new_rate = rate
+
+    # Did we find a better rate?
+    if current_refresh_rate != new_rate:
+        print(&quot;OpenXR: Setting refresh rate to &quot;, str(new_rate))
+        xr_interface.set_display_refresh_rate(new_rate)
+        current_refresh_rate = new_rate
+
+    # Now match our physics rate
+    Engine.physics_ticks_per_second = current_refresh_rate
+
+...</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// </span><span class="kw">&lt;summary&gt;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// Handle OpenXR session ready</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// </span><span class="kw">&lt;/summary&gt;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnOpenXRSessionBegun</span><span class="op">()</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Get the reported refresh rate</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> currentRefreshRate <span class="op">=</span> _xrInterface<span class="op">.</span><span class="fu">DisplayRefreshRate</span><span class="op">;</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>currentRefreshRate <span class="op">&gt;</span> <span class="fl">0.0F</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>            <span class="op">?</span> $<span class="st">&quot;OpenXR: Refresh rate reported as {currentRefreshRate}&quot;</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>            <span class="op">:</span> <span class="st">&quot;OpenXR: No refresh rate given by XR runtime&quot;</span><span class="op">);</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// See if we have a better refresh rate available</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> newRate <span class="op">=</span> currentRefreshRate<span class="op">;</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> availableRates <span class="op">=</span> _xrInterface<span class="op">.</span><span class="fu">GetAvailableDisplayRefreshRates</span><span class="op">();</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>availableRates<span class="op">.</span><span class="fu">Count</span> <span class="op">==</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;OpenXR: Target does not support refresh rate extension&quot;</span><span class="op">);</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span>availableRates<span class="op">.</span><span class="fu">Count</span> <span class="op">==</span> <span class="dv">1</span><span class="op">)</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Only one available, so use it</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>            newRate <span class="op">=</span> <span class="op">(</span><span class="dt">float</span><span class="op">)</span>availableRates<span class="op">[</span><span class="dv">0</span><span class="op">];</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>        <span class="kw">else</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;OpenXR: Available refresh rates: &quot;</span><span class="op">,</span> availableRates<span class="op">);</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>            <span class="kw">foreach</span> <span class="op">(</span><span class="dt">float</span> rate <span class="kw">in</span> availableRates<span class="op">)</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>                <span class="kw">if</span> <span class="op">(</span>rate <span class="op">&gt;</span> newRate <span class="op">&amp;&amp;</span> rate <span class="op">&lt;=</span> MaximumRefreshRate<span class="op">)</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>                <span class="op">{</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>                    newRate <span class="op">=</span> rate<span class="op">;</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Did we find a better rate?</span></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>currentRefreshRate <span class="op">!=</span> newRate<span class="op">)</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>$<span class="st">&quot;OpenXR: Setting refresh rate to {newRate}&quot;</span><span class="op">);</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>            _xrInterface<span class="op">.</span><span class="fu">DisplayRefreshRate</span> <span class="op">=</span> newRate<span class="op">;</span></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>            currentRefreshRate <span class="op">=</span> newRate<span class="op">;</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Now match our physics rate</span></span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a>        Engine<span class="op">.</span><span class="fu">PhysicsTicksPerSecond</span> <span class="op">=</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>currentRefreshRate<span class="op">;</span></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<h2 id="on-visible-state">On visible state</h2>
+<p>This signal is emitted by OpenXR when our game becomes visible but is not focused. This is a bit of a weird description in OpenXR but it basically means that our game has just started and we're about to switch to the focused state next, that the user has opened a system menu or the user has just took their headset off.</p>
+<p>On receiving this signal we'll update our focused state, we'll change the process mode of our node to disabled which will pause processing on this node and its children, and emit our <code>focus_lost</code> signal.</p>
+<p>If you've added this script to your root node, this means your game will automatically pause when required. If you haven't, you can connect a method to the signal that performs additional changes.</p>
+<blockquote>
+<p><strong>Note:</strong> While your game is in visible state because the user has opened a system menu, Godot will keep rendering frames and head tracking will remain active so your game will remain visible in the background. However controller and hand tracking will be disabled until the user exits the system menu.</p>
+</blockquote>
+<pre class="gdscript"><code>...
+
+# Handle OpenXR visible state
+func _on_openxr_visible_state() -&gt; void:
+    # We always pass this state at startup,
+    # but the second time we get this it means our player took off their headset
+    if xr_is_focussed:
+        print(&quot;OpenXR lost focus&quot;)
+
+        xr_is_focussed = false
+
+        # pause our game
+        get_tree().paused = true
+
+        emit_signal(&quot;focus_lost&quot;)
+
+...</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// </span><span class="kw">&lt;summary&gt;</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// Handle OpenXR visible state</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// </span><span class="kw">&lt;/summary&gt;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnOpenXRVisibleState</span><span class="op">()</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// We always pass this state at startup,</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// but the second time we get this it means our player took off their headset</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>_xrIsFocused<span class="op">)</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>            GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;OpenXR lost focus&quot;</span><span class="op">);</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>            _xrIsFocused <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Pause our game</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>            <span class="fu">GetTree</span><span class="op">().</span><span class="fu">Paused</span> <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>            <span class="fu">EmitSignal</span><span class="op">(</span>SignalName<span class="op">.</span><span class="fu">FocusLost</span><span class="op">);</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<h2 id="on-focused-state">On focused state</h2>
+<p>This signal is emitted by OpenXR when our game gets focus. This is done at the completion of our startup, but it can also be emitted when the user exits a system menu, or put their headset back on.</p>
+<p>Note also that when your game starts while the user is not wearing their headset, the game stays in 'visible' state until the user puts their headset on.</p>
+<blockquote>
+<p><strong>Warning:</strong> It is thus important to keep your game paused while in visible mode. If you don't the game will keep on running while your user isn't interacting with your game. Also when the game returns to the focused mode, suddenly all controller and hand tracking is re-enabled and could have game breaking consequences if you do not react to this accordingly. Be sure to test this behavior in your game!</p>
+</blockquote>
+<p>While handling our signal we will update the focuses state, unpause our node and emit our <code>focus_gained</code> signal.</p>
+<pre class="gdscript"><code>...
+
+# Handle OpenXR focused state
+func _on_openxr_focused_state() -&gt; void:
+    print(&quot;OpenXR gained focus&quot;)
+    xr_is_focussed = true
+
+    # unpause our game
+    get_tree().paused = false
+
+    emit_signal(&quot;focus_gained&quot;)
+
+...</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// </span><span class="kw">&lt;summary&gt;</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// Handle OpenXR focused state</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// </span><span class="kw">&lt;/summary&gt;</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnOpenXRFocusedState</span><span class="op">()</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;OpenXR gained focus&quot;</span><span class="op">);</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        _xrIsFocused <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Un-pause our game</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        <span class="fu">GetTree</span><span class="op">().</span><span class="fu">Paused</span> <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">EmitSignal</span><span class="op">(</span>SignalName<span class="op">.</span><span class="fu">FocusGained</span><span class="op">);</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<h2 id="on-stopping-state">On stopping state</h2>
+<p>This signal is emitted by OpenXR when we enter our stop state. There are some differences between platforms when this happens. On some platforms this is only emitted when the game is being closed. But on other platforms this will also be emitted every time the player takes off their headset.</p>
+<p>For now this method is only a place holder.</p>
+<pre class="gdscript"><code>...
+
+# Handle OpenXR stopping state
+func _on_openxr_stopping() -&gt; void:
+    # Our session is being stopped.
+    print(&quot;OpenXR is stopping&quot;)
+
+...</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// </span><span class="kw">&lt;summary&gt;</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// Handle OpenXR stopping state</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// </span><span class="kw">&lt;/summary&gt;</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnOpenXRStopping</span><span class="op">()</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Our session is being stopped.</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>        GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span><span class="st">&quot;OpenXR is stopping&quot;</span><span class="op">);</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<h2 id="on-pose-recentered">On pose recentered</h2>
+<p>This signal is emitted by OpenXR when the user requests their view to be recentered. Basically this communicates to your game that the user is now facing forward and you should re-orient the player so they are facing forward in the virtual world.</p>
+<p>As doing so is dependent on your game, your game needs to react accordingly.</p>
+<p>All we do here is emit the <code>pose_recentered</code> signal. You can connect to this signal and implement the actual recenter code. Often it is enough to call ref.</p>
+<pre class="gdscript"><code>...
+
+# Handle OpenXR pose recentered signal
+func _on_openxr_pose_recentered() -&gt; void:
+    # User recentered view, we have to react to this by recentering the view.
+    # This is game implementation dependent.
+    emit_signal(&quot;pose_recentered&quot;)</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// </span><span class="kw">&lt;summary&gt;</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// Handle OpenXR pose recentered signal</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">/// </span><span class="kw">&lt;/summary&gt;</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnOpenXRPoseRecentered</span><span class="op">()</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// User recentered view, we have to react to this by recentering the view.</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// This is game implementation dependent.</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>        <span class="fu">EmitSignal</span><span class="op">(</span>SignalName<span class="op">.</span><span class="fu">PoseRecentered</span><span class="op">);</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>And that finished our script. It was written so that it can be reused over multiple projects. Just add it as the script on your main node (and extend it if needed) or add it on a child node specific for this script.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

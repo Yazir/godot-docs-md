@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenXRExtensionWrapper — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="openxrextensionwrapper">OpenXRExtensionWrapper</h1>
+<p><em>Inherits: <a href="Object.html">Object</a></em></p>
+<p><em>Implemented by: <a href="OpenXRAndroidThreadSettingsExtension.html">OpenXRAndroidThreadSettingsExtension</a>, <a href="OpenXRExtensionWrapperExtension.html">OpenXRExtensionWrapperExtension</a>, <a href="OpenXRFrameSynthesisExtension.html">OpenXRFrameSynthesisExtension</a>, <a href="OpenXRFutureExtension.html">OpenXRFutureExtension</a>, <a href="OpenXRRenderModelExtension.html">OpenXRRenderModelExtension</a>, <a href="OpenXRSpatialAnchorCapability.html">OpenXRSpatialAnchorCapability</a>, <a href="OpenXRSpatialEntityExtension.html">OpenXRSpatialEntityExtension</a>, <a href="OpenXRSpatialMarkerTrackingCapability.html">OpenXRSpatialMarkerTrackingCapability</a>, <a href="OpenXRSpatialPlaneTrackingCapability.html">OpenXRSpatialPlaneTrackingCapability</a></em></p>
+<p>Allows implementing OpenXR extensions with GDExtension.</p>
+<h2 id="description">Description</h2>
+<p><strong>OpenXRExtensionWrapper</strong> allows implementing OpenXR extensions with GDExtension. The extension should be registered with <code>register_extension_wrapper()</code>.</p>
+<p>When <a href="OpenXRInterface.html">OpenXRInterface</a> is initialized as the primary interface and any <a href="Viewport.html">Viewport</a> has <code>Viewport.use_xr</code> set to <code>true</code>, OpenXR will become involved in Godot's rendering process. If <code>ProjectSettings.rendering/driver/threads/thread_model</code> is set to "Separate", Godot's renderer will run on its own thread, and special care must be taken in all <strong>OpenXRExtensionWrapper</strong> s in order to prevent crashes or unexpected behavior. Some virtual methods will be called on the render thread, and any data they access should not be directly written to on the main thread. This is to prevent two potential issues:</p>
+<ol type="1">
+<li><p>Changes intended for the next frame, taking effect on the current frame. When using the "Separate" thread model, the main thread will immediately start working on the next frame while the render thread may still be rendering the current frame. If the main thread changes anything used by the render thread directly, the change could end up being used one frame earlier than intended.</p></li>
+<li><p>Reading and writing to the same data at the same time from different threads can lead to the render thread using data in an invalid state.</p></li>
+</ol>
+<p>In most cases, the solution is to use <code>RenderingServer.call_on_render_thread()</code> to schedule <a href="Callable.html">Callable</a> s to write to any data used on the render thread. When using the "Separate" thread model, these <a href="Callable.html">Callable</a> s will run after the renderer finishes the current frame and before it starts rendering the next frame. When not using this mode, they'll run immediately, so it's recommended to always use <code>RenderingServer.call_on_render_thread()</code> in these cases, which will allow your code to do the right thing regardless of the thread model.</p>
+<p>Any virtual methods that run on the render thread will be noted below.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="int-_get_composition_layerindex-int-virtual"><code>int _get_composition_layer(index: int) virtual</code></h3>
+<p>Returns a pointer to an <code>XrCompositionLayerBaseHeader</code> struct to provide the given composition layer.</p>
+<p>This will only be called if the extension previously registered itself with <code>OpenXRAPIExtension.register_composition_layer_provider()</code>.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread. Additionally, the data it returns will be used shortly after this method is called, so it needs to remain valid until the next time <code>_on_pre_render()</code> runs.</p>
+<h3 id="int-_get_composition_layer_count-virtual"><code>int _get_composition_layer_count() virtual</code></h3>
+<p>Returns the number of composition layers this extension wrapper provides via <code>_get_composition_layer()</code>.</p>
+<p>This will only be called if the extension previously registered itself with <code>OpenXRAPIExtension.register_composition_layer_provider()</code>.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread. Additionally, the data it returns will be used shortly after this method is called, so it needs to remain valid until the next time <code>_on_pre_render()</code> runs.</p>
+<h3 id="int-_get_composition_layer_orderindex-int-virtual"><code>int _get_composition_layer_order(index: int) virtual</code></h3>
+<p>Returns an integer that will be used to sort the given composition layer provided via <code>_get_composition_layer()</code>. Lower numbers will move the layer to the front of the list, and higher numbers to the end. The default projection layer has an order of <code>0</code>, so layers provided by this method should probably be above or below (but not exactly) <code>0</code>.</p>
+<p>This will only be called if the extension previously registered itself with <code>OpenXRAPIExtension.register_composition_layer_provider()</code>.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread. Additionally, the data it returns will be used shortly after this method is called, so it needs to remain valid until the next time <code>_on_pre_render()</code> runs.</p>
+<h3 id="dictionary-_get_requested_extensionsxr_version-int-virtual"><code>Dictionary _get_requested_extensions(xr_version: int) virtual</code></h3>
+<p>Returns a <a href="Dictionary.html">Dictionary</a> of OpenXR extensions related to this extension. <code>xr_version</code> specifies the OpenXR version we're instantiating. This will be zero if the editor requests this list to flag supported features. The <a href="Dictionary.html">Dictionary</a> should contain the name of the extension, mapped to a <code>bool *</code> cast to an integer:</p>
+<ul>
+<li><p>If the <code>bool *</code> is a <code>nullptr</code> this extension is mandatory.</p></li>
+<li><p>If the <code>bool *</code> points to a boolean, the boolean will be updated to <code>true</code> if the extension is enabled.</p></li>
+</ul>
+<h3 id="packedstringarray-_get_suggested_tracker_names-virtual"><code>PackedStringArray _get_suggested_tracker_names() virtual</code></h3>
+<p>Returns a <a href="PackedStringArray.html">PackedStringArray</a> of positional tracker names that are used within the extension wrapper.</p>
+<h3 id="arraydictionary-_get_viewport_composition_layer_extension_properties-virtual"><code>Array\[Dictionary\] _get_viewport_composition_layer_extension_properties() virtual</code></h3>
+<p>Gets an array of <a href="Dictionary.html">Dictionary</a> s that represent properties, just like <code>Object._get_property_list()</code>, that will be added to <a href="OpenXRCompositionLayer.html">OpenXRCompositionLayer</a> nodes.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread.</p>
+<h3 id="dictionary-_get_viewport_composition_layer_extension_property_defaults-virtual"><code>Dictionary _get_viewport_composition_layer_extension_property_defaults() virtual</code></h3>
+<p>Gets a <a href="Dictionary.html">Dictionary</a> containing the default values for the properties returned by <code>_get_viewport_composition_layer_extension_properties()</code>.</p>
+<h3 id="void-_on_before_instance_created-virtual"><code>void _on_before_instance_created() virtual</code></h3>
+<p>Called before the OpenXR instance is created.</p>
+<p><strong>Note:</strong> This virtual method will be called on the main thread, however, it will be called <em>before</em> OpenXR becomes involved in rendering, so it is safe to write to data that will be used by the render thread.</p>
+<h3 id="bool-_on_event_polledevent-const-void-virtual"><code>bool _on_event_polled(event: </code>const void*<code>) virtual</code></h3>
+<p>Called when there is an OpenXR event to process. When implementing, return <code>true</code> if the event was handled, return <code>false</code> otherwise.</p>
+<h3 id="void-_on_instance_createdinstance-int-virtual"><code>void _on_instance_created(instance: int) virtual</code></h3>
+<p>Called right after the OpenXR instance is created.</p>
+<p><strong>Note:</strong> This virtual method will be called on the main thread, however, it will be called <em>before</em> OpenXR becomes involved in rendering, so it is safe to write to data that will be used by the render thread.</p>
+<h3 id="void-_on_instance_destroyed-virtual"><code>void _on_instance_destroyed() virtual</code></h3>
+<p>Called right before the OpenXR instance is destroyed.</p>
+<p><strong>Note:</strong> This virtual method will be called on the main thread, however, it will be called <em>after</em> OpenXR is done being involved in rendering, so it is safe to write to data that was used by the render thread.</p>
+<h3 id="void-_on_main_swapchains_created-virtual"><code>void _on_main_swapchains_created() virtual</code></h3>
+<p>Called right after the main swapchains are (re)created.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread.</p>
+<h3 id="void-_on_post_draw_viewportviewport-rid-virtual"><code>void _on_post_draw_viewport(viewport: RID) virtual</code></h3>
+<p>Called right after the given viewport is rendered.</p>
+<p><strong>Note:</strong> The draw commands might only be queued at this point, not executed.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread.</p>
+<h3 id="void-_on_pre_draw_viewportviewport-rid-virtual"><code>void _on_pre_draw_viewport(viewport: RID) virtual</code></h3>
+<p>Called right before the given viewport is rendered.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread.</p>
+<h3 id="void-_on_pre_render-virtual"><code>void _on_pre_render() virtual</code></h3>
+<p>Called right before the XR viewports begin their rendering step.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread.</p>
+<h3 id="void-_on_process-virtual"><code>void _on_process() virtual</code></h3>
+<p>Called as part of the OpenXR process handling. This happens right before general and physics processing steps of the main loop. During this step controller data is queried and made available to game logic.</p>
+<h3 id="void-_on_register_metadatainteraction_profile_metadata-openxrinteractionprofilemetadata-virtual"><code>void _on_register_metadata(interaction_profile_metadata: OpenXRInteractionProfileMetadata) virtual</code></h3>
+<p>Allows extensions to register additional controller metadata. This function is called even when the OpenXR API is not constructed as the metadata needs to be available to the editor.</p>
+<p>Extensions should also provide metadata regardless of whether they are supported on the host system. The controller data is used to setup action maps for users who may have access to the relevant hardware.</p>
+<h3 id="void-_on_session_createdsession-int-virtual"><code>void _on_session_created(session: int) virtual</code></h3>
+<p>Called right after the OpenXR session is created.</p>
+<p><strong>Note:</strong> This virtual method will be called on the main thread, however, it will be called <em>before</em> OpenXR becomes involved in rendering, so it is safe to write to data that will be used by the render thread.</p>
+<h3 id="void-_on_session_destroyed-virtual"><code>void _on_session_destroyed() virtual</code></h3>
+<p>Called right before the OpenXR session is destroyed.</p>
+<p><strong>Note:</strong> This virtual method will be called on the main thread, however, it will be called <em>after</em> OpenXR is done being involved in rendering, so it is safe to write to data that was used by the render thread.</p>
+<h3 id="void-_on_state_exiting-virtual"><code>void _on_state_exiting() virtual</code></h3>
+<p>Called when the OpenXR session state is changed to exiting.</p>
+<h3 id="void-_on_state_focused-virtual"><code>void _on_state_focused() virtual</code></h3>
+<p>Called when the OpenXR session state is changed to focused. This state is the active state when the game runs.</p>
+<h3 id="void-_on_state_idle-virtual"><code>void _on_state_idle() virtual</code></h3>
+<p>Called when the OpenXR session state is changed to idle.</p>
+<h3 id="void-_on_state_loss_pending-virtual"><code>void _on_state_loss_pending() virtual</code></h3>
+<p>Called when the OpenXR session state is changed to loss pending.</p>
+<h3 id="void-_on_state_ready-virtual"><code>void _on_state_ready() virtual</code></h3>
+<p>Called when the OpenXR session state is changed to ready. This means OpenXR is ready to set up the session.</p>
+<h3 id="void-_on_state_stopping-virtual"><code>void _on_state_stopping() virtual</code></h3>
+<p>Called when the OpenXR session state is changed to stopping.</p>
+<h3 id="void-_on_state_synchronized-virtual"><code>void _on_state_synchronized() virtual</code></h3>
+<p>Called when the OpenXR session state is changed to synchronized. OpenXR also returns to this state when the application loses focus.</p>
+<h3 id="void-_on_state_visible-virtual"><code>void _on_state_visible() virtual</code></h3>
+<p>Called when the OpenXR session state is changed to visible. This means OpenXR is now ready to receive frames.</p>
+<h3 id="void-_on_sync_actions-virtual"><code>void _on_sync_actions() virtual</code></h3>
+<p>Called when OpenXR has performed its action sync.</p>
+<h3 id="void-_on_viewport_composition_layer_destroyedlayer-const-void-virtual"><code>void _on_viewport_composition_layer_destroyed(layer: </code>const void*<code>) virtual</code></h3>
+<p>Called when a composition layer created via <a href="OpenXRCompositionLayer.html">OpenXRCompositionLayer</a> is destroyed.</p>
+<p><code>layer</code> is a pointer to an <code>XrCompositionLayerBaseHeader</code> struct.</p>
+<h3 id="void-_prepare_view_configurationview_count-int-virtual"><code>void _prepare_view_configuration(view_count: int) virtual</code></h3>
+<p>Called before <code>_set_view_configuration_and_get_next_pointer()</code> to allow the extension to reserve data for the given number of views.</p>
+<h3 id="void-_print_view_configuration_infoview-int-virtual-const"><code>void _print_view_configuration_info(view: int) virtual const</code></h3>
+<p>Called to allow an extension to print additional information about its view configuration, if applicable. This will only be called if verbose output is enabled.</p>
+<h3 id="int-_set_android_surface_swapchain_create_info_and_get_next_pointerproperty_values-dictionary-next_pointer-void-virtual"><code>int _set_android_surface_swapchain_create_info_and_get_next_pointer(property_values: Dictionary, next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures to Android surface swapchains created by <a href="OpenXRCompositionLayer.html">OpenXRCompositionLayer</a>.</p>
+<p><code>property_values</code> contains the values of the properties returned by <code>_get_viewport_composition_layer_extension_properties()</code>.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread.</p>
+<h3 id="int-_set_frame_end_info_and_get_next_pointernext_pointer-void-virtual"><code>int _set_frame_end_info_and_get_next_pointer(next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures to <code>XrFrameEndInfo</code>.</p>
+<p>This will only be called if the extension previously registered itself with <code>OpenXRAPIExtension.register_frame_info_extension()</code>.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread. Additionally, the data it returns will be used shortly after this method is called, so it needs to remain valid until the next time <code>_on_pre_render()</code> runs.</p>
+<h3 id="int-_set_frame_wait_info_and_get_next_pointernext_pointer-void-virtual"><code>int _set_frame_wait_info_and_get_next_pointer(next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures to <code>XrFrameWaitInfo</code>.</p>
+<p>This will only be called if the extension previously registered itself with <code>OpenXRAPIExtension.register_frame_info_extension()</code>.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread.</p>
+<h3 id="int-_set_hand_joint_locations_and_get_next_pointerhand_index-int-next_pointer-void-virtual"><code>int _set_hand_joint_locations_and_get_next_pointer(hand_index: int, next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures when each hand tracker is created.</p>
+<h3 id="int-_set_instance_create_info_and_get_next_pointerxr_version-int-next_pointer-void-virtual"><code>int _set_instance_create_info_and_get_next_pointer(xr_version: int, next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures when the OpenXR instance is created. <code>xr_version</code> specifies the OpenXR version we're instantiating.</p>
+<h3 id="int-_set_projection_layer_and_get_next_pointernext_pointer-void-virtual"><code>int _set_projection_layer_and_get_next_pointer(next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Adds additional data structures to <code>XrCompositionLayerProjection</code>.</p>
+<p>This will only be called if the extension previously registered itself with <code>OpenXRAPIExtension.register_projection_layer_extension()</code>.</p>
+<h3 id="int-_set_projection_views_and_get_next_pointerview_index-int-next_pointer-void-virtual"><code>int _set_projection_views_and_get_next_pointer(view_index: int, next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures to the projection view of the given <code>view_index</code>.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread. Additionally, the data it returns will be used shortly after this method is called, so it needs to remain valid until the next time <code>_on_pre_render()</code> runs.</p>
+<h3 id="int-_set_reference_space_create_info_and_get_next_pointerreference_space_type-int-next_pointer-void-virtual"><code>int _set_reference_space_create_info_and_get_next_pointer(reference_space_type: int, next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures to <code>XrReferenceSpaceCreateInfo</code>.</p>
+<h3 id="int-_set_session_create_and_get_next_pointernext_pointer-void-virtual"><code>int _set_session_create_and_get_next_pointer(next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures when the OpenXR session is created.</p>
+<h3 id="int-_set_swapchain_create_info_and_get_next_pointernext_pointer-void-virtual"><code>int _set_swapchain_create_info_and_get_next_pointer(next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures when creating OpenXR swapchains.</p>
+<h3 id="int-_set_system_properties_and_get_next_pointernext_pointer-void-virtual"><code>int _set_system_properties_and_get_next_pointer(next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures when querying OpenXR system abilities.</p>
+<h3 id="int-_set_view_configuration_and_get_next_pointerview-int-next_pointer-void-virtual"><code>int _set_view_configuration_and_get_next_pointer(view: int, next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures when querying OpenXR view configuration.</p>
+<h3 id="int-_set_view_locate_info_and_get_next_pointernext_pointer-void-virtual"><code>int _set_view_locate_info_and_get_next_pointer(next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures to <code>XrViewLocateInfo</code>.</p>
+<p>This will only be called if the extension previously registered itself with <code>OpenXRAPIExtension.register_frame_info_extension()</code>.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread. Additionally, the data it returns will be used shortly after this method is called, so it needs to remain valid until the next time <code>_on_pre_render()</code> runs.</p>
+<h3 id="int-_set_viewport_composition_layer_and_get_next_pointerlayer-const-void-property_values-dictionary-next_pointer-void-virtual"><code>int _set_viewport_composition_layer_and_get_next_pointer(layer: </code>const void*<code>, property_values: Dictionary, next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures to composition layers created by <a href="OpenXRCompositionLayer.html">OpenXRCompositionLayer</a>.</p>
+<p><code>property_values</code> contains the values of the properties returned by <code>_get_viewport_composition_layer_extension_properties()</code>.</p>
+<p><code>layer</code> is a pointer to an <code>XrCompositionLayerBaseHeader</code> struct.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread. Additionally, the data it returns will be used shortly after this method is called, so it needs to remain valid until the next time <code>_on_pre_render()</code> runs.</p>
+<h3 id="openxrapiextension-get_openxr_api"><code>OpenXRAPIExtension get_openxr_api()</code></h3>
+<p>Returns the created <a href="OpenXRAPIExtension.html">OpenXRAPIExtension</a>, which can be used to access the OpenXR API.</p>
+<h3 id="void-register_extension_wrapper"><code>void register_extension_wrapper()</code></h3>
+<p>Registers the extension. This should happen at core module initialization level.</p>
+<p><strong>Note:</strong> This cannot be called once OpenXR has been initialized.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

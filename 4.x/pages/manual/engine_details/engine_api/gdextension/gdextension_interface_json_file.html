@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The C interface JSON file — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="the-c-interface-json-file">The C interface JSON file</h1>
+<p>The <code>gdextension_interface.json</code> file is the "source of truth" for the C API that Godot uses to communicate with GDExtensions.</p>
+<p>You can use the Godot executable to dump the file by using the following command:</p>
+<pre class="shell"><code>godot --headless --dump-gdextension-interface-json</code></pre>
+<p>This file is intended to be used by GDExtension language bindings to generate code for using this API in whatever form makes the most sense for that language.</p>
+<blockquote>
+<p><strong>Note:</strong> This is not to be confused with the <code>extension_api.json</code>, which is also used by GDExtension language bindings, and contains information about the classes and methods that are exposed by Godot. The <code>gdextension_interface.json</code> is more low-level, and is used to interact with those higher-level classes and methods.</p>
+</blockquote>
+<p>For languages that can be extended via C, or provide tools for interacting with C code, it's also possible to use the Godot executable to dump a generated C header file:</p>
+<pre class="shell"><code>godot --headless --dump-gdextension-interface</code></pre>
+<blockquote>
+<p><strong>Note:</strong> The header file is compatible with earlier versions of the header file that were included with Godot 4.5 and earlier, which means it preserves some typos in names in order to ensure compatibility.</p>
+</blockquote>
+<p>The goal of this page is to explain the JSON format for the GDExtension language bindings that would like to do their own code generation from the JSON.</p>
+<h2 id="overall-structure">Overall structure</h2>
+<p>The JSON file is broken up into 3 sections:</p>
+<ul>
+<li>The header, which includes some miscellaneous information at the top-level of the JSON file.</li>
+<li>The <code>types</code> key, which defines all the types used in the GDExtension interface.</li>
+<li>The <code>interface</code> key, which defines all the function pointers that can be loaded via the <code>GDExtensionInterfaceGetProcAddress</code> function pointer, which is passed to all GDExtensions when they are loaded.</li>
+</ul>
+<p>There is a complete <a href="https://github.com/godotengine/godot/blob/master/core/extension/gdextension_interface.schema.json">JSON schema</a> included in Godot's source code.</p>
+<p>Even though we may add new types and interface functions with each minor release of Godot, we strive to <strong>never</strong> change them in a backwards incompatible way, or remove them. Every interface function is labeled with the version of Godot it was introduced in (the <code>since</code> key), so you can always use the latest version of the file, and simply refrain from using anything in versions of Godot that are newer than the version you are targeting.</p>
+<h2 id="header">Header</h2>
+<p>The "header" is made up of 3 miscellaneous keys at the top-level of the file:</p>
+<ul>
+<li><code>_copyright</code>: The standard copyright and license text that Godot includes in all source code files.</li>
+<li><code>$schema</code>: Points to the JSON schema relative to this file. It can be useful to place the schema in the same directory, if you're viewing it with a code editor that understands JSON schema.</li>
+<li><code>format_version</code>: An integer for the version of the file format (meaning the schema). Right now, there is only one format version (<code>1</code>). If we ever change the file format in an incompatible way, we will increment this number. This <em>doesn't</em> reflect the version of the data in the file (so it won't change between Godot versions), only its format. Hopefully, we'll never have to use it, but it allows code generators to error early if they encounter an unexpected value here.</li>
+</ul>
+<h2 id="types">Types</h2>
+<p>The <code>types</code> section is an array of types that will be used by other types, and the interface functions that will be in the last section.</p>
+<p>The types should be evaluated in order. Later types may refer to earlier types, but earlier types will not refer to later types.</p>
+<p>There is a small set of built-in types which aren't explicitly listed in the JSON:</p>
+<ul>
+<li><code>void</code></li>
+<li><code>int8_t</code></li>
+<li><code>uint8_t</code></li>
+<li><code>int16_t</code></li>
+<li><code>uint16_t</code></li>
+<li><code>int32_t</code></li>
+<li><code>uint32_t</code></li>
+<li><code>int64_t</code></li>
+<li><code>uint64_t</code></li>
+<li><code>size_t</code> (<code>uint32_t</code> on 32-bit architectures, and <code>uint64_t</code> on 64-bit architectures)</li>
+<li><code>char</code></li>
+<li><code>char16_t</code></li>
+<li><code>char32_t</code></li>
+<li><code>wchar_t</code></li>
+<li><code>float</code></li>
+<li><code>double</code></li>
+</ul>
+<p>These correspond to their equivalent C types.</p>
+<p>Additionally, types can include modifiers such as:</p>
+<ul>
+<li><code>*</code> (e.g. <code>int8_t*</code>) to indicate a pointer to the type</li>
+<li><code>const</code> (e.g. <code>const int8_t*</code>) to indicate a const type</li>
+</ul>
+<p>Each type defined in the JSON file falls into one of 5 "kinds":</p>
+<ul>
+<li><code>enum</code></li>
+<li><code>handle</code></li>
+<li><code>alias</code></li>
+<li><code>struct</code></li>
+<li><code>function</code></li>
+</ul>
+<p>Regardless of the "kind", all types can have the following keys:</p>
+<ul>
+<li><code>kind</code> (required): The type's "kind".</li>
+<li><code>name</code> (required): The name of the type, which could be used as a valid C identifier.</li>
+<li><code>description</code>: An array of strings documenting the type, where each string is a line of documentation (this format for <code>description</code> is used throughout the JSON file).</li>
+<li><code>deprecated</code>: An object with its own keys for the Godot version the type was deprecated in (<code>since</code>), a message explaining the deprecation (<code>message</code>), and optionally a replacement to use instead (<code>replacement</code>).</li>
+</ul>
+<h3 id="enums">Enums</h3>
+<p>Enums are 32-bit integers with a fixed set of possible values. In C, they could be represented as an <code>enum</code>.</p>
+<p>They have the following keys:</p>
+<ul>
+<li><code>is_bitfield</code>: If true, this enum is a bitfield, where the enum values can be bitwise OR'd together. It is false by default.</li>
+<li><code>values</code>: The array of fixed values for this enum, each with a <code>name</code>, <code>value</code>, and <code>description</code>.</li>
+</ul>
+<p>An enum should be represented as an <code>int32_t</code>, unless <code>is_bitfield</code> is true, in which case a <code>uint32_t</code> should be used.</p>
+<h4 id="example">Example</h4>
+<div class="sourceCode" id="cb3"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;GDExtensionInitializationLevel&quot;</span><span class="fu">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;kind&quot;</span><span class="fu">:</span> <span class="st">&quot;enum&quot;</span><span class="fu">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;values&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;GDEXTENSION_INITIALIZATION_CORE&quot;</span><span class="fu">,</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="dv">0</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;GDEXTENSION_INITIALIZATION_SERVERS&quot;</span><span class="fu">,</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="dv">1</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;GDEXTENSION_INITIALIZATION_SCENE&quot;</span><span class="fu">,</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="dv">2</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;GDEXTENSION_INITIALIZATION_EDITOR&quot;</span><span class="fu">,</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="dv">3</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;GDEXTENSION_MAX_INITIALIZATION_LEVEL&quot;</span><span class="fu">,</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="dv">4</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="handles">Handles</h3>
+<p>Handles are pointers to opaque structs. In C, they could be represented as <code>void *</code> or <code>struct{} *</code>.</p>
+<p>They have the following keys:</p>
+<ul>
+<li><code>is_const</code>: If true, this handle type is to be treated as a "const pointer", meaning its internal data will not be changed. It is false by default.</li>
+<li><code>is_uninitialized</code>: If true, this handle type is to be treated as pointing to uninitialized memory (which may be initialized using interface functions). It is false by default.</li>
+<li><code>parent</code>: The optional name of another handle type, if this handle type is the const or uninitialized version of the parent type. This only makes sense if either <code>is_const</code> or <code>is_uninitialized</code> is true.</li>
+</ul>
+<p>Handles are the size of pointers on the given architecture (so, 64-bit on x86_64 and 32-bit on x86_32, for example).</p>
+<h4 id="example-1">Example</h4>
+<div class="sourceCode" id="cb4"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;GDExtensionStringNamePtr&quot;</span><span class="fu">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;kind&quot;</span><span class="fu">:</span> <span class="st">&quot;handle&quot;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="aliases">Aliases</h3>
+<p>Aliases are alternative names for a type. In C, they could be represented as a <code>typedef</code>.</p>
+<p>They have only one additional key:</p>
+<ul>
+<li><code>type</code>: The type the alias is an alternative name for. It may include modifiers as described above.</li>
+</ul>
+<p>These should be represented using the same C type as the type they refer to.</p>
+<h4 id="example-2">Example</h4>
+<div class="sourceCode" id="cb5"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;GDExtensionInt&quot;</span><span class="fu">,</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;kind&quot;</span><span class="fu">:</span> <span class="st">&quot;alias&quot;</span><span class="fu">,</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;int64_t&quot;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="structs">Structs</h3>
+<p>Structs represent C <code>struct</code>s (aka a block of memory made up of the given members in order), and should follow all the same layout and alignment rules as C structs.</p>
+<p>They have only one additional key:</p>
+<ul>
+<li><code>members</code>: An array of objects which have a <code>name</code>, <code>type</code> (which may include modifiers), and <code>description</code>.</li>
+</ul>
+<h4 id="example-3">Example</h4>
+<div class="sourceCode" id="cb6"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;GDExtensionCallError&quot;</span><span class="fu">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;kind&quot;</span><span class="fu">:</span> <span class="st">&quot;struct&quot;</span><span class="fu">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;members&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;error&quot;</span><span class="fu">,</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;GDExtensionCallErrorType&quot;</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;argument&quot;</span><span class="fu">,</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;int32_t&quot;</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;expected&quot;</span><span class="fu">,</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;int32_t&quot;</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="functions">Functions</h3>
+<p>Functions represent C function pointer types, with a list of arguments and a return type, and should follow the same size and alignment requirements as C function pointers.</p>
+<p>They have the following members:</p>
+<ul>
+<li><code>return_value</code>: An object which has a <code>type</code> (which may include modifiers) and <code>description</code>. If the function has no return value, this will be omitted.</li>
+<li><code>arguments</code> (required): An array of function arguments which each has a <code>type</code> (which may include modifiers), <code>name</code>, and <code>description</code>.</li>
+</ul>
+<h4 id="example-4">Example</h4>
+<div class="sourceCode" id="cb7"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;GDExtensionPtrConstructor&quot;</span><span class="fu">,</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;kind&quot;</span><span class="fu">:</span> <span class="st">&quot;function&quot;</span><span class="fu">,</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;arguments&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;p_base&quot;</span><span class="fu">,</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;GDExtensionUninitializedTypePtr&quot;</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;p_args&quot;</span><span class="fu">,</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;const GDExtensionConstTypePtr*&quot;</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2 id="interface">Interface</h2>
+<p>The <code>interface</code> section of the JSON file is the list of interface functions, which can be loaded by <code>name</code> using the <code>GDExtensionInterfaceGetProcAddress</code> function pointer, which is passed to all GDExtensions when they are loaded.</p>
+<p>Interface functions have some of the same keys as types, including <code>name</code> (required), <code>deprecated</code>, and <code>description</code>.</p>
+<p>And they also have <code>return_value</code> and <code>arguments</code> (required) that have the same format as the equivalent keys on function types (as described in the previous section).</p>
+<p>There are only a handful of unique keys:</p>
+<ul>
+<li><code>since</code> (required): The Godot version that introduced this interface function.</li>
+<li><code>see</code>: An array of strings describing external references with more information, for example, names of classes or functions in the Godot source code, or URLs pointing to documentation.</li>
+<li><code>legacy_type_name</code>: The legacy name used for the function pointer type in the header generated by Godot, when the legacy name doesn't match the pattern used for these type names. This field only exists so that we can generate the header in a way that is backwards compatible with the header from Godot 4.5 or earlier, and it shouldn't be used unless you also need to maintain compatibility with the old header.</li>
+</ul>
+<h3 id="example-5">Example</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;get_godot_version&quot;</span><span class="fu">,</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;arguments&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;r_godot_version&quot;</span><span class="fu">,</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;GDExtensionGodotVersion*&quot;</span><span class="fu">,</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;A pointer to the structure to write the version information into.&quot;</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Gets the Godot version that the GDExtension was loaded into.&quot;</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;since&quot;</span><span class="fu">:</span> <span class="st">&quot;4.1&quot;</span><span class="fu">,</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;deprecated&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;since&quot;</span><span class="fu">:</span> <span class="st">&quot;4.5&quot;</span><span class="fu">,</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;replace_with&quot;</span><span class="fu">:</span> <span class="st">&quot;get_godot_version2&quot;</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

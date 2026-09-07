@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inspector plugins — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="inspector-plugins">Inspector plugins</h1>
+<p>The inspector dock allows you to create custom widgets to edit properties through plugins. This can be beneficial when working with custom datatypes and resources, although you can use the feature to change the inspector widgets for built-in types. You can design custom controls for specific properties, entire objects, and even separate controls associated with particular datatypes.</p>
+<p>This guide explains how to use the <code>class_EditorInspectorPlugin</code> and <code>class_EditorProperty</code> classes to create a custom interface for integers, replacing the default behavior with a button that generates random values between 0 and 99.</p>
+<p>The default behavior on the left and the end result on the right.</p>
+<h2 id="setting-up-your-plugin">Setting up your plugin</h2>
+<p>Create a new empty plugin to get started.</p>
+<blockquote>
+<p><strong>See also:</strong> See <code>doc_making_plugins</code> guide to set up your new plugin.</p>
+</blockquote>
+<p>Let's assume you've called your plugin folder <code>my_inspector_plugin</code>. If so, you should end up with a new <code>addons/my_inspector_plugin</code> folder that contains two files: <code>plugin.cfg</code> and <code>plugin.gd</code>.</p>
+<p>As before, <code>plugin.gd</code> is a script extending <code>class_EditorPlugin</code> and you need to introduce new code for its <code>_enter_tree</code> and <code>_exit_tree</code> methods. To set up your inspector plugin, you must load its script, then create and add the instance by calling <code>add_inspector_plugin()</code>. If the plugin is disabled, you should remove the instance you have added by calling <code>remove_inspector_plugin()</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> Here, you are loading a script and not a packed scene. Therefore you should use <code>new()</code> instead of <code>instance()</code>.</p>
+</blockquote>
+<pre class="gdscript"><code># plugin.gd
+tool
+extends EditorPlugin
+
+var plugin
+
+
+func _enter_tree():
+    plugin = preload(&quot;res://addons/my_inspector_plugin/MyInspectorPlugin.gd&quot;).new()
+    add_inspector_plugin(plugin)
+
+
+func _exit_tree():
+    remove_inspector_plugin(plugin)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Plugin.cs</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">#if</span> TOOLS</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> Plugin <span class="op">:</span> EditorPlugin</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> MyInspectorPlugin _plugin<span class="op">;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_EnterTree</span><span class="op">()</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        _plugin <span class="op">=</span> <span class="kw">new</span> <span class="fu">MyInspectorPlugin</span><span class="op">();</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">AddInspectorPlugin</span><span class="op">(</span>_plugin<span class="op">);</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_ExitTree</span><span class="op">()</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">RemoveInspectorPlugin</span><span class="op">(</span>_plugin<span class="op">);</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="kw">#endif</span></span></code></pre></div>
+<h2 id="interacting-with-the-inspector">Interacting with the inspector</h2>
+<p>To interact with the inspector dock, your <code>MyInspectorPlugin.gd</code> script must extend the <code>class_EditorInspectorPlugin</code> class. This class provides several virtual methods that affect how the inspector handles properties.</p>
+<p>To have any effect at all, the script must implement the <code>can_handle()</code> method. This function is called for each edited <code>class_Object</code> and must return <code>true</code> if this plugin should handle the object or its properties.</p>
+<blockquote>
+<p><strong>Note:</strong> This includes any <code>class_Resource</code> attached to the object.</p>
+</blockquote>
+<p>You can implement four other methods to add controls to the inspector at specific positions. The <code>parse_begin()</code> and <code>parse_end()</code> methods are called only once at the beginning and the end of parsing for each object, respectively. They can add controls at the top or bottom of the inspector layout by calling <code>add_custom_control()</code>.</p>
+<p>As the editor parses the object, it calls the <code>parse_category()</code> and <code>parse_property()</code> methods. There, in addition to <code>add_custom_control()</code>, you can call both <code>add_property_editor()</code> and <code>add_property_editor_for_multiple_properties()</code>. Use these last two methods to specifically add <code>class_EditorProperty</code>-based controls.</p>
+<pre class="gdscript"><code># MyInspectorPlugin.gd
+extends EditorInspectorPlugin
+
+var RandomIntEditor = preload(&quot;res://addons/my_inspector_plugin/RandomIntEditor.gd&quot;)
+
+
+func can_handle(object):
+    # We support all objects in this example.
+    return true
+
+
+func parse_property(object, type, path, hint, hint_text, usage):
+    # We handle properties of type integer.
+    if type == TYPE_INT:
+        # Create an instance of the custom property editor and register
+        # it to a specific property path.
+        add_property_editor(path, RandomIntEditor.new())
+        # Inform the editor to remove the default property editor for
+        # this property type.
+        return true
+    else:
+        return false</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// MyInspectorPlugin.cs</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">#if</span> TOOLS</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> MyInspectorPlugin <span class="op">:</span> EditorInspectorPlugin</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">bool</span> <span class="fu">CanHandle</span><span class="op">(</span>Object @object<span class="op">)</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// We support all objects in this example.</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">bool</span> <span class="fu">ParseProperty</span><span class="op">(</span>Object @object<span class="op">,</span> <span class="dt">int</span> type<span class="op">,</span> <span class="dt">string</span> path<span class="op">,</span> <span class="dt">int</span> hint<span class="op">,</span> <span class="dt">string</span> hintText<span class="op">,</span> <span class="dt">int</span> usage<span class="op">)</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">// We handle properties of type integer.</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>type <span class="op">==</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>Variant<span class="op">.</span><span class="fu">Type</span><span class="op">.</span><span class="fu">Int</span><span class="op">)</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Create an instance of the custom property editor and register</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>            <span class="co">// it to a specific property path.</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>            <span class="fu">AddPropertyEditor</span><span class="op">(</span>path<span class="op">,</span> <span class="kw">new</span> <span class="fu">RandomIntEditor</span><span class="op">());</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Inform the editor to remove the default property editor for</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>            <span class="co">// this property type.</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a><span class="kw">#endif</span></span></code></pre></div>
+<h2 id="adding-an-interface-to-edit-properties">Adding an interface to edit properties</h2>
+<p>The <code>class_EditorProperty</code> class is a special type of <code>class_Control</code> that can interact with the inspector dock's edited objects. It doesn't display anything but can house any other control nodes, including complex scenes.</p>
+<p>There are three essential parts to the script extending <code>class_EditorProperty</code>:</p>
+<ol type="1">
+<li>You must define the <code>_init()</code> method to set up the control nodes' structure.</li>
+<li>You should implement the <code>update_property()</code> to handle changes to the data from the outside.</li>
+<li>A signal must be emitted at some point to inform the inspector that the control has changed the property using <code>emit_changed</code>.</li>
+</ol>
+<p>You can display your custom widget in two ways. Use just the default <code>add_child()</code> method to display it to the right of the property name, and use <code>add_child()</code> followed by <code>set_bottom_editor()</code> to position it below the name.</p>
+<pre class="gdscript"><code># RandomIntEditor.gd
+extends EditorProperty
+
+
+# The main control for editing the property.
+var property_control = Button.new()
+# An internal value of the property.
+var current_value = 0
+# A guard against internal changes when the property is updated.
+var updating = false
+
+
+func _init():
+    # Add the control as a direct child of EditorProperty node.
+    add_child(property_control)
+    # Make sure the control is able to retain the focus.
+    add_focusable(property_control)
+    # Setup the initial state and connect to the signal to track changes.
+    refresh_control_text()
+    property_control.connect(&quot;pressed&quot;, self, &quot;_on_button_pressed&quot;)
+
+
+func _on_button_pressed():
+    # Ignore the signal if the property is currently being updated.
+    if (updating):
+        return
+
+    # Generate a new random integer between 0 and 99.
+    current_value = randi() % 100
+    refresh_control_text()
+    emit_changed(get_edited_property(), current_value)
+
+
+func update_property():
+    # Read the current value from the property.
+    var new_value = get_edited_object()[get_edited_property()]
+    if (new_value == current_value):
+        return
+
+    # Update the control with the new value.
+    updating = true
+    current_value = new_value
+    refresh_control_text()
+    updating = false
+
+func refresh_control_text():
+    property_control.text = &quot;Value: &quot; + str(current_value)</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// RandomIntEditor.cs</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">#if</span> TOOLS</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Tool<span class="op">]</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> RandomIntEditor <span class="op">:</span> EditorProperty</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// The main control for editing the property.</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Button _propertyControl <span class="op">=</span> <span class="kw">new</span> <span class="fu">Button</span><span class="op">();</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// An internal value of the property.</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">int</span> _currentValue <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// A guard against internal changes when the property is updated.</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">bool</span> _updating <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="fu">RandomIntEditor</span><span class="op">()</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Add the control as a direct child of EditorProperty node.</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">AddChild</span><span class="op">(</span>_propertyControl<span class="op">);</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Make sure the control is able to retain the focus.</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>        <span class="fu">AddFocusable</span><span class="op">(</span>_propertyControl<span class="op">);</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Setup the initial state and connect to the signal to track changes.</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>        <span class="fu">RefreshControlText</span><span class="op">();</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>        _propertyControl<span class="op">.</span><span class="fu">Connect</span><span class="op">(</span><span class="st">&quot;pressed&quot;</span><span class="op">,</span> <span class="kw">this</span><span class="op">,</span> <span class="fu">nameof</span><span class="op">(</span>OnButtonPressed<span class="op">));</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnButtonPressed</span><span class="op">()</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Ignore the signal if the property is currently being updated.</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>_updating<span class="op">)</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span><span class="op">;</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Generate a new random integer between 0 and 99.</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>        _currentValue <span class="op">=</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>GD<span class="op">.</span><span class="fu">Randi</span><span class="op">()</span> <span class="op">%</span> <span class="dv">100</span><span class="op">;</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>        <span class="fu">RefreshControlText</span><span class="op">();</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>        <span class="fu">EmitChanged</span><span class="op">(</span><span class="fu">GetEditedProperty</span><span class="op">(),</span> _currentValue<span class="op">);</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">UpdateProperty</span><span class="op">()</span></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Read the current value from the property.</span></span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>        <span class="dt">var</span> newValue <span class="op">=</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span><span class="fu">GetEditedObject</span><span class="op">().</span><span class="fu">Get</span><span class="op">(</span><span class="fu">GetEditedProperty</span><span class="op">());</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>newValue <span class="op">==</span> _currentValue<span class="op">)</span></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span><span class="op">;</span></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Update the control with the new value.</span></span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>        _updating <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a>        _currentValue <span class="op">=</span> newValue<span class="op">;</span></span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>        <span class="fu">RefreshControlText</span><span class="op">();</span></span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a>        _updating <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">RefreshControlText</span><span class="op">()</span></span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a>        _propertyControl<span class="op">.</span><span class="fu">Text</span> <span class="op">=</span> $<span class="st">&quot;Value: {_currentValue}&quot;</span><span class="op">;</span></span>
+<span id="cb6-59"><a href="#cb6-59" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-60"><a href="#cb6-60" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-61"><a href="#cb6-61" aria-hidden="true" tabindex="-1"></a><span class="kw">#endif</span></span></code></pre></div>
+<p>Using the example code above you should be able to make a custom widget that replaces the default <code>class_SpinBox</code> control for integers with a <code>class_Button</code> that generates random values.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

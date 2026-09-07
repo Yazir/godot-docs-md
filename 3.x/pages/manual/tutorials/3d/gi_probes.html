@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using GIProbe — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-giprobe">Using GIProbe</h1>
+<h2 id="introduction">Introduction</h2>
+<blockquote>
+<p><strong>Note:</strong> This feature is only available when using the GLES3 backend. <code>doc_baked_lightmaps</code> can be used as an alternative when using the GLES2 renderer.</p>
+</blockquote>
+<p>Just like with <code>doc_reflection_probes</code>, and as stated in the <code>doc_spatial_material</code>, objects can show reflected or diffuse light. GI Probes are similar to Reflection Probes, but they use a different and more complex technique to produce indirect light and reflections.</p>
+<p>The strength of GI Probes is real-time, high quality, indirect light. While the scene needs a quick pre-bake for the static objects that will be used, lights can be added, changed or removed, and this will be updated in real-time. Dynamic objects that move within one of these probes will also receive indirect lighting from the scene automatically.</p>
+<p>Just like with <code>ReflectionProbe</code>, <code>GIProbe</code> can be blended (in a bit more limited way), so it is possible to provide full real-time lighting for a stage without having to resort to lightmaps.</p>
+<p>The main downsides of <code>GIProbe</code> are:</p>
+<ul>
+<li>A small amount of light leaking can occur if the level is not carefully designed. This must be artist-tweaked.</li>
+<li>Performance requirements are higher than for lightmaps, so it may not run properly in low-end integrated GPUs (may need to reduce resolution).</li>
+<li>Reflections are voxelized, so they don't look as sharp as with <code>ReflectionProbe</code>. However, in exchange they are volumetric, so any room size or shape works for them. Mixing them with Screen Space Reflection also works well.</li>
+<li>They consume considerably more video memory than Reflection Probes, so they must be used with care in the right subdivision sizes.</li>
+</ul>
+<h2 id="setting-up">Setting up</h2>
+<p>Just like a <code>ReflectionProbe</code>, simply set up the <code>GIProbe</code> by wrapping it around the geometry that will be affected.</p>
+<p>Afterwards, make sure to enable the <strong>Use In Baked Light</strong> property on the geometry instances in the inspector. This is required for <code>GIProbe</code> to recognize objects, otherwise they will be ignored:</p>
+<p>Once the geometry is set up, push the Bake button that appears on the 3D editor toolbar to begin the pre-baking process:</p>
+<blockquote>
+<p><strong>Warning:</strong> Meshes should have sufficiently thick walls to avoid light leaks (avoid one-sided walls). For interior levels, enclose your level geometry in a sufficiently large box and bridge the loops to close the mesh.</p>
+</blockquote>
+<h2 id="adding-lights">Adding lights</h2>
+<p>Unless there are materials with emission, <code>GIProbe</code> does nothing by default. Lights need to be added to the scene to have an effect.</p>
+<p>The effect of indirect light can be viewed quickly (it is recommended you turn off all ambient/sky lighting to tweak this, though, as shown below):</p>
+<p>In some situations, though, indirect light may be too weak. Lights have an indirect multiplier to tweak this:</p>
+<p>And, as <code>GIProbe</code> lighting updates in real-time, this effect is immediate:</p>
+<h2 id="reflections">Reflections</h2>
+<p>For very metallic materials with low roughness, it's possible to appreciate voxel reflections. Keep in mind that these have far less detail than Reflection Probes or Screen Space Reflections, but fully reflect volumetrically.</p>
+<p><code>GIProbe</code>s can be easily mixed with Reflection Probes and Screen Space Reflections, as a full 3-stage fallback-chain. This allows to have precise reflections where needed:</p>
+<h2 id="interior-vs-exterior">Interior vs exterior</h2>
+<p>GI Probes normally allow mixing with lighting from the sky. This can be disabled when turning on the <em>Interior</em> setting.</p>
+<p>The difference becomes clear in the image below, where light from the sky goes from spreading inside to being ignored.</p>
+<p>As complex buildings may mix interiors with exteriors, combining GIProbes for both parts works well.</p>
+<h2 id="tweaking">Tweaking</h2>
+<p>GI Probes support a few parameters for tweaking:</p>
+<ul>
+<li><strong>Subdiv</strong> Subdivision used for the probe. The default (128) is generally good for small- to medium-sized areas. Bigger subdivisions use more memory.</li>
+<li><strong>Extents</strong> Size of the probe. Can be tweaked from the gizmo.</li>
+<li><strong>Dynamic Range</strong> Maximum light energy the probe can absorb. Higher values allow brighter light, but with less color detail.</li>
+<li><strong>Energy</strong> Multiplier for all the probe. Can be used to make the indirect light brighter (although it's better to tweak this from the light itself).</li>
+<li><strong>Propagation</strong> How much light propagates through the probe internally.</li>
+<li><strong>Bias</strong> Value used to avoid self-occlusion when doing voxel cone tracing, should generally be above 1.0 (1==voxel size).</li>
+<li><strong>Normal Bias</strong> Alternative type of bias useful for some scenes. Experiment with this one if regular bias does not work.</li>
+<li><strong>Interior</strong> Allows mixing with lighting from the sky.</li>
+<li><strong>Compress</strong> Currently broken. Do not use.</li>
+<li><strong>Data</strong> Contains the light baked data after baking. If you are saving the data it should be saved as a .res file.</li>
+</ul>
+<h2 id="quality">Quality</h2>
+<p><code>GIProbe</code>s are quite demanding. It is possible to use lower quality voxel cone tracing in exchange for more performance.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

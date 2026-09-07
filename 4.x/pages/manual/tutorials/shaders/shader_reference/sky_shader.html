@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sky shaders — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="sky-shaders">Sky shaders</h1>
+<p>Sky shaders are a special type of shader used for drawing sky backgrounds and for updating radiance cubemaps which are used for image-based lighting (IBL). Sky shaders only have one processing function, the <code>sky()</code> function.</p>
+<p>There are three places the sky shader is used.</p>
+<ul>
+<li>First the sky shader is used to draw the sky when you have selected to use a Sky as the background in your scene.</li>
+<li>Second, the sky shader is used to update the radiance cubemap when using the Sky for ambient color or reflections.</li>
+<li>Third, the sky shader is used to draw the lower res subpasses which can be used in the high-res background or cubemap pass.</li>
+</ul>
+<p>In total, this means the sky shader can run up to six times per frame, however, in practice it will be much less than that because the radiance cubemap does not need to be updated every frame, and not all subpasses will be used. You can change the behavior of the shader based on where it is called by checking the <code>AT_*_PASS</code> booleans. For example:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>shader_type sky<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">sky</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>AT_CUBEMAP_PASS<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Sets the radiance cubemap to a nice shade of blue instead of doing</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>        <span class="co">// expensive sky calculations</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        COLOR <span class="op">=</span> <span class="dt">vec3</span><span class="op">(</span><span class="fl">0.2</span><span class="op">,</span> <span class="fl">0.6</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">);</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Do expensive sky calculations for background sky only</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        COLOR <span class="op">=</span> <span class="fu">get_sky_color</span><span class="op">(</span>EYEDIR<span class="op">);</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>When using the sky shader to draw a background, the shader will be called for all non-occluded fragments on the screen. However, for the background's subpasses, the shader will be called for every pixel of the subpass.</p>
+<p>When using the sky shader to update the radiance cubemap, the sky shader will be called for every pixel in the cubemap. On the other hand, the shader will only be called when the radiance cubemap needs to be updated. The radiance cubemap needs to be updated when any of the shader parameters are updated. For example, if <code>TIME</code> is used in the shader, then the radiance cubemap will update every frame. The following list of changes force an update of the radiance cubemap:</p>
+<ul>
+<li><code>TIME</code> is used.</li>
+<li><code>POSITION</code> is used and the camera position changes.</li>
+<li>If any <code>LIGHTX_*</code> properties are used and any ref changes.</li>
+<li>If any uniform is changed in the shader.</li>
+<li>If the screen is resized and either of the subpasses are used.</li>
+</ul>
+<p>Try to avoid updating the radiance cubemap needlessly. If you do need to update the radiance cubemap each frame, make sure your ref is set to ref.</p>
+<p>Note that the ref only affects the rendering of the radiance cubemap. The visible sky is always rendered by calling the fragment shader for every pixel. With complex fragment shaders, this can result in a high rendering overhead. If the sky is static (the conditions listed above are met) or changes slowly, running the full fragment shader every frame is not needed. This can be avoided by rendering the full sky into the radiance cubemap, and reading from this cubemap when rendering the visible sky. With a completely static sky, this means that it needs to be rendered only once.</p>
+<p>The following code renders the full sky into the radiance cubemap and reads from that cubemap for displaying the visible sky:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>shader_type sky<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">sky</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>AT_CUBEMAP_PASS<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">vec3</span> dir <span class="op">=</span> EYEDIR<span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">vec4</span> col <span class="op">=</span> <span class="dt">vec4</span><span class="op">(</span><span class="fl">0.0</span><span class="op">);</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Complex color calculation</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        COLOR <span class="op">=</span> col<span class="op">.</span><span class="fu">xyz</span><span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        ALPHA <span class="op">=</span> <span class="fl">1.0</span><span class="op">;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        COLOR <span class="op">=</span> <span class="bu">texture</span><span class="op">(</span>RADIANCE<span class="op">,</span> EYEDIR<span class="op">).</span><span class="fu">rgb</span><span class="op">;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This way, the complex calculations happen only in the cubemap pass, which can be optimized by setting the sky's ref and the ref to get the desired balance between performance and visual fidelity.</p>
+<h2 id="render-modes">Render modes</h2>
+<p>Subpasses allow you to do more expensive calculations at a lower resolution to speed up your shaders. For example the following code renders clouds at a lower resolution than the rest of the sky:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>shader_type sky<span class="op">;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>render_mode use_half_res_pass<span class="op">;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">sky</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>AT_HALF_RES_PASS<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Run cloud calculation for 1/4 of the pixels</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">vec4</span> color <span class="op">=</span> <span class="fu">generate_clouds</span><span class="op">(</span>EYEDIR<span class="op">);</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        COLOR <span class="op">=</span> color<span class="op">.</span><span class="fu">rgb</span><span class="op">;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        ALPHA <span class="op">=</span> color<span class="op">.</span><span class="fu">a</span><span class="op">;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// At full resolution pass, blend sky and clouds together</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        <span class="dt">vec3</span> color <span class="op">=</span> <span class="fu">generate_sky</span><span class="op">(</span>EYEDIR<span class="op">);</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        COLOR <span class="op">=</span> color <span class="op">+</span> HALF_RES_COLOR<span class="op">.</span><span class="fu">rgb</span> <span class="op">*</span> HALF_RES_COLOR<span class="op">.</span><span class="fu">a</span><span class="op">;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th>Render mode</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>use_half_res_pass</strong></td>
+<td>Allows the shader to write to and access the half resolution pass.</td>
+</tr>
+<tr class="even">
+<td><strong>use_quarter_res_pass</strong></td>
+<td>Allows the shader to write to and access the quarter resolution pass.</td>
+</tr>
+<tr class="odd">
+<td><strong>disable_fog</strong></td>
+<td>If used, fog will not affect the sky.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="built-ins">Built-ins</h2>
+<p>Values marked as <code>in</code> are read-only. Values marked as <code>out</code> can optionally be written to and will not necessarily contain sensible values. Samplers cannot be written to so they are not marked.</p>
+<h2 id="global-built-ins">Global built-ins</h2>
+<p>Global built-ins are available everywhere, including in custom functions.</p>
+<p>There are 4 <code>LIGHTX</code> lights, accessed as <code>LIGHT0</code>, <code>LIGHT1</code>, <code>LIGHT2</code>, and <code>LIGHT3</code>.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Built-in</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>in float <strong>TIME</strong></td>
+<td>Global time since the engine has started, in seconds. It repeats after every <code>3,600</code> seconds (which can be changed with the ref | setting). It's affected by ref but not by pausing. If you need a | <code>TIME</code> variable that is not affected by time scale, add your own ref and update it each | frame.</td>
+</tr>
+<tr class="even">
+<td>in vec3 <strong>POSITION</strong></td>
+<td>Camera position, in world space.</td>
+</tr>
+<tr class="odd">
+<td>samplerCube <strong>RADIANCE</strong></td>
+<td>Radiance cubemap. Can only be read from during the background pass. Check <code>!AT_CUBEMAP_PASS</code> before using.</td>
+</tr>
+<tr class="even">
+<td>in bool <strong>AT_HALF_RES_PASS</strong></td>
+<td><code>true</code> when rendering to the half resolution pass.</td>
+</tr>
+<tr class="odd">
+<td>in bool <strong>AT_QUARTER_RES_PASS</strong></td>
+<td><code>true</code> when rendering to the quarter resolution pass.</td>
+</tr>
+<tr class="even">
+<td>in bool <strong>AT_CUBEMAP_PASS</strong></td>
+<td><code>true</code> when rendering to the radiance cubemap.</td>
+</tr>
+<tr class="odd">
+<td>in bool <strong>LIGHTX_ENABLED</strong></td>
+<td><code>true</code> if <code>LIGHTX</code> is visible and in the scene. If <code>false</code>, other light properties may be garbage.</td>
+</tr>
+<tr class="even">
+<td>in float <strong>LIGHTX_ENERGY</strong></td>
+<td>Energy multiplier for <code>LIGHTX</code>.</td>
+</tr>
+<tr class="odd">
+<td>in vec3 <strong>LIGHTX_DIRECTION</strong></td>
+<td>Direction that <code>LIGHTX</code> is facing.</td>
+</tr>
+<tr class="even">
+<td>in vec3 <strong>LIGHTX_COLOR</strong></td>
+<td>Color of <code>LIGHTX</code>.</td>
+</tr>
+<tr class="odd">
+<td>in float <strong>LIGHTX_SIZE</strong></td>
+<td>Angular diameter of <code>LIGHTX</code> in the sky. Expressed in radians. For reference, the sun from earth is about .0087 radians (0.5 degrees).</td>
+</tr>
+<tr class="even">
+<td>in float <strong>PI</strong></td>
+<td>A <code>PI</code> constant (<code>3.141592</code>). The ratio of a circle's circumference to its diameter and the number of radians in a half turn.</td>
+</tr>
+<tr class="odd">
+<td>in float <strong>TAU</strong></td>
+<td>A <code>TAU</code> constant (<code>6.283185</code>). Equivalent to <code>PI * 2</code> and the number of radians in a full turn.</td>
+</tr>
+<tr class="even">
+<td>in float <strong>E</strong></td>
+<td>An <code>E</code> constant (<code>2.718281</code>). Euler's number, the base of the natural logarithm.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sky-built-ins">Sky built-ins</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Built-in</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>in vec3 <strong>EYEDIR</strong></td>
+<td>Normalized direction of the current pixel. Use this as your basic direction for procedural effects.</td>
+</tr>
+<tr class="even">
+<td>in vec2 <strong>SCREEN_UV</strong></td>
+<td>Screen UV coordinate for the current pixel. Used to map a texture to the full screen.</td>
+</tr>
+<tr class="odd">
+<td>in vec2 <strong>SKY_COORDS</strong></td>
+<td>Sphere UV. Used to map a panorama texture to the sky.</td>
+</tr>
+<tr class="even">
+<td>in vec4 <strong>HALF_RES_COLOR</strong></td>
+<td>Color value of the corresponding pixel from the half resolution pass. Uses linear filter.</td>
+</tr>
+<tr class="odd">
+<td>in vec4 <strong>QUARTER_RES_COLOR</strong></td>
+<td>Color value of the corresponding pixel from the quarter resolution pass. Uses linear filter.</td>
+</tr>
+<tr class="even">
+<td>out vec3 <strong>COLOR</strong></td>
+<td>Output color.</td>
+</tr>
+<tr class="odd">
+<td>out float <strong>ALPHA</strong></td>
+<td>Output alpha value, can only be used in subpasses.</td>
+</tr>
+<tr class="even">
+<td>out vec4 <strong>FOG</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

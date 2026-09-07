@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EditorExportPlugin — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="editorexportplugin">EditorExportPlugin</h1>
+<p><em>Inherits: <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>A script that is executed when exporting the project.</p>
+<h2 id="description">Description</h2>
+<p><strong>EditorExportPlugin</strong> s are automatically invoked whenever the user exports the project. They can be used to modify scenes and resources during project export based on what <a href="../manual/tutorials/export/feature_tags.html">Feature Tags</a> are set. For each plugin, <code>_export_begin()</code> is called at the beginning of the export process and then <code>_export_file()</code> is called for each exported file.</p>
+<p>Register a <strong>EditorExportPlugin</strong> by creating a new <a href="EditorPlugin.html">EditorPlugin</a> and calling its <code>EditorPlugin.add_export_plugin()</code> method.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/tutorials/platform/android/android_plugin.html">Export Android plugins</a></li>
+</ul>
+<h2 id="methods">Methods</h2>
+<h3 id="bool-_begin_customize_resourcesplatform-editorexportplatform-features-packedstringarray-virtual-const"><code>bool _begin_customize_resources(platform: EditorExportPlatform, features: PackedStringArray) virtual const</code></h3>
+<p>Return <code>true</code> if this plugin will customize resources based on the platform and features used.</p>
+<p>When enabled, <code>_get_customization_configuration_hash()</code> and <code>_customize_resource()</code> will be called and must be implemented.</p>
+<h3 id="bool-_begin_customize_scenesplatform-editorexportplatform-features-packedstringarray-virtual-const"><code>bool _begin_customize_scenes(platform: EditorExportPlatform, features: PackedStringArray) virtual const</code></h3>
+<p>Return <code>true</code> if this plugin will customize scenes based on the platform and features used.</p>
+<p>When enabled, <code>_get_customization_configuration_hash()</code> and <code>_customize_scene()</code> will be called and must be implemented.</p>
+<p><strong>Note:</strong> <code>_customize_scene()</code> will only be called for scenes that have been modified since the last export.</p>
+<h3 id="resource-_customize_resourceresource-resource-path-string-virtual-required"><code>Resource _customize_resource(resource: Resource, path: String) virtual required</code></h3>
+<p>Customize a resource. If changes are made to it, return the same or a new resource. Otherwise, return <code>null</code>. When a new resource is returned, <code>resource</code> will be replaced by a copy of the new resource.</p>
+<p>The <code>path</code> argument is only used when customizing an actual file, otherwise this means that this resource is part of another one and it will be empty.</p>
+<p>Implementing this method is required if <code>_begin_customize_resources()</code> returns <code>true</code>.</p>
+<p><strong>Note:</strong> When customizing any of the following types and returning another resource, the other resource should not be skipped using <code>skip()</code> in <code>_export_file()</code>:</p>
+<ul>
+<li><p><a href="AtlasTexture.html">AtlasTexture</a></p></li>
+<li><p><a href="CompressedCubemap.html">CompressedCubemap</a></p></li>
+<li><p><a href="CompressedCubemapArray.html">CompressedCubemapArray</a></p></li>
+<li><p><a href="CompressedTexture2D.html">CompressedTexture2D</a></p></li>
+<li><p><a href="CompressedTexture2DArray.html">CompressedTexture2DArray</a></p></li>
+<li><p><a href="CompressedTexture3D.html">CompressedTexture3D</a></p></li>
+</ul>
+<h3 id="node-_customize_scenescene-node-path-string-virtual-required"><code>Node _customize_scene(scene: Node, path: String) virtual required</code></h3>
+<p>Customize a scene. If changes are made to it, return the same or a new scene. Otherwise, return <code>null</code>. If a new scene is returned, it is up to you to dispose of the old one.</p>
+<p>Implementing this method is required if <code>_begin_customize_scenes()</code> returns <code>true</code>.</p>
+<p><strong>Note:</strong> To change a variable in your scene, use the <code>@export</code> annotation when declaring it.</p>
+<h3 id="void-_end_customize_resources-virtual"><code>void _end_customize_resources() virtual</code></h3>
+<p>This is called when the customization process for resources ends.</p>
+<h3 id="void-_end_customize_scenes-virtual"><code>void _end_customize_scenes() virtual</code></h3>
+<p>This is called when the customization process for scenes ends.</p>
+<h3 id="void-_end_generate_apple_embedded_projectpath-string-will_build_archive-bool-virtual"><code>void _end_generate_apple_embedded_project(path: String, will_build_archive: bool) virtual</code></h3>
+<p>This is called after Xcode project generation, but before it is built.</p>
+<p><strong>Note:</strong> Only supported on iOS and visionOS.</p>
+<h3 id="void-_export_beginfeatures-packedstringarray-is_debug-bool-path-string-flags-int-virtual"><code>void _export_begin(features: PackedStringArray, is_debug: bool, path: String, flags: int) virtual</code></h3>
+<p>Virtual method to be overridden by the user. It is called when the export starts and provides all information about the export. <code>features</code> is the list of features for the export, <code>is_debug</code> is <code>true</code> for debug builds, <code>path</code> is the target path for the exported project. <code>flags</code> is only used when running a runnable profile, e.g. when using native run on Android.</p>
+<h3 id="void-_export_end-virtual"><code>void _export_end() virtual</code></h3>
+<p>Virtual method to be overridden by the user. Called when the export is finished.</p>
+<h3 id="void-_export_filepath-string-type-string-features-packedstringarray-virtual"><code>void _export_file(path: String, type: String, features: PackedStringArray) virtual</code></h3>
+<p>Virtual method to be overridden by the user. Called for each exported file before <code>_customize_resource()</code> and <code>_customize_scene()</code>. The arguments can be used to identify the file. <code>path</code> is the path of the file, <code>type</code> is the <a href="Resource.html">Resource</a> represented by the file (e.g. <a href="PackedScene.html">PackedScene</a>), and <code>features</code> is the list of features for the export.</p>
+<p>Calling <code>skip()</code> inside this callback will make the file not included in the export.</p>
+<h3 id="packedstringarray-_get_android_dependenciesplatform-editorexportplatform-debug-bool-virtual-const"><code>PackedStringArray _get_android_dependencies(platform: EditorExportPlatform, debug: bool) virtual const</code></h3>
+<p>Virtual method to be overridden by the user. This is called to retrieve the set of Android dependencies provided by this plugin. Each returned Android dependency should have the format of an Android remote binary dependency: <code>org.godot.example:my-plugin:0.0.0</code></p>
+<p>For more information see <a href="https://developer.android.com/build/dependencies?agpversion=4.1#dependency-types">Android documentation on dependencies</a>.</p>
+<p><strong>Note:</strong> Only supported on Android and requires <code>EditorExportPlatformAndroid.gradle_build/use_gradle_build</code> to be enabled.</p>
+<h3 id="packedstringarray-_get_android_dependencies_maven_reposplatform-editorexportplatform-debug-bool-virtual-const"><code>PackedStringArray _get_android_dependencies_maven_repos(platform: EditorExportPlatform, debug: bool) virtual const</code></h3>
+<p>Virtual method to be overridden by the user. This is called to retrieve the URLs of Maven repositories for the set of Android dependencies provided by this plugin.</p>
+<p>For more information see <a href="https://docs.gradle.org/current/userguide/dependency_management.html#sec:maven_repo">Gradle documentation on dependency management</a>.</p>
+<p><strong>Note:</strong> Google's Maven repo and the Maven Central repo are already included by default.</p>
+<p><strong>Note:</strong> Only supported on Android and requires <code>EditorExportPlatformAndroid.gradle_build/use_gradle_build</code> to be enabled.</p>
+<h3 id="packedstringarray-_get_android_librariesplatform-editorexportplatform-debug-bool-virtual-const"><code>PackedStringArray _get_android_libraries(platform: EditorExportPlatform, debug: bool) virtual const</code></h3>
+<p>Virtual method to be overridden by the user. This is called to retrieve the local paths of the Android libraries archive (AAR) files provided by this plugin.</p>
+<p><strong>Note:</strong> Relative paths <strong>must</strong> be relative to Godot's <code>res://addons/</code> directory. For example, an AAR file located under <code>res://addons/hello_world_plugin/HelloWorld.release.aar</code> can be returned as an absolute path using <code>res://addons/hello_world_plugin/HelloWorld.release.aar</code> or a relative path using <code>hello_world_plugin/HelloWorld.release.aar</code>.</p>
+<p><strong>Note:</strong> Only supported on Android and requires <code>EditorExportPlatformAndroid.gradle_build/use_gradle_build</code> to be enabled.</p>
+<h3 id="string-_get_android_manifest_activity_element_contentsplatform-editorexportplatform-debug-bool-virtual-const"><code>String _get_android_manifest_activity_element_contents(platform: EditorExportPlatform, debug: bool) virtual const</code></h3>
+<p>Virtual method to be overridden by the user. This is used at export time to update the contents of the <code>activity</code> element in the generated Android manifest.</p>
+<p><strong>Note:</strong> Only supported on Android and requires <code>EditorExportPlatformAndroid.gradle_build/use_gradle_build</code> to be enabled.</p>
+<h3 id="string-_get_android_manifest_application_element_contentsplatform-editorexportplatform-debug-bool-virtual-const"><code>String _get_android_manifest_application_element_contents(platform: EditorExportPlatform, debug: bool) virtual const</code></h3>
+<p>Virtual method to be overridden by the user. This is used at export time to update the contents of the <code>application</code> element in the generated Android manifest.</p>
+<p><strong>Note:</strong> Only supported on Android and requires <code>EditorExportPlatformAndroid.gradle_build/use_gradle_build</code> to be enabled.</p>
+<h3 id="string-_get_android_manifest_element_contentsplatform-editorexportplatform-debug-bool-virtual-const"><code>String _get_android_manifest_element_contents(platform: EditorExportPlatform, debug: bool) virtual const</code></h3>
+<p>Virtual method to be overridden by the user. This is used at export time to update the contents of the <code>manifest</code> element in the generated Android manifest.</p>
+<p><strong>Note:</strong> Only supported on Android and requires <code>EditorExportPlatformAndroid.gradle_build/use_gradle_build</code> to be enabled.</p>
+<h3 id="int-_get_customization_configuration_hash-virtual-required-const"><code>int _get_customization_configuration_hash() virtual required const</code></h3>
+<p>Return a hash based on the configuration passed (for both scenes and resources). This helps keep separate caches for separate export configurations.</p>
+<p>Implementing this method is required if <code>_begin_customize_resources()</code> returns <code>true</code>.</p>
+<p><strong>Note:</strong> <code>_customize_resource()</code> and <code>_customize_scene()</code> will not be called when the <strong>EditorExportPlugin</strong> script is modified unless this hash changes too.</p>
+<h3 id="packedstringarray-_get_export_featuresplatform-editorexportplatform-debug-bool-virtual-const"><code>PackedStringArray _get_export_features(platform: EditorExportPlatform, debug: bool) virtual const</code></h3>
+<p>Return a <a href="PackedStringArray.html">PackedStringArray</a> of additional features this preset, for the given <code>platform</code>, should have.</p>
+<h3 id="bool-_get_export_option_visibilityplatform-editorexportplatform-option-string-virtual-const"><code>bool _get_export_option_visibility(platform: EditorExportPlatform, option: String) virtual const</code></h3>
+<p>Validates <code>option</code> and returns the visibility for the specified <code>platform</code>. The default implementation returns <code>true</code> for all options.</p>
+<h3 id="string-_get_export_option_warningplatform-editorexportplatform-option-string-virtual-const"><code>String _get_export_option_warning(platform: EditorExportPlatform, option: String) virtual const</code></h3>
+<p>Check the requirements for the given <code>option</code> and return a non-empty warning string if they are not met.</p>
+<p><strong>Note:</strong> Use <code>get_option()</code> to check the value of the export options.</p>
+<h3 id="arraydictionary-_get_export_optionsplatform-editorexportplatform-virtual-const"><code>Array\[Dictionary\] _get_export_options(platform: EditorExportPlatform) virtual const</code></h3>
+<p>Return a list of export options that can be configured for this export plugin.</p>
+<p>Each element in the return value is a <a href="Dictionary.html">Dictionary</a> with the following keys:</p>
+<ul>
+<li><p><code>option</code>: A dictionary with the structure documented by <code>Object.get_property_list()</code>, but all keys are optional.</p></li>
+<li><p><code>default_value</code>: The default value for this option.</p></li>
+<li><p><code>update_visibility</code>: An optional boolean value. If set to <code>true</code>, the preset will emit <code>Object.property_list_changed</code> when the option is changed.</p></li>
+</ul>
+<h3 id="dictionary-_get_export_options_overridesplatform-editorexportplatform-virtual-const"><code>Dictionary _get_export_options_overrides(platform: EditorExportPlatform) virtual const</code></h3>
+<p>Return a <a href="Dictionary.html">Dictionary</a> of override values for export options, that will be used instead of user-provided values. Overridden options will be hidden from the user interface.</p>
+<pre class="gdscript"><code>class MyExportPlugin extends EditorExportPlugin:
+    func _get_name() -&gt; String:
+        return &quot;MyExportPlugin&quot;
+
+    func _supports_platform(platform) -&gt; bool:
+        if platform is EditorExportPlatformPC:
+            # Run on all desktop platforms including Windows, MacOS and Linux.
+            return true
+        return false
+
+    func _get_export_options_overrides(platform) -&gt; Dictionary:
+        # Override &quot;Embed PCK&quot; to always be enabled.
+        return {
+            &quot;binary_format/embed_pck&quot;: true,
+        }</code></pre>
+<h3 id="string-_get_name-virtual-required-const"><code>String _get_name() virtual required const</code></h3>
+<p>Return the name identifier of this plugin (for future identification by the exporter). The plugins are sorted by name before exporting.</p>
+<p>Implementing this method is required.</p>
+<h3 id="bool-_should_update_export_optionsplatform-editorexportplatform-virtual-const"><code>bool _should_update_export_options(platform: EditorExportPlatform) virtual const</code></h3>
+<p>Return <code>true</code> if the result of <code>_get_export_options()</code> has changed and the export options of the preset corresponding to <code>platform</code> should be updated.</p>
+<h3 id="bool-_supports_platformplatform-editorexportplatform-virtual-const"><code>bool _supports_platform(platform: EditorExportPlatform) virtual const</code></h3>
+<p>Return <code>true</code> if the plugin supports the given <code>platform</code>.</p>
+<h3 id="packedbytearray-_update_android_prebuilt_manifestplatform-editorexportplatform-manifest_data-packedbytearray-virtual-const"><code>PackedByteArray _update_android_prebuilt_manifest(platform: EditorExportPlatform, manifest_data: PackedByteArray) virtual const</code></h3>
+<p>Provide access to the Android prebuilt manifest and allows the plugin to modify it if needed.</p>
+<p>Implementers of this virtual method should take the binary manifest data from <code>manifest_data</code>, copy it, modify it, and then return it with the modifications.</p>
+<p>If no modifications are needed, then an empty <a href="PackedByteArray.html">PackedByteArray</a> should be returned.</p>
+<h3 id="void-add_apple_embedded_platform_bundle_filepath-string"><code>void add_apple_embedded_platform_bundle_file(path: String)</code></h3>
+<p>Adds an Apple embedded platform bundle file from the given <code>path</code> to the exported project.</p>
+<h3 id="void-add_apple_embedded_platform_cpp_codecode-string"><code>void add_apple_embedded_platform_cpp_code(code: String)</code></h3>
+<p>Adds C++ code to the Apple embedded platform export. The final code is created from the code appended by each active export plugin.</p>
+<h3 id="void-add_apple_embedded_platform_embedded_frameworkpath-string"><code>void add_apple_embedded_platform_embedded_framework(path: String)</code></h3>
+<p>Adds a dynamic library (*.dylib, *.framework) to the Linking Phase in the Apple embedded platform's Xcode project and embeds it into the resulting binary.</p>
+<p><strong>Note:</strong> For static libraries (*.a), this works in the same way as <code>add_apple_embedded_platform_framework()</code>.</p>
+<p><strong>Note:</strong> This method should not be used for System libraries as they are already present on the device.</p>
+<h3 id="void-add_apple_embedded_platform_frameworkpath-string"><code>void add_apple_embedded_platform_framework(path: String)</code></h3>
+<p>Adds a static library (*.a) or a dynamic library (*.dylib, *.framework) to the Linking Phase to the Apple embedded platform's Xcode project.</p>
+<h3 id="void-add_apple_embedded_platform_linker_flagsflags-string"><code>void add_apple_embedded_platform_linker_flags(flags: String)</code></h3>
+<p>Adds linker flags for the Apple embedded platform export.</p>
+<h3 id="void-add_apple_embedded_platform_plist_contentplist_content-string"><code>void add_apple_embedded_platform_plist_content(plist_content: String)</code></h3>
+<p>Adds additional fields to the Apple embedded platform's project Info.plist file.</p>
+<h3 id="void-add_apple_embedded_platform_project_static_libpath-string"><code>void add_apple_embedded_platform_project_static_lib(path: String)</code></h3>
+<p>Adds a static library from the given <code>path</code> to the Apple embedded platform project.</p>
+<h3 id="void-add_filepath-string-file-packedbytearray-remap-bool"><code>void add_file(path: String, file: PackedByteArray, remap: bool)</code></h3>
+<p>Adds a custom file to be exported. <code>path</code> is the virtual path that can be used to load the file, <code>file</code> is the binary data of the file.</p>
+<p>When called inside <code>_export_file()</code> and <code>remap</code> is <code>true</code>, the current file will not be exported, but instead remapped to this custom file. <code>remap</code> is ignored when called in other places.</p>
+<p><code>file</code> will not be imported, so consider using <code>_customize_resource()</code> to remap imported resources.</p>
+<h3 id="void-add_ios_bundle_filepath-string"><code>void add_ios_bundle_file(path: String)</code></h3>
+<p><strong>Deprecated:</strong> Use <code>add_apple_embedded_platform_bundle_file()</code> instead.</p>
+<p>Adds an iOS bundle file from the given <code>path</code> to the exported project.</p>
+<h3 id="void-add_ios_cpp_codecode-string"><code>void add_ios_cpp_code(code: String)</code></h3>
+<p><strong>Deprecated:</strong> Use <code>add_apple_embedded_platform_cpp_code()</code> instead.</p>
+<p>Adds C++ code to the iOS export. The final code is created from the code appended by each active export plugin.</p>
+<h3 id="void-add_ios_embedded_frameworkpath-string"><code>void add_ios_embedded_framework(path: String)</code></h3>
+<p><strong>Deprecated:</strong> Use <code>add_apple_embedded_platform_embedded_framework()</code> instead.</p>
+<p>Adds a dynamic library (*.dylib, *.framework) to Linking Phase in iOS's Xcode project and embeds it into resulting binary.</p>
+<p><strong>Note:</strong> For static libraries (*.a), this works the in same way as <code>add_apple_embedded_platform_framework()</code>.</p>
+<p><strong>Note:</strong> This method should not be used for System libraries as they are already present on the device.</p>
+<h3 id="void-add_ios_frameworkpath-string"><code>void add_ios_framework(path: String)</code></h3>
+<p><strong>Deprecated:</strong> Use <code>add_apple_embedded_platform_framework()</code> instead.</p>
+<p>Adds a static library (*.a) or a dynamic library (*.dylib, *.framework) to the Linking Phase to the iOS Xcode project.</p>
+<h3 id="void-add_ios_linker_flagsflags-string"><code>void add_ios_linker_flags(flags: String)</code></h3>
+<p><strong>Deprecated:</strong> Use <code>add_apple_embedded_platform_linker_flags()</code> instead.</p>
+<p>Adds linker flags for the iOS export.</p>
+<h3 id="void-add_ios_plist_contentplist_content-string"><code>void add_ios_plist_content(plist_content: String)</code></h3>
+<p><strong>Deprecated:</strong> Use <code>add_apple_embedded_platform_plist_content()</code> instead.</p>
+<p>Adds additional fields to the iOS project Info.plist file.</p>
+<h3 id="void-add_ios_project_static_libpath-string"><code>void add_ios_project_static_lib(path: String)</code></h3>
+<p><strong>Deprecated:</strong> Use <code>add_apple_embedded_platform_project_static_lib()</code> instead.</p>
+<p>Adds a static library from the given <code>path</code> to the iOS project.</p>
+<h3 id="void-add_macos_plugin_filepath-string"><code>void add_macos_plugin_file(path: String)</code></h3>
+<p>Adds file or directory matching <code>path</code> to <code>PlugIns</code> directory of macOS app bundle.</p>
+<p><strong>Note:</strong> This is useful only for macOS exports.</p>
+<h3 id="void-add_shared_objectpath-string-tags-packedstringarray-target-string"><code>void add_shared_object(path: String, tags: PackedStringArray, target: String)</code></h3>
+<p>Adds a shared object or a directory containing only shared objects with the given <code>tags</code> and destination <code>path</code>.</p>
+<p><strong>Note:</strong> In case of macOS exports, those shared objects will be added to <code>Frameworks</code> directory of app bundle.</p>
+<p>In case of a directory code-sign will error if you place non code object in directory.</p>
+<h3 id="editorexportplatform-get_export_platform-const"><code>EditorExportPlatform get_export_platform() const</code></h3>
+<p>Returns currently used export platform.</p>
+<h3 id="editorexportpreset-get_export_preset-const"><code>EditorExportPreset get_export_preset() const</code></h3>
+<p>Returns currently used export preset.</p>
+<h3 id="variant-get_optionname-stringname-const"><code>Variant get_option(name: StringName) const</code></h3>
+<p>Returns the current value of an export option supplied by <code>_get_export_options()</code>.</p>
+<h3 id="void-skip"><code>void skip()</code></h3>
+<p>To be called inside <code>_export_file()</code>. Skips the current file, so it's not included in the export.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

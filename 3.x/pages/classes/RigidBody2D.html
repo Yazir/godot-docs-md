@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RigidBody2D — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="rigidbody2d">RigidBody2D</h1>
+<p><em>Inherits: <a href="PhysicsBody2D.html">PhysicsBody2D</a> &lt; <a href="CollisionObject2D.html">CollisionObject2D</a> &lt; <a href="Node2D.html">Node2D</a> &lt; <a href="CanvasItem.html">CanvasItem</a> &lt; <a href="Node.html">Node</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>A body that is controlled by the 2D physics engine.</p>
+<h2 id="description">Description</h2>
+<p>This node implements simulated 2D physics. You do not control a RigidBody2D directly. Instead, you apply forces to it (gravity, impulses, etc.) and the physics simulation calculates the resulting movement based on its mass, friction, and other physical properties.</p>
+<p>A RigidBody2D has 4 behavior <code>mode</code> s: Rigid, Static, Character, and Kinematic.</p>
+<p><strong>Note:</strong> You should not change a RigidBody2D's <code>position</code> or <code>linear_velocity</code> every frame or even very often. If you need to directly affect the body's state, use <code>_integrate_forces</code>, which allows you to directly access the physics state.</p>
+<p>Please also keep in mind that physics bodies manage their own transform which overwrites the ones you set. So any direct or indirect transformation (including scaling of the node or its parent) will be visible in the editor only, and immediately reset at runtime.</p>
+<p>If you need to override the default physics behavior or add a transformation at runtime, you can write a custom force integration. See <code>custom_integrator</code>.</p>
+<p>The center of mass is always located at the node's origin without taking into account the <a href="CollisionShape2D.html">CollisionShape2D</a> centroid offsets.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="https://godotengine.org/asset-library/asset/119">2D Physics Platformer Demo</a></li>
+<li><a href="https://godotengine.org/asset-library/asset/148">Instancing Demo</a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="float-angular_damp---10"><code>float angular_damp = -1.0</code></h3>
+<ul>
+<li>Setter: <code>set_angular_damp(value: float)</code></li>
+<li>Getter: <code>get_angular_damp()</code></li>
+</ul>
+<p>Damps the body's <code>angular_velocity</code>. If <code>-1</code>, the body will use the <strong>Default Angular Damp</strong> defined in <strong>Project &gt; Project Settings &gt; Physics &gt; 2d</strong>. If greater than <code>-1</code> it will be added to the default project value.</p>
+<p>See <code>ProjectSettings.physics/2d/default_angular_damp</code> for more details about damping.</p>
+<h3 id="float-angular_velocity--00"><code>float angular_velocity = 0.0</code></h3>
+<ul>
+<li>Setter: <code>set_angular_velocity(value: float)</code></li>
+<li>Getter: <code>get_angular_velocity()</code></li>
+</ul>
+<p>The body's rotational velocity in <em>radians</em> per second.</p>
+<h3 id="vector2-applied_force--vector2-0-0-"><code>Vector2 applied_force = Vector2( 0, 0 )</code></h3>
+<ul>
+<li>Setter: <code>set_applied_force(value: Vector2)</code></li>
+<li>Getter: <code>get_applied_force()</code></li>
+</ul>
+<p>The body's total applied force.</p>
+<h3 id="float-applied_torque--00"><code>float applied_torque = 0.0</code></h3>
+<ul>
+<li>Setter: <code>set_applied_torque(value: float)</code></li>
+<li>Getter: <code>get_applied_torque()</code></li>
+</ul>
+<p>The body's total applied torque.</p>
+<h3 id="float-bounce"><code>float bounce</code></h3>
+<ul>
+<li>Setter: <code>set_bounce(value: float)</code></li>
+<li>Getter: <code>get_bounce()</code></li>
+</ul>
+<p>The body's bounciness. Values range from <code>0</code> (no bounce) to <code>1</code> (full bounciness).</p>
+<p>Deprecated, use <code>PhysicsMaterial.bounce</code> instead via <code>physics_material_override</code>.</p>
+<h3 id="bool-can_sleep--true"><code>bool can_sleep = true</code></h3>
+<ul>
+<li>Setter: <code>set_can_sleep(value: bool)</code></li>
+<li>Getter: <code>is_able_to_sleep()</code></li>
+</ul>
+<p>If <code>true</code>, the body can enter sleep mode when there is no movement. See <code>sleeping</code>.</p>
+<p><strong>Note:</strong> A RigidBody2D will never enter sleep mode automatically if its <code>mode</code> is <code>MODE_CHARACTER</code>. It can still be put to sleep manually by setting its <code>sleeping</code> property to <code>true</code>.</p>
+<h3 id="bool-contact_monitor--false"><code>bool contact_monitor = false</code></h3>
+<ul>
+<li>Setter: <code>set_contact_monitor(value: bool)</code></li>
+<li>Getter: <code>is_contact_monitor_enabled()</code></li>
+</ul>
+<p>If <code>true</code>, the body will emit signals when it collides with another RigidBody2D. See also <code>contacts_reported</code>.</p>
+<h3 id="int-contacts_reported--0"><code>int contacts_reported = 0</code></h3>
+<ul>
+<li>Setter: <code>set_max_contacts_reported(value: int)</code></li>
+<li>Getter: <code>get_max_contacts_reported()</code></li>
+</ul>
+<p>The maximum number of contacts that will be recorded. Requires <code>contact_monitor</code> to be set to <code>true</code>.</p>
+<p><strong>Note:</strong> The number of contacts is different from the number of collisions. Collisions between parallel edges will result in two contacts (one at each end).</p>
+<h3 id="ccdmode-continuous_cd--0">``CCDMode<code> continuous_cd = 0</code></h3>
+<ul>
+<li>Setter: <code>set_continuous_collision_detection_mode(value: </code>CCDMode<code>)</code></li>
+<li>Getter: <code>get_continuous_collision_detection_mode()</code></li>
+</ul>
+<p>Continuous collision detection mode.</p>
+<p>Continuous collision detection tries to predict where a moving body will collide instead of moving it and correcting its movement after collision. Continuous collision detection is slower, but more precise and misses fewer collisions with small, fast-moving objects. Raycasting and shapecasting methods are available. See <code>CCDMode</code> for details.</p>
+<h3 id="bool-custom_integrator--false"><code>bool custom_integrator = false</code></h3>
+<ul>
+<li>Setter: <code>set_use_custom_integrator(value: bool)</code></li>
+<li>Getter: <code>is_using_custom_integrator()</code></li>
+</ul>
+<p>If <code>true</code>, internal force integration is disabled for this body. Aside from collision response, the body will only move as determined by the <code>_integrate_forces</code> function.</p>
+<h3 id="float-friction"><code>float friction</code></h3>
+<ul>
+<li>Setter: <code>set_friction(value: float)</code></li>
+<li>Getter: <code>get_friction()</code></li>
+</ul>
+<p>The body's friction. Values range from <code>0</code> (frictionless) to <code>1</code> (maximum friction).</p>
+<p>Deprecated, use <code>PhysicsMaterial.friction</code> instead via <code>physics_material_override</code>.</p>
+<h3 id="float-gravity_scale--10"><code>float gravity_scale = 1.0</code></h3>
+<ul>
+<li>Setter: <code>set_gravity_scale(value: float)</code></li>
+<li>Getter: <code>get_gravity_scale()</code></li>
+</ul>
+<p>Multiplies the gravity applied to the body. The body's gravity is calculated from the <strong>Default Gravity</strong> value in <strong>Project &gt; Project Settings &gt; Physics &gt; 2d</strong> and/or any additional gravity vector applied by <a href="Area2D.html">Area2D</a> s.</p>
+<h3 id="float-inertia"><code>float inertia</code></h3>
+<ul>
+<li>Setter: <code>set_inertia(value: float)</code></li>
+<li>Getter: <code>get_inertia()</code></li>
+</ul>
+<p>The body's moment of inertia. This is like mass, but for rotation: it determines how much torque it takes to rotate the body. The moment of inertia is usually computed automatically from the mass and the shapes, but this function allows you to set a custom value. Set 0 inertia to return to automatically computing it.</p>
+<h3 id="float-linear_damp---10"><code>float linear_damp = -1.0</code></h3>
+<ul>
+<li>Setter: <code>set_linear_damp(value: float)</code></li>
+<li>Getter: <code>get_linear_damp()</code></li>
+</ul>
+<p>Damps the body's <code>linear_velocity</code>. If <code>-1</code>, the body will use the <strong>Default Linear Damp</strong> in <strong>Project &gt; Project Settings &gt; Physics &gt; 2d</strong>. If greater than <code>-1</code> it will be added to the default project value.</p>
+<p>See <code>ProjectSettings.physics/2d/default_linear_damp</code> for more details about damping.</p>
+<h3 id="vector2-linear_velocity--vector2-0-0-"><code>Vector2 linear_velocity = Vector2( 0, 0 )</code></h3>
+<ul>
+<li>Setter: <code>set_linear_velocity(value: Vector2)</code></li>
+<li>Getter: <code>get_linear_velocity()</code></li>
+</ul>
+<p>The body's linear velocity in pixels per second. Can be used sporadically, but <strong>don't set this every frame</strong>, because physics may run in another thread and runs at a different granularity. Use <code>_integrate_forces</code> as your process loop for precise control of the body state.</p>
+<h3 id="float-mass--10"><code>float mass = 1.0</code></h3>
+<ul>
+<li>Setter: <code>set_mass(value: float)</code></li>
+<li>Getter: <code>get_mass()</code></li>
+</ul>
+<p>The body's mass.</p>
+<h3 id="mode-mode--0">``Mode<code> mode = 0</code></h3>
+<ul>
+<li>Setter: <code>set_mode(value: </code>Mode<code>)</code></li>
+<li>Getter: <code>get_mode()</code></li>
+</ul>
+<p>The body's mode. See <code>Mode</code> for possible values.</p>
+<h3 id="physicsmaterial-physics_material_override"><code>PhysicsMaterial physics_material_override</code></h3>
+<ul>
+<li>Setter: <code>set_physics_material_override(value: PhysicsMaterial)</code></li>
+<li>Getter: <code>get_physics_material_override()</code></li>
+</ul>
+<p>The physics material override for the body.</p>
+<p>If a material is assigned to this property, it will be used instead of any other physics material, such as an inherited one.</p>
+<h3 id="bool-sleeping--false"><code>bool sleeping = false</code></h3>
+<ul>
+<li>Setter: <code>set_sleeping(value: bool)</code></li>
+<li>Getter: <code>is_sleeping()</code></li>
+</ul>
+<p>If <code>true</code>, the body will not move and will not calculate forces until woken up by another body through, for example, a collision, or by using the <code>apply_impulse</code> or <code>add_force</code> methods.</p>
+<h3 id="float-weight--98"><code>float weight = 9.8</code></h3>
+<ul>
+<li>Setter: <code>set_weight(value: float)</code></li>
+<li>Getter: <code>get_weight()</code></li>
+</ul>
+<p>The body's weight based on its mass and the <strong>Default Gravity</strong> value in <strong>Project &gt; Project Settings &gt; Physics &gt; 2d</strong>.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-_integrate_forcesstate-physics2ddirectbodystate-virtual"><code>void _integrate_forces(state: Physics2DDirectBodyState) virtual</code></h3>
+<p>Allows you to read and safely modify the simulation state for the object. Use this instead of <code>Node._physics_process</code> if you need to directly change the body's <code>position</code> or other physics properties. By default, it works in addition to the usual physics behavior, but <code>custom_integrator</code> allows you to disable the default behavior and write custom force integration for a body.</p>
+<h3 id="void-add_central_forceforce-vector2"><code>void add_central_force(force: Vector2)</code></h3>
+<p>Adds a constant directional force without affecting rotation.</p>
+<h3 id="void-add_forceoffset-vector2-force-vector2"><code>void add_force(offset: Vector2, force: Vector2)</code></h3>
+<p>Adds a positioned force to the body. Both the force and the offset from the body origin are in global coordinates.</p>
+<h3 id="void-add_torquetorque-float"><code>void add_torque(torque: float)</code></h3>
+<p>Adds a constant rotational force.</p>
+<h3 id="void-apply_central_impulseimpulse-vector2"><code>void apply_central_impulse(impulse: Vector2)</code></h3>
+<p>Applies a directional impulse without affecting rotation.</p>
+<h3 id="void-apply_impulseoffset-vector2-impulse-vector2"><code>void apply_impulse(offset: Vector2, impulse: Vector2)</code></h3>
+<p>Applies a positioned impulse to the body. An impulse is time-independent! Applying an impulse every frame would result in a framerate-dependent force. For this reason it should only be used when simulating one-time impacts (use the "_force" functions otherwise). The position uses the rotation of the global coordinate system, but is centered at the object's origin.</p>
+<h3 id="void-apply_torque_impulsetorque-float"><code>void apply_torque_impulse(torque: float)</code></h3>
+<p>Applies a rotational impulse to the body.</p>
+<h3 id="array-get_colliding_bodies-const"><code>Array get_colliding_bodies() const</code></h3>
+<p>Returns a list of the bodies colliding with this one. Requires <code>contact_monitor</code> to be set to <code>true</code> and <code>contacts_reported</code> to be set high enough to detect all the collisions.</p>
+<p><strong>Note:</strong> The result of this test is not immediate after moving objects. For performance, list of collisions is updated once per frame and before the physics step. Consider using signals instead.</p>
+<h3 id="void-set_axis_velocityaxis_velocity-vector2"><code>void set_axis_velocity(axis_velocity: Vector2)</code></h3>
+<p>Sets the body's velocity on the given axis. The velocity in the given vector axis will be set as the given vector length. This is useful for jumping behavior.</p>
+<h3 id="bool-test_motionmotion-vector2-infinite_inertiatrue-bool-margin008-float-resultnull-physics2dtestmotionresult"><code>bool test_motion(motion: Vector2, infinite_inertia=true: bool, margin=0.08: float, result=null: Physics2DTestMotionResult)</code></h3>
+<p>Returns <code>true</code> if a collision would result from moving in the given vector. <code>margin</code> increases the size of the shapes involved in the collision detection, and <code>result</code> is an object of type <a href="Physics2DTestMotionResult.html">Physics2DTestMotionResult</a>, which contains additional information about the collision (should there be one).</p>
+<h2 id="signals">Signals</h2>
+<h3 id="body_enteredbody-node"><code>body_entered(body: Node)</code></h3>
+<p>Emitted when a collision with another <a href="PhysicsBody2D.html">PhysicsBody2D</a> or <a href="TileMap.html">TileMap</a> occurs. Requires <code>contact_monitor</code> to be set to <code>true</code> and <code>contacts_reported</code> to be set high enough to detect all the collisions. <a href="TileMap.html">TileMap</a> s are detected if the <a href="TileSet.html">TileSet</a> has Collision <a href="Shape2D.html">Shape2D</a> s.</p>
+<p><code>body</code> the <a href="Node.html">Node</a>, if it exists in the tree, of the other <a href="PhysicsBody2D.html">PhysicsBody2D</a> or <a href="TileMap.html">TileMap</a>.</p>
+<h3 id="body_exitedbody-node"><code>body_exited(body: Node)</code></h3>
+<p>Emitted when the collision with another <a href="PhysicsBody2D.html">PhysicsBody2D</a> or <a href="TileMap.html">TileMap</a> ends. Requires <code>contact_monitor</code> to be set to <code>true</code> and <code>contacts_reported</code> to be set high enough to detect all the collisions. <a href="TileMap.html">TileMap</a> s are detected if the <a href="TileSet.html">TileSet</a> has Collision <a href="Shape2D.html">Shape2D</a> s.</p>
+<p><code>body</code> the <a href="Node.html">Node</a>, if it exists in the tree, of the other <a href="PhysicsBody2D.html">PhysicsBody2D</a> or <a href="TileMap.html">TileMap</a>.</p>
+<h3 id="body_shape_enteredbody_rid-rid-body-node-body_shape_index-int-local_shape_index-int"><code>body_shape_entered(body_rid: RID, body: Node, body_shape_index: int, local_shape_index: int)</code></h3>
+<p>Emitted when one of this RigidBody2D's <a href="Shape2D.html">Shape2D</a> s collides with another <a href="PhysicsBody2D.html">PhysicsBody2D</a> or <a href="TileMap.html">TileMap</a>'s <a href="Shape2D.html">Shape2D</a> s. Requires <code>contact_monitor</code> to be set to <code>true</code> and <code>contacts_reported</code> to be set high enough to detect all the collisions. <a href="TileMap.html">TileMap</a> s are detected if the <a href="TileSet.html">TileSet</a> has Collision <a href="Shape2D.html">Shape2D</a> s.</p>
+<p><code>body_rid</code> the <a href="RID.html">RID</a> of the other <a href="PhysicsBody2D.html">PhysicsBody2D</a> or <a href="TileSet.html">TileSet</a>'s <a href="CollisionObject2D.html">CollisionObject2D</a> used by the <a href="Physics2DServer.html">Physics2DServer</a>.</p>
+<p><code>body</code> the <a href="Node.html">Node</a>, if it exists in the tree, of the other <a href="PhysicsBody2D.html">PhysicsBody2D</a> or <a href="TileMap.html">TileMap</a>.</p>
+<p><code>body_shape_index</code> the index of the <a href="Shape2D.html">Shape2D</a> of the other <a href="PhysicsBody2D.html">PhysicsBody2D</a> or <a href="TileMap.html">TileMap</a>.</p>
+<p><code>local_shape_index</code> the index of the <a href="Shape2D.html">Shape2D</a> of this RigidBody2D.</p>
+<p><strong>Example of getting the</strong> <a href="CollisionShape2D.html">CollisionShape2D</a> <strong>node from the shape index:</strong></p>
+<pre class="gdscript"><code>var body_shape_owner = body.shape_find_owner(body_shape_index)
+var body_shape_node = body.shape_owner_get_owner(body_shape_owner)
+
+var local_shape_owner = shape_find_owner(local_shape_index)
+var local_shape_node = shape_owner_get_owner(local_shape_owner)</code></pre>
+<h3 id="body_shape_exitedbody_rid-rid-body-node-body_shape_index-int-local_shape_index-int"><code>body_shape_exited(body_rid: RID, body: Node, body_shape_index: int, local_shape_index: int)</code></h3>
+<p>Emitted when the collision between one of this RigidBody2D's <a href="Shape2D.html">Shape2D</a> s and another <a href="PhysicsBody2D.html">PhysicsBody2D</a> or <a href="TileMap.html">TileMap</a>'s <a href="Shape2D.html">Shape2D</a> s ends. Requires <code>contact_monitor</code> to be set to <code>true</code> and <code>contacts_reported</code> to be set high enough to detect all the collisions. <a href="TileMap.html">TileMap</a> s are detected if the <a href="TileSet.html">TileSet</a> has Collision <a href="Shape2D.html">Shape2D</a> s.</p>
+<p><code>body_rid</code> the <a href="RID.html">RID</a> of the other <a href="PhysicsBody2D.html">PhysicsBody2D</a> or <a href="TileSet.html">TileSet</a>'s <a href="CollisionObject2D.html">CollisionObject2D</a> used by the <a href="Physics2DServer.html">Physics2DServer</a>.</p>
+<p><code>body</code> the <a href="Node.html">Node</a>, if it exists in the tree, of the other <a href="PhysicsBody2D.html">PhysicsBody2D</a> or <a href="TileMap.html">TileMap</a>.</p>
+<p><code>body_shape_index</code> the index of the <a href="Shape2D.html">Shape2D</a> of the other <a href="PhysicsBody2D.html">PhysicsBody2D</a> or <a href="TileMap.html">TileMap</a>.</p>
+<p><code>local_shape_index</code> the index of the <a href="Shape2D.html">Shape2D</a> of this RigidBody2D.</p>
+<p>See also <code>body_shape_entered</code>.</p>
+<h3 id="sleeping_state_changed"><code>sleeping_state_changed()</code></h3>
+<p>Emitted when the physics engine changes the body's sleeping state.</p>
+<p><strong>Note:</strong> Changing the value <code>sleeping</code> will not trigger this signal. It is only emitted if the sleeping state is changed by the physics engine or <code>emit_signal("sleeping_state_changed")</code> is used.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-mode"><code>enum Mode</code></h3>
+<ul>
+<li><p><code>MODE_RIGID = 0</code></p>
+<p>Rigid mode. The body behaves as a physical object. It collides with other bodies and responds to forces applied to it. This is the default mode.</p></li>
+<li><p><code>MODE_STATIC = 1</code></p>
+<p>Static mode. The body behaves like a <a href="StaticBody2D.html">StaticBody2D</a> and does not move.</p></li>
+<li><p><code>MODE_CHARACTER = 2</code></p>
+<p>Character mode. Similar to <code>MODE_RIGID</code>, but the body can not rotate.</p></li>
+<li><p><code>MODE_KINEMATIC = 3</code></p>
+<p>Kinematic mode. The body behaves like a <a href="KinematicBody2D.html">KinematicBody2D</a>, and must be moved by code.</p></li>
+</ul>
+<h3 id="enum-ccdmode"><code>enum CCDMode</code></h3>
+<ul>
+<li><p><code>CCD_MODE_DISABLED = 0</code></p>
+<p>Continuous collision detection disabled. This is the fastest way to detect body collisions, but can miss small, fast-moving objects.</p></li>
+<li><p><code>CCD_MODE_CAST_RAY = 1</code></p>
+<p>Continuous collision detection enabled using raycasting. This is faster than shapecasting but less precise.</p></li>
+<li><p><code>CCD_MODE_CAST_SHAPE = 2</code></p>
+<p>Continuous collision detection enabled using shapecasting. This is the slowest CCD method and the most precise.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

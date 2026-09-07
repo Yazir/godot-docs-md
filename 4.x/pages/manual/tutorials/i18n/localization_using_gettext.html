@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Localization using gettext (PO files) — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="localization-using-gettext-po-files">Localization using gettext (PO files)</h1>
+<p>In addition to importing translations in ref, Godot also supports loading translation files written in the GNU gettext format (text-based <code>.po</code> and compiled <code>.mo</code>).</p>
+<blockquote>
+<p><strong>Note:</strong> For an introduction to gettext, check out <a href="https://www.labri.fr/perso/fleury/posts/programming/a-quick-gettext-tutorial.html">A Quick Gettext Tutorial</a>. It's written with C projects in mind, but much of the advice also applies to Godot (with the exception of <code>xgettext</code>).</p>
+<p>For the complete documentation, see <a href="https://www.gnu.org/software/gettext/manual/gettext.html">GNU Gettext</a>.</p>
+</blockquote>
+<h2 id="advantages">Advantages</h2>
+<ul>
+<li>gettext is a standard format, which can be edited using any text editor or GUI editors such as <a href="https://poedit.net/">Poedit</a>. This can be significant as it provides a lot of tools for translators, such as marking outdated strings, finding strings that haven't been translated, etc.</li>
+<li>gettext is supported by translation platforms such as <a href="https://www.transifex.com/">Transifex</a> and <a href="https://weblate.org/">Weblate</a>, which makes it easier for people to collaborate to localization.</li>
+<li>Compared to CSV, gettext files work better with version control systems like Git, as each locale has its own messages file.</li>
+<li>Multiline strings are more convenient to edit in gettext PO files compared to CSV files.</li>
+</ul>
+<h2 id="disadvantages">Disadvantages</h2>
+<ul>
+<li>gettext PO files have a more complex format than CSV and can be harder to grasp for people new to software localization.</li>
+<li>People who maintain localization files will have to install gettext tools on their system. However, as Godot supports using text-based message files (<code>.po</code>), translators can test their work without having to install gettext tools.</li>
+<li>gettext PO files usually use English as the base language. Translators will use this base language to translate to other languages. You could still use other languages as the base language, but this is not common.</li>
+</ul>
+<h2 id="installing-gettext-tools">Installing gettext tools</h2>
+<p>The command line gettext tools are required to perform maintenance operations, such as updating message files. Therefore, it's strongly recommended to install them.</p>
+<ul>
+<li><strong>Windows:</strong> Download an installer from <a href="https://mlocati.github.io/articles/gettext-iconv-windows.html">this page</a>. Any architecture and binary type (shared or static) works; if in doubt, choose the 64-bit static installer.</li>
+<li><strong>macOS:</strong> Install gettext either using <a href="https://brew.sh/">Homebrew</a> with the <code>brew install gettext</code> command, or using <a href="https://www.macports.org/">MacPorts</a> with the <code>sudo port install gettext</code> command.</li>
+<li><strong>Linux:</strong> On most distributions, install the <code>gettext</code> package from your distribution's package manager.</li>
+</ul>
+<p>For a GUI tool you can get Poedit from its <a href="https://poedit.net/">Official website</a>. The basic version is open source and available under the MIT license.</p>
+<h2 id="creating-the-po-template">Creating the PO template</h2>
+<h3 id="automatic-generation-using-the-editor">Automatic generation using the editor</h3>
+<p>The editor can generate a PO template automatically from specified scene and GDScript files. This POT generation also supports translation contexts and pluralization if used in a script, with the optional second argument of <code>tr()</code> and the <code>tr_n()</code> method.</p>
+<p>Open <code>Project &gt; Project Settings &gt; Localization &gt; Template Generation</code>, then use the <code>Add…</code> button to specify the path to your project's scenes and scripts that contain localizable strings:</p>
+<p><em>Image: Creating a PO template in the Localization &gt; Template Generation tab of the Project Settings</em></p>
+<p>Creating a PO template in the <code>Localization &gt; Template Generation</code> tab of the <code>Project Settings</code></p>
+<p>After adding at least one scene or script, click <code>Generate</code> in the top-right corner, then specify the path to the output file with a <code>pot</code> file extension. This file can be placed anywhere in the project directory, but it's recommended to keep it in a subdirectory such as <code>locale</code>, as each locale will be defined in its own file.</p>
+<p>See ref for how to add comments for translators or exclude some strings from being added to the PO template for GDScript files.</p>
+<p>You can then move over to ref.</p>
+<blockquote>
+<p><strong>Note:</strong> Remember to regenerate the PO template after making any changes to localizable strings, or after adding new scenes or scripts. Otherwise, newly added strings will not be localizable and translators won't be able to update translations for outdated strings.</p>
+</blockquote>
+<h3 id="manual-creation">Manual creation</h3>
+<p>If the automatic generation approach doesn't work out for your needs, you can create a PO template by hand in a text editor. This file can be placed anywhere in the project directory, but it's recommended to keep it in a subdirectory, as each locale will be defined in its own file.</p>
+<p>Create a directory named <code>locale</code> in the project directory. In this directory, save a file named <code>messages.pot</code> with the following content:</p>
+<pre><code># Don&#39;t remove the two lines below, they&#39;re required for gettext to work correctly.
+msgid &quot;&quot;
+msgstr &quot;&quot;
+
+# Example of a regular string.
+msgid &quot;Hello world!&quot;
+msgstr &quot;&quot;
+
+# Example of a string with pluralization.
+msgid &quot;There is %d apple.&quot;
+msgid_plural &quot;There are %d apples.&quot;
+msgstr[0] &quot;&quot;
+msgstr[1] &quot;&quot;
+
+# Example of a string with a translation context.
+msgctxt &quot;Actions&quot;
+msgid &quot;Close&quot;
+msgstr &quot;&quot;</code></pre>
+<p>Messages in gettext are made of <code>msgid</code> and <code>msgstr</code> pairs. <code>msgid</code> is the source string (usually in English), <code>msgstr</code> will be the translated string.</p>
+<blockquote>
+<p><strong>Warning:</strong> The <code>msgstr</code> value in PO template files (<code>.pot</code>) should <strong>always</strong> be empty. Localization will be done in the generated <code>.po</code> files instead.</p>
+</blockquote>
+<h2 id="creating-a-messages-file-from-a-po-template">Creating a messages file from a PO template</h2>
+<p>The <code>msginit</code> command is used to turn a PO template into a messages file. For instance, to create a French localization file, use the following command while in the <code>locale</code> directory:</p>
+<pre class="shell"><code>msginit --no-translator --input=messages.pot --locale=fr</code></pre>
+<p>The command above will create a file named <code>fr.po</code> in the same directory as the PO template.</p>
+<p>Alternatively, you can do that graphically using Poedit, or by uploading the POT file to your web platform of choice.</p>
+<h2 id="loading-a-messages-file-in-godot">Loading a messages file in Godot</h2>
+<p>To register a messages file as a translation in a project, open the <code>Project Settings</code>, then go to <code>Localization &gt; Translations</code>, click <code>Add…</code> then choose the <code>.po</code> or <code>.mo</code> file in the file dialog. The locale will be inferred from the <code>"Language: &lt;code&gt;\n"</code> property in the messages file.</p>
+<blockquote>
+<p><strong>Note:</strong> See <code>doc_internationalizing_games</code> for more information on importing and testing translations in Godot.</p>
+</blockquote>
+<h2 id="updating-message-files-to-follow-the-po-template">Updating message files to follow the PO template</h2>
+<p>After updating the PO template, you will have to update message files so that they contain new strings, while removing strings that are no longer present in the PO template. This can be done automatically using the <code>msgmerge</code> tool:</p>
+<pre class="shell"><code># The order matters: specify the message file *then* the PO template!
+msgmerge --update --backup=none fr.po messages.pot</code></pre>
+<p>If you want to keep a backup of the original message file (which would be saved as <code>fr.po~</code> in this example), remove the <code>--backup=none</code> argument.</p>
+<blockquote>
+<p><strong>Note:</strong> After running <code>msgmerge</code>, strings which were modified in the source language will have a "fuzzy" comment added before them in the <code>.po</code> file. This comment denotes that the translation should be updated to match the new source string, as the translation will most likely be inaccurate until it's updated.</p>
+<p>Strings with "fuzzy" comments will <strong>not</strong> be read by Godot until the translation is updated and the "fuzzy" comment is removed.</p>
+</blockquote>
+<h2 id="checking-the-validity-of-a-po-file-or-template">Checking the validity of a PO file or template</h2>
+<p>It is possible to check whether a gettext file's syntax is valid.</p>
+<p>If you open with Poeditor, it will display the appropriate warnings if there's some syntax errors. You can also verify by running the gettext command below:</p>
+<pre class="shell"><code>msgfmt fr.po --check</code></pre>
+<p>If there are syntax errors or warnings, they will be displayed in the console. Otherwise, <code>msgfmt</code> won't output anything.</p>
+<h2 id="using-binary-mo-files-useful-for-large-projects-only">Using binary MO files (useful for large projects only)</h2>
+<p>For large projects with several thousands of strings to translate or more, it can be worth it to use binary (compiled) MO message files instead of text-based PO files. Binary MO files are smaller and faster to read than the equivalent PO files.</p>
+<p>You can generate an MO file with the command below:</p>
+<pre class="shell"><code>msgfmt fr.po --no-hash -o fr.mo</code></pre>
+<p>If the PO file is valid, this command will create an <code>fr.mo</code> file besides the PO file. This MO file can then be loaded in Godot as described above.</p>
+<p>The original PO file should be kept in version control so you can update your translation in the future. In case you lose the original PO file and wish to decompile an MO file into a text-based PO file, you can do so with:</p>
+<pre class="shell"><code>msgunfmt fr.mo &gt; fr.po</code></pre>
+<p>The decompiled file will not include comments or fuzzy strings, as these are never compiled in the MO file in the first place.</p>
+<h2 id="extracting-localizable-strings-from-gdscript-files">Extracting localizable strings from GDScript files</h2>
+<p>The built-in <a href="https://github.com/godotengine/godot/blob/master/modules/gdscript/editor/gdscript_translation_parser_plugin.h">editor plugin</a> recognizes a variety of patterns in source code to extract localizable strings from GDScript files, including but not limited to the following:</p>
+<ul>
+<li><code>tr()</code>, <code>tr_n()</code>, <code>atr()</code>, and <code>atr_n()</code> calls;</li>
+<li>assigning properties <code>text</code>, <code>placeholder_text</code>, and <code>tooltip_text</code>;</li>
+<li><code>add_tab()</code>, <code>add_item()</code>, <code>set_tab_title()</code>, and other calls;</li>
+<li><code>FileDialog</code> filters like <code>"*.png ; PNG Images"</code>.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> The argument or right operand must be a constant string, otherwise the plugin will not be able to evaluate the expression and will ignore it.</p>
+</blockquote>
+<p>If the plugin extracts unnecessary strings, you can ignore them with the <code>NO_TRANSLATE</code> comment. You can also provide additional information for translators using the <code>TRANSLATORS:</code> comment. These comments must be placed either on the same line as the recognized pattern or precede it.</p>
+<pre><code>$CharacterName.text = &quot;???&quot; # NO_TRANSLATE
+
+# NO_TRANSLATE: Language name.
+$TabContainer.set_tab_title(0, &quot;Python&quot;)
+
+item.text = &quot;Tool&quot; # TRANSLATORS: Up to 10 characters.
+
+# TRANSLATORS: This is a reference to Lewis Carroll&#39;s poem &quot;Jabberwocky&quot;,
+# make sure to keep this as it is important to the plot.
+say(tr(&quot;He took his vorpal sword in hand. The end?&quot;))</code></pre>
+<h2 id="using-context">Using context</h2>
+<p>The <code>context</code> parameter can be used to differentiate the situation where a translation is used, or to differentiate polysemic words (words with multiple meanings).</p>
+<p>For example:</p>
+<pre><code>tr(&quot;Start&quot;, &quot;Main Menu&quot;)
+tr(&quot;End&quot;, &quot;Main Menu&quot;)
+tr(&quot;Shop&quot;, &quot;Main Menu&quot;)
+tr(&quot;Shop&quot;, &quot;In Game&quot;)</code></pre>
+<p>In a gettext PO file, a string with a context can be defined as follows:</p>
+<pre><code># Example of a string with a translation context.
+msgctxt &quot;Main Menu&quot;
+msgid &quot;Shop&quot;
+msgstr &quot;&quot;
+
+# A different source string that is identical, but with a different context.
+msgctxt &quot;In Game&quot;
+msgid &quot;Shop&quot;
+msgstr &quot;&quot;</code></pre>
+<h2 id="updating-po-files">Updating PO files</h2>
+<p>Some time or later, you'll add new content to your game, and there will be new strings that need to be translated. When this happens, you'll need to update the existing PO files to include the new strings.</p>
+<p>First, generate a new POT file containing all the existing strings plus the newly added strings. After that, merge the existing PO files with the new POT file. There are two ways to do this:</p>
+<ul>
+<li>Use a gettext editor, and it should have an option to update a PO file from a POT file.</li>
+<li>Use the gettext <code>msgmerge</code> tool:</li>
+</ul>
+<pre class="shell"><code># The order matters: specify the message file *then* the PO template!
+msgmerge --update --backup=none fr.po messages.pot</code></pre>
+<p>If you want to keep a backup of the original message file (which would be saved as <code>fr.po~</code> in this example), remove the <code>--backup=none</code> argument.</p>
+<h2 id="pot-generation-custom-plugin">POT generation custom plugin</h2>
+<p>If you have any extra file format to deal with, you could write a custom plugin to parse and extract the strings from the custom file. This custom plugin will extract the strings and write into the POT file when you hit <strong>Generate POT</strong>. To learn more about how to create the translation parser plugin, see ref.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

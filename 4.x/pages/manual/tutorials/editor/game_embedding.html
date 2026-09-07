@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game embedding — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="game-embedding">Game embedding</h1>
+<p>Godot supports optionally running the game in the editor itself. This is enabled by default.</p>
+<blockquote>
+<p><strong>Note:</strong> The game always runs in a separate process, no matter the embedding mode used. This means that if the game crashes, it will not crash the editor.</p>
+</blockquote>
+<h2 id="configuring-game-embedding">Configuring game embedding</h2>
+<p>Game embedding can be in one of 3 states:</p>
+<ul>
+<li><strong>Floating window</strong> <em>(default)</em>: The game runs in a separate window, with a Game bar at the top that allows you to adjust settings and select nodes in the embedded game. Clicking the <code>Game</code> main screen button focuses the floating window.</li>
+<li><strong>Main window:</strong> The game runs in the editor, with a Game bar at the top that allows you to adjust settings and select nodes in the embedded game. Clicking the <code>Game</code> main screen button switches to the tab with the running project.</li>
+<li><strong>Disabled:</strong> The game runs in a separate window, as if it was an exported project. The Game bar at the top is not present; selecting nodes in the embedded game is not possible.</li>
+</ul>
+<p>To configure this functionality, click the Game main screen at the top of the editor:</p>
+<p><em>Image: Accessing the Game embedding main screen</em></p>
+<p>Accessing the Game embedding main screen</p>
+<p>Once on the Game main screen, click the dropdown menu in the top-right corner of the Game bar:</p>
+<p><em>Image: Game embedding mode dropdown</em></p>
+<p>Game embedding mode dropdown</p>
+<p>Two options are available to configure the game embedding mode:</p>
+<ul>
+<li><strong>Embed Game on Next Play:</strong> If enabled, game embedding is enabled and the Game bar is available for use on the running game.</li>
+<li><strong>Make Window Floating on Next Play:</strong> If enabled, the game runs in a floating window. If disabled, the game runs in the main editor window.</li>
+</ul>
+<h3 id="embedded-window-sizing">Embedded window sizing</h3>
+<p>As seen in the dropdown menu on the right of the Game bar, there are several choices available to configure the embedded window size behavior. This affects both the floating and main window embedding modes:</p>
+<ul>
+<li><strong>Fixed Size</strong> <em>(default)</em>: Set the viewport size to a fixed resolution, as configured in the Project Settings. If both ref and ref are set above <code>0</code>, this override is used instead.</li>
+<li><strong>Keep Aspect Ratio:</strong> The viewport size stretches to match the game window size, but always follows the aspect ratio defined by the <code>width / height</code> as configured in the Project Settings.</li>
+<li><strong>Stretch to Fit</strong>: The viewport size stretches to match the game window size, and may use an aspect ratio different than the one defined by the <code>width / height</code> as configured in the Project Settings. This matches the behavior when game embedding is disabled.</li>
+</ul>
+<p>These options have no effect when game embedding is disabled.</p>
+<h2 id="features">Features</h2>
+<p>When game embedding is enabled, several features can be adjusted while the project is running using the Game bar at the top.</p>
+<p><em>Image: Game bar at the top of the embedded game window</em></p>
+<p>Game bar at the top of the embedded game window</p>
+<p>In order from left to right:</p>
+<h3 id="pause-f9">Pause (F9)</h3>
+<p>Pauses/resumes the game. When paused, the game will stop processing physics and idle frames, but it will still render and process input. This allows you to ref and inspect their properties in the editor inspector while the game is running.</p>
+<h3 id="frame-advance-f10">Frame advance (F10)</h3>
+<p>Only available when the game is paused. Advances the game by one frame, allowing you to inspect the state of the game at a specific moment in time. This can be used to diagnose short-lived interactions (such as collisions) that are hard to inspect when the game is running at full speed.</p>
+<h3 id="game-speed">Game speed</h3>
+<p>This option is a menu that can adjust the game speed. If the game sets ref at runtime, it will be multiplied by the value set here.</p>
+<p><em>Image: Game speed dropdown on the left of the Game bar</em></p>
+<p>Game speed dropdown on the left of the Game bar</p>
+<p>This can be used to view interactions in slow motion, or speed up the game significantly to test mechanics that normally take a long time to occur.</p>
+<p>The reset button to the right of the dropdown resets the game speed to normal (1.0×).</p>
+<blockquote>
+<p><strong>Tip:</strong> When adjusting the game speed using this mechanism, the physics tick rate (determined by the ref project setting) is automatically multiplied by the game speed. This allows the game logic to run at a different speed without affecting the physics simulation. For example:</p>
+<ul>
+<li>If you set the game speed to 0.5, the physics tick rate is halved.</li>
+<li>If you set the game speed to 4.0, the physics tick rate is quadrupled.</li>
+</ul>
+<p>The ref is also increased to match the new physics tick rate, but it will not decrease below the default value when running in slow motion.</p>
+</blockquote>
+<h3 id="interaction-mode">Interaction mode</h3>
+<p>This controls the behavior when clicking or pressing keys while the embedded game window has focus.</p>
+<ul>
+<li><strong>Input</strong> <em>(default)</em>: Allow game input as usual.</li>
+<li><strong>2D:</strong> Disable game input and allow selecting Node2Ds, Controls, and manipulating the 2D camera.</li>
+<li><strong>3D:</strong> Disable game input and allow selecting Node3Ds and manipulating the 3D camera.</li>
+</ul>
+<p>Nodes that are selected in the 2D and 3D modes can be inspected in the editor's inspector, just like if they were selected in the editor. This allows you to inspect and modify properties of nodes in the running game.</p>
+<blockquote>
+<p><strong>Warning:</strong> Like in the Remote scene tree, changes made to the running game this way are not preserved when the game is stopped.</p>
+<p>To make changes that are preserved after stopping the game, you need to select the nodes in the editor's Local scene tree and modify them from there while the game is running instead. Make sure <code>Debug &gt; Synchronize Scene Changes</code> is enabled when doing this.</p>
+</blockquote>
+<h3 id="select-mode">Select mode</h3>
+<p><em>Only effective if the interaction mode is 2D or 3D, not Input.</em></p>
+<p>When enabling this option, the "show list of selectable nodes at position clicked" mode is disabled. However, you can still perform this action in select mode by using <code>Ctrl + Alt + Right mouse button</code> at the desired location.</p>
+<h3 id="show-list-of-selectable-nodes-at-position-clicked">Show list of selectable nodes at position clicked</h3>
+<p><em>Only effective if the interaction mode is 2D or 3D, not Input.</em></p>
+<p>Like in the editor, this shows a list of selectable nodes at the position clicked. This is useful when multiple nodes are overlapping and you want to select a specific one. When enabling this option, select mode is disabled.</p>
+<h3 id="toggle-selection-visibility">Toggle selection visibility</h3>
+<p><em>Only effective if the interaction mode is 2D or 3D, not Input.</em></p>
+<p>By default, the selected node in 2D or 3D interaction mode is highlighted with an orange rectangle or box (like in the editor).</p>
+<p>When this option is enabled, it appears as a closed eye icon. Future selections will not be highlighted in the game view, but are still selected for inspection in the inspector. This is useful to avoid visual clutter.</p>
+<h3 id="selection-advanced-options">Selection advanced options</h3>
+<p>Two advanced options are available in the dropdown menu next to the select mode icons:</p>
+<ul>
+<li><strong>Don't Select Locked Nodes:</strong> When enabled, nodes that are locked in the editor cannot be selected. This mimics editor behavior.</li>
+<li><strong>Select Group over Children:</strong> When enabled, grouped nodes are selected instead of their individual children. This mimics editor behavior.</li>
+</ul>
+<h3 id="mute-game-audio">Mute game audio</h3>
+<p>This mutes game audio when enabled, without affecting the editor or other applications. This is particularly useful on macOS and Android, which do not come with a per-application volume slider out of the box.</p>
+<h3 id="camera-override">Camera override</h3>
+<p>When enabled, the camera stops following the game camera. You can then move the 2D/3D camera freely by switching to the 2D/3D interaction mode and using the typical navigation controls:</p>
+<ul>
+<li>In the 2D interaction mode, use the middle mouse button (or <code>Space + Left mouse button</code>) to pan around and the mouse wheel to zoom.</li>
+<li>In the 3D interaction mode, hold the right mouse button and press <code>W</code>, <code>A</code>, <code>S</code>, and <code>D</code> to use freelook. Use the middle mouse button to orbit, <code>Shift + Middle mouse button</code> to pan, and the mouse wheel to zoom. Additionally, you can use <code>Ctrl + Minus</code>, <code>Ctrl + Plus</code>, and <code>Ctrl + 0</code> to control the field of view (relative to the game's own camera FOV).</li>
+</ul>
+<p>This is useful to inspect parts of the scene that are not visible from the game camera's point of view, or to inspect the game camera itself. When the camera override is disabled, the camera will snap back to the game camera's point of view.</p>
+<p>When disabling camera override, the overridden camera's position and rotation are not reset. This allows you to quickly toggle back and forth between the game camera and the overridden camera.</p>
+<blockquote>
+<p><strong>Note:</strong> If the camera override appears to be non-interactive, make sure to be in the 2D or 3D interaction mode. The camera override will keep working while in the Input interaction mode, but you won't be able to move the overridden camera while in that mode (unless using the <strong>Manipulate From Editors</strong> camera override mode as described below).</p>
+<p>When overriding the 2D/3D camera, the project's scripts are not aware of this camera override. Keep this in mind when inspecting properties that depend on the camera position, as they will account for the original camera position instead.</p>
+</blockquote>
+<h3 id="camera-override-options">Camera override options</h3>
+<ul>
+<li><strong>Reset 2D/3D Camera:</strong> Resets the 2D/3D camera to the position and rotation defined by the game. Note that the camera will still be frozen in place until you disable camera override.</li>
+<li><strong>Manipulate In-Game</strong> <em>(default)</em>: The camera override is controlled from the game window. This allows controlling the camera without needing to switch back to the editor.</li>
+<li><strong>Manipulate From Editors:</strong> The camera override is controlled from the editor window. This can be useful on multi-monitor setups where the editor can be displayed side-by-side with the running project. Also, when using this option, the camera override position can be remembered across project runs, since it will reuse the editor camera position directly when enabled.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> The camera override may appear less smooth while using the <strong>Manipulate From Editors</strong> camera override mode, as a result of using local network communication between the editor and the game to update the camera position.</p>
+</blockquote>
+<h2 id="limitations">Limitations</h2>
+<p>Game embedding has a number of limitations to be aware of:</p>
+<ul>
+<li>In the Android editor, game embedding always uses a floating window. By default, the floating window is kept on top of the editor using Android's picture-in-picture functionality. This behavior can be disabled in the Game bar by unchecking <code>Keep on Top using PiP</code> in the menu on the right of the Game bar.</li>
+<li>Window mode changes (e.g. fullscreen) are not supported when using game embedding.</li>
+<li>When <code>Debug &gt; Customize Run Instances...</code> is used to enable running with multiple instances, only the first instance will use game embedding. Other instances will spawn in their own windows, without the Game bar at the top.</li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

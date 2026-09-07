@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Player scene and input actions — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="player-scene-and-input-actions">Player scene and input actions</h1>
+<p>In the next two lessons, we will design the player scene, register custom input actions, and code player movement. By the end, you'll have a playable character that moves in eight directions.</p>
+<p>Create a new scene by going to the Scene menu in the top-left and clicking <em>New Scene</em>. Create a <em>KinematicBody</em> node as the root and name it <em>Player</em>.</p>
+<p><em>Image: image0</em></p>
+<p>Kinematic bodies are complementary to the area and rigid bodies used in the 2D game tutorial. Like rigid bodies, they can move and collide with the environment, but instead of being controlled by the physics engine, you dictate their movement. You will see how we use the node's unique features when we code the jump and squash mechanics.</p>
+<blockquote>
+<p><strong>See also:</strong> To learn more about the different physics node types, see the <code>doc_physics_introduction</code>.</p>
+</blockquote>
+<p>For now, we're going to create a basic rig for our character's 3D model. This will allow us to rotate the model later via code while it plays an animation.</p>
+<p>Add a <em>Spatial</em> node as a child of <em>Player</em> and name it <em>Pivot</em>. Then, in the FileSystem dock, expand the <code>art/</code> folder by double-clicking it and drag and drop <code>player.glb</code> onto the <em>Pivot</em> node.</p>
+<p><em>Image: image1</em></p>
+<p>This should instantiate the model as a child of <em>Pivot</em>. You can rename it to <em>Character</em>.</p>
+<p><em>Image: image2</em></p>
+<blockquote>
+<p><strong>Note:</strong> The <code>.glb</code> files contain 3D scene data based on the open-source GLTF 2.0 specification. They're a modern and powerful alternative to a proprietary format like FBX, which Godot also supports. To produce these files, we designed the model in <a href="https://www.blender.org/">Blender 3D</a> and exported it to GLTF.</p>
+</blockquote>
+<p>As with all kinds of physics nodes, we need a collision shape for our character to collide with the environment. Select the <em>Player</em> node again and add a <em>CollisionShape</em>. In the <em>Inspector</em>, assign a <em>SphereShape</em> to the <em>Shape</em> property. The sphere's wireframe appears below the character.</p>
+<p><em>Image: image3</em></p>
+<p>It will be the shape the physics engine uses to collide with the environment, so we want it to better fit the 3D model. Shrink it a bit by dragging the orange dot in the viewport. My sphere has a radius of about <code>0.8</code> meters.</p>
+<p>Then, move the shape up so its bottom roughly aligns with the grid's plane.</p>
+<p><em>Image: image4</em></p>
+<p>You can toggle the model's visibility by clicking the eye icon next to the <em>Character</em> or the <em>Pivot</em> nodes.</p>
+<p><em>Image: image5</em></p>
+<p>Save the scene as <code>Player.tscn</code>.</p>
+<p>With the nodes ready, we can almost get coding. But first, we need to define some input actions.</p>
+<h2 id="creating-input-actions">Creating input actions</h2>
+<p>To move the character, we will listen to the player's input, like pressing the arrow keys. In Godot, while we could write all the key bindings in code, there's a powerful system that allows you to assign a label to a set of keys and buttons. This simplifies our scripts and makes them more readable.</p>
+<p>This system is the Input Map. To access its editor, head to the <em>Project</em> menu and select <em>Project Settings…</em>.</p>
+<p><em>Image: image6</em></p>
+<p>At the top, there are multiple tabs. Click on <em>Input Map</em>. This window allows you to add new actions at the top; they are your labels. In the bottom part, you can bind keys to these actions.</p>
+<p><em>Image: image7</em></p>
+<p>Godot projects come with some predefined actions designed for user interface design, which we could use here. But we're defining our own to support gamepads.</p>
+<p>We're going to name our actions <code>move_left</code>, <code>move_right</code>, <code>move_forward</code>, <code>move_back</code>, and <code>jump</code>.</p>
+<p>To add an action, write its name in the bar at the top and press Enter.</p>
+<p><em>Image: image8</em></p>
+<p>Create the five actions. Your window should have them all listed at the bottom.</p>
+<p><em>Image: image9</em></p>
+<p>To bind a key or button to an action, click the "+" button to its right. Do this for <code>move_left</code> and in the drop-down menu, click <em>Key</em>.</p>
+<p><em>Image: image10</em></p>
+<p>This option allows you to add a keyboard input. A popup appears and waits for you to press a key. Press the left arrow key and click <em>OK</em>.</p>
+<p><em>Image: image11</em></p>
+<p>Do the same for the A key.</p>
+<p><em>Image: image12</em></p>
+<p>Let's now add support for a gamepad's left joystick. Click the "+" button again but this time, select <em>Joy Axis</em>.</p>
+<p><em>Image: image13</em></p>
+<p>The popup gives you two drop-down menus. On the left, you can select a gamepad by index. <em>Device 0</em> corresponds to the first plugged gamepad, <em>Device 1</em> corresponds to the second, and so on. You can select the joystick and direction you want to bind to the input action on the right. Leave the default values and press the <em>Add</em> button.</p>
+<p><em>Image: image14</em></p>
+<p>Do the same for the other input actions. For example, bind the right arrow, D, and the left joystick's right axis to <code>move_right</code>. After binding all keys, your interface should look like this.</p>
+<p><em>Image: image15</em></p>
+<p>We have the <code>jump</code> action left to set up. Bind the Space key and the gamepad's A button. To bind a gamepad's button, select the <em>Joy Button</em> option in the menu.</p>
+<p><em>Image: image16</em></p>
+<p>Leave the default values and click the <em>Add</em> button.</p>
+<p><em>Image: image17</em></p>
+<p>Your jump input action should look like this.</p>
+<p><em>Image: image18</em></p>
+<p>That's all the actions we need for this game. You can use this menu to label any groups of keys and buttons in your projects.</p>
+<p>In the next part, we'll code and test the player's movement.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

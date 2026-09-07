@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GLTFDocumentExtension — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="gltfdocumentextension">GLTFDocumentExtension</h1>
+<p><em>Inherits: <a href="Resource.html">Resource</a> &lt; <a href="RefCounted.html">RefCounted</a> &lt; <a href="Object.html">Object</a></em></p>
+<p><em>Implemented by: <a href="GLTFDocumentExtensionConvertImporterMesh.html">GLTFDocumentExtensionConvertImporterMesh</a></em></p>
+<p><a href="GLTFDocument.html">GLTFDocument</a> extension class.</p>
+<h2 id="description">Description</h2>
+<p>Extends the functionality of the <a href="GLTFDocument.html">GLTFDocument</a> class by allowing you to run arbitrary code at various stages of glTF import or export.</p>
+<p>To use, make a new class extending GLTFDocumentExtension, override any methods you need, make an instance of your class, and register it using <code>GLTFDocument.register_gltf_document_extension()</code>.</p>
+<p><strong>Note:</strong> All GLTFDocumentExtension classes are duplicated when beginning the import or export process. Except for configuration values, these classes must be stateless in order to function properly. If you need to store data, use the <code>set_additional_data</code> and <code>get_additional_data</code> methods in <a href="GLTFState.html">GLTFState</a> or <a href="GLTFNode.html">GLTFNode</a>.</p>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="../manual/tutorials/io/runtime_file_loading_and_saving.html">Runtime file loading and saving</a></li>
+</ul>
+<h2 id="methods">Methods</h2>
+<h3 id="void-_convert_scene_nodestate-gltfstate-gltf_node-gltfnode-scene_node-node-virtual"><code>void _convert_scene_node(state: GLTFState, gltf_node: GLTFNode, scene_node: Node) virtual</code></h3>
+<p>Part of the export process. This method is run after <code>_export_preflight()</code> and before <code>_export_post_convert()</code>.</p>
+<p>Runs when converting the data from a Godot scene node. This method can be used to process the Godot scene node data into a format that can be used by <code>_export_node()</code>.</p>
+<h3 id="arraydictionary-_export_get_property_listroot_node-node-virtual"><code>Array\[Dictionary\] _export_get_property_list(root_node: Node) virtual</code></h3>
+<p>Runs prior to the export process. This method is run before <code>_export_preflight()</code> when exporting a scene from the editor, or it may not be run at all in other situations.</p>
+<p>Unlike the rest of the export methods, this does not run when calling a <a href="GLTFDocument.html">GLTFDocument</a>'s export methods in sequence with everything else, but rather runs before that entire process occurs, allowing configuration to occur beforehand, potentially minutes or hours in advance of <code>_export_preflight()</code>. This allows extensions to decide which properties to show in the editor export settings dialog based on the contents of the scene, hiding any settings that are not relevant for that scene. The <code>root_node</code> parameter may be <code>null</code>, in which case all properties should be shown.</p>
+<h3 id="globalscopeerror-_export_nodestate-gltfstate-gltf_node-gltfnode-json-dictionary-node-node-virtual">``@GlobalScope.Error<code> _export_node(state: GLTFState, gltf_node: GLTFNode, json: Dictionary, node: Node) virtual</code></h3>
+<p>Part of the export process. This method is run after <code>_get_saveable_image_formats()</code> and before <code>_export_post()</code>. If this <strong>GLTFDocumentExtension</strong> is used for exporting images, this runs after <code>_serialize_texture_json()</code>.</p>
+<p>This method can be used to modify the final JSON of each node. Data should be primarily stored in <code>gltf_node</code> prior to serializing the JSON, but the original Godot <a href="Node.html">Node</a> is also provided if available. <code>node</code> may be <code>null</code> if not available, such as when exporting glTF data not generated from a Godot scene.</p>
+<h3 id="gltfobjectmodelproperty-_export_object_model_propertystate-gltfstate-node_path-nodepath-godot_node-node-gltf_node_index-int-target_object-object-target_depth-int-virtual"><code>GLTFObjectModelProperty _export_object_model_property(state: GLTFState, node_path: NodePath, godot_node: Node, gltf_node_index: int, target_object: Object, target_depth: int) virtual</code></h3>
+<p>Part of the export process. Allows GLTFDocumentExtension classes to provide mappings for properties of nodes in the Godot scene tree, to JSON pointers to glTF properties, as defined by the glTF object model.</p>
+<p>Returns a <a href="GLTFObjectModelProperty.html">GLTFObjectModelProperty</a> instance that defines how the property should be mapped. If your extension can't handle the property, return <code>null</code> or an instance without any JSON pointers (see <code>GLTFObjectModelProperty.has_json_pointers()</code>). You should use <code>GLTFObjectModelProperty.set_types()</code> to set the types, and set the JSON pointer(s) using the <code>GLTFObjectModelProperty.json_pointers</code> property.</p>
+<p>The parameters provide context for the property, including the NodePath, the Godot node, the GLTF node index, and the target object. The <code>target_object</code> will be equal to <code>godot_node</code> if no sub-object can be found, otherwise it will point to a sub-object. For example, if the path is <code>^"A/B/C/MeshInstance3D:mesh:surface_0/material:emission_intensity"</code>, it will get the node, then the mesh, and then the material, so <code>target_object</code> will be the <a href="Material.html">Material</a> resource, and <code>target_depth</code> will be 2 because 2 levels were traversed to get to the target.</p>
+<h3 id="globalscopeerror-_export_poststate-gltfstate-virtual">``@GlobalScope.Error<code> _export_post(state: GLTFState) virtual</code></h3>
+<p>Part of the export process. This method is run last, after all other parts of the export process.</p>
+<p>This method can be used to modify the final JSON of the generated glTF file.</p>
+<h3 id="globalscopeerror-_export_post_convertstate-gltfstate-root-node-virtual">``@GlobalScope.Error<code> _export_post_convert(state: GLTFState, root: Node) virtual</code></h3>
+<p>Part of the export process. This method is run after <code>_convert_scene_node()</code> and before <code>_export_preserialize()</code>.</p>
+<p>This method can be used to modify the converted node data structures before serialization with any additional data from the scene tree.</p>
+<h3 id="globalscopeerror-_export_preflightstate-gltfstate-root-node-virtual">``@GlobalScope.Error<code> _export_preflight(state: GLTFState, root: Node) virtual</code></h3>
+<p>Part of the export process. This method is run first, before all other parts of the export process.</p>
+<p>The return value is used to determine if this <strong>GLTFDocumentExtension</strong> instance should be used for exporting a given glTF file. If <code>@GlobalScope.OK</code>, the export will use this <strong>GLTFDocumentExtension</strong> instance. If not overridden, <code>@GlobalScope.OK</code> is returned.</p>
+<h3 id="globalscopeerror-_export_preserializestate-gltfstate-virtual">``@GlobalScope.Error<code> _export_preserialize(state: GLTFState) virtual</code></h3>
+<p>Part of the export process. This method is run after <code>_export_post_convert()</code> and before <code>_get_saveable_image_formats()</code>.</p>
+<p>This method can be used to alter the state before performing serialization. It runs every time when generating a buffer with <code>GLTFDocument.generate_buffer()</code> or writing to the file system with <code>GLTFDocument.write_to_filesystem()</code>.</p>
+<h3 id="node3d-_generate_scene_nodestate-gltfstate-gltf_node-gltfnode-scene_parent-node-virtual"><code>Node3D _generate_scene_node(state: GLTFState, gltf_node: GLTFNode, scene_parent: Node) virtual</code></h3>
+<p>Part of the import process. This method is run after <code>_import_pre_generate()</code> and before <code>_import_node()</code>.</p>
+<p>Runs when generating a Godot scene node from a GLTFNode. The returned node will be added to the scene tree. Multiple nodes can be generated in this step if they are added as a child of the returned node.</p>
+<p><strong>Note:</strong> The <code>scene_parent</code> parameter may be <code>null</code> if this is the single root node.</p>
+<h3 id="string-_get_image_file_extension-virtual"><code>String _get_image_file_extension() virtual</code></h3>
+<p>Returns the file extension to use for saving image data into, for example, <code>".png"</code>. If defined, when this extension is used to handle images, and the images are saved to a separate file, the image bytes will be copied to a file with this extension. If this is set, there should be a <a href="ResourceImporter.html">ResourceImporter</a> class able to import the file. If not defined or empty, Godot will save the image into a PNG file.</p>
+<h3 id="packedstringarray-_get_saveable_image_formats-virtual"><code>PackedStringArray _get_saveable_image_formats() virtual</code></h3>
+<p>Part of the export process. This method is run after <code>_convert_scene_node()</code> and before <code>_export_node()</code>.</p>
+<p>Returns an array of the image formats that can be saved/exported by this extension. This extension will only be selected as the image exporter if the <a href="GLTFDocument.html">GLTFDocument</a>'s <code>GLTFDocument.image_format</code> is in this array. If this <strong>GLTFDocumentExtension</strong> is selected as the image exporter, one of the <code>_save_image_at_path()</code> or <code>_serialize_image_to_bytes()</code> methods will run next, otherwise <code>_export_node()</code> will run next. If the format name contains <code>"Lossy"</code>, the lossy quality slider will be displayed.</p>
+<h3 id="packedstringarray-_get_supported_extensions-virtual"><code>PackedStringArray _get_supported_extensions() virtual</code></h3>
+<p>Part of the import process. This method is run after <code>_import_preflight()</code> and before <code>_parse_node_extensions()</code>.</p>
+<p>Returns an array of the glTF extensions supported by this GLTFDocumentExtension class. This is used to validate if a glTF file with required extensions can be loaded.</p>
+<h3 id="globalscopeerror-_import_nodestate-gltfstate-gltf_node-gltfnode-json-dictionary-node-node-virtual">``@GlobalScope.Error<code> _import_node(state: GLTFState, gltf_node: GLTFNode, json: Dictionary, node: Node) virtual</code></h3>
+<p>Part of the import process. This method is run after <code>_generate_scene_node()</code> and before <code>_import_post()</code>.</p>
+<p>This method can be used to make modifications to each of the generated Godot scene nodes.</p>
+<h3 id="gltfobjectmodelproperty-_import_object_model_propertystate-gltfstate-split_json_pointer-packedstringarray-partial_paths-arraynodepath-virtual"><code>GLTFObjectModelProperty _import_object_model_property(state: GLTFState, split_json_pointer: PackedStringArray, partial_paths: Array\[NodePath\]) virtual</code></h3>
+<p>Part of the import process. Allows GLTFDocumentExtension classes to provide mappings for JSON pointers to glTF properties, as defined by the glTF object model, to properties of nodes in the Godot scene tree.</p>
+<p>Returns a <a href="GLTFObjectModelProperty.html">GLTFObjectModelProperty</a> instance that defines how the property should be mapped. If your extension can't handle the property, return <code>null</code> or an instance without any NodePaths (see <code>GLTFObjectModelProperty.has_node_paths()</code>). You should use <code>GLTFObjectModelProperty.set_types()</code> to set the types, and <code>GLTFObjectModelProperty.append_path_to_property()</code> function is useful for most simple cases.</p>
+<p>In many cases, <code>partial_paths</code> will contain the start of a path, allowing the extension to complete the path. For example, for <code>/nodes/3/extensions/MY_ext/prop</code>, Godot will pass you a NodePath that leads to node 3, so the GLTFDocumentExtension class only needs to resolve the last <code>MY_ext/prop</code> part of the path. In this example, the extension should check <code>split.size() &gt; 4 and split[0] == "nodes" and split[2] == "extensions" and split[3] == "MY_ext"</code> at the start of the function to check if this JSON pointer applies to it, then it can use <code>partial_paths</code> and handle <code>split[4]</code>.</p>
+<h3 id="globalscopeerror-_import_poststate-gltfstate-root-node-virtual">``@GlobalScope.Error<code> _import_post(state: GLTFState, root: Node) virtual</code></h3>
+<p>Part of the import process. This method is run last, after all other parts of the import process.</p>
+<p>This method can be used to modify the final Godot scene generated by the import process.</p>
+<h3 id="globalscopeerror-_import_post_parsestate-gltfstate-virtual">``@GlobalScope.Error<code> _import_post_parse(state: GLTFState) virtual</code></h3>
+<p>Part of the import process. This method is run after <code>_parse_node_extensions()</code> and before <code>_import_pre_generate()</code>.</p>
+<p>This method can be used to modify any of the data imported so far after parsing each node, but before generating the scene or any of its nodes.</p>
+<h3 id="globalscopeerror-_import_pre_generatestate-gltfstate-virtual">``@GlobalScope.Error<code> _import_pre_generate(state: GLTFState) virtual</code></h3>
+<p>Part of the import process. This method is run after <code>_import_post_parse()</code> and before <code>_generate_scene_node()</code>.</p>
+<p>This method can be used to modify or read from any of the processed data structures, before generating the nodes and then running the final per-node import step.</p>
+<h3 id="globalscopeerror-_import_preflightstate-gltfstate-extensions-packedstringarray-virtual">``@GlobalScope.Error<code> _import_preflight(state: GLTFState, extensions: PackedStringArray) virtual</code></h3>
+<p>Part of the import process. This method is run first, before all other parts of the import process.</p>
+<p>The return value is used to determine if this <strong>GLTFDocumentExtension</strong> instance should be used for importing a given glTF file. If <code>@GlobalScope.OK</code>, the import will use this <strong>GLTFDocumentExtension</strong> instance. If not overridden, <code>@GlobalScope.OK</code> is returned.</p>
+<h3 id="globalscopeerror-_parse_image_datastate-gltfstate-image_data-packedbytearray-mime_type-string-ret_image-image-virtual">``@GlobalScope.Error<code> _parse_image_data(state: GLTFState, image_data: PackedByteArray, mime_type: String, ret_image: Image) virtual</code></h3>
+<p>Part of the import process. This method is run after <code>_parse_node_extensions()</code> and before <code>_parse_texture_json()</code>.</p>
+<p>Runs when parsing image data from a glTF file. The data could be sourced from a separate file, a URI, or a buffer, and then is passed as a byte array.</p>
+<h3 id="globalscopeerror-_parse_node_extensionsstate-gltfstate-gltf_node-gltfnode-extensions-dictionary-virtual">``@GlobalScope.Error<code> _parse_node_extensions(state: GLTFState, gltf_node: GLTFNode, extensions: Dictionary) virtual</code></h3>
+<p>Part of the import process. This method is run after <code>_get_supported_extensions()</code> and before <code>_import_post_parse()</code>.</p>
+<p>Runs when parsing the node extensions of a GLTFNode. This method can be used to process the extension JSON data into a format that can be used by <code>_generate_scene_node()</code>. The return value should be a member of the <code>@GlobalScope.Error</code> enum.</p>
+<h3 id="globalscopeerror-_parse_texture_jsonstate-gltfstate-texture_json-dictionary-ret_gltf_texture-gltftexture-virtual">``@GlobalScope.Error<code> _parse_texture_json(state: GLTFState, texture_json: Dictionary, ret_gltf_texture: GLTFTexture) virtual</code></h3>
+<p>Part of the import process. This method is run after <code>_parse_image_data()</code> and before <code>_generate_scene_node()</code>.</p>
+<p>Runs when parsing the texture JSON from the glTF textures array. This can be used to set the source image index to use as the texture.</p>
+<h3 id="globalscopeerror-_save_image_at_pathstate-gltfstate-image-image-file_path-string-image_format-string-lossy_quality-float-virtual">``@GlobalScope.Error<code> _save_image_at_path(state: GLTFState, image: Image, file_path: String, image_format: String, lossy_quality: float) virtual</code></h3>
+<p>Part of the export process. This method is run after <code>_get_saveable_image_formats()</code> and before <code>_serialize_texture_json()</code>.</p>
+<p>This method is run when saving images separately from the glTF file. When images are embedded, <code>_serialize_image_to_bytes()</code> runs instead. Note that these methods only run when this <strong>GLTFDocumentExtension</strong> is selected as the image exporter.</p>
+<h3 id="packedbytearray-_serialize_image_to_bytesstate-gltfstate-image-image-image_dict-dictionary-image_format-string-lossy_quality-float-virtual"><code>PackedByteArray _serialize_image_to_bytes(state: GLTFState, image: Image, image_dict: Dictionary, image_format: String, lossy_quality: float) virtual</code></h3>
+<p>Part of the export process. This method is run after <code>_get_saveable_image_formats()</code> and before <code>_serialize_texture_json()</code>.</p>
+<p>This method is run when embedding images in the glTF file. When images are saved separately, <code>_save_image_at_path()</code> runs instead. Note that these methods only run when this <strong>GLTFDocumentExtension</strong> is selected as the image exporter.</p>
+<p>This method must set the image MIME type in the <code>image_dict</code> with the <code>"mimeType"</code> key. For example, for a PNG image, it would be set to <code>"image/png"</code>. The return value must be a <a href="PackedByteArray.html">PackedByteArray</a> containing the image data.</p>
+<h3 id="globalscopeerror-_serialize_texture_jsonstate-gltfstate-texture_json-dictionary-gltf_texture-gltftexture-image_format-string-virtual">``@GlobalScope.Error<code> _serialize_texture_json(state: GLTFState, texture_json: Dictionary, gltf_texture: GLTFTexture, image_format: String) virtual</code></h3>
+<p>Part of the export process. This method is run after <code>_save_image_at_path()</code> or <code>_serialize_image_to_bytes()</code>, and before <code>_export_node()</code>. Note that this method only runs when this <strong>GLTFDocumentExtension</strong> is selected as the image exporter.</p>
+<p>This method can be used to set up the extensions for the texture JSON by editing <code>texture_json</code>. The extension must also be added as used extension with <code>GLTFState.add_used_extension()</code>, be sure to set <code>required</code> to <code>true</code> if you are not providing a fallback.</p>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Integrating with Android APIs — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="integrating-with-android-apis">Integrating with Android APIs</h1>
+<p>The Android platform has numerous APIs as well as a rich ecosystem of third-party libraries with wide and diverse functionality, like push notifications, analytics, authentication, ads, etc...</p>
+<p>These don't make sense in Godot core itself so Godot has long provided an ref. The ref enables developers to create Godot Android plugins using Java or Kotlin code, which provides an interface to access and use Android APIs or third-party libraries in Godot projects from GDScript, C# or GDExtension.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MyAndroidSingleton<span class="op">(</span><span class="va">godot</span><span class="op">:</span> <span class="dt">Godot</span><span class="op">?)</span> <span class="op">:</span> <span class="dt">GodotPlugin</span><span class="op">(</span><span class="va">godot</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">@UsedByGodot</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">doSomething</span><span class="op">(</span><span class="va">value</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ...</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Writing an Android plugin however requires knowledge of Java or Kotlin code, which most Godot developers do not have. As such there are many Android APIs and third-party libraries that don't have a Godot plugin that developers can interface with. In fact, this is one of the main reasons that developers cite for not being able to switch to Godot from other game engines.</p>
+<p>To address this, we've introduced a couple of tools in <strong>Godot 4.4</strong> to simplify the process for developers to access Android APIs and third-party libraries.</p>
+<h2 id="javaclasswrapper-godot-singleton">JavaClassWrapper (Godot singleton)</h2>
+<p><code>JavaClassWrapper</code> is a ref which allows creating instances of Java / Kotlin classes, implementing Java / Kotlin interfaces, and calling methods on them using only GDScript, C# or GDExtension.</p>
+<pre class="gdscript"><code>var LocalDateTime = JavaClassWrapper.wrap(&quot;java.time.LocalDateTime&quot;)
+var DateTimeFormatter = JavaClassWrapper.wrap(&quot;java.time.format.DateTimeFormatter&quot;)
+
+var datetime = LocalDateTime.now()
+var formatter = DateTimeFormatter.ofPattern(&quot;dd-MM-yyyy HH:mm:ss&quot;)
+
+print(datetime.format(formatter))</code></pre>
+<p>In the code snippet above, <code>JavaClassWrapper</code> is used from GDScript to access the Java <code>LocalDateTime</code> and <code>DateTimeFormatter</code> classes. Through <code>JavaClassWrapper</code>, we can call the Java classes methods directly from GDScript as if they were GDScript methods.</p>
+<pre class="gdscript"><code>class PrintProxy:
+    func println(content: String) -&gt; void:
+        print(content)
+
+var print_proxy = PrintProxy.new()
+var printer_object = JavaClassWrapper.create_proxy(print_proxy, [&quot;android.util.Printer&quot;])
+printer_object.println(&quot;Hello Godot World!&quot;)</code></pre>
+<p>In the code snippet above, <code>JavaClassWrapper</code> is used to implement the Java <code>android.util.Printer</code> interface from GDScript using a ref as the implementation. The instantiated proxy can then be passed to Java methods that accept a <code>android.util.Printer</code> parameter.</p>
+<p>Check out the ref to learn more about its API.</p>
+<h2 id="androidruntime-plugin">AndroidRuntime plugin</h2>
+<p><code>JavaClassWrapper</code> is great, but to do many things on Android, you need access to various Android lifecycle / runtime objects. <code>AndroidRuntime</code> plugin is a <a href="https://javadoc.io/doc/org.godotengine/godot/latest/org/godotengine/godot/plugin/AndroidRuntimePlugin.html">built-in Godot Android plugin</a> that allows you to do this.</p>
+<p>Combining <code>JavaClassWrapper</code> and <code>AndroidRuntime</code> plugin allows developers to access and use Android APIs without switching away from GDScript, or using any tools aside from Godot itself. This is <strong>huge</strong> for the adoption of Godot for Android development:</p>
+<ul>
+<li>If you need to do something simple, or only use a small part of a third-party library, you don't have to make a plugin</li>
+<li>It allows developers to quickly integrate Android functionality</li>
+<li>It allows developers to create Godot addons using only GDScript and <code>JavaClassWrapper</code> (no Java or Kotlin needed)</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> For exports using <code>gradle</code>, Godot will automatically include <code>.jar</code> or <code>.aar</code> files it find in the project <code>addons</code> directory. So to use a third-party library, you can just drop its <code>.jar</code> or <code>.aar</code> file in the <code>addons</code> directory, and call its method directly from GDScript using <code>JavaClassWrapper</code>.</p>
+</blockquote>
+<h3 id="example-show-an-android-toast">Example: Show an Android toast</h3>
+<pre class="gdscript"><code># Retrieve the AndroidRuntime singleton.
+var android_runtime = Engine.get_singleton(&quot;AndroidRuntime&quot;)
+if android_runtime:
+    # Retrieve the Android Activity instance.
+    var activity = android_runtime.getActivity()
+
+    # Create a Godot Callable to wrap the toast display logic.
+    var toast_callable = func():
+        # Use JavaClassWrapper to retrieve the android.widget.Toast class, then make and show a toast using the class APIs.
+        var ToastClass = JavaClassWrapper.wrap(&quot;android.widget.Toast&quot;)
+        ToastClass.makeText(activity, &quot;This is a test&quot;, ToastClass.LENGTH_LONG).show()
+
+    # Wrap the Callable in a Java Runnable and run it on the Android UI thread to show the toast.
+    activity.runOnUiThread(android_runtime.createRunnableFromGodotCallable(toast_callable))</code></pre>
+<h3 id="example-vibrate-the-device">Example: Vibrate the device</h3>
+<pre class="gdscript"><code># Retrieve the AndroidRuntime singleton.
+var android_runtime = Engine.get_singleton(&quot;AndroidRuntime&quot;)
+if android_runtime:
+    # Retrieve the Android Vibrator system service and check if the device supports it.
+    var vibrator_service = android_runtime.getApplicationContext().getSystemService(&quot;vibrator&quot;)
+    if vibrator_service and vibrator_service.hasVibrator():
+        # Configure and run a VibrationEffect.
+        var VibrationEffect = JavaClassWrapper.wrap(&quot;android.os.VibrationEffect&quot;)
+        var effect = VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE)
+        vibrator_service.vibrate(effect)</code></pre>
+<h3 id="example-accessing-inner-classes">Example: Accessing inner classes</h3>
+<p>Java inner classes can be accessed using the <code>$</code> sign:</p>
+<pre class="gdscript"><code># Accessing &#39;VERSION&#39; class, which is an inner class from the &#39;android.os.Build&#39; class.
+var version = JavaClassWrapper.wrap(&quot;android.os.Build$VERSION&quot;)
+var sdk_int = version.SDK_INT
+if sdk_int == 30:
+    # Do something specific on android 11 devices.
+else:
+    # All other devices</code></pre>
+<h3 id="example-calling-a-constructor">Example: Calling a constructor</h3>
+<p>A constructor is invoked by calling a method with the same name as the class.</p>
+<p>This example creates an intent to send a text:</p>
+<pre class="gdscript"><code># Retrieve the AndroidRuntime singleton.
+var android_runtime = Engine.get_singleton(&quot;AndroidRuntime&quot;)
+if android_runtime:
+    var Intent = JavaClassWrapper.wrap(&quot;android.content.Intent&quot;)
+    var activity = android_runtime.getActivity()
+    var intent = Intent.Intent() # Call the constructor.
+    intent.setAction(Intent.ACTION_SEND)
+    intent.putExtra(Intent.EXTRA_TEXT, &quot;This is a test message.&quot;)
+    intent.setType(&quot;text/plain&quot;)
+    activity.startActivity(intent)</code></pre>
+<h3 id="example-saving-an-image-to-the-android-gallery">Example: Saving an image to the Android gallery</h3>
+<pre class="gdscript"><code># Retrieve the AndroidRuntime singleton.
+var android_runtime = Engine.get_singleton(&quot;AndroidRuntime&quot;)
+if android_runtime:
+    var Intent = JavaClassWrapper.wrap(&quot;android.content.Intent&quot;)
+    var activity = android_runtime.getActivity()
+    var intent = Intent.Intent()
+
+    # Create the File and Uri.
+    var Uri = JavaClassWrapper.wrap(&quot;android.net.Uri&quot;)
+    var File = JavaClassWrapper.wrap(&quot;java.io.File&quot;)
+    var file = File.File(file_path_to_image_here)
+    var uri = Uri.fromFile(file)
+
+    # Set Action and Data of Intent.
+    intent.setAction(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+    intent.setData(uri)
+
+    # Broadcast it.
+    activity.sendBroadcast(intent)</code></pre>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PackedScene — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="packedscene">PackedScene</h1>
+<p><em>Inherits: <a href="Resource.html">Resource</a> &lt; <a href="Reference.html">Reference</a> &lt; <a href="Object.html">Object</a></em></p>
+<p><em>Implemented by: <a href="PackedSceneGLTF.html">PackedSceneGLTF</a></em></p>
+<p>An abstraction of a serialized scene.</p>
+<h2 id="description">Description</h2>
+<p>A simplified interface to a scene file. Provides access to operations and checks that can be performed on the scene resource itself.</p>
+<p>Can be used to save a node to a file. When saving, the node as well as all the nodes it owns get saved (see <code>owner</code> property on <a href="Node.html">Node</a>).</p>
+<p><strong>Note:</strong> The node doesn't need to own itself.</p>
+<p><strong>Example of loading a saved scene:</strong></p>
+<pre class="gdscript"><code># Use `load()` instead of `preload()` if the path isn&#39;t known at compile-time.
+var scene = preload(&quot;res://scene.tscn&quot;).instance()
+# Add the node as a child of the node the script is attached to.
+add_child(scene)</code></pre>
+<p><strong>Example of saving a node with different owners:</strong> The following example creates 3 objects: <code>Node2D</code> (<code>node</code>), <code>RigidBody2D</code> (<code>rigid</code>) and <code>CollisionObject2D</code> (<code>collision</code>). <code>collision</code> is a child of <code>rigid</code> which is a child of <code>node</code>. Only <code>rigid</code> is owned by <code>node</code> and <code>pack</code> will therefore only save those two nodes, but not <code>collision</code>.</p>
+<pre class="gdscript"><code># Create the objects.
+var node = Node2D.new()
+var rigid = RigidBody2D.new()
+var collision = CollisionShape2D.new()
+
+# Create the object hierarchy.
+rigid.add_child(collision)
+node.add_child(rigid)
+
+# Change owner of `rigid`, but not of `collision`.
+rigid.owner = node
+
+var scene = PackedScene.new()
+# Only `node` and `rigid` are now packed.
+var result = scene.pack(node)
+if result == OK:
+    var error = ResourceSaver.save(&quot;res://path/name.scn&quot;, scene)  # Or &quot;user://...&quot;
+    if error != OK:
+        push_error(&quot;An error occurred while saving the scene to disk.&quot;)</code></pre>
+<h2 id="tutorials">Tutorials</h2>
+<ul>
+<li><a href="https://godotengine.org/asset-library/asset/520">2D Role Playing Game Demo</a></li>
+</ul>
+<h2 id="properties">Properties</h2>
+<h3 id="dictionary-_bundled--conn_count-0conns-poolintarray--editable_instances---names-poolstringarray--node_count-0node_paths---nodes-poolintarray--variants---version-2"><code>Dictionary _bundled = {"conn_count": 0,"conns": PoolIntArray(  ),"editable_instances": [  ],"names": PoolStringArray(  ),"node_count": 0,"node_paths": [  ],"nodes": PoolIntArray(  ),"variants": [  ],"version": 2}</code></h3>
+<p>A dictionary representation of the scene contents.</p>
+<p>Available keys include "rnames" and "variants" for resources, "node_count", "nodes", "node_paths" for nodes, "editable_instances" for base scene children overrides, "conn_count" and "conns" for signal connections, and "version" for the format style of the PackedScene.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="bool-can_instance-const"><code>bool can_instance() const</code></h3>
+<p>Returns <code>true</code> if the scene file has nodes.</p>
+<h3 id="scenestate-get_state"><code>SceneState get_state()</code></h3>
+<p>Returns the <code>SceneState</code> representing the scene file contents.</p>
+<h3 id="node-instanceedit_state0-geneditstate-const"><code>Node instance(edit_state=0: </code>GenEditState<code>) const</code></h3>
+<p>Instantiates the scene's node hierarchy. Triggers child scene instantiation(s). Triggers a <code>Node.NOTIFICATION_INSTANCED</code> notification on the root node.</p>
+<h3 id="globalscopeerror-packpath-node">``@GlobalScope.Error<code> pack(path: Node)</code></h3>
+<p>Pack will ignore any sub-nodes not owned by given node. See <code>Node.owner</code>.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-geneditstate"><code>enum GenEditState</code></h3>
+<ul>
+<li><p><code>GEN_EDIT_STATE_DISABLED = 0</code></p>
+<p>If passed to <code>instance</code>, blocks edits to the scene state.</p></li>
+<li><p><code>GEN_EDIT_STATE_INSTANCE = 1</code></p>
+<p>If passed to <code>instance</code>, provides local scene resources to the local scene.</p>
+<p><strong>Note:</strong> Only available in editor builds.</p></li>
+<li><p><code>GEN_EDIT_STATE_MAIN = 2</code></p>
+<p>If passed to <code>instance</code>, provides local scene resources to the local scene. Only the main scene should receive the main edit state.</p>
+<p><strong>Note:</strong> Only available in editor builds.</p></li>
+<li><p><code>GEN_EDIT_STATE_MAIN_INHERITED = 3</code></p>
+<p>It's similar to <code>GEN_EDIT_STATE_MAIN</code>, but for the case where the scene is being instantiated to be the base of another one.</p>
+<p><strong>Note:</strong> Only available in editor builds.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compiling for macOS — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="compiling-for-macos">Compiling for macOS</h1>
+<blockquote>
+<p><strong>Note:</strong> This page describes how to compile macOS editor and export template binaries from source. If you're looking to export your project to macOS instead, read <code>doc_exporting_for_macos</code>.</p>
+</blockquote>
+<h2 id="requirements">Requirements</h2>
+<p>For compiling under macOS, the following is required:</p>
+<ul>
+<li><a href="https://www.python.org/downloads/macos/">Python 3.9+</a>.</li>
+<li><a href="https://scons.org/pages/download.html">SCons 4.4+</a> build system.</li>
+<li><a href="https://apps.apple.com/us/app/xcode/id497799835">Xcode</a> (or the more lightweight Command Line Tools for Xcode).</li>
+<li><a href="https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.dmg">Vulkan SDK</a> for MoltenVK (macOS doesn't support Vulkan out of the box). The latest Vulkan SDK version can be installed quickly by running <code>misc/scripts/install_vulkan_sdk_macos.sh</code> within the Godot source repository.</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> If you have <a href="https://brew.sh/">Homebrew</a> installed, you can easily install SCons using the following command:</p>
+<pre><code>brew install scons</code></pre>
+<p>Installing Homebrew will also fetch the Command Line Tools for Xcode automatically if you don't have them already.</p>
+<p>Similarly, if you have <a href="https://www.macports.org/">MacPorts</a> installed, you can easily install SCons using the following command:</p>
+<pre><code>sudo port install scons</code></pre>
+</blockquote>
+<blockquote>
+<p><strong>See also:</strong> To get the Godot source code for compiling, see <code>doc_getting_source</code>.</p>
+<p>For a general overview of SCons usage for Godot, see <code>doc_introduction_to_the_buildsystem</code>.</p>
+</blockquote>
+<h2 id="compiling">Compiling</h2>
+<p>Start a terminal, go to the root directory of the engine source code.</p>
+<p>To compile for Intel (x86-64) powered Macs, use:</p>
+<pre><code>scons platform=macos arch=x86_64</code></pre>
+<p>To compile for Apple Silicon (ARM64) powered Macs, use:</p>
+<pre><code>scons platform=macos arch=arm64</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> If you are compiling Godot to make changes or contribute to the engine, you may want to use the SCons options <code>dev_build=yes</code> or <code>dev_mode=yes</code>. See <code>doc_introduction_to_the_buildsystem_development_and_production_aliases</code> for more info.</p>
+</blockquote>
+<p>If all goes well, the resulting binary executable will be placed in the <code>bin/</code> subdirectory. This executable file contains the whole engine and runs without any dependencies. Executing it will bring up the Project Manager.</p>
+<blockquote>
+<p><strong>Note:</strong> Using a standalone editor executable is not recommended, it should be always packaged into a <code>.app</code> bundle to avoid UI activation issues.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> If you want to use separate editor settings for your own Godot builds and official releases, you can enable <code>doc_data_paths_self_contained_mode</code> by creating a file called <code>._sc_</code> or <code>_sc_</code> in the <code>bin/</code> folder.</p>
+</blockquote>
+<h2 id="compiling-with-accesskit-support">Compiling with AccessKit support</h2>
+<p>AccessKit provides support for screen readers.</p>
+<p>Compiling with AccessKit requires additional dependencies to be installed. If you wish to skip this step, you can use the <code>accesskit=no</code> SCons option.</p>
+<p>You can install the required dependencies by running <code>python misc/scripts/install_accesskit.py</code> in the Godot source repository. After running this script, compile Godot as usual.</p>
+<blockquote>
+<p><strong>Note:</strong> You can optionally build the godot-accesskit-static libraries yourself with the following steps:</p>
+<ol type="1">
+<li>Clone the <a href="https://github.com/godotengine/godot-accesskit-c-static/">godot-accesskit-c-static</a> directory and navigate to it.</li>
+<li>Run the following command:</li>
+</ol>
+<!-- -->
+
+<pre><code>cd accesskit-c
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+cmake --install build</code></pre>
+<p>The AccessKit static library should be built using the same compiler you are using for building Godot.</p>
+<p>To compile Godot with a custom build of AccessKit, add <code>accesskit_sdk_path={path}</code> to tell SCons where to look for the AccessKit libraries:</p>
+<pre><code>scons platform=macos accesskit_sdk_path=&lt;...&gt;</code></pre>
+</blockquote>
+<h2 id="compiling-with-angle-support">Compiling with ANGLE support</h2>
+<p>ANGLE provides a translation layer from OpenGL ES 3.x to Metal and can be used to improve support for the Compatibility renderer on some older GPUs with outdated OpenGL drivers.</p>
+<p>Compiling with ANGLE requires additional dependencies to be installed. If you wish to skip this step, you can use the <code>angle=no</code> SCons option.</p>
+<p>You can install the required dependencies by running <code>python misc/scripts/install_angle.py</code> in the Godot source repository. After running this script, compile Godot as usual.</p>
+<blockquote>
+<p><strong>Note:</strong> You can optionally build the godot-angle-static libraries yourself with the following steps:</p>
+<ol type="1">
+<li>Clone the <a href="https://github.com/godotengine/godot-angle-static">godot-angle-static</a> directory and navigate to it.</li>
+<li>Run the following command:</li>
+</ol>
+<!-- -->
+
+<pre><code>git submodule update --init
+./update_angle.sh
+scons</code></pre>
+<p>You can also specify the build architecture using <code>arch={architecture}</code>.</p>
+<p>The ANGLE static library should be built using the same compiler you are using for building Godot.</p>
+<p>To compile Godot with a custom build of ANGLE, add <code>angle_libs={path}</code> to tell SCons where to look for the ANGLE libraries:</p>
+<pre><code>scons platform=macos angle_libs=&lt;...&gt;</code></pre>
+</blockquote>
+<h3 id="automatic-app-bundle-creation">Automatic <code>.app</code> bundle creation</h3>
+<p>To automatically create a <code>.app</code> bundle like in the official builds, use the <code>generate_bundle=yes</code> option on the <em>last</em> SCons command used to build editor:</p>
+<pre><code>scons platform=macos arch=x86_64
+scons platform=macos arch=arm64 generate_bundle=yes</code></pre>
+<h3 id="manual-app-bundle-creation">Manual <code>.app</code> bundle creation</h3>
+<p>To support both architectures in a single "Universal 2" binary, run the above two commands and then use <code>lipo</code> to bundle them together:</p>
+<pre><code>lipo -create bin/godot.macos.editor.x86_64 bin/godot.macos.editor.arm64 -output bin/godot.macos.editor.universal</code></pre>
+<p>To create a <code>.app</code> bundle, you need to use the template located in <code>misc/dist/macos_tools.app</code>. Typically, for an optimized editor binary built with <code>dev_build=yes</code>:</p>
+<pre><code>cp -r misc/dist/macos_tools.app ./bin/Godot.app
+mkdir -p bin/Godot.app/Contents/MacOS
+cp bin/godot.macos.editor.universal bin/Godot.app/Contents/MacOS/Godot
+chmod +x bin/Godot.app/Contents/MacOS/Godot
+codesign --force --timestamp --options=runtime --entitlements misc/dist/macos/editor.entitlements -s - bin/Godot.app</code></pre>
+<blockquote>
+<p><strong>Note:</strong> If you are building the <code>master</code> branch, you also need to include support for the MoltenVK Vulkan portability library. By default, it will be linked statically from your installation of the Vulkan SDK for macOS. You can also choose to link it dynamically by passing <code>use_volk=yes</code> and including the dynamic library in your <code>.app</code> bundle:</p>
+<pre><code>mkdir -p &lt;Godot bundle name&gt;.app/Contents/Frameworks
+cp &lt;Vulkan SDK path&gt;/macOS/lib/libMoltenVK.dylib &lt;Godot bundle name&gt;.app/Contents/Frameworks/libMoltenVK.dylib</code></pre>
+</blockquote>
+<h2 id="running-a-headlessserver-build">Running a headless/server build</h2>
+<p>To run in <em>headless</em> mode which provides editor functionality to export projects in an automated manner, use the normal build:</p>
+<pre><code>scons platform=macos target=editor</code></pre>
+<p>And then use the <code>--headless</code> command line argument:</p>
+<pre><code>./bin/godot.macos.editor.x86_64 --headless</code></pre>
+<p>To compile a debug <em>server</em> build which can be used with ref, use:</p>
+<pre><code>scons platform=macos target=template_debug</code></pre>
+<p>To compile a release <em>server</em> build which is optimized to run dedicated game servers, use:</p>
+<pre><code>scons platform=macos target=template_release production=yes</code></pre>
+<h2 id="building-export-templates">Building export templates</h2>
+<p>To build macOS export templates, you have to compile using the targets without the editor: <code>target=template_release</code> (release template) and <code>target=template_debug</code>.</p>
+<p>Official templates are <em>Universal 2</em> binaries which support both ARM64 and Intel x86_64 architectures.</p>
+<ul>
+<li><p>To support ARM64 (Apple Silicon) + Intel x86_64:</p>
+<blockquote>
+<pre><code>scons platform=macos target=template_debug arch=arm64
+scons platform=macos target=template_release arch=arm64
+scons platform=macos target=template_debug arch=x86_64
+scons platform=macos target=template_release arch=x86_64 generate_bundle=yes</code></pre>
+</blockquote></li>
+<li><p>To support ARM64 (Apple Silicon) only (smaller file size, but less compatible with older hardware):</p>
+<blockquote>
+<pre><code>scons platform=macos target=template_debug arch=arm64
+scons platform=macos target=template_release arch=arm64 generate_bundle=yes</code></pre>
+</blockquote></li>
+</ul>
+<p>To create a <code>.app</code> bundle like in the official builds, you need to use the template located in <code>misc/dist/macos_template.app</code>. This process can be automated by using the <code>generate_bundle=yes</code> option on the <em>last</em> SCons command used to build export templates (so that all binaries can be included). This will create a <code>godot_macos.zip</code> file in <code>bin/</code> and additionally takes care of calling <code>lipo</code> to create a <em>Universal 2</em> binary from two separate ARM64 and x86_64 binaries (if both were compiled beforehand).</p>
+<blockquote>
+<p><strong>Note:</strong> You also need to include support for the MoltenVK Vulkan portability library. By default, it will be linked statically from your installation of the Vulkan SDK for macOS. You can also choose to link it dynamically by passing <code>use_volk=yes</code> and including the dynamic library in your <code>.app</code> bundle:</p>
+<pre><code>mkdir -p macos_template.app/Contents/Frameworks
+cp &lt;Vulkan SDK path&gt;/macOS/libs/libMoltenVK.dylib macos_template.app/Contents/Frameworks/libMoltenVK.dylib</code></pre>
+<p>In most cases, static linking should be preferred as it makes distribution easier. The main upside of dynamic linking is that it allows updating MoltenVK without having to recompile export templates.</p>
+</blockquote>
+<p>If you created the <code>.app</code> manually, you can zip the <code>macos_template.app</code> folder to reproduce the <code>macos.zip</code> template from the official Godot distribution:</p>
+<pre><code>zip -r9 macos.zip macos_template.app</code></pre>
+<p>To use your custom export templates, you can select the <code>godot_macos.zip</code> file in the advanced options of your export presets:</p>
+<p>Alternatively, if you want all your presets to use your custom export template, you can rename the <code>godot_macos.zip</code> file to <code>macos.zip</code> and move it to the default location for export templates:</p>
+<p>:: ~/Library/Application Support/Godot/export_templates/&lt;GODOT_VERSION&gt;/macos.zip</p>
+<h2 id="cross-compiling-for-macos-from-linux">Cross-compiling for macOS from Linux</h2>
+<p>It is possible to compile for macOS in a Linux environment (and maybe also in Windows using the Windows Subsystem for Linux). For that, you'll need to install <a href="https://github.com/tpoechtrager/osxcross">OSXCross</a> to be able to use macOS as a target. First, follow the instructions to install it:</p>
+<p>Clone the <a href="https://github.com/tpoechtrager/osxcross">OSXCross repository</a> somewhere on your machine (or download a ZIP file and extract it somewhere), e.g.:</p>
+<pre><code>git clone --depth=1 https://github.com/tpoechtrager/osxcross.git &quot;$HOME/osxcross&quot;</code></pre>
+<ol type="1">
+<li>Follow the instructions to package the SDK: <a href="https://github.com/tpoechtrager/osxcross#packaging-the-sdk">https://github.com/tpoechtrager/osxcross#packaging-the-sdk</a></li>
+<li>Follow the instructions to install OSXCross: <a href="https://github.com/tpoechtrager/osxcross#installation">https://github.com/tpoechtrager/osxcross#installation</a></li>
+</ol>
+<p>After that, you will need to define the <code>OSXCROSS_ROOT</code> as the path to the OSXCross installation (the same place where you cloned the repository/extracted the zip), e.g.:</p>
+<pre><code>export OSXCROSS_ROOT=&quot;$HOME/osxcross&quot;</code></pre>
+<p>Now you can compile with SCons like you normally would:</p>
+<pre><code>scons platform=macos</code></pre>
+<p>If you have an OSXCross SDK version different from the one expected by the SCons buildsystem, you can specify a custom one with the <code>osxcross_sdk</code> argument:</p>
+<pre><code>scons platform=macos osxcross_sdk=darwin15</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="fatal-error-cstdint-file-not-found">Fatal error: 'cstdint' file not found</h3>
+<p>If you get a compilation error of this form early on, it's likely because the Xcode command line tools installation needs to be repaired after a macOS or Xcode update:</p>
+<pre class="text"><code>./core/typedefs.h:45:10: fatal error: &#39;cstdint&#39; file not found
+45 | #include &lt;cstdint&gt;
+   |          ^~~~~~~~~</code></pre>
+<p>Run these two commands to reinstall Xcode command line tools (enter your administrator password as needed):</p>
+<pre><code>sudo rm -rf /Library/Developer/CommandLineTools
+sudo xcode-select --install</code></pre>
+<p>If it still does not work, try updating Xcode from the Mac App Store and try again.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

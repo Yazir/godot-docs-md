@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custom drawing in 2D — Godot 3.6 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 3.6<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="custom-drawing-in-2d">Custom drawing in 2D</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Godot has nodes to draw sprites, polygons, particles, and all sorts of stuff. For most cases, this is enough; but not always. Before crying in fear, angst, and rage because a node to draw that specific <em>something</em> does not exist... it would be good to know that it is possible to easily make any 2D node (be it ref or ref based) draw custom commands. It is <em>really</em> easy to do it, too.</p>
+<p>Custom drawing in a 2D node is <em>really</em> useful. Here are some use cases:</p>
+<ul>
+<li>Drawing shapes or logic that existing nodes can't do, such as an image with trails or a special animated polygon.</li>
+<li>Visualizations that are not that compatible with nodes, such as a tetris board. (The tetris example uses a custom draw function to draw the blocks.)</li>
+<li>Drawing a large number of simple objects. Custom drawing avoids the overhead of using a large number of nodes, possibly lowering memory usage and improving performance.</li>
+<li>Making a custom UI control. There are plenty of controls available, but when you have unusual needs, you will likely need a custom control.</li>
+</ul>
+<h2 id="drawing">Drawing</h2>
+<p>Add a script to any ref derived node, like ref or ref. Then override the <code>_draw()</code> function.</p>
+<pre class="gdscript"><code>extends Node2D
+
+func _draw():
+    # Your draw commands here
+    pass</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Your draw commands here</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Draw commands are described in the ref class reference. There are plenty of them.</p>
+<h2 id="updating">Updating</h2>
+<p>The <code>_draw()</code> function is only called once, and then the draw commands are cached and remembered, so further calls are unnecessary.</p>
+<p>If re-drawing is required because a state or something else changed, call ref in that same node and a new <code>_draw()</code> call will happen.</p>
+<p>Here is a little more complex example, a texture variable that will be redrawn if modified:</p>
+<pre class="gdscript"><code>extends Node2D
+
+export (Texture) var texture setget _set_texture
+
+func _set_texture(value):
+    # If the texture variable is modified externally,
+    # this callback is called.
+    texture = value  # Texture was changed.
+    update()  # Update the node&#39;s visual representation.
+
+func _draw():
+    draw_texture(texture, Vector2())</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> CustomNode2D <span class="op">:</span> Node2D</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> Texture _texture<span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Texture Texture</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        get</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span> _texture<span class="op">;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        set</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>            _texture <span class="op">=</span> value<span class="op">;</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>            <span class="fu">Update</span><span class="op">();</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        <span class="fu">DrawTexture</span><span class="op">(</span>_texture<span class="op">,</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">());</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In some cases, it may be desired to draw every frame. For this, just call <code>update()</code> from the <code>_process()</code> callback, like this:</p>
+<pre class="gdscript"><code>extends Node2D
+
+func _draw():
+    # Your draw commands here
+    pass
+
+func _process(delta):
+    update()</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> CustomNode2D <span class="op">:</span> Node2D</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Your draw commands here</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="fu">Update</span><span class="op">();</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="an-example-drawing-circular-arcs">An example: drawing circular arcs</h2>
+<p>We will now use the custom drawing functionality of the Godot Engine to draw something that Godot doesn't provide functions for. As an example, Godot provides a <code>draw_circle()</code> function that draws a whole circle. However, what about drawing a portion of a circle? You will have to code a function to perform this and draw it yourself.</p>
+<h3 id="arc-function">Arc function</h3>
+<p>An arc is defined by its support circle parameters, that is, the center position and the radius. The arc itself is then defined by the angle it starts from and the angle at which it stops. These are the 4 arguments that we have to provide to our drawing function. We'll also provide the color value, so we can draw the arc in different colors if we wish.</p>
+<p>Basically, drawing a shape on the screen requires it to be decomposed into a certain number of points linked from one to the next. As you can imagine, the more points your shape is made of, the smoother it will appear, but the heavier it will also be in terms of processing cost. In general, if your shape is huge (or in 3D, close to the camera), it will require more points to be drawn without it being angular-looking. On the contrary, if your shape is small (or in 3D, far from the camera), you may decrease its number of points to save processing costs; this is known as <em>Level of Detail (LOD)</em>. In our example, we will simply use a fixed number of points, no matter the radius.</p>
+<pre class="gdscript"><code>func draw_circle_arc(center, radius, angle_from, angle_to, color):
+    var nb_points = 32
+    var points_arc = PoolVector2Array()
+
+    for i in range(nb_points + 1):
+        var angle_point = deg2rad(angle_from + i * (angle_to-angle_from) / nb_points - 90)
+        points_arc.push_back(center + Vector2(cos(angle_point), sin(angle_point)) * radius)
+
+    for index_point in range(nb_points):
+        draw_line(points_arc[index_point], points_arc[index_point + 1], color)</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">DrawCircleArc</span><span class="op">(</span>Vector2 center<span class="op">,</span> <span class="dt">float</span> radius<span class="op">,</span> <span class="dt">float</span> angleFrom<span class="op">,</span> <span class="dt">float</span> angleTo<span class="op">,</span> Color color<span class="op">)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> nbPoints <span class="op">=</span> <span class="dv">32</span><span class="op">;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> pointsArc <span class="op">=</span> <span class="kw">new</span> Vector2<span class="op">[</span>nbPoints<span class="op">];</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> nbPoints<span class="op">;</span> <span class="op">++</span>i<span class="op">)</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">float</span> anglePoint <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Deg2Rad</span><span class="op">(</span>angleFrom <span class="op">+</span> i <span class="op">*</span> <span class="op">(</span>angleTo <span class="op">-</span> angleFrom<span class="op">)</span> <span class="op">/</span> nbPoints <span class="op">-</span> <span class="dv">90</span>f<span class="op">);</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        pointsArc<span class="op">[</span>i<span class="op">]</span> <span class="op">=</span> center <span class="op">+</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span>Mathf<span class="op">.</span><span class="fu">Cos</span><span class="op">(</span>anglePoint<span class="op">),</span> Mathf<span class="op">.</span><span class="fu">Sin</span><span class="op">(</span>anglePoint<span class="op">))</span> <span class="op">*</span> radius<span class="op">;</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> nbPoints <span class="op">-</span> <span class="dv">1</span><span class="op">;</span> <span class="op">++</span>i<span class="op">)</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">DrawLine</span><span class="op">(</span>pointsArc<span class="op">[</span>i<span class="op">],</span> pointsArc<span class="op">[</span>i <span class="op">+</span> <span class="dv">1</span><span class="op">],</span> color<span class="op">);</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Remember the number of points our shape has to be decomposed into? We fixed this number in the <code>nb_points</code> variable to a value of <code>32</code>. Then, we initialize an empty <code>PoolVector2Array</code>, which is simply an array of <code>Vector2</code>s.</p>
+<p>The next step consists of computing the actual positions of these 32 points that compose an arc. This is done in the first for-loop: we iterate over the number of points for which we want to compute the positions, plus one to include the last point. We first determine the angle of each point, between the starting and ending angles.</p>
+<p>The reason why each angle is decreased by 90° is that we will compute 2D positions out of each angle using trigonometry (you know, cosine and sine stuff...). However, to be simple, <code>cos()</code> and <code>sin()</code> use radians, not degrees. The angle of 0° (0 radian) starts at 3 o'clock, although we want to start counting at 12 o'clock. So we decrease each angle by 90° in order to start counting from 12 o'clock.</p>
+<p>The actual position of a point located on a circle at angle <code>angle</code> (in radians) is given by <code>Vector2(cos(angle), sin(angle))</code>. Since <code>cos()</code> and <code>sin()</code> return values between -1 and 1, the position is located on a circle of radius 1. To have this position on our support circle, which has a radius of <code>radius</code>, we simply need to multiply the position by <code>radius</code>. Finally, we need to position our support circle at the <code>center</code> position, which is performed by adding it to our <code>Vector2</code> value. Finally, we insert the point in the <code>PoolVector2Array</code> which was previously defined.</p>
+<p>Now, we need to actually draw our points. As you can imagine, we will not simply draw our 32 points: we need to draw everything that is between each of them. We could have computed every point ourselves using the previous method, and drew it one by one. But this is too complicated and inefficient (except if explicitly needed), so we simply draw lines between each pair of points. Unless the radius of our support circle is big, the length of each line between a pair of points will never be long enough to see them. If that were to happen, we would simply need to increase the number of points.</p>
+<h3 id="draw-the-arc-on-the-screen">Draw the arc on the screen</h3>
+<p>We now have a function that draws stuff on the screen; it is time to call it inside the <code>_draw()</code> function:</p>
+<pre class="gdscript"><code>func _draw():
+    var center = Vector2(200, 200)
+    var radius = 80
+    var angle_from = 75
+    var angle_to = 195
+    var color = Color(1.0, 0.0, 0.0)
+    draw_circle_arc(center, radius, angle_from, angle_to, color)</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> center <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">200</span><span class="op">,</span> <span class="dv">200</span><span class="op">);</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> radius <span class="op">=</span> <span class="dv">80</span><span class="op">;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> angleFrom <span class="op">=</span> <span class="dv">75</span><span class="op">;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> angleTo <span class="op">=</span> <span class="dv">195</span><span class="op">;</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> color <span class="op">=</span> <span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawCircleArc</span><span class="op">(</span>center<span class="op">,</span> radius<span class="op">,</span> angleFrom<span class="op">,</span> angleTo<span class="op">,</span> color<span class="op">);</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Result:</p>
+<h3 id="arc-polygon-function">Arc polygon function</h3>
+<p>We can take this a step further and not only write a function that draws the plain portion of the disc defined by the arc, but also its shape. The method is exactly the same as before, except that we draw a polygon instead of lines:</p>
+<pre class="gdscript"><code>func draw_circle_arc_poly(center, radius, angle_from, angle_to, color):
+    var nb_points = 32
+    var points_arc = PoolVector2Array()
+    points_arc.push_back(center)
+    var colors = PoolColorArray([color])
+
+    for i in range(nb_points + 1):
+        var angle_point = deg2rad(angle_from + i * (angle_to - angle_from) / nb_points - 90)
+        points_arc.push_back(center + Vector2(cos(angle_point), sin(angle_point)) * radius)
+    draw_polygon(points_arc, colors)</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">DrawCircleArcPoly</span><span class="op">(</span>Vector2 center<span class="op">,</span> <span class="dt">float</span> radius<span class="op">,</span> <span class="dt">float</span> angleFrom<span class="op">,</span> <span class="dt">float</span> angleTo<span class="op">,</span> Color color<span class="op">)</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> nbPoints <span class="op">=</span> <span class="dv">32</span><span class="op">;</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> pointsArc <span class="op">=</span> <span class="kw">new</span> Vector2<span class="op">[</span>nbPoints <span class="op">+</span> <span class="dv">1</span><span class="op">];</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    pointsArc<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">=</span> center<span class="op">;</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> colors <span class="op">=</span> <span class="kw">new</span> Color<span class="op">[]</span> <span class="op">{</span> color <span class="op">};</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> nbPoints<span class="op">;</span> <span class="op">++</span>i<span class="op">)</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">float</span> anglePoint <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Deg2Rad</span><span class="op">(</span>angleFrom <span class="op">+</span> i <span class="op">*</span> <span class="op">(</span>angleTo <span class="op">-</span> angleFrom<span class="op">)</span> <span class="op">/</span> nbPoints <span class="op">-</span> <span class="dv">90</span><span class="op">);</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        pointsArc<span class="op">[</span>i <span class="op">+</span> <span class="dv">1</span><span class="op">]</span> <span class="op">=</span> center <span class="op">+</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span>Mathf<span class="op">.</span><span class="fu">Cos</span><span class="op">(</span>anglePoint<span class="op">),</span> Mathf<span class="op">.</span><span class="fu">Sin</span><span class="op">(</span>anglePoint<span class="op">))</span> <span class="op">*</span> radius<span class="op">;</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawPolygon</span><span class="op">(</span>pointsArc<span class="op">,</span> colors<span class="op">);</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="dynamic-custom-drawing">Dynamic custom drawing</h3>
+<p>All right, we are now able to draw custom stuff on the screen. However, it is static; let's make this shape turn around the center. The solution to do this is simply to change the angle_from and angle_to values over time. For our example, we will simply increment them by 50. This increment value has to remain constant or else the rotation speed will change accordingly.</p>
+<p>First, we have to make both angle_from and angle_to variables global at the top of our script. Also note that you can store them in other nodes and access them using <code>get_node()</code>.</p>
+<pre class="gdscript"><code>extends Node2D
+
+var rotation_angle = 50
+var angle_from = 75
+var angle_to = 195</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> CustomNode2D <span class="op">:</span> Node2D</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> _rotationAngle <span class="op">=</span> <span class="dv">50</span><span class="op">;</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> _angleFrom <span class="op">=</span> <span class="dv">75</span><span class="op">;</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> _angleTo <span class="op">=</span> <span class="dv">195</span><span class="op">;</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>We make these values change in the _process(delta) function.</p>
+<p>We also increment our angle_from and angle_to values here. However, we must not forget to <code>wrap()</code> the resulting values between 0 and 360°! That is, if the angle is 361°, then it is actually 1°. If you don't wrap these values, the script will work correctly, but the angle values will grow bigger and bigger over time until they reach the maximum integer value Godot can manage (<code>2^31 - 1</code>). When this happens, Godot may crash or produce unexpected behavior.</p>
+<p>Finally, we must not forget to call the <code>update()</code> function, which automatically calls <code>_draw()</code>. This way, you can control when you want to refresh the frame.</p>
+<pre class="gdscript"><code>func _process(delta):
+    angle_from += rotation_angle
+    angle_to += rotation_angle
+
+    # We only wrap angles when both of them are bigger than 360.
+    if angle_from &gt; 360 and angle_to &gt; 360:
+        angle_from = wrapf(angle_from, 0, 360)
+        angle_to = wrapf(angle_to, 0, 360)
+    update()</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    _angleFrom <span class="op">+=</span> _rotationAngle<span class="op">;</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    _angleTo <span class="op">+=</span> _rotationAngle<span class="op">;</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We only wrap angles when both of them are bigger than 360.</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>_angleFrom <span class="op">&gt;</span> <span class="dv">360</span> <span class="op">&amp;&amp;</span> _angleTo <span class="op">&gt;</span> <span class="dv">360</span><span class="op">)</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        _angleFrom <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Wrap</span><span class="op">(</span>_angleFrom<span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">360</span><span class="op">);</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>        _angleTo <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Wrap</span><span class="op">(</span>_angleTo<span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">360</span><span class="op">);</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Update</span><span class="op">();</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Also, don't forget to modify the <code>_draw()</code> function to make use of these variables:</p>
+<pre class="gdscript"><code>func _draw():
+   var center = Vector2(200, 200)
+   var radius = 80
+   var color = Color(1.0, 0.0, 0.0)
+
+   draw_circle_arc( center, radius, angle_from, angle_to, color )</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Draw</span><span class="op">()</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> center <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector2</span><span class="op">(</span><span class="dv">200</span><span class="op">,</span> <span class="dv">200</span><span class="op">);</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> radius <span class="op">=</span> <span class="dv">80</span><span class="op">;</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">var</span> color <span class="op">=</span> <span class="kw">new</span> <span class="fu">Color</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">DrawCircleArc</span><span class="op">(</span>center<span class="op">,</span> radius<span class="op">,</span> _angleFrom<span class="op">,</span> _angleTo<span class="op">,</span> color<span class="op">);</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Let's run! It works, but the arc is rotating insanely fast! What's wrong?</p>
+<p>The reason is that your GPU is actually displaying the frames as fast as it can. We need to "normalize" the drawing by this speed; to achieve that, we have to make use of the <code>delta</code> parameter of the <code>_process()</code> function. <code>delta</code> contains the time elapsed between the two last rendered frames. It is generally small (about 0.0003 seconds, but this depends on your hardware), so using <code>delta</code> to control your drawing ensures that your program runs at the same speed on everybody's hardware.</p>
+<p>In our case, we simply need to multiply our <code>rotation_angle</code> variable by <code>delta</code> in the <code>_process()</code> function. This way, our 2 angles will be increased by a much smaller value, which directly depends on the rendering speed.</p>
+<pre class="gdscript"><code>func _process(delta):
+    angle_from += rotation_angle * delta
+    angle_to += rotation_angle * delta
+
+    # We only wrap angles when both of them are bigger than 360.
+    if angle_from &gt; 360 and angle_to &gt; 360:
+        angle_from = wrapf(angle_from, 0, 360)
+        angle_to = wrapf(angle_to, 0, 360)
+    update()</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_Process</span><span class="op">(</span><span class="dt">float</span> delta<span class="op">)</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    _angleFrom <span class="op">+=</span> _rotationAngle <span class="op">*</span> delta<span class="op">;</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    _angleTo <span class="op">+=</span> _rotationAngle <span class="op">*</span> delta<span class="op">;</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// We only wrap angles when both of them are bigger than 360.</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="op">(</span>_angleFrom <span class="op">&gt;</span> <span class="dv">360</span> <span class="op">&amp;&amp;</span> _angleTo <span class="op">&gt;</span> <span class="dv">360</span><span class="op">)</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>        _angleFrom <span class="op">=</span> <span class="fu">Wrap</span><span class="op">(</span>_angleFrom<span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">360</span><span class="op">);</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>        _angleTo <span class="op">=</span> <span class="fu">Wrap</span><span class="op">(</span>_angleTo<span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">360</span><span class="op">);</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Update</span><span class="op">();</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Let's run again! This time, the rotation displays fine!</p>
+<h3 id="antialiased-drawing">Antialiased drawing</h3>
+<p>Godot offers method parameters in ref to enable antialiasing, but it doesn't work reliably in all situations (for instance, on mobile/web platforms, or when HDR is enabled). There is also no <code>antialiased</code> parameter available in ref.</p>
+<p>As a workaround, install and use the <a href="https://github.com/godot-extended-libraries/godot-antialiased-line2d">Antialiased Line2D add-on</a> (which also supports antialiased Polygon2D drawing). Note that this add-on relies on high-level nodes, rather than low-level <code>_draw()</code> functions.</p>
+<h2 id="tools">Tools</h2>
+<p>Drawing your own nodes might also be desired while running them in the editor. This can be used as a preview or visualization of some feature or behavior. See <code>doc_running_code_in_the_editor</code> for more information.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>

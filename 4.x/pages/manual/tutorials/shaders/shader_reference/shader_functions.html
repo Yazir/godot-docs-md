@@ -1,0 +1,2010 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Built-in shader functions — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="built-in-shader-functions">Built-in shader functions</h1>
+<p>Godot supports a large number of built-in shader functions, conforming roughly to the GLSL ES 3.0 specification.</p>
+<blockquote>
+<p><strong>Note:</strong> The following type aliases only used in documentation to reduce repetitive function declarations. They can each refer to any of several actual types.</p>
+<table>
+<thead>
+<tr class="header">
+<th>alias</th>
+<th>actual types</th>
+<th>glsl documentation alias</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>vec_type</td>
+<td>float, vec2, vec3, or vec4</td>
+<td>genType</td>
+</tr>
+<tr class="even">
+<td>vec_int_type</td>
+<td>int, ivec2, ivec3, or ivec4</td>
+<td>genIType</td>
+</tr>
+<tr class="odd">
+<td>vec_uint_type</td>
+<td>uint, uvec2, uvec3, or uvec4</td>
+<td>genUType</td>
+</tr>
+<tr class="even">
+<td>vec_bool_type</td>
+<td>bool, bvec2, bvec3, or bvec4</td>
+<td>genBType</td>
+</tr>
+<tr class="odd">
+<td>mat_type</td>
+<td>mat2, mat3, or mat4</td>
+<td>mat</td>
+</tr>
+<tr class="even">
+<td>gvec4_type</td>
+<td>vec4, ivec4, or uvec4</td>
+<td>gvec4</td>
+</tr>
+<tr class="odd">
+<td>gsampler2D</td>
+<td>sampler2D, isampler2D, or uSampler2D</td>
+<td>gsampler2D</td>
+</tr>
+<tr class="even">
+<td>gsampler2DArray</td>
+<td>sampler2DArray, isampler2DArray, or uSampler2DArray</td>
+<td>gsampler2DArray</td>
+</tr>
+<tr class="odd">
+<td>gsampler3D</td>
+<td>sampler3D, isampler3D, or uSampler3D</td>
+<td>gsampler3D</td>
+</tr>
+</tbody>
+</table>
+<p>If any of these are specified for multiple parameters, they must all be the same type unless otherwise noted.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> Many functions that accept one or more vectors or matrices perform the described function on each component of the vector/matrix. Some examples:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Operation</th>
+<th>Equivalent Scalar Operation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>sqrt(vec2(4, 64))</code></td>
+<td><code>vec2(sqrt(4), sqrt(64))</code></td>
+</tr>
+<tr class="even">
+<td><code>min(vec2(3, 4), 1)</code></td>
+<td><code>vec2(min(3, 1), min(4, 1))</code></td>
+</tr>
+<tr class="odd">
+<td><code>min(vec3(1, 2, 3),vec3(5, 1, 3))</code></td>
+<td><code>vec3(min(1, 5), min(2, 1), min(3, 3))</code></td>
+</tr>
+<tr class="even">
+<td><code>pow(vec3(3, 8, 5 ), 2)</code></td>
+<td><code>vec3(pow(3, 2), pow(8, 2), pow(5, 2))</code></td>
+</tr>
+<tr class="odd">
+<td><code>pow(vec3(3, 8, 5), vec3(1, 2, 4))</code></td>
+<td><code>vec3(pow(3, 1), pow(8, 2), pow(5, 4))</code></td>
+</tr>
+</tbody>
+</table>
+<p>The <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.30.6.pdf">GLSL Language Specification</a> says under section 5.10 Vector and Matrix Operations:</p>
+<blockquote>
+<p>With a few exceptions, operations are component-wise. Usually, when an operator operates on a vector or matrix, it is operating independently on each component of the vector or matrix, in a component-wise fashion. [...] The exceptions are matrix multiplied by vector, vector multiplied by matrix, and matrix multiplied by matrix. These do not operate component-wise, but rather perform the correct linear algebraic multiply.</p>
+</blockquote>
+</blockquote>
+<p>These function descriptions are adapted and modified from <a href="https://registry.khronos.org/OpenGL-Refpages/gl4/">official OpenGL documentation</a> originally published by Khronos Group under the <a href="https://opencontent.org/openpub">Open Publication License</a>. Each function description links to the corresponding official OpenGL documentation. Modification history for this page can be found on <a href="https://github.com/godotengine/godot-docs/blob/master/tutorials/shaders/shader_reference/shader_functions.rst">GitHub</a>.</p>
+<hr />
+<h2 id="trigonometric-functions">Trigonometric functions</h2>
+<table>
+<thead>
+<tr class="header">
+<th><blockquote>
+<p>Return Type</p>
+</blockquote></th>
+<th><blockquote>
+<p>Function</p>
+</blockquote></th>
+<th>Description / Return value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> degrees) | Convert degrees to radians. |</td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> radians) | Convert radians to degrees. |</td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Sine. |</td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Cosine. |</td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Tangent. |</td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Arc sine. |</td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Arc cosine. |</td>
+</tr>
+<tr class="even">
+<td><p><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></p></td>
+<td colspan="2"><p>ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> y_over_x) | Arc tangent. |<br />
+ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> y, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x)| |</p></td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Hyperbolic sine. |</td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Hyperbolic cosine. |</td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Hyperbolic tangent. |</td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Arc hyperbolic sine. |</td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Arc hyperbolic cosine. |</td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Arc hyperbolic tangent. |</td>
+</tr>
+</tbody>
+</table>
+
+<h3 id="trigonometric-function-descriptions">Trigonometric function descriptions</h3>
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>radians</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> degrees) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Converts a quantity specified in degrees into radians, with the formula <code>degrees * (PI / 180)</code>.</p>
+<p>param degrees The quantity, in degrees, to be converted to radians.</p>
+<p>return The input <code>degrees</code> converted to radians.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/radians.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/radians.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>degrees</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> radians) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Converts a quantity specified in radians into degrees, with the formula <code>radians * (180 / PI)</code></p>
+<p>param radians The quantity, in radians, to be converted to degrees.</p>
+<p>return The input <code>radians</code> converted to degrees.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/degrees.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/degrees.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>sin</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> angle) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the trigonometric sine of <code>angle</code>.</p>
+<p>param angle The quantity, in radians, of which to return the sine.</p>
+<p>return The sine of <code>angle</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/sin.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/sin.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>cos</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> angle) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the trigonometric cosine of <code>angle</code>.</p>
+<p>param angle The quantity, in radians, of which to return the cosine.</p>
+<p>return The cosine of <code>angle</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/cos.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/cos.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>tan</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> angle) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the trigonometric tangent of <code>angle</code>.</p>
+<p>param angle The quantity, in radians, of which to return the tangent.</p>
+<p>return The tangent of <code>angle</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/tan.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/tan.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>asin</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Arc sine, or inverse sine. Calculates the angle whose sine is <code>x</code> and is in the range <code>[-PI/2, PI/2]</code>. The result is undefined if <code>x &lt; -1</code> or <code>x &gt; 1</code>.</p>
+<p>param x The value whose arc sine to return.</p>
+<p>return The angle whose trigonometric sine is <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/asin.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/asin.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>acos</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Arc cosine, or inverse cosine. Calculates the angle whose cosine is <code>x</code> and is in the range <code>[0, PI]</code>.</p>
+<p>The result is undefined if <code>x &lt; -1</code> or <code>x &gt; 1</code>.</p>
+<p>param x The value whose arc cosine to return.</p>
+<p>return The angle whose trigonometric cosine is <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/acos.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/acos.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>atan</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> y_over_x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Calculates the arc tangent given a tangent value of <code>y/x</code>.</p>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>Because of the sign ambiguity, the function cannot determine with certainty in which quadrant the angle falls only by its tangent value. If you need to know the quadrant, use ref.</p>
+</div>
+
+<p>param y_over_x The fraction whose arc tangent to return.</p>
+<p>return The trigonometric arc-tangent of <code>y_over_x</code> and is in the range <code>[-PI/2, PI/2]</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/atan.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/atan.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>atan</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> y, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Calculates the arc tangent given a numerator and denominator. The signs of <code>y</code> and <code>x</code> are used to determine the quadrant that the angle lies in. The result is undefined if <code>x == 0</code>.</p>
+<p>Equivalent to ref in GDScript.</p>
+<p>param y The numerator of the fraction whose arc tangent to return.</p>
+<p>param x The denominator of the fraction whose arc tangent to return.</p>
+<p>return The trigonometric arc tangent of <code>y/x</code> and is in the range <code>[-PI, PI]</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/atan.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/atan.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>sinh</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Calculates the hyperbolic sine using <code>(e^x - e^-x)/2</code>.</p>
+<p>param x The value whose hyperbolic sine to return.</p>
+<p>return The hyperbolic sine of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/sinh.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/sinh.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>cosh</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Calculates the hyperbolic cosine using <code>(e^x + e^-x)/2</code>.</p>
+<p>param x The value whose hyperbolic cosine to return.</p>
+<p>return The hyperbolic cosine of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/cosh.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/cosh.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>tanh</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Calculates the hyperbolic tangent using <code>sinh(x)/cosh(x)</code>.</p>
+<p>param x The value whose hyperbolic tangent to return.</p>
+<p>return The hyperbolic tangent of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/tanh.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/tanh.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>asinh</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Calculates the arc hyperbolic sine of <code>x</code>, or the inverse of <code>sinh</code>.</p>
+<p>param x The value whose arc hyperbolic sine to return.</p>
+<p>return The arc hyperbolic sine of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/asinh.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/asinh.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>acosh</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Calculates the arc hyperbolic cosine of <code>x</code>, or the non-negative inverse of <code>cosh</code>. The result is undefined if <code>x &lt; 1</code>.</p>
+<p>param x The value whose arc hyperbolic cosine to return.</p>
+<p>return The arc hyperbolic cosine of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/acosh.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/acosh.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>atanh</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Calculates the arc hyperbolic tangent of <code>x</code>, or the inverse of <code>tanh</code>. The result is undefined if <code>abs(x) &gt; 1</code>.</p>
+<p>param x The value whose arc hyperbolic tangent to return.</p>
+<p>return The arc hyperbolic tangent of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/atanh.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/atanh.xhtml</a></p>
+</blockquote>
+<hr />
+<h2 id="exponential-and-math-functions">Exponential and math functions</h2>
+<table>
+<thead>
+<tr class="header">
+<th><blockquote>
+<p>Return Type</p>
+</blockquote></th>
+<th>Function</th>
+<th>Description / Return value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> y) | Power (undefined if <code>x &lt; 0</code> or if <code>x == 0</code> and <code>y &lt;= 0</code>). |</td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Base-e exponential. |</td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Base-2 exponential. |</td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Natural (base-e) logarithm. |</td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Base-2 logarithm. |</td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Square root. |</td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Inverse square root. |</td>
+</tr>
+<tr class="even">
+<td><p><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code></p></td>
+<td colspan="2"><p>ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Absolute value (returns positive value if negative). |<br />
+ref(<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> x) | |</p></td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2"><dl>
+<dt>ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Returns <code>1.0</code> if positive, <code>-1.0</code> if negative, |</dt>
+<dd>
+<p><code>0.0</code> otherwise.</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code></td>
+<td colspan="2"><dl>
+<dt>ref(<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> x) | Returns <code>1</code> if positive, <code>-1</code> if negative, |</dt>
+<dd>
+<p><code>0</code> otherwise.</p>
+</dd>
+</dl></td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Rounds to the integer below. |</td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Rounds to the nearest integer. |</td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Rounds to the nearest even integer. |</td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Truncation. |</td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Rounds to the integer above. |</td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Fractional (returns <code>x - floor(x)</code>). |</td>
+</tr>
+<tr class="odd">
+<td><p><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></p></td>
+<td colspan="2"><p>ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> y) | Modulo (division remainder). |<br />
+ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x, float y) | |</p></td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x, out <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> i) | Fractional of <code>x</code>, with <code>i</code> as integer part. |</td>
+</tr>
+<tr class="odd">
+<td><p><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code></p></td>
+<td colspan="2"><p>ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> b) | Lowest value between <code>a</code> and <code>b</code>. |<br />
+ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> a, float b) | |<br />
+ref(<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> a, <code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> b) | |<br />
+ref(<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> a, int b) | |<br />
+ref(<code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> a, <code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> b) | |<br />
+ref(<code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> a, uint b) | |</p></td>
+</tr>
+<tr class="even">
+<td><p><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code></p></td>
+<td colspan="2"><p>ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> b) | Highest value between <code>a</code> and <code>b</code>. |<br />
+ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> a, float b) | |<br />
+ref(<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> a, <code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> b) | |<br />
+ref(<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> a, int b) | |<br />
+ref(<code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> a, <code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> b) | |<br />
+ref(<code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> a, uint b) | |</p></td>
+</tr>
+<tr class="odd">
+<td><p><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code></p></td>
+<td colspan="2"><p>ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> min, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> max) | Clamps <code>x</code> between <code>min</code> and <code>max</code> (inclusive). |<br />
+ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x, float min, float max) | |<br />
+ref(<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> x, <code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> min, <code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> max) | |<br />
+ref(<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> x, int min, int max) | |<br />
+ref(<code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> x, <code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> min, <code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> max) | |<br />
+ref(<code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> x, uint min, uint max) | |</p></td>
+</tr>
+<tr class="even">
+<td><p><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></p></td>
+<td colspan="2"><p>ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> b, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> c) | Linear interpolate between <code>a</code> and <code>b</code> by <code>c</code>. |<br />
+ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> b, float c) | |<br />
+ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> b, <code class="interpreted-text" role="abbr">vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code> c) | |</p></td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> b, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> c) | Fused multiply-add operation: <code>(a * b + c)</code> |</td>
+</tr>
+<tr class="even">
+<td><p><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></p></td>
+<td colspan="2"><p>ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> b) | <code>b &lt; a ? 0.0 : 1.0</code> |<br />
+ref(float a, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> b) | |</p></td>
+</tr>
+<tr class="odd">
+<td><p><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code><br />
+<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></p></td>
+<td colspan="2"><p>ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> b, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> c) | Hermite interpolate between <code>a</code> and <code>b</code> by <code>c</code>. |<br />
+ref(float a, float b, <code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> c) | |</p></td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Returns <code>true</code> if scalar or vector component is <code>NaN</code>. |</td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | Returns <code>true</code> if scalar or vector component is <code>INF</code>. |</td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | <code>float</code> to <code>int</code> bit copying, no conversion. |</td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code> x) | <code>float</code> to <code>uint</code> bit copying, no conversion. |</td>
+</tr>
+<tr class="even">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> x) | <code>int</code> to <code>float</code> bit copying, no conversion. |</td>
+</tr>
+<tr class="odd">
+<td><code class="interpreted-text" role="abbr">vec_type (Any of: float, vec2, vec3, vec4)</code></td>
+<td colspan="2">ref(<code class="interpreted-text" role="abbr">vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> x) | <code>uint</code> to <code>float</code> bit copying, no conversion. |</td>
+</tr>
+</tbody>
+</table>
+
+<h3 id="exponential-and-math-function-descriptions">Exponential and math function descriptions</h3>
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>pow</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> y) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Raises <code>x</code> to the power of <code>y</code>.</p>
+<p>The result is undefined if <code>x &lt; 0</code> or if <code>x == 0</code> and <code>y &lt;= 0</code>.</p>
+<p>param x The value to be raised to the power <code>y</code>.</p>
+<p>param y The power to which <code>x</code> will be raised.</p>
+<p>return The value of <code>x</code> raised to the <code>y</code> power.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/pow.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/pow.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>exp</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Raises <code>e</code> to the power of <code>x</code>, or the the natural exponentiation.</p>
+<p>Equivalent to <code>pow(e, x)</code>.</p>
+<p>param x The value to exponentiate.</p>
+<p>return The natural exponentiation of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/exp.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/exp.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>exp2</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Raises <code>2</code> to the power of <code>x</code>.</p>
+<p>Equivalent to <code>pow(2.0, x)</code>.</p>
+<p>param x The value of the power to which <code>2</code> will be raised.</p>
+<p>return <code>2</code> raised to the power of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/exp2.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/exp2.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>log</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the natural logarithm of <code>x</code>, i.e. the value <code>y</code> which satisfies <code>x == pow(e, y)</code>. The result is undefined if <code>x &lt;= 0</code>.</p>
+<p>param x The value of which to take the natural logarithm.</p>
+<p>return The natural logarithm of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/log.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/log.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>log2</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the base-2 logarithm of <code>x</code>, i.e. the value <code>y</code> which satisfies <code>x == pow(2, y)</code>. The result is undefined if <code>x &lt;= 0</code>.</p>
+<p>param x The value of which to take the base-2 logarithm.</p>
+<p>return The base-2 logarithm of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/log2.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/log2.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>sqrt</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the square root of <code>x</code>. The result is undefined if <code>x &lt; 0</code>.</p>
+<p>param x The value of which to take the square root.</p>
+<p>return The square root of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/sqrt.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/sqrt.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>inversesqrt</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the inverse of the square root of <code>x</code>, or <code>1.0 / sqrt(x)</code>. The result is undefined if <code>x &lt;= 0</code>.</p>
+<p>param x The value of which to take the inverse of the square root.</p>
+<p>return The inverse of the square root of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/inversesqrt.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/inversesqrt.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>abs</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<p><code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> <strong>abs</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the absolute value of <code>x</code>. Returns <code>x</code> if <code>x</code> is positive, otherwise returns <code>-1 * x</code>.</p>
+<p>param x The value of which to return the absolute.</p>
+<p>return The absolute value of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/abs.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/abs.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>sign</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<p><code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> <strong>sign</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns <code>-1</code> if <code>x &lt; 0</code>, <code>0</code> if <code>x == 0</code>, and <code>1</code> if <code>x &gt; 0</code>.</p>
+<p>param x The value from which to extract the sign.</p>
+<p>return The sign of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/sign.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/sign.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>floor</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns a value equal to the nearest integer that is less than or equal to <code>x</code>.</p>
+<p>param x The value to floor.</p>
+<p>return The nearest integer that is less than or equal to <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/floor.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/floor.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>round</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Rounds <code>x</code> to the nearest integer.</p>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>Rounding of values with a fractional part of <code>0.5</code> is implementation-dependent. This includes the possibility that <code>round(x)</code> returns the same value as <code>roundEven(x)</code> for all values of <code>x</code>.</p>
+</div>
+
+<p>param x The value to round.</p>
+<p>return The rounded value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/round.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/round.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>roundEven</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Rounds <code>x</code> to the nearest integer. A value with a fractional part of <code>0.5</code> will always round toward the nearest even integer. For example, both <code>3.5</code> and <code>4.5</code> will round to <code>4.0</code>.</p>
+<p>param x The value to round.</p>
+<p>return The rounded value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/roundEven.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/roundEven.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>trunc</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Truncates <code>x</code>. Returns a value equal to the nearest integer to <code>x</code> whose absolute value is not larger than the absolute value of <code>x</code>.</p>
+<p>param x The value to evaluate.</p>
+<p>return The truncated value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/trunc.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/trunc.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>ceil</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns a value equal to the nearest integer that is greater than or equal to <code>x</code>.</p>
+<p>param x The value to evaluate.</p>
+<p>return The ceiling-ed value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/ceil.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/ceil.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>fract</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the fractional part of <code>x</code>.</p>
+<p>This is calculated as <code>x - floor(x)</code>.</p>
+<p>param x The value to evaluate.</p>
+<p>return The fractional part of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/fract.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/fract.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>mod</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> y) ref</p>
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>mod</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x, float y) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the value of <code>x modulo y</code>. This is also sometimes called the remainder.</p>
+<p>This is computed as <code>x - y * floor(x/y)</code>.</p>
+<p>param x The value to evaluate.</p>
+<p>return The value of <code>x modulo y</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/mod.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/mod.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>modf</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x, out <code>vec_type (Any of: float, vec2, vec3, vec4)</code> i) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Separates a floating-point value <code>x</code> into its integer and fractional parts.</p>
+<p>The fractional part of the number is returned from the function. The integer part (as a floating-point quantity) is returned in the output parameter <code>i</code>.</p>
+<p>param x The value to separate.</p>
+<p>param out i A variable that receives the integer part of <code>x</code>.</p>
+<p>return The fractional part of the number.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/modf.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/modf.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>min</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> b) ref</p>
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>min</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> a, float b) ref</p>
+<p><code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> <strong>min</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> a, <code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> b) ref</p>
+<p><code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> <strong>min</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> a, int b) ref</p>
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>min</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> a, <code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> b) ref</p>
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>min</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> a, uint b) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the minimum of two values <code>a</code> and <code>b</code>.</p>
+<p>Returns <code>b</code> if <code>b &lt; a</code>, otherwise returns <code>a</code>.</p>
+<p>param a The first value to compare.</p>
+<p>param b The second value to compare.</p>
+<p>return The minimum value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/min.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/min.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>max</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> b) ref</p>
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>max</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> a, float b) ref</p>
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>max</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> a, <code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> b) ref</p>
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>max</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> a, uint b) ref</p>
+<p><code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> <strong>max</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> a, <code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> b) ref</p>
+<p><code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> <strong>max</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> a, int b) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the maximum of two values <code>a</code> and <code>b</code>.</p>
+<p>It returns <code>b</code> if <code>b &gt; a</code>, otherwise it returns <code>a</code>.</p>
+<p>param a The first value to compare.</p>
+<p>param b The second value to compare.</p>
+<p>return The maximum value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/max.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/max.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>clamp</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> minVal, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> maxVal) ref</p>
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>clamp</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x, float minVal, float maxVal) ref</p>
+<p><code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> <strong>clamp</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> x, <code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> minVal, <code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> maxVal) ref</p>
+<p><code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> <strong>clamp</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> x, int minVal, int maxVal) ref</p>
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>clamp</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> x, <code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> minVal, <code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> maxVal) ref</p>
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>clamp</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> x, uint minVal, uint maxVal) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the value of <code>x</code> constrained to the range <code>minVal</code> to <code>maxVal</code>.</p>
+<p>The returned value is computed as <code>min(max(x, minVal), maxVal)</code>.</p>
+<p>param x The value to constrain.</p>
+<p>param minVal The lower end of the range into which to constrain <code>x</code>.</p>
+<p>param maxVal The upper end of the range into which to constrain <code>x</code>.</p>
+<p>return The clamped value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/clamp.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/clamp.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>mix</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> b, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> c) ref</p>
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>mix</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> b, float c) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Performs a linear interpolation between <code>a</code> and <code>b</code> using <code>c</code> to weight between them.</p>
+<p>Computed as <code>a * (1 - c) + b * c</code>.</p>
+<p>Equivalent to ref in GDScript.</p>
+<p>param a The start of the range in which to interpolate.</p>
+<p>param b The end of the range in which to interpolate.</p>
+<p>param c The value to use to interpolate between <code>a</code> and <code>b</code>.</p>
+<p>return The interpolated value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/mix.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/mix.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>mix</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> b, <code>vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code> c) ref</p>
+<blockquote>
+<p>Selects either value <code>a</code> or value <code>b</code> based on the value of <code>c</code>. For a component of <code>c</code> that is false, the corresponding component of <code>a</code> is returned. For a component of <code>c</code> that is true, the corresponding component of <code>b</code> is returned. Components of <code>a</code> and <code>b</code> that are not selected are allowed to be invalid floating-point values and will have no effect on the results.</p>
+<p>If <code>a</code>, <code>b</code>, and <code>c</code> are vector types the operation is performed ref. For example, <code>mix(vec2(42, 314), vec2(9.8, 6e23), bvec2(true, false)))</code> will return <code>vec2(9.8, 314)</code>.</p>
+<p>param a Value returned when <code>c</code> is false.</p>
+<p>param b Value returned when <code>c</code> is true.</p>
+<p>param c The value used to select between <code>a</code> and <code>b</code>.</p>
+<p>return The interpolated value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/mix.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/mix.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>fma</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> b, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> c) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Performs, where possible, a fused multiply-add operation, returning <code>a * b + c</code>. In use cases where the return value is eventually consumed by a variable declared as precise:</p>
+<blockquote>
+<ul>
+<li><code>fma()</code> is considered a single operation, whereas the expression <code>a * b + c</code> consumed by a variable declared as precise is considered two operations.</li>
+<li>The precision of <code>fma()</code> can differ from the precision of the expression <code>a * b + c</code>.</li>
+<li><code>fma()</code> will be computed with the same precision as any other <code>fma()</code> consumed by a precise variable, giving invariant results for the same input values of a, b and c.</li>
+</ul>
+</blockquote>
+<p>Otherwise, in the absence of precise consumption, there are no special constraints on the number of operations or difference in precision between <code>fma()</code> and the expression <code>a * b + c</code>.</p>
+<p>param a The first value to be multiplied.</p>
+<p>param b The second value to be multiplied.</p>
+<p>param c The value to be added to the result.</p>
+<p>return The value of <code>a * b + c</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/fma.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/fma.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>step</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> b) ref</p>
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>step</strong>(float a, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> b) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Generates a step function by comparing b to a.</p>
+<p>Equivalent to <code>if (b &lt; a) { return 0.0; } else { return 1.0; }</code>. For element i of the return value, 0.0 is returned if b[i] &lt; a[i], and 1.0 is returned otherwise.</p>
+<p>param a The location of the edge of the step function.</p>
+<p>param b The value to be used to generate the step function.</p>
+<p>return <code>0.0</code> or <code>1.0</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/step.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/step.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>smoothstep</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> b, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> c) ref</p>
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>smoothstep</strong>(float a, float b, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> c) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Performs smooth Hermite interpolation between <code>0</code> and <code>1</code> when a &lt; c &lt; b. This is useful in cases where a threshold function with a smooth transition is desired.</p>
+<p>Smoothstep is equivalent to:</p>
+<pre><code>vec_type t;
+t = clamp((c - a) / (b - a), 0.0, 1.0);
+return t * t * (3.0 - 2.0 * t);</code></pre>
+<p>Results are undefined if <code>a &gt;= b</code>.</p>
+<p>param a The value of the lower edge of the Hermite function.</p>
+<p>param b The value of the upper edge of the Hermite function.</p>
+<p>param c The source value for interpolation.</p>
+<p>return The interpolated value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/smoothstep.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/smoothstep.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code> <strong>isnan</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>For each element i of the result, returns <code>true</code> if x[i] is positive or negative floating-point NaN (Not a Number) and false otherwise.</p>
+<p>param x The value to test for NaN.</p>
+<p>return <code>true</code> or <code>false</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/isnan.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/isnan.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code> <strong>isinf</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>For each element i of the result, returns <code>true</code> if x[i] is positive or negative floating-point infinity and false otherwise.</p>
+<p>param x The value to test for infinity.</p>
+<p>return <code>true</code> or <code>false</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/isinf.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/isinf.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> <strong>floatBitsToInt</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the encoding of the floating-point parameters as <code>int</code>.</p>
+<p>The floating-point bit-level representation is preserved.</p>
+<p>param x The value whose floating-point encoding to return.</p>
+<p>return The floating-point encoding of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/floatBitsToInt.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/floatBitsToInt.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>floatBitsToUint</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Returns the encoding of the floating-point parameters as <code>uint</code>.</p>
+<p>The floating-point bit-level representation is preserved.</p>
+<p>param x The value whose floating-point encoding to return.</p>
+<p>return The floating-point encoding of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/floatBitsToInt.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/floatBitsToInt.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>intBitsToFloat</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Converts a bit encoding to a floating-point value. Opposite of floatBitsToInt&lt;shader_func_floatBitsToInt&gt;</p>
+<p>If the encoding of a <code>NaN</code> is passed in <code>x</code>, it will not signal and the resulting value will be undefined.</p>
+<p>If the encoding of a floating-point infinity is passed in parameter <code>x</code>, the resulting floating-point value is the corresponding (positive or negative) floating-point infinity.</p>
+<p>param x The bit encoding to return as a floating-point value.</p>
+<p>return A floating-point value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/intBitsToFloat.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/intBitsToFloat.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>uintBitsToFloat</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> x) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Converts a bit encoding to a floating-point value. Opposite of floatBitsToUint&lt;shader_func_floatBitsToUint&gt;</p>
+<p>If the encoding of a <code>NaN</code> is passed in <code>x</code>, it will not signal and the resulting value will be undefined.</p>
+<p>If the encoding of a floating-point infinity is passed in parameter <code>x</code>, the resulting floating-point value is the corresponding (positive or negative) floating-point infinity.</p>
+<p>param x The bit encoding to return as a floating-point value.</p>
+<p>return A floating-point value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/intBitsToFloat.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/intBitsToFloat.xhtml</a></p>
+</blockquote>
+<hr />
+<h2 id="geometric-functions">Geometric functions</h2>
+<p>|| || || || || || || || || || || || || || ||</p>
+<h3 id="geometric-function-descriptions">Geometric function descriptions</h3>
+<p>float <strong>length</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>Returns the length of the vector, i.e., <code>sqrt(x[0] * x[0] + x[1] * x[1] + ... + x[n] * x[n])</code></p>
+<p>param x The vector</p>
+<p>return The length of the vector.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/length.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/length.xhtml</a></p>
+</blockquote>
+<hr />
+<p>float <strong>distance</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> b) ref</p>
+<blockquote>
+<p>Returns the distance between the two points <code>a</code> and <code>b</code>, i.e., <code>length(b - a);</code></p>
+<p>param a The first point.</p>
+<p>param b The second point.</p>
+<p>return The scalar distance between the points</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/distance.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/distance.xhtml</a></p>
+</blockquote>
+<hr />
+<p>float <strong>dot</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> a, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> b) ref</p>
+<blockquote>
+<p>Returns the dot product of two vectors, <code>a</code> and <code>b</code>, i.e., <code>a.x * b.x + a.y * b.y + ...</code></p>
+<p>param a The first vector.</p>
+<p>param b The second vector.</p>
+<p>return The dot product.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/dot.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/dot.xhtml</a></p>
+</blockquote>
+<hr />
+<p>vec3 <strong>cross</strong>(vec3 a, vec3 b) ref</p>
+<blockquote>
+<p>Returns the cross product of two vectors, i.e.:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">vec3</span><span class="op">(</span> a<span class="op">.</span><span class="fu">y</span> <span class="op">*</span> b<span class="op">.</span><span class="fu">z</span> <span class="op">-</span> b<span class="op">.</span><span class="fu">y</span> <span class="op">*</span> a<span class="op">.</span><span class="fu">z</span><span class="op">,</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>      a<span class="op">.</span><span class="fu">z</span> <span class="op">*</span> b<span class="op">.</span><span class="fu">x</span> <span class="op">-</span> b<span class="op">.</span><span class="fu">z</span> <span class="op">*</span> a<span class="op">.</span><span class="fu">x</span><span class="op">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>      a<span class="op">.</span><span class="fu">x</span> <span class="op">*</span> b<span class="op">.</span><span class="fu">y</span> <span class="op">-</span> b<span class="op">.</span><span class="fu">x</span> <span class="op">*</span> a<span class="op">.</span><span class="fu">y</span><span class="op">)</span></span></code></pre></div>
+<p>param a The first vector.</p>
+<p>param b The second vector.</p>
+<p>return The cross product of <code>a</code> and <code>b</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/cross.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/cross.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>normalize</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x) ref</p>
+<blockquote>
+<p>Returns a vector with the same direction as <code>x</code> but with length <code>1.0</code>.</p>
+<p>param x The vector to normalize.</p>
+<p>return The normalized vector.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/normalize.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/normalize.xhtml</a></p>
+</blockquote>
+<hr />
+<p>vec3 <strong>reflect</strong>(vec3 I, vec3 N) ref</p>
+<blockquote>
+<p>Calculate the reflection direction for an incident vector.</p>
+<p>For a given incident vector <code>I</code> and surface normal <code>N</code> reflect returns the reflection direction calculated as <code>I - 2.0 * dot(N, I) * N</code>.</p>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p><code>N</code> should be normalized in order to achieve the desired result.</p>
+</div>
+
+<p>param I The incident vector.</p>
+<p>param N The normal vector.</p>
+<p>return The reflection vector.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/reflect.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/reflect.xhtml</a></p>
+</blockquote>
+<hr />
+<p>vec3 <strong>refract</strong>(vec3 I, vec3 N, float eta) ref</p>
+<blockquote>
+<p>Calculate the refraction direction for an incident vector.</p>
+<p>For a given incident vector <code>I</code>, surface normal <code>N</code> and ratio of indices of refraction, <code>eta</code>, refract returns the refraction vector, <code>R</code>.</p>
+<p><code>R</code> is calculated as:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode glsl"><code class="sourceCode glsl"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>k <span class="op">=</span> <span class="fl">1.0</span> <span class="op">-</span> eta <span class="op">*</span> eta <span class="op">*</span> <span class="op">(</span><span class="fl">1.0</span> <span class="op">-</span> <span class="bu">dot</span><span class="op">(</span>N<span class="op">,</span> I<span class="op">)</span> <span class="op">*</span> <span class="bu">dot</span><span class="op">(</span>N<span class="op">,</span> I<span class="op">));</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span> <span class="op">(</span>k <span class="op">&lt;</span> <span class="fl">0.0</span><span class="op">)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    R <span class="op">=</span> <span class="fu">genType</span><span class="op">(</span><span class="fl">0.0</span><span class="op">);</span>       <span class="co">// or genDType(0.0)</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">else</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    R <span class="op">=</span> eta <span class="op">*</span> I <span class="op">-</span> <span class="op">(</span>eta <span class="op">*</span> <span class="bu">dot</span><span class="op">(</span>N<span class="op">,</span> I<span class="op">)</span> <span class="op">+</span> <span class="bu">sqrt</span><span class="op">(</span>k<span class="op">))</span> <span class="op">*</span> N<span class="op">;</span></span></code></pre></div>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>The input parameters I and N should be normalized in order to achieve the desired result.</p>
+</div>
+
+<p>param I The incident vector.</p>
+<p>param N The normal vector.</p>
+<p>param eta The ratio of indices of refraction.</p>
+<p>return The refraction vector.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/refract.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/refract.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>faceforward</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> N, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> I, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> Nref) ref</p>
+<blockquote>
+<p>Returns a vector pointing in the same direction as another.</p>
+<p>Orients a vector to point away from a surface as defined by its normal. If <code>dot(Nref, I) &lt; 0</code> faceforward returns <code>N</code>, otherwise it returns <code>-N</code>.</p>
+<p>param N The vector to orient.</p>
+<p>param I The incident vector.</p>
+<p>param Nref The reference vector.</p>
+<p>return The oriented vector.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/faceforward.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/faceforward.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>mat_type (Any of: mat2, mat3, mat4)</code> <strong>matrixCompMult</strong>(<code>mat_type (Any of: mat2, mat3, mat4)</code> x, <code>mat_type (Any of: mat2, mat3, mat4)</code> y) ref</p>
+<blockquote>
+<p>Perform a ref multiplication of two matrices.</p>
+<p>Performs a component-wise multiplication of two matrices, yielding a result matrix where each component, <code>result[i][j]</code> is computed as the scalar product of <code>x[i][j]</code> and <code>y[i][j]</code>.</p>
+<p>param x The first matrix multiplicand.</p>
+<p>param y The second matrix multiplicand.</p>
+<p>return The resultant matrix.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/matrixCompMult.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/matrixCompMult.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>mat_type (Any of: mat2, mat3, mat4)</code> <strong>outerProduct</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> column, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> row) ref</p>
+<blockquote>
+<p>Calculate the outer product of a pair of vectors.</p>
+<p>Does a linear algebraic matrix multiply <code>column * row</code>, yielding a matrix whose number of rows is the number of components in <code>column</code> and whose number of columns is the number of components in <code>row</code>.</p>
+<p>param column The column vector for multiplication.</p>
+<p>param row The row vector for multiplication.</p>
+<p>return The outer product matrix.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/outerProduct.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/outerProduct.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>mat_type (Any of: mat2, mat3, mat4)</code> <strong>transpose</strong>(<code>mat_type (Any of: mat2, mat3, mat4)</code> m) ref</p>
+<blockquote>
+<p>Calculate the transpose of a matrix.</p>
+<p>param m The matrix to transpose.</p>
+<p>return A new matrix that is the transpose of the input matrix <code>m</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/transpose.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/transpose.xhtml</a></p>
+</blockquote>
+<hr />
+<p>float <strong>determinant</strong>(<code>mat_type (Any of: mat2, mat3, mat4)</code> m) ref</p>
+<blockquote>
+<p>Calculate the determinant of a matrix.</p>
+<p>param m The matrix.</p>
+<p>return The determinant of the input matrix <code>m</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/determinant.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/determinant.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>mat_type (Any of: mat2, mat3, mat4)</code> <strong>inverse</strong>(<code>mat_type (Any of: mat2, mat3, mat4)</code> m) ref</p>
+<blockquote>
+<p>Calculate the inverse of a matrix.</p>
+<p>The values in the returned matrix are undefined if <code>m</code> is singular or poorly-conditioned (nearly singular).</p>
+<p>param m The matrix of which to take the inverse.</p>
+<p>return A new matrix which is the inverse of the input matrix <code>m</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/inverse.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/inverse.xhtml</a></p>
+</blockquote>
+<hr />
+<h2 id="comparison-functions">Comparison functions</h2>
+<p>|| || || || || || || || || || ||</p>
+<h3 id="comparison-function-descriptions">Comparison function descriptions</h3>
+<p><code>vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code> <strong>lessThan</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> y) ref</p>
+<blockquote>
+<p>Performs a ref less-than comparison of two vectors.</p>
+<p>param x The first vector to compare.</p>
+<p>param y The second vector to compare.</p>
+<p>return A boolean vector in which each element <code>i</code> is computed as <code>x[i] &lt; y[i]</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/lessThan.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/lessThan.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code> <strong>greaterThan</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> y) ref</p>
+<blockquote>
+<p>Performs a ref greater-than comparison of two vectors.</p>
+<p>param x The first vector to compare.</p>
+<p>param y The second vector to compare.</p>
+<p>return A boolean vector in which each element <code>i</code> is computed as <code>x[i] &gt; y[i]</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/greaterThan.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/greaterThan.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code> <strong>lessThanEqual</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> y) ref</p>
+<blockquote>
+<p>Performs a ref less-than-or-equal comparison of two vectors.</p>
+<p>param x The first vector to compare.</p>
+<p>param y The second vector to compare.</p>
+<p>return A boolean vector in which each element <code>i</code> is computed as <code>x[i] &lt;= y[i]</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/lessThanEqual.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/lessThanEqual.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code> <strong>greaterThanEqual</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> y) ref</p>
+<blockquote>
+<p>Performs a ref greater-than-or-equal comparison of two vectors.</p>
+<p>param x The first vector to compare.</p>
+<p>param y The second vector to compare.</p>
+<p>return A boolean vector in which each element <code>i</code> is computed as <code>x[i] &gt;= y[i]</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/greaterThanEqual.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/greaterThanEqual.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code> <strong>equal</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> y) ref</p>
+<blockquote>
+<p>Performs a ref equal-to comparison of two vectors.</p>
+<p>param x The first vector to compare.</p>
+<p>param y The second vector to compare.</p>
+<p>return A boolean vector in which each element <code>i</code> is computed as <code>x[i] == y[i]</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/equal.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/equal.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code> <strong>notEqual</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x, <code>vec_type (Any of: float, vec2, vec3, vec4)</code> y) ref</p>
+<blockquote>
+<p>Performs a ref not-equal-to comparison of two vectors.</p>
+<p>param x The first vector for comparison.</p>
+<p>param y The second vector for comparison.</p>
+<p>return A boolean vector in which each element <code>i</code> is computed as <code>x[i] != y[i]</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/notEqual.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/notEqual.xhtml</a></p>
+</blockquote>
+<hr />
+<p>bool <strong>any</strong>(<code>vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code> x) ref</p>
+<blockquote>
+<p>Returns <code>true</code> if any element of a boolean vector is <code>true</code>, <code>false</code> otherwise.</p>
+<p>Functionally equivalent to:</p>
+<pre><code>bool any(bvec x) {     // bvec can be bvec2, bvec3 or bvec4
+    bool result = false;
+    int i;
+    for (i = 0; i &lt; x.length(); ++i) {
+        result |= x[i];
+    }
+    return result;
+}</code></pre>
+<p>param x The vector to be tested for truth.</p>
+<p>return <code>true</code> if any element of <code>x</code> is <code>true</code> and <code>false</code> otherwise.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/any.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/any.xhtml</a></p>
+</blockquote>
+<hr />
+<p>bool <strong>all</strong>(<code>vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code> x) ref</p>
+<blockquote>
+<p>Returns <code>true</code> if all elements of a boolean vector are <code>true</code>, <code>false</code> otherwise.</p>
+<p>Functionally equivalent to:</p>
+<pre><code>bool all(bvec x)       // bvec can be bvec2, bvec3 or bvec4
+{
+    bool result = true;
+    int i;
+    for (i = 0; i &lt; x.length(); ++i)
+    {
+        result &amp;= x[i];
+    }
+    return result;
+}</code></pre>
+<p>param x The vector to be tested for truth.</p>
+<p>return <code>true</code> if all elements of <code>x</code> are <code>true</code> and <code>false</code> otherwise.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/all.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/all.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code> <strong>not</strong>(<code>vec_bool_type (Any of: bool, bvec2, bvec3, bvec4)</code> x) ref</p>
+<blockquote>
+<p>Logically invert a boolean vector.</p>
+<p>param x The vector to be inverted.</p>
+<p>return A new boolean vector for which each element i is computed as !x[i].</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/not.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/not.xhtml</a></p>
+</blockquote>
+<hr />
+<h2 id="texture-functions">Texture functions</h2>
+<p>|| || || || || || || || || || || || || || || || || || || || || ||</p>
+<h3 id="texture-function-descriptions">Texture function descriptions</h3>
+<p>ivec2 <strong>textureSize</strong>(<code>gsampler2D (Any of: sampler2D, isampler2D, uSampler2D)</code> s, int lod) ref</p>
+<p>ivec2 <strong>textureSize</strong>(samplerCube s, int lod) ref</p>
+<p>ivec2 <strong>textureSize</strong>(samplerCubeArray s, int lod) ref</p>
+<p>ivec3 <strong>textureSize</strong>(<code>gsampler2DArray (Any of: sampler2DArray, isampler2DArray, uSampler2DArray)</code> s, int lod) ref</p>
+<p>ivec3 <strong>textureSize</strong>(<code>gsampler3D (Any of: sampler3D, isampler3D, uSampler3D)</code> s, int lod) ref</p>
+<blockquote>
+<p>Retrieves the dimensions of a level of a texture.</p>
+<p>Returns the dimensions of level <code>lod</code> (if present) of the texture bound to sampler.</p>
+<p>The components in the return value are filled in, in order, with the width, height and depth of the texture. For the array forms, the last component of the return value is the number of layers in the texture array.</p>
+<p>param s The sampler to which the texture whose dimensions to retrieve is bound.</p>
+<p>param lod The level of the texture for which to retrieve the dimensions.</p>
+<p>return The dimensions of level <code>lod</code> (if present) of the texture bound to sampler.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureSize.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureSize.xhtml</a></p>
+</blockquote>
+<hr />
+<p>vec2 <strong>textureQueryLod</strong>(<code>gsampler2D (Any of: sampler2D, isampler2D, uSampler2D)</code> s, vec2 p) ref</p>
+<p>vec2 <strong>textureQueryLod</strong>(<code>gsampler2DArray (Any of: sampler2DArray, isampler2DArray, uSampler2DArray)</code> s, vec2 p) ref</p>
+<p>vec2 <strong>textureQueryLod</strong>(<code>gsampler3D (Any of: sampler3D, isampler3D, uSampler3D)</code> s, vec3 p) ref</p>
+<p>vec2 <strong>textureQueryLod</strong>(samplerCube s, vec3 p) ref</p>
+<blockquote>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>Available only in the fragment shader.</p>
+</div>
+
+<p>Compute the level-of-detail that would be used to sample from a texture.</p>
+<p>The mipmap array(s) that would be accessed is returned in the x component of the return value. The computed level-of-detail relative to the base level is returned in the y component of the return value.</p>
+<p>If called on an incomplete texture, the result of the operation is undefined.</p>
+<p>param s The sampler to which the texture whose level-of-detail will be queried is bound.</p>
+<p>param p The texture coordinates at which the level-of-detail will be queried.</p>
+<p>return See description.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureQueryLod.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureQueryLod.xhtml</a></p>
+</blockquote>
+<hr />
+<p>int <strong>textureQueryLevels</strong>(<code>gsampler2D (Any of: sampler2D, isampler2D, uSampler2D)</code> s) ref</p>
+<p>int <strong>textureQueryLevels</strong>(<code>gsampler2DArray (Any of: sampler2DArray, isampler2DArray, uSampler2DArray)</code> s) ref</p>
+<p>int <strong>textureQueryLevels</strong>(<code>gsampler3D (Any of: sampler3D, isampler3D, uSampler3D)</code> s) ref</p>
+<p>int <strong>textureQueryLevels</strong>(samplerCube s) ref</p>
+<blockquote>
+<p>Compute the number of accessible mipmap levels of a texture.</p>
+<p>If called on an incomplete texture, or if no texture is associated with sampler, <code>0</code> is returned.</p>
+<p>param s The sampler to which the texture whose mipmap level count will be queried is bound.</p>
+<p>return The number of accessible mipmap levels in the texture, or <code>0</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureQueryLevels.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureQueryLevels.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>texture</strong>(<code>gsampler2D (Any of: sampler2D, isampler2D, uSampler2D)</code> s, vec2 p [, float bias] ) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>texture</strong>(<code>gsampler2DArray (Any of: sampler2DArray, isampler2DArray, uSampler2DArray)</code> s, vec3 p [, float bias] ) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>texture</strong>(<code>gsampler3D (Any of: sampler3D, isampler3D, uSampler3D)</code> s, vec3 p [, float bias] ) ref</p>
+<p>vec4 <strong>texture</strong>(samplerCube s, vec3 p [, float bias] ) ref</p>
+<p>vec4 <strong>texture</strong>(samplerCubeArray s, vec4 p [, float bias] ) ref</p>
+<p>vec4 <strong>texture</strong>(samplerExternalOES s, vec2 p [, float bias] ) ref</p>
+<blockquote>
+<p>Retrieves texels from a texture.</p>
+<p>Samples texels from the texture bound to <code>s</code> at texture coordinate <code>p</code>. An optional bias, specified in <code>bias</code> is included in the level-of-detail computation that is used to choose mipmap(s) from which to sample.</p>
+<p>For shadow forms, the last component of <code>p</code> is used as Dsub and the array layer is specified in the second to last component of <code>p</code>. (The second component of <code>p</code> is unused for 1D shadow lookups.)</p>
+<p>For non-shadow variants, the array layer comes from the last component of P.</p>
+<p>param s The sampler to which the texture from which texels will be retrieved is bound.</p>
+<p>param p The texture coordinates at which texture will be sampled.</p>
+<p>param bias An optional bias to be applied during level-of-detail computation.</p>
+<p>return A texel.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/texture.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/texture.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureProj</strong>(<code>gsampler2D (Any of: sampler2D, isampler2D, uSampler2D)</code> s, vec3 p [, float bias] ) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureProj</strong>(<code>gsampler2D (Any of: sampler2D, isampler2D, uSampler2D)</code> s, vec4 p [, float bias] ) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureProj</strong>(<code>gsampler3D (Any of: sampler3D, isampler3D, uSampler3D)</code> s, vec4 p [, float bias] ) ref</p>
+<blockquote>
+<p>Perform a texture lookup with projection.</p>
+<p>The texture coordinates consumed from <code>p</code>, not including the last component of <code>p</code>, are divided by the last component of <code>p</code>. The resulting 3rd component of <code>p</code> in the shadow forms is used as Dref. After these values are computed, the texture lookup proceeds as in texture.</p>
+<p>param s The sampler to which the texture from which texels will be retrieved is bound.</p>
+<p>param p The texture coordinates at which texture will be sampled.</p>
+<p>param bias Optional bias to be applied during level-of-detail computation.</p>
+<p>return A texel.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureProj.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureProj.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureLod</strong>(<code>gsampler2D (Any of: sampler2D, isampler2D, uSampler2D)</code> s, vec2 p, float lod) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureLod</strong>(<code>gsampler2DArray (Any of: sampler2DArray, isampler2DArray, uSampler2DArray)</code> s, vec3 p, float lod) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureLod</strong>(<code>gsampler3D (Any of: sampler3D, isampler3D, uSampler3D)</code> s, vec3 p, float lod) ref</p>
+<p>vec4 <strong>textureLod</strong>(samplerCube s, vec3 p, float lod) ref</p>
+<p>vec4 <strong>textureLod</strong>(samplerCubeArray s, vec4 p, float lod) ref</p>
+<blockquote>
+<p>Performs a texture lookup at coordinate <code>p</code> from the texture bound to sampler with an explicit level-of-detail as specified in <code>lod</code>. <code>lod</code> specifies λbase and sets the partial derivatives as follows:</p>
+<pre><code>δu/δx=0, δv/δx=0, δw/δx=0
+δu/δy=0, δv/δy=0, δw/δy=0</code></pre>
+<p>param s The sampler to which the texture from which texels will be retrieved is bound.</p>
+<p>param p The texture coordinates at which texture will be sampled.</p>
+<p>param lod The explicit level-of-detail.</p>
+<p>return A texel.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureLod.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureLod.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureProjLod</strong>(<code>gsampler2D (Any of: sampler2D, isampler2D, uSampler2D)</code> s, vec3 p, float lod) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureProjLod</strong>(<code>gsampler2D (Any of: sampler2D, isampler2D, uSampler2D)</code> s, vec4 p, float lod) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureProjLod</strong>(<code>gsampler3D (Any of: sampler3D, isampler3D, uSampler3D)</code> s, vec4 p, float lod) ref</p>
+<blockquote>
+<p>Performs a texture lookup with projection from an explicitly specified level-of-detail.</p>
+<p>The texture coordinates consumed from P, not including the last component of <code>p</code>, are divided by the last component of <code>p</code>. The resulting 3rd component of <code>p</code> in the shadow forms is used as Dref. After these values are computed, the texture lookup proceeds as in textureLod&lt;shader_func_textureLod&gt;, with <code>lod</code> used to specify the level-of-detail from which the texture will be sampled.</p>
+<p>param s The sampler to which the texture from which texels will be retrieved is bound.</p>
+<p>param p The texture coordinates at which texture will be sampled.</p>
+<p>param lod The explicit level-of-detail from which to fetch texels.</p>
+<p>return a texel</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureProjLod.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureProjLod.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureGrad</strong>(<code>gsampler2D (Any of: sampler2D, isampler2D, uSampler2D)</code> s, vec2 p, vec2 dPdx, vec2 dPdy) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureGrad</strong>(<code>gsampler2DArray (Any of: sampler2DArray, isampler2DArray, uSampler2DArray)</code> s, vec3 p, vec2 dPdx, vec2 dPdy) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureGrad</strong>(<code>gsampler3D (Any of: sampler3D, isampler3D, uSampler3D)</code> s, vec3 p, vec2 dPdx, vec2 dPdy) ref</p>
+<p>vec4 <strong>textureGrad</strong>(samplerCube s, vec3 p, vec3 dPdx, vec3 dPdy) ref</p>
+<p>vec4 <strong>textureGrad</strong>(samplerCubeArray s, vec3 p, vec3 dPdx, vec3 dPdy) ref</p>
+<blockquote>
+<p>Performs a texture lookup at coordinate <code>p</code> from the texture bound to sampler with explicit texture coordinate gradients as specified in <code>dPdx</code> and <code>dPdy</code>. Set:</p>
+<ul>
+<li><code>δs/δx=δp/δx</code> for a 1D texture, <code>δp.s/δx</code> otherwise</li>
+<li><code>δs/δy=δp/δy</code> for a 1D texture, <code>δp.s/δy</code> otherwise</li>
+<li><code>δt/δx=0.0</code> for a 1D texture, <code>δp.t/δx</code> otherwise</li>
+<li><code>δt/δy=0.0</code> for a 1D texture, <code>δp.t/δy</code> otherwise</li>
+<li><code>δr/δx=0.0</code> for a 1D or 2D texture, <code>δp.p/δx</code> otherwise</li>
+<li><code>δr/δy=0.0</code> for a 1D or 2D texture, <code>δp.p/δy</code> otherwise</li>
+</ul>
+<p>For the cube version, the partial derivatives of <code>p</code> are assumed to be in the coordinate system used before texture coordinates are projected onto the appropriate cube face.</p>
+<p>param s The sampler to which the texture from which texels will be retrieved is bound.</p>
+<p>param p The texture coordinates at which texture will be sampled.</p>
+<p>param dPdx The partial derivative of P with respect to window x.</p>
+<p>param dPdy The partial derivative of P with respect to window y.</p>
+<p>return A texel.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureGrad.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureGrad.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureProjGrad</strong>(<code>gsampler2D (Any of: sampler2D, isampler2D, uSampler2D)</code> s, vec3 p, vec2 dPdx, vec2 dPdy) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureProjGrad</strong>(<code>gsampler2D (Any of: sampler2D, isampler2D, uSampler2D)</code> s, vec4 p, vec2 dPdx, vec2 dPdy) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureProjGrad</strong>(<code>gsampler3D (Any of: sampler3D, isampler3D, uSampler3D)</code> s, vec4 p, vec3 dPdx, vec3 dPdy) ref</p>
+<blockquote>
+<p>Perform a texture lookup with projection and explicit gradients.</p>
+<p>The texture coordinates consumed from <code>p</code>, not including the last component of <code>p</code>, are divided by the last component of <code>p</code>. After these values are computed, the texture lookup proceeds as in textureGrad&lt;shader_func_textureGrad&gt;, passing <code>dPdx</code> and <code>dPdy</code> as gradients.</p>
+<p>param s The sampler to which the texture from which texels will be retrieved is bound.</p>
+<p>param p The texture coordinates at which texture will be sampled.</p>
+<p>param dPdx The partial derivative of <code>p</code> with respect to window x.</p>
+<p>param dPdy The partial derivative of <code>p</code> with respect to window y.</p>
+<p>return A texel.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureProjGrad.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureProjGrad.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>texelFetch</strong>(<code>gsampler2D (Any of: sampler2D, isampler2D, uSampler2D)</code> s, ivec2 p, int lod) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>texelFetch</strong>(<code>gsampler2DArray (Any of: sampler2DArray, isampler2DArray, uSampler2DArray)</code> s, ivec3 p, int lod) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>texelFetch</strong>(<code>gsampler3D (Any of: sampler3D, isampler3D, uSampler3D)</code> s, ivec3 p, int lod) ref</p>
+<blockquote>
+<p>Performs a lookup of a single texel from texture coordinate <code>p</code> in the texture bound to sampler.</p>
+<p>param s The sampler to which the texture from which texels will be retrieved is bound.</p>
+<p>param p The texture coordinates at which texture will be sampled.</p>
+<p>param lod Specifies the level-of-detail within the texture from which the texel will be fetched.</p>
+<p>return A texel.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/texelFetch.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/texelFetch.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureGather</strong>(<code>gsampler2D (Any of: sampler2D, isampler2D, uSampler2D)</code> s, vec2 p [, int comps] ) ref</p>
+<p><code>gvec4_type (Any of: vec4, ivec4, uvec4)</code> <strong>textureGather</strong>(<code>gsampler2DArray (Any of: sampler2DArray, isampler2DArray, uSampler2DArray)</code> s, vec3 p [, int comps] ) ref</p>
+<p>vec4 <strong>textureGather</strong>(samplerCube s, vec3 p [, int comps] ) ref</p>
+<blockquote>
+<p>Gathers four texels from a texture.</p>
+<p>Returns the value:</p>
+<pre><code>vec4(Sample_i0_j1(p, base).comps,
+     Sample_i1_j1(p, base).comps,
+     Sample_i1_j0(p, base).comps,
+     Sample_i0_j0(p, base).comps);</code></pre>
+<p>param s The sampler to which the texture from which texels will be retrieved is bound.</p>
+<p>param p The texture coordinates at which texture will be sampled.</p>
+<p>param comps <em>optional</em> the component of the source texture (0 -&gt; x, 1 -&gt; y, 2 -&gt; z, 3 -&gt; w) that will be used to generate the resulting vector. Zero if not specified.</p>
+<p>return The gathered texel.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureGather.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/textureGather.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>dFdx</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> p) ref</p>
+<blockquote>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>Available only in the fragment shader.</p>
+</div>
+
+<p>Returns the partial derivative of <code>p</code> with respect to the window x coordinate using local differencing.</p>
+<p>Returns either ref or ref. The implementation may choose which calculation to perform based upon factors such as performance or the value of the API <code>GL_FRAGMENT_SHADER_DERIVATIVE_HINT</code> hint.</p>
+<div class="warning">
+
+<div class="title">
+
+<p>Warning</p>
+</div>
+
+<p>Expressions that imply higher order derivatives such as <code>dFdx(dFdx(n))</code> have undefined results, as do mixed-order derivatives such as <code>dFdx(dFdy(n))</code>.</p>
+</div>
+
+<p>param p The expression of which to take the partial derivative.</p>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>It is assumed that the expression <code>p</code> is continuous and therefore expressions evaluated via non-uniform control flow may be undefined.</p>
+</div>
+
+<p>return The partial derivative of <code>p</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/dFdx.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/dFdx.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>dFdxCoarse</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> p) ref</p>
+<blockquote>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>Available only in the fragment shader. Not available when using the Compatibility renderer.</p>
+</div>
+
+<p>Returns the partial derivative of <code>p</code> with respect to the window x coordinate.</p>
+<p>Calculates derivatives using local differencing based on the value of <code>p</code> for the current fragment's neighbors, and will possibly, but not necessarily, include the value for the current fragment. That is, over a given area, the implementation can compute derivatives in fewer unique locations than would be allowed for the corresponding ref function.</p>
+<div class="warning">
+
+<div class="title">
+
+<p>Warning</p>
+</div>
+
+<p>Expressions that imply higher order derivatives such as <code>dFdx(dFdx(n))</code> have undefined results, as do mixed-order derivatives such as <code>dFdx(dFdy(n))</code>.</p>
+</div>
+
+<p>param p The expression of which to take the partial derivative.</p>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>It is assumed that the expression <code>p</code> is continuous and therefore expressions evaluated via non-uniform control flow may be undefined.</p>
+</div>
+
+<p>return The partial derivative of <code>p</code>.</p>
+<p><a href="https://registry.khronos.org/OpenGL-Refpages/gl4/html/dFdx.xhtml">https://registry.khronos.org/OpenGL-Refpages/gl4/html/dFdx.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>dFdxFine</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> p) ref</p>
+<blockquote>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>Available only in the fragment shader. Not available when using the Compatibility renderer.</p>
+</div>
+
+<p>Returns the partial derivative of <code>p</code> with respect to the window x coordinate.</p>
+<p>Calculates derivatives using local differencing based on the value of <code>p</code> for the current fragment and its immediate neighbor(s).</p>
+<div class="warning">
+
+<div class="title">
+
+<p>Warning</p>
+</div>
+
+<p>Expressions that imply higher order derivatives such as <code>dFdx(dFdx(n))</code> have undefined results, as do mixed-order derivatives such as <code>dFdx(dFdy(n))</code>.</p>
+</div>
+
+<p>param p The expression of which to take the partial derivative.</p>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>It is assumed that the expression <code>p</code> is continuous and therefore expressions evaluated via non-uniform control flow may be undefined.</p>
+</div>
+
+<p>return The partial derivative of <code>p</code>.</p>
+<p><a href="https://registry.khronos.org/OpenGL-Refpages/gl4/html/dFdx.xhtml">https://registry.khronos.org/OpenGL-Refpages/gl4/html/dFdx.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>dFdy</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> p) ref</p>
+<blockquote>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>Available only in the fragment shader.</p>
+</div>
+
+<p>Returns the partial derivative of <code>p</code> with respect to the window y coordinate using local differencing.</p>
+<p>Returns either ref or ref. The implementation may choose which calculation to perform based upon factors such as performance or the value of the API <code>GL_FRAGMENT_SHADER_DERIVATIVE_HINT</code> hint.</p>
+<div class="warning">
+
+<div class="title">
+
+<p>Warning</p>
+</div>
+
+<p>Expressions that imply higher order derivatives such as <code>dFdx(dFdx(n))</code> have undefined results, as do mixed-order derivatives such as <code>dFdx(dFdy(n))</code>.</p>
+</div>
+
+<p>param p The expression of which to take the partial derivative.</p>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>It is assumed that the expression <code>p</code> is continuous and therefore expressions evaluated via non-uniform control flow may be undefined.</p>
+</div>
+
+<p>return The partial derivative of <code>p</code>.</p>
+<p><a href="https://registry.khronos.org/OpenGL-Refpages/gl4/html/dFdx.xhtml">https://registry.khronos.org/OpenGL-Refpages/gl4/html/dFdx.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>dFdyCoarse</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> p) ref</p>
+<blockquote>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>Available only in the fragment shader. Not available when using the Compatibility renderer.</p>
+</div>
+
+<p>Returns the partial derivative of <code>p</code> with respect to the window y coordinate.</p>
+<p>Calculates derivatives using local differencing based on the value of <code>p</code> for the current fragment's neighbors, and will possibly, but not necessarily, include the value for the current fragment. That is, over a given area, the implementation can compute derivatives in fewer unique locations than would be allowed for the corresponding dFdyFine and dFdyFine functions.</p>
+<div class="warning">
+
+<div class="title">
+
+<p>Warning</p>
+</div>
+
+<p>Expressions that imply higher order derivatives such as <code>dFdx(dFdx(n))</code> have undefined results, as do mixed-order derivatives such as <code>dFdx(dFdy(n))</code>.</p>
+</div>
+
+<p>param p The expression of which to take the partial derivative.</p>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>It is assumed that the expression <code>p</code> is continuous and therefore expressions evaluated via non-uniform control flow may be undefined.</p>
+</div>
+
+<p>return The partial derivative of <code>p</code>.</p>
+<p><a href="https://registry.khronos.org/OpenGL-Refpages/gl4/html/dFdx.xhtml">https://registry.khronos.org/OpenGL-Refpages/gl4/html/dFdx.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>dFdyFine</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> p) ref</p>
+<blockquote>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>Available only in the fragment shader. Not available when using the Compatibility renderer.</p>
+</div>
+
+<p>Returns the partial derivative of <code>p</code> with respect to the window y coordinate.</p>
+<p>Calculates derivatives using local differencing based on the value of <code>p</code> for the current fragment and its immediate neighbor(s).</p>
+<div class="warning">
+
+<div class="title">
+
+<p>Warning</p>
+</div>
+
+<p>Expressions that imply higher order derivatives such as <code>dFdx(dFdx(n))</code> have undefined results, as do mixed-order derivatives such as <code>dFdx(dFdy(n))</code>.</p>
+</div>
+
+<p>param p The expression of which to take the partial derivative.</p>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>It is assumed that the expression <code>p</code> is continuous and therefore expressions evaluated via non-uniform control flow may be undefined.</p>
+</div>
+
+<p>return The partial derivative of <code>p</code>.</p>
+<p><a href="https://registry.khronos.org/OpenGL-Refpages/gl4/html/dFdx.xhtml">https://registry.khronos.org/OpenGL-Refpages/gl4/html/dFdx.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>fwidth</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> p) ref</p>
+<blockquote>
+<p>Returns the sum of the absolute value of derivatives in x and y.</p>
+<p>Uses local differencing for the input argument <code>p</code>.</p>
+<p>Equivalent to <code>abs(dFdx(p)) + abs(dFdy(p))</code>.</p>
+<p>param p The expression of which to take the partial derivative.</p>
+<p>return The partial derivative.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/fwidth.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/fwidth.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>fwidthCoarse</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> p) ref</p>
+<blockquote>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>Available only in the fragment shader. Not available when using the Compatibility renderer.</p>
+</div>
+
+<p>Returns the sum of the absolute value of derivatives in x and y.</p>
+<p>Uses local differencing for the input argument p.</p>
+<p>Equivalent to <code>abs(dFdxCoarse(p)) + abs(dFdyCoarse(p))</code>.</p>
+<p>param p The expression of which to take the partial derivative.</p>
+<p>return The partial derivative.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/fwidth.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/fwidth.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>fwidthFine</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> p) ref</p>
+<blockquote>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>Available only in the fragment shader. Not available when using the Compatibility renderer.</p>
+</div>
+
+<p>Returns the sum of the absolute value of derivatives in x and y.</p>
+<p>Uses local differencing for the input argument p.</p>
+<p>Equivalent to <code>abs(dFdxFine(p)) + abs(dFdyFine(p))</code>.</p>
+<p>param p The expression of which to take the partial derivative.</p>
+<p>return The partial derivative.</p>
+<p><a href="https://registry.khronos.org/OpenGL-Refpages/gl4/html/fwidth.xhtml">https://registry.khronos.org/OpenGL-Refpages/gl4/html/fwidth.xhtml</a></p>
+</blockquote>
+<hr />
+<h2 id="packing-and-unpacking-functions">Packing and unpacking functions</h2>
+<p>These functions convert floating-point numbers into various sized integers and then pack those integers into a single 32bit unsigned integer. The 'unpack' functions perform the opposite operation, returning the original floating-point numbers.</p>
+<p>|| || || || || || ||</p>
+<h3 id="packing-and-unpacking-function-descriptions">Packing and unpacking function descriptions</h3>
+<p>uint <strong>packHalf2x16</strong>(vec2 v) ref</p>
+<blockquote>
+<p>Converts two 32-bit floating-point quantities to 16-bit floating-point quantities and packs them into a single 32-bit integer.</p>
+<p>Returns an unsigned integer obtained by converting the components of a two-component floating-point vector to the 16-bit floating-point representation found in the OpenGL Specification, and then packing these two 16-bit integers into a 32-bit unsigned integer. The first vector component specifies the 16 least-significant bits of the result; the second component specifies the 16 most-significant bits.</p>
+<p>param v A vector of two 32-bit floating-point values that are to be converted to 16-bit representation and packed into the result.</p>
+<p>return The packed value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/packHalf2x16.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/packHalf2x16.xhtml</a></p>
+</blockquote>
+<hr />
+<p>vec2 <strong>unpackHalf2x16</strong>(uint v) ref</p>
+<blockquote>
+<p>Inverse of ref.</p>
+<p>Unpacks a 32-bit integer into two 16-bit floating-point values, converts them to 32-bit floating-point values, and puts them into a vector. The first component of the vector is obtained from the 16 least-significant bits of <code>v</code>; the second component is obtained from the 16 most-significant bits of <code>v</code>.</p>
+<p>param v A single 32-bit unsigned integer containing 2 packed 16-bit floating-point values.</p>
+<p>return Two unpacked floating-point values.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/unpackHalf2x16.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/unpackHalf2x16.xhtml</a></p>
+</blockquote>
+<hr />
+<p>uint <strong>packUnorm2x16</strong>(vec2 v) ref</p>
+<blockquote>
+<p>Pack floating-point values into an unsigned integer.</p>
+<p>Converts each component of the normalized floating-point value v into 16-bit integer values and then packs the results into a 32-bit unsigned integer.</p>
+<p>The conversion for component c of <code>v</code> to fixed-point is performed as follows:</p>
+<pre><code>round(clamp(c, 0.0, 1.0) * 65535.0)</code></pre>
+<p>The first component of the vector will be written to the least significant bits of the output; the last component will be written to the most significant bits.</p>
+<p>param v A vector of values to be packed into an unsigned integer.</p>
+<p>return Unsigned 32 bit integer containing the packed encoding of the vector.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/packUnorm.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/packUnorm.xhtml</a></p>
+</blockquote>
+<hr />
+<p>vec2 <strong>unpackUnorm2x16</strong>(uint v) ref</p>
+<blockquote>
+<p>Unpack floating-point values from an unsigned integer.</p>
+<p>Unpack single 32-bit unsigned integers into a pair of 16-bit unsigned integers. Then, each component is converted to a normalized floating-point value to generate the returned two-component vector.</p>
+<p>The conversion for unpacked fixed point value f to floating-point is performed as follows:</p>
+<blockquote>
+<p>f / 65535.0</p>
+</blockquote>
+<p>The first component of the returned vector will be extracted from the least significant bits of the input; the last component will be extracted from the most significant bits.</p>
+<p>param v An unsigned integer containing packed floating-point values.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml</a></p>
+</blockquote>
+<hr />
+<p>uint <strong>packSnorm2x16</strong>(vec2 v) ref</p>
+<blockquote>
+<p>Packs floating-point values into an unsigned integer.</p>
+<p>Convert each component of the normalized floating-point value <code>v</code> into 16-bit integer values and then packs the results into a 32-bit unsigned integer.</p>
+<p>The conversion for component c of <code>v</code> to fixed-point is performed as follows:</p>
+<pre><code>round(clamp(c, -1.0, 1.0) * 32767.0)</code></pre>
+<p>The first component of the vector will be written to the least significant bits of the output; the last component will be written to the most significant bits.</p>
+<p>param v A vector of values to be packed into an unsigned integer.</p>
+<p>return Unsigned 32 bit integer containing the packed encoding of the vector.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/packUnorm.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/packUnorm.xhtml</a></p>
+</blockquote>
+<hr />
+<p>vec2 <strong>unpackSnorm2x16</strong>(uint v) ref</p>
+<blockquote>
+<p>Unpacks floating-point values from an unsigned integer.</p>
+<p>Unpacks single 32-bit unsigned integers into a pair of 16-bit signed integers. Then, each component is converted to a normalized floating-point value to generate the returned two-component vector.</p>
+<p>The conversion for unpacked fixed point value f to floating-point is performed as follows:</p>
+<blockquote>
+<p>clamp(f / 32727.0, -1.0, 1.0)</p>
+</blockquote>
+<p>The first component of the returned vector will be extracted from the least significant bits of the input; the last component will be extracted from the most significant bits.</p>
+<p>param v An unsigned integer containing packed floating-point values.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml</a></p>
+</blockquote>
+<hr />
+<p>uint <strong>packUnorm4x8</strong>(vec4 v) ref</p>
+<blockquote>
+<p>Packs floating-point values into an unsigned integer.</p>
+<p>Converts each component of the normalized floating-point value <code>v</code> into 16-bit integer values and then packs the results into a 32-bit unsigned integer.</p>
+<p>The conversion for component c of <code>v</code> to fixed-point is performed as follows:</p>
+<pre><code>round(clamp(c, 0.0, 1.0) * 255.0)</code></pre>
+<p>The first component of the vector will be written to the least significant bits of the output; the last component will be written to the most significant bits.</p>
+<p>param v A vector of values to be packed into an unsigned integer.</p>
+<p>return Unsigned 32 bit integer containing the packed encoding of the vector.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/packUnorm.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/packUnorm.xhtml</a></p>
+</blockquote>
+<hr />
+<p>vec4 <strong>unpackUnorm4x8</strong>(uint v) ref</p>
+<blockquote>
+<p>Unpacks floating-point values from an unsigned integer.</p>
+<p>Unpacks single 32-bit unsigned integers into four 8-bit unsigned integers. Then, each component is converted to a normalized floating-point value to generate the returned four-component vector.</p>
+<p>The conversion for unpacked fixed point value f to floating-point is performed as follows:</p>
+<blockquote>
+<p>f / 255.0</p>
+</blockquote>
+<p>The first component of the returned vector will be extracted from the least significant bits of the input; the last component will be extracted from the most significant bits.</p>
+<p>param v An unsigned integer containing packed floating-point values.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml</a></p>
+</blockquote>
+<hr />
+<p>uint <strong>packSnorm4x8</strong>(vec4 v) ref</p>
+<blockquote>
+<p>Packs floating-point values into an unsigned integer.</p>
+<p>Convert each component of the normalized floating-point value <code>v</code> into 16-bit integer values and then packs the results into a 32-bit unsigned integer.</p>
+<p>The conversion for component c of <code>v</code> to fixed-point is performed as follows:</p>
+<pre><code>round(clamp(c, -1.0, 1.0) * 127.0)</code></pre>
+<p>The first component of the vector will be written to the least significant bits of the output; the last component will be written to the most significant bits.</p>
+<p>param v A vector of values to be packed into an unsigned integer.</p>
+<p>return Unsigned 32 bit integer containing the packed encoding of the vector.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/packUnorm.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/packUnorm.xhtml</a></p>
+</blockquote>
+<hr />
+<p>vec4 <strong>unpackSnorm4x8</strong>(uint v) ref</p>
+<blockquote>
+<p>Unpack floating-point values from an unsigned integer.</p>
+<p>Unpack single 32-bit unsigned integers into four 8-bit signed integers. Then, each component is converted to a normalized floating-point value to generate the returned four-component vector.</p>
+<p>The conversion for unpacked fixed point value f to floating-point is performed as follows:</p>
+<blockquote>
+<p>clamp(f / 127.0, -1.0, 1.0)</p>
+</blockquote>
+<p>The first component of the returned vector will be extracted from the least significant bits of the input; the last component will be extracted from the most significant bits.</p>
+<p>param v An unsigned integer containing packed floating-point values.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml</a></p>
+</blockquote>
+<hr />
+<h2 id="bitwise-functions">Bitwise functions</h2>
+<p>|| || || || || || || || || || || || ||</p>
+<h3 id="bitwise-function-descriptions">Bitwise function descriptions</h3>
+<p><code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> <strong>bitfieldExtract</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> value, int offset, int bits) ref</p>
+<blockquote>
+<p>Extracts a subset of the bits of <code>value</code> and returns it in the least significant bits of the result. The range of bits extracted is <code>[offset, offset + bits - 1]</code>.</p>
+<p>The most significant bits of the result will be set to zero.</p>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>If bits is zero, the result will be zero.</p>
+</div>
+
+<div class="warning">
+
+<div class="title">
+
+<p>Warning</p>
+</div>
+
+<p>The result will be undefined if:</p>
+<ul>
+<li>offset or bits is negative.</li>
+<li>if the sum of offset and bits is greater than the number of bits used to store the operand.</li>
+</ul>
+</div>
+
+<p>param value The integer from which to extract bits.</p>
+<p>param offset The index of the first bit to extract.</p>
+<p>param bits The number of bits to extract.</p>
+<p>return Integer with the requested bits.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/bitfieldExtract.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/bitfieldExtract.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>bitfieldExtract</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> value, int offset, int bits) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Extracts a subset of the bits of <code>value</code> and returns it in the least significant bits of the result. The range of bits extracted is <code>[offset, offset + bits - 1]</code>.</p>
+<p>The most significant bits will be set to the value of <code>offset + base - 1</code> (i.e., it is sign extended to the width of the return type).</p>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>If bits is zero, the result will be zero.</p>
+</div>
+
+<div class="warning">
+
+<div class="title">
+
+<p>Warning</p>
+</div>
+
+<p>The result will be undefined if:</p>
+<ul>
+<li>offset or bits is negative.</li>
+<li>if the sum of offset and bits is greater than the number of bits used to store the operand.</li>
+</ul>
+</div>
+
+<p>param value The integer from which to extract bits.</p>
+<p>param offset The index of the first bit to extract.</p>
+<p>param bits The number of bits to extract.</p>
+<p>return Integer with the requested bits.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/bitfieldExtract.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/bitfieldExtract.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>bitfieldExtract</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> value, int offset, int bits) ref</p>
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>bitfieldInsert</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> base, <code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> insert, int offset, int bits) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Inserts the <code>bits</code> least significant bits of <code>insert</code> into <code>base</code> at offset <code>offset</code>.</p>
+<p>The returned value will have bits [offset, offset + bits + 1] taken from [0, bits - 1] of <code>insert</code> and all other bits taken directly from the corresponding bits of base.</p>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>If bits is zero, the result will be the original value of base.</p>
+</div>
+
+<div class="warning">
+
+<div class="title">
+
+<p>Warning</p>
+</div>
+
+<p>The result will be undefined if:</p>
+<ul>
+<li>offset or bits is negative.</li>
+<li>if the sum of offset and bits is greater than the number of bits used to store the operand.</li>
+</ul>
+</div>
+
+<p>param base The integer into which to insert <code>insert</code>.</p>
+<p>param insert The value of the bits to insert.</p>
+<p>param offset The index of the first bit to insert.</p>
+<p>param bits The number of bits to insert.</p>
+<p>return <code>base</code> with inserted bits.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/bitfieldInsert.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/bitfieldInsert.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> <strong>bitfieldReverse</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> value) ref</p>
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>bitfieldReverse</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> value) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Reverse the order of bits in an integer.</p>
+<p>The bit numbered <code>n</code> will be taken from bit <code>(bits - 1) - n</code> of <code>value</code>, where bits is the total number of bits used to represent <code>value</code>.</p>
+<p>param value The value whose bits to reverse.</p>
+<p>return <code>value</code> but with its bits reversed.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/bitfieldReverse.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/bitfieldReverse.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> <strong>bitCount</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> value) ref</p>
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>bitCount</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> value) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Counts the number of 1 bits in an integer.</p>
+<p>param value The value whose bits to count.</p>
+<p>return The number of bits that are set to 1 in the binary representation of <code>value</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/bitCount.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/bitCount.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> <strong>findLSB</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> value) ref</p>
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>findLSB</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> value) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Find the index of the least significant bit set to <code>1</code>.</p>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>If <code>value</code> is zero, <code>-1</code> will be returned.</p>
+</div>
+
+<p>param value The value whose bits to scan.</p>
+<p>return The bit number of the least significant bit that is set to 1 in the binary representation of value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/findLSB.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/findLSB.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> <strong>findMSB</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> value) ref</p>
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>findMSB</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> value) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Find the index of the most significant bit set to 1.</p>
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>For signed integer types, the sign bit is checked first and then: - For positive integers, the result will be the bit number of the most significant bit that is set to 1. - For negative integers, the result will be the bit number of the most significant bit set to 0.</p>
+</div>
+
+<div class="note">
+
+<div class="title">
+
+<p>Note</p>
+</div>
+
+<p>For a value of zero or negative 1, -1 will be returned.</p>
+</div>
+
+<p>param value The value whose bits to scan.</p>
+<p>return The bit number of the most significant bit that is set to 1 in the binary representation of value.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/findMSB.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/findMSB.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>void (No return value.)</code> <strong>imulExtended</strong>(<code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> x, <code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> y, out <code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> msb, out <code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> lsb) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Perform 32-bit by 32-bit signed multiplication to produce a 64-bit result.</p>
+<p>The 32 least significant bits of this product are returned in <code>lsb</code> and the 32 most significant bits are returned in <code>msb</code>.</p>
+<p>param x The first multiplicand.</p>
+<p>param y The second multiplicand.</p>
+<p>param msb The variable to receive the most significant word of the product.</p>
+<p>param lsb The variable to receive the least significant word of the product.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/umulExtended.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/umulExtended.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>void (No return value.)</code> <strong>umulExtended</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> x, <code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> y, out <code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> msb, out <code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> lsb) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Perform 32-bit by 32-bit unsigned multiplication to produce a 64-bit result.</p>
+<p>The 32 least significant bits of this product are returned in <code>lsb</code> and the 32 most significant bits are returned in <code>msb</code>.</p>
+<p>param x The first multiplicand.</p>
+<p>param y The second multiplicand.</p>
+<p>param msb The variable to receive the most significant word of the product.</p>
+<p>param lsb The variable to receive the least significant word of the product.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/umulExtended.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/umulExtended.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>uaddCarry</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> x, <code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> y, out <code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> carry) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Add unsigned integers and generate carry.</p>
+<p>adds two 32-bit unsigned integer variables (scalars or vectors) and generates a 32-bit unsigned integer result, along with a carry output. The value carry is .</p>
+<p>param x The first operand.</p>
+<p>param y The second operand.</p>
+<p>param carry 0 if the sum is less than 2<sup>32</sup>, otherwise 1.</p>
+<p>return <code>(x + y) % 2^32</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/uaddCarry.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/uaddCarry.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> <strong>usubBorrow</strong>(<code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> x, <code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> y, out <code>vec_uint_type (Any of: uint, uvec2, uvec3, uvec4)</code> borrow) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Subtract unsigned integers and generate borrow.</p>
+<p>param x The first operand.</p>
+<p>param y The second operand.</p>
+<p>param borrow <code>0</code> if <code>x &gt;= y</code>, otherwise <code>1</code>.</p>
+<p>return The difference of <code>x</code> and <code>y</code> if non-negative, or 2<sup>32</sup> plus that difference otherwise.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/usubBorrow.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/usubBorrow.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>ldexp</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x, out <code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> exp) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Assembles a floating-point number from a value and exponent.</p>
+<div class="warning">
+
+<div class="title">
+
+<p>Warning</p>
+</div>
+
+<p>If this product is too large to be represented in the floating-point type, the result is undefined.</p>
+</div>
+
+<p>param x The value to be used as a source of significand.</p>
+<p>param exp The value to be used as a source of exponent.</p>
+<p>return <code>x * 2^exp</code></p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/ldexp.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/ldexp.xhtml</a></p>
+</blockquote>
+<hr />
+<p><code>vec_type (Any of: float, vec2, vec3, vec4)</code> <strong>frexp</strong>(<code>vec_type (Any of: float, vec2, vec3, vec4)</code> x, out <code>vec_int_type (Any of: int, ivec2, ivec3, ivec4)</code> exp) ref</p>
+<blockquote>
+<p>ref.</p>
+<p>Extracts <code>x</code> into a floating-point significand in the range <code>[0.5, 1.0)</code> and in integral exponent of two, such that:</p>
+<pre><code>x = significand * 2 ^ exponent</code></pre>
+<p>For a floating-point value of zero, the significand and exponent are both zero.</p>
+<div class="warning">
+
+<div class="title">
+
+<p>Warning</p>
+</div>
+
+<p>For a floating-point value that is an infinity or a floating-point NaN, the results are undefined.</p>
+</div>
+
+<p>param x The value from which significand and exponent are to be extracted.</p>
+<p>param exp The variable into which to place the exponent of <code>x</code>.</p>
+<p>return The significand of <code>x</code>.</p>
+<p><a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/frexp.xhtml">https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/frexp.xhtml</a></p>
+</blockquote>
+<hr />
+
+</main>
+<script>window.SITE_ROOT = "../../../../";</script>
+<script src="../../../../assets/app.js" defer></script>
+</body>
+</html>

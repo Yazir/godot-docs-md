@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using RigidBody — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../../../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="using-rigidbody">Using RigidBody</h1>
+<h2 id="what-is-a-rigid-body">What is a rigid body?</h2>
+<p>A rigid body is one that is directly controlled by the physics engine in order to simulate the behavior of physical objects. In order to define the shape of the body, it must have one or more ref objects assigned. Note that setting the position of these shapes will affect the body's center of mass.</p>
+<h2 id="how-to-control-a-rigid-body">How to control a rigid body</h2>
+<p>A rigid body's behavior can be altered by setting its properties, such as mass and weight. A physics material needs to be added to the rigid body to adjust its friction and bounce, and set if it's absorbent and/or rough. These properties can be set in the Inspector or via code. See ref and ref for the full list of properties and their effects.</p>
+<p>There are several ways to control a rigid body's movement, depending on your desired application.</p>
+<p>If you only need to place a rigid body once, for example to set its initial location, you can use the methods provided by the ref node, such as <code>set_global_transform()</code> or <code>look_at()</code>. However, these methods cannot be called every frame or the physics engine will not be able to correctly simulate the body's state. As an example, consider a rigid body that you want to rotate so that it points towards another object. A common mistake when implementing this kind of behavior is to use <code>look_at()</code> every frame, which breaks the physics simulation. Below, we'll demonstrate how to implement this correctly.</p>
+<p>The fact that you can't use <code>set_global_transform()</code> or <code>look_at()</code> methods doesn't mean that you can't have full control of a rigid body. Instead, you can control it by using the <code>_integrate_forces()</code> callback. In this method, you can add <em>forces</em>, apply <em>impulses</em>, or set the <em>velocity</em> in order to achieve any movement you desire.</p>
+<h2 id="the-look-at-method">The "look at" method</h2>
+<p>As described above, using the Node3D's <code>look_at()</code> method can't be used each frame to follow a target. Here is a custom <code>look_at()</code> method called <code>look_follow()</code> that will work with rigid bodies:</p>
+<pre class="gdscript"><code>extends RigidBody3D
+
+var speed: float = 0.1
+
+func look_follow(state: PhysicsDirectBodyState3D, current_transform: Transform3D, target_position: Vector3) -&gt; void:
+    var forward_local_axis: Vector3 = Vector3(1, 0, 0)
+    var forward_dir: Vector3 = (current_transform.basis * forward_local_axis).normalized()
+    var target_dir: Vector3 = (target_position - current_transform.origin).normalized()
+    var local_speed: float = clampf(speed, 0, acos(forward_dir.dot(target_dir)))
+    if forward_dir.dot(target_dir) &gt; 1e-4:
+        state.angular_velocity = local_speed * forward_dir.cross(target_dir) / state.step
+
+func _integrate_forces(state):
+    var target_position = $my_target_node3d_node.global_transform.origin
+    look_follow(state, global_transform, target_position)</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> Godot<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">partial</span> <span class="kw">class</span> MyRigidBody3D <span class="op">:</span> RigidBody3D</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">float</span> _speed <span class="op">=</span> <span class="fl">0.1f</span><span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">LookFollow</span><span class="op">(</span>PhysicsDirectBodyState3D state<span class="op">,</span> Transform3D currentTransform<span class="op">,</span> Vector3 targetPosition<span class="op">)</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        Vector3 forwardLocalAxis <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vector3</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        Vector3 forwardDir <span class="op">=</span> <span class="op">(</span>currentTransform<span class="op">.</span><span class="fu">Basis</span> <span class="op">*</span> forwardLocalAxis<span class="op">).</span><span class="fu">Normalized</span><span class="op">();</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        Vector3 targetDir <span class="op">=</span> <span class="op">(</span>targetPosition <span class="op">-</span> currentTransform<span class="op">.</span><span class="fu">Origin</span><span class="op">).</span><span class="fu">Normalized</span><span class="op">();</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">float</span> localSpeed <span class="op">=</span> Mathf<span class="op">.</span><span class="fu">Clamp</span><span class="op">(</span>_speed<span class="op">,</span> <span class="fl">0.0f</span><span class="op">,</span> Mathf<span class="op">.</span><span class="fu">Acos</span><span class="op">(</span>forwardDir<span class="op">.</span><span class="fu">Dot</span><span class="op">(</span>targetDir<span class="op">)));</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>forwardDir<span class="op">.</span><span class="fu">Dot</span><span class="op">(</span>targetDir<span class="op">)</span> <span class="op">&gt;</span> <span class="fl">1e-4</span><span class="op">)</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            state<span class="op">.</span><span class="fu">AngularVelocity</span> <span class="op">=</span> forwardDir<span class="op">.</span><span class="fu">Cross</span><span class="op">(</span>targetDir<span class="op">)</span> <span class="op">*</span> localSpeed <span class="op">/</span> state<span class="op">.</span><span class="fu">Step</span><span class="op">;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">_IntegrateForces</span><span class="op">(</span>PhysicsDirectBodyState3D state<span class="op">)</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        Vector3 targetPosition <span class="op">=</span> GetNode<span class="op">&lt;</span>Node3D<span class="op">&gt;(</span><span class="st">&quot;MyTargetNode3DNode&quot;</span><span class="op">).</span><span class="fu">GlobalTransform</span><span class="op">.</span><span class="fu">Origin</span><span class="op">;</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">LookFollow</span><span class="op">(</span>state<span class="op">,</span> GlobalTransform<span class="op">,</span> targetPosition<span class="op">);</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This method uses the rigid body's <code>angular_velocity</code> property to rotate the body. The axis to rotate around is given by the cross product between the current forward direction and the direction one wants to look in. The <code>clamp</code> is a simple method used to prevent the amount of rotation from going past the direction which is wanted to be looked in, as the total amount of rotation needed is given by the arccosine of the dot product. This method can be used with <code>axis_lock_angular_*</code> as well. If more precise control is needed, solutions such as ones relying on <code>class_Quaternion</code> may be required, as discussed in <code>doc_using_transforms</code>.</p>
+
+</main>
+<script>window.SITE_ROOT = "../../../";</script>
+<script src="../../../assets/app.js" defer></script>
+</body>
+</html>
