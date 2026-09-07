@@ -23,26 +23,32 @@ rebuilds are triggered automatically whenever upstream changes.
 
 ## How the SHA-poll works
 
-The build is pinned to one version branch (default `4.7`). Upstream
-**commit SHAs are the change-detector** — release tags and branch names are
-never polled:
+The build tracks one or more version branches. Upstream **commit SHAs are the
+change-detector** — release tags and branch names are never polled:
 
 - `gh api repos/godotengine/godot/commits/4.7?path=doc --jq .sha` — last commit
   that touched the engine's `doc/` tree (the class reference source).
 - `gh api repos/godotengine/godot-docs/commits/4.7 --jq .sha` — manual tip.
 
-A weekly scheduled workflow (cron `0 4 * * 1`) resolves both SHAs and runs
-`tools/build.sh`. If `versions/<version>.md` already records the same pair of
-SHAs, the build exits early ("skipped") and nothing is published. Upstream
-drift of the pinned version branch (patch releases, doc fixes) triggers a
-rebuild automatically; new versions (e.g. `4.8`) never arrive via cron.
+A weekly scheduled workflow (cron `0 4 * * 1`) does two things:
+
+1. **Drift check**: resolves both SHAs for every recorded version and runs
+   `tools/build.sh <version>`. If `versions/<version>.md` already records the
+   same pair of SHAs, the build exits early ("skipped") and nothing is
+   published — so patch drift of tracked branches (doc fixes, patch releases)
+   triggers a rebuild automatically, and quiet branches cost one API call.
+2. **Adopts new versions**: lists the version-named branches (e.g. `4.7`,
+   `4.8`) present in **both** upstream repos and builds any that is not yet
+   recorded. Only the highest major line is adopted (`2.1`/`3.x` are ignored);
+   when a new major appears (e.g. `5.0`), adoption switches to that line
+   automatically. Already-tracked versions keep their drift checks regardless.
 
 ## Triggering a build manually
 
 Run the **build** workflow from the Actions tab (`workflow_dispatch`):
 
-- **version** — version branch to build, e.g. `4.7` (default) or `4.8`.
-  A consuming project bumps this manually, in lockstep with its engine.
+- **version** — leave empty to run the automatic flow above, or set a branch
+  (e.g. `4.7`) to build exactly that version.
 - **force** — rebuild even when the recorded SHAs are unchanged.
 
 The same command works locally (needs `python3` 3.12+, `pandoc`, `git`, `gh`):
@@ -61,11 +67,31 @@ Outputs land in `dist/` and the build record in `versions/4.7.md`.
 | `godot-4.7-md-<sha8>` | immutable release built from godot commit `<sha8>` |
 | `godot-4.7-md-latest` | rolling tag, re-pointed to the newest `4.7` build |
 
-Assets on every release: `godot-4.7-md.tar.gz` and `SHA256SUMS` (sha256 of the
-archive). Each successful build publishes the pinned release, re-creates the
-rolling one, and commits `versions/<version>.md`
+Assets on every release: `godot-<version>-md.tar.gz` and `SHA256SUMS` (sha256
+of the archive). Each successful build publishes the pinned release, re-creates
+the rolling one, and commits `versions/<version>.md`
 (`[skip ci] record build <tag>`) so subsequent runs can skip if nothing
 changed upstream.
+
+## Docs browser (GitHub Pages)
+
+Every successful build also regenerates a lightweight static browser for the
+produced Markdown and publishes it to GitHub Pages (one subdirectory per
+version, e.g. `/4.7/`):
+
+- sidebar legend with the full file tree (classes flat-list, manual nested by
+  section), highlighting the current page;
+- live title filtering plus full-text search with ranked results and snippets
+  (prebuilt JSON index, fetched lazily, no external JS);
+- all pages are pre-rendered HTML with working cross-links between pages.
+
+Local inspection without Pages:
+
+```sh
+tools/build_site.py build --input dist/package-4.7/godot-4.7-md --output site/4.7
+tools/build_site.py root  --output site
+python3 -m http.server -d site   # then open http://localhost:8000/
+```
 
 ## Package layout
 
@@ -111,6 +137,12 @@ sha256sum -c <(grep 'godot-4.7-md.tar.gz' SHA256SUMS)
 Feed `INDEX.md` to your retrieval layer as the entry point, then load
 individual `classes/*.md` / `manual/**/*.md` files on demand — every file is
 self-contained and free of cross-file link requirements.
+
+## One-time setup
+
+Enable GitHub Pages once so the docs browser is served
+(**Settings → Pages → Source: Deploy from a branch → `gh-pages` / root**).
+The `gh-pages` branch is created and updated automatically by the workflow.
 
 ## Licenses
 

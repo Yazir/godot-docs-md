@@ -2,13 +2,13 @@ name: build
 
 on:
   schedule:
-    - cron: "0 4 * * 1" # weekly; cron only serves patch-drift of the pinned version
+    - cron: "0 4 * * 1" # weekly; serves patch-drift of tracked versions and picks up new version branches
   workflow_dispatch:
     inputs:
       version:
-        description: "Version branch, e.g. 4.7"
+        description: "Version branch, e.g. 4.7 (empty: drift-check all tracked versions + adopt newly discovered ones)"
         required: false
-        default: "4.7"
+        default: ""
       force:
         description: "Rebuild even if SHAs unchanged"
         type: boolean
@@ -18,14 +18,12 @@ permissions:
   contents: write
 
 concurrency:
-  group: build-${{ inputs.version || '4.7' }}
+  group: build-${{ inputs.version || 'auto' }}
   cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      VERSION: ${{ inputs.version || '4.7' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -38,48 +36,123 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pandoc
 
-      - name: Build package
+      - name: Build packages
         env:
           GH_TOKEN: ${{ github.token }}
-        run: tools/build.sh "$VERSION" ${{ inputs.force && '--force' || '' }}
+          VERSION_INPUT: ${{ inputs.version || '' }}
+        run: |
+          FORCE_FLAG="${{ inputs.force && '--force' || '' }}"
+          failed=""
+          if [ -n "$VERSION_INPUT" ]; then
+            tools/build.sh "$VERSION_INPUT" $FORCE_FLAG || {
+              echo "::error::build failed for $VERSION_INPUT"
+              exit 1
+            }
+          else
+            # drift-check every tracked version (skip-if-unchanged inside build.sh)
+            shopt -s nullglob
+            for f in versions/*.md; do
+              v="$(basename "$f" .md)"
+              echo "=== drift check: $v"
+              tools/build.sh "$v" $FORCE_FLAG || {
+                echo "::warning::build failed for $v"
+                failed="$failed $v"
+              }
+            done
+            # adopt new upstream version branches (highest major line only)
+            for v in $(tools/discover_versions.sh); do
+              if [ -f "versions/$v.md" ]; then continue; fi
+              echo "=== new version discovered: $v"
+              tools/build.sh "$v" || {
+                echo "::warning::build failed for $v"
+                failed="$failed $v"
+              }
+            done
+          fi
+          if [ -n "$failed" ]; then
+            echo "::warning::failed versions:$failed"
+            ls dist/godot-*-md.tar.gz >/dev/null 2>&1 || exit 1
+          fi
 
       - name: Publish releases
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [ ! -f "dist/godot-$VERSION-md.tar.gz" ]; then
-            echo "No package produced (upstream SHAs unchanged); nothing to release."
-            exit 0
-          fi
-          TAG=$(grep '^release: ' "versions/$VERSION.md" | cut -d' ' -f2)
-          GODOT_SHA=$(grep '^godot_sha: ' "versions/$VERSION.md" | cut -d' ' -f2)
-          DOCS_SHA=$(grep '^godot_docs_sha: ' "versions/$VERSION.md" | cut -d' ' -f2)
+          shopt -s nullglob
+          for tarball in dist/godot-*-md.tar.gz; do
+            v="$(basename "$tarball")"
+            v="${v#godot-}"; v="${v%-md.tar.gz}"
+            TAG=$(grep '^release: ' "versions/$v.md" | cut -d' ' -f2)
+            GODOT_SHA=$(grep '^godot_sha: ' "versions/$v.md" | cut -d' ' -f2)
+            DOCS_SHA=$(grep '^godot_docs_sha: ' "versions/$v.md" | cut -d' ' -f2)
+            echo "=== publishing $TAG"
+            # per-release sums so each release carries a verifiable SHA256SUMS
+            tmpd="$(mktemp -d)"
+            cp "$tarball" "$tmpd/"
+            (cd "$tmpd" && sha256sum "$(basename "$tarball")" > SHA256SUMS)
+            # release pinned to the exact upstream SHAs
+            gh release delete "$TAG" -y --cleanup-tag || true
+            gh release create "$TAG" "$tmpd/$(basename "$tarball")" "$tmpd/SHA256SUMS" \
+              --title "Godot $v documentation (Markdown)" \
+              --notes "Markdown documentation package for Godot $v, built from godot@$GODOT_SHA and godot-docs@$DOCS_SHA."
+            # re-point the rolling tag to the newest build
+            gh release delete "godot-$v-md-latest" -y --cleanup-tag || true
+            gh release create "godot-$v-md-latest" "$tmpd/$(basename "$tarball")" "$tmpd/SHA256SUMS" \
+              --title "Godot $v documentation (Markdown, latest)" \
+              --notes "Rolling latest build for Godot $v, built from godot@$GODOT_SHA and godot-docs@$DOCS_SHA."
+            rm -rf "$tmpd"
+          done
 
-          # release pinned to the exact upstream SHAs
-          gh release delete "$TAG" -y --cleanup-tag || true
-          gh release create "$TAG" \
-            "dist/godot-$VERSION-md.tar.gz" "dist/SHA256SUMS" \
-            --title "Godot $VERSION documentation (Markdown)" \
-            --notes "Markdown documentation package for Godot $VERSION, built from godot@$GODOT_SHA and godot-docs@$DOCS_SHA."
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: site-root
+        continue-on-error: true
 
-          # re-point the rolling tag to the newest release
-          gh release delete "godot-$VERSION-md-latest" -y --cleanup-tag || true
-          gh release create "godot-$VERSION-md-latest" \
-            "dist/godot-$VERSION-md.tar.gz" "dist/SHA256SUMS" \
-            --title "Godot $VERSION documentation (Markdown, latest)" \
-            --notes "Rolling latest build for Godot $VERSION, built from godot@$GODOT_SHA and godot-docs@$DOCS_SHA."
-
-      - name: Record build
+      - name: Deploy docs browser to GitHub Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG=$(grep '^release: ' "versions/$VERSION.md" | cut -d' ' -f2)
+          shopt -s nullglob
+          ls dist/godot-*-md.tar.gz >/dev/null 2>&1 || {
+            echo "No packages built this run; site unchanged."
+            exit 0
+          }
+          mkdir -p site-root
+          cd site-root
+          if [ ! -d .git ]; then
+            git init -q -b gh-pages
+            git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          fi
+          rm -rf gh-pages-index.new
+          for tarball in ../dist/godot-*-md.tar.gz; do
+            name="$(basename "$tarball")"
+            v="${name#godot-}"; v="${v%-md.tar.gz}"
+            echo "=== building site for $v"
+            python3 ../tools/build_site.py build \
+              --input "../dist/package-$v/godot-$v-md" \
+              --output "$v"
+          done
+          python3 ../tools/build_site.py root --output .
+          git add -A
+          tags=$(ls -d */ 2>/dev/null | tr -d / | paste -sd, -)
+          git -c user.name "github-actions[bot]" \
+              -c user.email "41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "[skip ci] site update for $tags" || echo "site unchanged"
+          git push origin HEAD:gh-pages
+
+      - name: Record builds
+        run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "versions/$VERSION.md"
+          git add versions/
           if git diff --cached --quiet; then
-            echo "versions/$VERSION.md unchanged"
+            echo "versions/ unchanged"
           else
-            git commit -m "[skip ci] record build $TAG"
+            tags=$(grep -h '^release: ' versions/*.md | cut -d' ' -f2 | paste -sd, -)
+            git commit -m "[skip ci] record build $tags"
             git push
           fi
