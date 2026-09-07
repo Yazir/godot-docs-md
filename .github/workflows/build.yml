@@ -138,10 +138,13 @@ jobs:
           python3 ../tools/build_site.py root --output .
           git add -A
           tags=$(ls -d */ 2>/dev/null | tr -d / | paste -sd, -)
-          git -c user.name "github-actions[bot]" \
-              -c user.email "41898282+github-actions[bot]@users.noreply.github.com" \
-              commit -m "[skip ci] site update for $tags" || echo "site unchanged"
-          git push origin HEAD:gh-pages
+          if git -c user.name="github-actions[bot]" \
+                -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+                commit -q -m "[skip ci] site update for $tags"; then
+            git push -q origin HEAD:gh-pages
+          else
+            echo "site unchanged"
+          fi
 
       - name: Record builds
         run: |
