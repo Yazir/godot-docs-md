@@ -10,13 +10,23 @@ The official Godot documentation lives in two upstream repos:
 
 | Source | Repo | Content |
 |---|---|---|
-| Class reference | [`godotengine/godot`](https://github.com/godotengine/godot) | `doc/classes/*.xml`, `modules/*/doc_classes/*.xml`, `platform/*/doc_classes/*.xml` |
+| Class reference source | [`godotengine/godot`](https://github.com/godotengine/godot) | `doc/classes/*.xml`, `modules/*/doc_classes/*.xml`, `platform/*/doc_classes/*.xml` |
 | Manual | [`godotengine/godot-docs`](https://github.com/godotengine/godot-docs) | hand-written RST (`getting_started/`, `tutorials/`, `engine_details/`) |
 
-The class reference shown on docs.godotengine.org is **generated at build
-time** from the engine repo's XML — converting the godot-docs RST alone would
-miss the class reference entirely. This repo therefore tracks both, converts
-each with a dedicated converter, and publishes one self-contained package.
+The class reference shown on docs.godotengine.org is generated at build time
+from the engine repo's XML. The godot-docs repo also carries that reference as
+*generated* RST files committed to its `classes/` directory (produced by
+upstream automation from the same XML), so a docs-only build would not be
+empty — but we deliberately track the XML as well, for two reasons:
+
+- **It is the source of truth.** The committed RST only follows the engine
+  after upstream's sync bot runs; converting the XML means class-reference
+  changes are picked up as soon as they land in the engine repo.
+- **Cleaner conversion.** Converting structured XML directly yields semantic
+  Markdown; converting the generated RST instead would mean stripping the
+  RST artifacts make_rst.py emits (`.. rst-class::` directives,
+  `|virtual|`-style abbreviation substitutions, `:ref:` anchors, grid
+  tables) only to reconstruct the same content.
 
 This is a follower repo, not a fork: no upstream content is modified, and
 rebuilds are triggered automatically whenever upstream changes.
