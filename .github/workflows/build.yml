@@ -117,24 +117,29 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          ls dist/godot-*-md.tar.gz >/dev/null 2>&1 || {
-            echo "No packages built this run; site unchanged."
-            exit 0
-          }
-          mkdir -p site-root
+          mkdir -p dist site-root
+          # backfill packages for recorded versions that did not build this run
+          for f in versions/*.md; do
+            v="$(basename "$f" .md)"
+            if [ ! -d "dist/package-$v/godot-$v-md" ]; then
+              echo "=== fetching latest package for $v"
+              mkdir -p "dist/package-$v"
+              gh release download "godot-$v-md-latest" -R "$GITHUB_REPOSITORY" \
+                -p "godot-$v-md.tar.gz" -O "dist/package-$v/pkg.tar.gz" \
+                || { echo "::warning::no release for $v, skipping site"; continue; }
+              tar -xzf "dist/package-$v/pkg.tar.gz" -C "dist/package-$v"
+            fi
+          done
           cd site-root
           if [ ! -d .git ]; then
             git init -q -b gh-pages
             git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
           fi
-          rm -rf gh-pages-index.new
-          for tarball in ../dist/godot-*-md.tar.gz; do
-            name="$(basename "$tarball")"
-            v="${name#godot-}"; v="${v%-md.tar.gz}"
+          for pkg in ../dist/package-*/godot-*-md; do
+            v="$(basename "$pkg")"
+            v="${v#godot-}"; v="${v%-md}"
             echo "=== building site for $v"
-            python3 ../tools/build_site.py build \
-              --input "../dist/package-$v/godot-$v-md" \
-              --output "$v"
+            python3 ../tools/build_site.py build --input "$pkg" --output "$v"
           done
           python3 ../tools/build_site.py root --output .
           git add -A
