@@ -246,24 +246,7 @@ class ClassDoc:
 			vararg = True
 			args_raw = args_raw[: mtail.start()]
 
-		parts: list[str] = []
-		depth = 0
-		cur = ""
-		i = 0
-		while i < len(args_raw):
-			tok = args_raw[i:i + 2]
-			if tok == "\\," and depth == 0:
-				parts.append(cur)
-				cur = ""
-				i += 2
-				continue
-			if tok == "\\[":
-				depth += 1
-			elif tok == "\\]":
-				depth = max(0, depth - 1)
-			cur += args_raw[i]
-			i += 1
-		parts.append(cur)
+		parts = self.split_arg_parts(args_raw)
 
 		out = []
 		for part in parts:
@@ -272,7 +255,22 @@ class ClassDoc:
 				continue
 			m = re.match(r"^(.*?)\\:\s*(.*)$", part)
 			if not m:
-				out.append(self.inline(part, plain=True).replace("\\", "").strip())
+				# godot-docs 3.x: "Type name[ = default]" (type first, no colon)
+				dm = re.search(r"\s=\s", part)
+				default = None
+				if dm:
+					default = self.inline(part[dm.end():], plain=True).strip().strip("`")
+					part = part[: dm.start()]
+				toks = part.rsplit(None, 1)
+				if len(toks) == 2:
+					pname = self.inline(toks[1], plain=True).strip()
+					ptype = self.inline(toks[0], plain=True).strip()
+					sig = f"{pname}: {ptype}"
+					if default is not None:
+						sig += f" = {default}"
+					out.append(sig)
+				else:
+					out.append(self.inline(part, plain=True).replace("\\", "").strip())
 				continue
 			pname = self.inline(m.group(1), plain=True).strip()
 			rest = m.group(2).strip()
@@ -289,6 +287,39 @@ class ClassDoc:
 		if vararg:
 			out.append("...")
 		return ", ".join(out)
+
+	@staticmethod
+	def split_arg_parts(args_raw: str) -> list[str]:
+		"""Split on arg separators (escaped or plain commas) outside brackets/parens."""
+		parts: list[str] = []
+		depth = 0
+		cur = ""
+		i = 0
+		while i < len(args_raw):
+			ch = args_raw[i]
+			if ch == "\\" and i + 1 < len(args_raw):
+				nxt = args_raw[i + 1]
+				if nxt == "," and depth == 0:
+					parts.append(cur)
+					cur = ""
+					i += 2
+					continue
+				cur += ch + nxt
+				i += 2
+				continue
+			if ch in "([":
+				depth += 1
+			elif ch in ")]":
+				depth = max(0, depth - 1)
+			elif ch == "," and depth == 0:
+				parts.append(cur)
+				cur = ""
+				i += 1
+				continue
+			cur += ch
+			i += 1
+		parts.append(cur)
+		return parts
 
 	def parse_sig(self, raw: str, kind: str) -> dict | None:
 		line = TRAILING_ANCHOR_RE.sub("", raw.strip()).strip()
@@ -316,7 +347,7 @@ class ClassDoc:
 			return item
 
 		if kind in PAREN_KINDS:
-			rest_n = rest.replace("\\ ", " ").strip()
+			rest_n = rest.replace("\\ ", " ").replace("**(**", "(").replace("**)**", ")").strip()
 			m2 = re.match(r"\((.*)\)\s*(.*)$", rest_n)
 			if m2:
 				args_raw, qual_raw = m2.group(1), m2.group(2)
@@ -342,7 +373,7 @@ class ClassDoc:
 		line = raw.strip()
 		if line.startswith("- "):
 			line = line[2:].strip()
-		line_n = line.replace("\\ ", " ").strip()
+		line_n = line.replace("\\ ", " ").replace("**(**", "(").replace("**)**", ")").strip()
 		m = re.match(r"^(.*?)\*\*(.+?)\*\*\s*\((.*)\)\s*$", line_n)
 		if not m:
 			return None

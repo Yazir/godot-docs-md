@@ -145,7 +145,8 @@ def main() -> None:
 	args = parser.parse_args()
 
 	version = args.version
-	release = f"godot-{version}-md-{args.docs_sha[:8]}"
+	major_line = version.split(".")[0] + ".x"
+	release = f"godot-{major_line}-md-latest"
 
 	src_classes = os.path.join(args.input, "classes")
 	src_manual = os.path.join(args.input, "manual")
@@ -163,7 +164,7 @@ def main() -> None:
 	markdown_files.sort()
 
 	# Package tree
-	pkg_root = os.path.join(args.output, f"godot-{version}-md")
+	pkg_root = os.path.join(args.output, f"godot-{major_line}-md")
 	if os.path.isdir(pkg_root):
 		import shutil
 
@@ -191,6 +192,7 @@ def main() -> None:
 	version_md = "\n".join(
 		[
 			f"engine: {version}",
+			f"branch: {version}",
 			f"godot_docs_sha: {args.docs_sha}",
 			f"release: {release}",
 			f"built_at: {built_at}",

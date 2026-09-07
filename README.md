@@ -28,22 +28,20 @@ page, zero navigation chrome.
 ## How the SHA-poll works
 
 Upstream **commit SHAs are the change-detector** — release tags and branch
-names are never polled. For every tracked version branch (e.g. `4.7`):
+names are never polled. The pipeline tracks **one branch per major line** —
+the newest one (today: `3.6` and `4.7`; `5.0` once it appears):
 
 - `gh api repos/godotengine/godot-docs/commits/4.7 --jq .sha` — tip of the
   version branch. Any commit to the branch (manual edits **or** the automated
   class-reference sync) changes the SHA.
 
-A weekly scheduled workflow (cron `0 4 * * 1`) does two things:
+A weekly scheduled workflow (cron `0 4 * * 1`) resolves the SHA of each
+tracked branch and runs `tools/build.sh <branch>`:
 
-1. **Drift check**: resolves the SHA for every recorded version and runs
-   `tools/build.sh <version>`. If `versions/<version>.md` already records the
-   same SHA, the build exits early ("skipped") and nothing is published.
-2. **Adopts new versions**: lists the version-named branches (e.g. `4.7`,
-   `4.8`) of godot-docs and builds any that is not yet recorded. Only the
-   highest major line is adopted (`2.1`/`3.x` are ignored); when a new major
-   appears (e.g. `5.0`), adoption switches to that line automatically.
-   Already-tracked versions keep their drift checks regardless.
+- if `versions/<major>.x.md` records the same branch and SHA, the build exits
+  early ("skipped") and nothing is published;
+- when a new minor branch appears (e.g. `4.8`), the `4.x` line automatically
+  moves to it and rebuilds; new major lines (`5.x`) are adopted the same way.
 
 ## Triggering a build manually
 
@@ -60,20 +58,23 @@ tools/build.sh 4.7          # rebuild if upstream changed
 tools/build.sh 4.7 --force  # rebuild unconditionally
 ```
 
-Outputs land in `dist/` and the build record in `versions/4.7.md`.
+Outputs land in `dist/` and the build record in `versions/4.x.md`.
 
-## Release tag scheme
+## Release scheme
 
-| Tag | Meaning |
+One rolling release per major line — no pinned-SHA releases:
+
+| Tag | Contents |
 |---|---|
-| `godot-4.7-md-<sha8>` | immutable release built from godot-docs commit `<sha8>` |
-| `godot-4.7-md-latest` | rolling tag, re-pointed to the newest `4.7` build |
+| `godot-3.x-md-latest` | latest `3.x` build (assets: `godot-3.x-md.tar.gz`, `SHA256SUMS`) |
+| `godot-4.x-md-latest` | latest `4.x` build (assets: `godot-4.x-md.tar.gz`, `SHA256SUMS`) |
+| `godot-5.x-md-latest` | appears automatically when Godot 5 branches |
 
-Assets on every release: `godot-<version>-md.tar.gz` and `SHA256SUMS` (sha256
-of the archive). Each successful build publishes the pinned release, re-creates
-the rolling one, and commits `versions/<version>.md`
-(`[skip ci] record build <tag>`) so subsequent runs can skip if nothing
-changed upstream.
+The tag names are stable: when the tracked branch of a line moves (e.g.
+`4.7` → `4.8`), the same release is deleted and re-created with the new
+package — consumer URLs never change. The exact upstream commit of every
+build is recorded inside the archive (`VERSION`) and in `versions/<major>.x.md`
+(committed with `[skip ci] record build <tag>`).
 
 ## Docs browser (GitHub Pages)
 
@@ -90,7 +91,7 @@ version, e.g. `/4.7/`):
 Local inspection without Pages:
 
 ```sh
-tools/build_site.py build --input dist/package-4.7/godot-4.7-md --output site/4.7
+tools/build_site.py build --input dist/package-4.7/godot-4.x-md --output site/4.x
 tools/build_site.py root  --output site
 python3 -m http.server -d site   # then open http://localhost:8000/
 ```
@@ -98,7 +99,7 @@ python3 -m http.server -d site   # then open http://localhost:8000/
 ## Package layout
 
 ```
-godot-4.7-md/
+godot-4.x-md/
 ├── .gdignore            # stops the Godot editor from scanning ~1,500 files
 ├── INDEX.md             # one line per file: path — summary line
 ├── VERSION              # engine version, upstream SHAs, release, build time
@@ -125,15 +126,15 @@ Download the rolling latest release and unpack it into your Godot project —
 the included `.gdignore` makes the editor ignore the folder:
 
 ```sh
-curl -L -o godot-4.7-md.tar.gz \
-  https://github.com/Yazir/godot-docs-md/releases/download/godot-4.7-md-latest/godot-4.7-md.tar.gz
-tar -xzf godot-4.7-md.tar.gz -C my_project/
+curl -L -o godot-4.x-md.tar.gz \
+  https://github.com/Yazir/godot-docs-md/releases/download/godot-4.x-md-latest/godot-4.x-md.tar.gz
+tar -xzf godot-4.x-md.tar.gz -C my_project/
 ```
 
 Verify the download:
 
 ```sh
-sha256sum -c <(grep 'godot-4.7-md.tar.gz' SHA256SUMS)
+sha256sum -c <(grep 'godot-4.x-md.tar.gz' SHA256SUMS)
 ```
 
 Feed `INDEX.md` to your retrieval layer as the entry point, then load

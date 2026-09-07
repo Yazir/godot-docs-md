@@ -8,10 +8,10 @@
 #
 # Steps:
 #   1. Resolve the upstream SHA (tip of the version branch).
-#   2. Skip if versions/<v>.md already records the same SHA (unless --force).
+#   2. Skip if versions/<major>.x.md records the same branch+SHA (unless --force).
 #   3. Sparse-checkout godot-docs at that exact SHA.
 #   4. Run the converters, post-process and package the result.
-#   5. Record versions/<v>.md.
+#   5. Record versions/<major>.x.md.
 
 set -euo pipefail
 
@@ -37,15 +37,15 @@ log() { echo "build: $*"; }
 command -v gh >/dev/null || { echo "error: gh CLI is required" >&2; exit 1; }
 
 DOCS_SHA="$(gh api "repos/$DOCS_REPO/commits/$VERSION" --jq .sha)"
-SHA8="${DOCS_SHA:0:8}"
-TAG="godot-$VERSION-md-$SHA8"
+MAJOR_LINE="${VERSION%%.*}.x"
+RECORD="$ROOT/versions/$MAJOR_LINE.md"
 
 # ---------------------------------------------------------- 2. skip check ---
-if [ "$FORCE" != "--force" ] && [ -f "$ROOT/versions/$VERSION.md" ]; then
-	if grep -qx "godot_docs_sha: $DOCS_SHA" "$ROOT/versions/$VERSION.md"; then
-		log "skipped: $VERSION.md already records godot-docs@$DOCS_SHA"
-		exit 0
-	fi
+if [ "$FORCE" != "--force" ] && [ -f "$RECORD" ] \
+	&& grep -qx "branch: $VERSION" "$RECORD" \
+	&& grep -qx "godot_docs_sha: $DOCS_SHA" "$RECORD"; then
+	log "skipped: $MAJOR_LINE.md already records branch $VERSION at godot-docs@$DOCS_SHA"
+	exit 0
 fi
 
 log "building version $VERSION (godot-docs@$DOCS_SHA)"
@@ -81,7 +81,7 @@ python3 "$ROOT/tools/convert_manual.py" \
 	getting_started tutorials engine_details
 
 log "post-processing and packaging..."
-TARBALL="$DIST/godot-$VERSION-md.tar.gz"
+TARBALL="$DIST/godot-$MAJOR_LINE-md.tar.gz"
 python3 "$ROOT/tools/postprocess.py" \
 	--input "$OUT" \
 	--output "$DIST/package-$VERSION" \
@@ -91,10 +91,11 @@ python3 "$ROOT/tools/postprocess.py" \
 
 # ------------------------------------------------- 5. record build state ---
 mkdir -p "$ROOT/versions"
-cat > "$ROOT/versions/$VERSION.md" <<EOF
-version: $VERSION
+cat > "$RECORD" <<EOF
+major: $MAJOR_LINE
+branch: $VERSION
 godot_docs_sha: $DOCS_SHA
-release: $TAG
+release: godot-$MAJOR_LINE-md-latest
 EOF
 
 log "done: $TARBALL"

@@ -50,21 +50,11 @@ jobs:
               exit 1
             }
           else
-            # drift-check every tracked version (skip-if-unchanged inside build.sh)
-            shopt -s nullglob
-            for f in versions/*.md; do
-              v="$(basename "$f" .md)"
-              echo "=== drift check: $v"
-              tools/build.sh "$v" $FORCE_FLAG || {
-                echo "::warning::build failed for $v"
-                failed="$failed $v"
-              }
-            done
-            # adopt new upstream version branches (highest major line only)
+            # one tracked branch per major line: drift check + branch bumps
+            # (e.g. 4.7 -> 4.8) + new majors (5.x), all handled by build.sh
             for v in $(tools/discover_versions.sh); do
-              if [ -f "versions/$v.md" ]; then continue; fi
-              echo "=== new version discovered: $v"
-              tools/build.sh "$v" || {
+              echo "=== checking $v"
+              tools/build.sh "$v" $FORCE_FLAG || {
                 echo "::warning::build failed for $v"
                 failed="$failed $v"
               }
@@ -82,25 +72,21 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           for tarball in dist/godot-*-md.tar.gz; do
-            v="$(basename "$tarball")"
-            v="${v#godot-}"; v="${v%-md.tar.gz}"
-            TAG=$(grep '^release: ' "versions/$v.md" | cut -d' ' -f2)
-            DOCS_SHA=$(grep '^godot_docs_sha: ' "versions/$v.md" | cut -d' ' -f2)
-            echo "=== publishing $TAG"
-            # per-release sums so each release carries a verifiable SHA256SUMS
+            line="$(basename "$tarball")"
+            line="${line#godot-}"; line="${line%-md.tar.gz}"
+            RECORD="versions/$line.md"
+            [ -f "$RECORD" ] || { echo "::warning::no record for $line"; continue; }
+            TAG=$(grep '^release: ' "$RECORD" | cut -d' ' -f2)
+            DOCS_SHA=$(grep '^godot_docs_sha: ' "$RECORD" | cut -d' ' -f2)
+            BRANCH=$(grep '^branch: ' "$RECORD" | cut -d' ' -f2)
+            echo "=== publishing $TAG (branch $BRANCH)"
             tmpd="$(mktemp -d)"
-            cp "$tarball" "$tmpd/"
-            (cd "$tmpd" && sha256sum "$(basename "$tarball")" > SHA256SUMS)
-            # release pinned to the exact upstream SHA
+            cp "$tarball" "$tmpd/godot-$line-md.tar.gz"
+            (cd "$tmpd" && sha256sum "godot-$line-md.tar.gz" > SHA256SUMS)
             gh release delete "$TAG" -y --cleanup-tag || true
-            gh release create "$TAG" "$tmpd/$(basename "$tarball")" "$tmpd/SHA256SUMS" \
-              --title "Godot $v documentation (Markdown)" \
-              --notes "Markdown documentation package for Godot $v, built from godot-docs@$DOCS_SHA."
-            # re-point the rolling tag to the newest build
-            gh release delete "godot-$v-md-latest" -y --cleanup-tag || true
-            gh release create "godot-$v-md-latest" "$tmpd/$(basename "$tarball")" "$tmpd/SHA256SUMS" \
-              --title "Godot $v documentation (Markdown, latest)" \
-              --notes "Rolling latest build for Godot $v, built from godot-docs@$DOCS_SHA."
+            gh release create "$TAG" "$tmpd/godot-$line-md.tar.gz" "$tmpd/SHA256SUMS" \
+              --title "Godot $line documentation (Markdown, latest)" \
+              --notes "Rolling latest Markdown documentation package for Godot $line (currently $BRANCH), built from godot-docs@$DOCS_SHA."
             rm -rf "$tmpd"
           done
 
@@ -117,7 +103,7 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           mkdir -p dist site-root
-          # backfill packages for recorded versions that did not build this run
+          # backfill packages for recorded lines that did not build this run
           for f in versions/*.md; do
             v="$(basename "$f" .md)"
             if [ ! -d "dist/package-$v/godot-$v-md" ]; then
@@ -135,10 +121,10 @@ jobs:
             git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
           fi
           for pkg in ../dist/package-*/godot-*-md; do
-            v="$(basename "$pkg")"
-            v="${v#godot-}"; v="${v%-md}"
-            echo "=== building site for $v"
-            python3 ../tools/build_site.py build --input "$pkg" --output "$v"
+            name="$(basename "$pkg")"
+            line="${name#godot-}"; line="${line%-md}"
+            echo "=== building site for $line"
+            python3 ../tools/build_site.py build --input "$pkg" --output "$line"
           done
           python3 ../tools/build_site.py root --output .
           git add -A

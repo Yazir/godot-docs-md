@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
-# List Godot version branches (e.g. "4.7") of the godot-docs repository.
-# Only the highest major line is adopted (new majors take over automatically);
-# already-recorded versions keep their drift checks regardless.
+# List the latest version branch of each major line of godot-docs
+# (e.g. "3.6" and "4.7"; "5.0" once it appears). One tracked branch per major.
 set -euo pipefail
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 gh api "repos/godotengine/godot-docs/branches?per_page=100" --paginate --jq '.[].name' \
-	| grep -E '^[0-9]+\.[0-9]+$' | sort -u > "$tmp/branches" || true
+	| grep -E '^[0-9]+\.[0-9]+$' | awk -F. '$1 >= 3' | sort -u > "$tmp/branches" || true
 
 if [ ! -s "$tmp/branches" ]; then
 	exit 0
 fi
 
-awk -F. 'NR==FNR{if ($1 > m) m = $1; next} $1 == m' "$tmp/branches" "$tmp/branches" \
-	| sort -t. -k1,1n -k2,2n | uniq
+awk -F. '{ if ($2 + 0 > max[$1] + 0) max[$1] = $2 } END { for (m in max) print m "." max[m] }' "$tmp/branches" \
+	| sort -t. -k1,1n -k2,2n
