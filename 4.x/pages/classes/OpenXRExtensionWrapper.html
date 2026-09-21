@@ -19,7 +19,7 @@
 <main id="content">
 <h1 id="openxrextensionwrapper">OpenXRExtensionWrapper</h1>
 <p><em>Inherits: <a href="Object.html">Object</a></em></p>
-<p><em>Implemented by: <a href="OpenXRAndroidThreadSettingsExtension.html">OpenXRAndroidThreadSettingsExtension</a>, <a href="OpenXRExtensionWrapperExtension.html">OpenXRExtensionWrapperExtension</a>, <a href="OpenXRFrameSynthesisExtension.html">OpenXRFrameSynthesisExtension</a>, <a href="OpenXRFutureExtension.html">OpenXRFutureExtension</a>, <a href="OpenXRRenderModelExtension.html">OpenXRRenderModelExtension</a>, <a href="OpenXRSpatialAnchorCapability.html">OpenXRSpatialAnchorCapability</a>, <a href="OpenXRSpatialEntityExtension.html">OpenXRSpatialEntityExtension</a>, <a href="OpenXRSpatialMarkerTrackingCapability.html">OpenXRSpatialMarkerTrackingCapability</a>, <a href="OpenXRSpatialPlaneTrackingCapability.html">OpenXRSpatialPlaneTrackingCapability</a></em></p>
+<p><em>Implemented by: <a href="OpenXRAndroidThreadSettingsExtension.html">OpenXRAndroidThreadSettingsExtension</a>, <a href="OpenXRExtensionWrapperExtension.html">OpenXRExtensionWrapperExtension</a>, <a href="OpenXRFrameSynthesisExtension.html">OpenXRFrameSynthesisExtension</a>, <a href="OpenXRFutureExtension.html">OpenXRFutureExtension</a>, <a href="OpenXRRenderModelExtension.html">OpenXRRenderModelExtension</a>, <a href="OpenXRSpatialAnchorCapability.html">OpenXRSpatialAnchorCapability</a>, <a href="OpenXRSpatialContainerExtension.html">OpenXRSpatialContainerExtension</a>, <a href="OpenXRSpatialContainerSelfRenderingExtension.html">OpenXRSpatialContainerSelfRenderingExtension</a>, <a href="OpenXRSpatialEntityExtension.html">OpenXRSpatialEntityExtension</a>, <a href="OpenXRSpatialMarkerTrackingCapability.html">OpenXRSpatialMarkerTrackingCapability</a>, <a href="OpenXRSpatialPlaneTrackingCapability.html">OpenXRSpatialPlaneTrackingCapability</a></em></p>
 <p>Allows implementing OpenXR extensions with GDExtension.</p>
 <h2 id="description">Description</h2>
 <p><strong>OpenXRExtensionWrapper</strong> allows implementing OpenXR extensions with GDExtension. The extension should be registered with <code>register_extension_wrapper()</code>.</p>
@@ -31,6 +31,10 @@
 <p>In most cases, the solution is to use <code>RenderingServer.call_on_render_thread()</code> to schedule <a href="Callable.html">Callable</a> s to write to any data used on the render thread. When using the "Separate" thread model, these <a href="Callable.html">Callable</a> s will run after the renderer finishes the current frame and before it starts rendering the next frame. When not using this mode, they'll run immediately, so it's recommended to always use <code>RenderingServer.call_on_render_thread()</code> in these cases, which will allow your code to do the right thing regardless of the thread model.</p>
 <p>Any virtual methods that run on the render thread will be noted below.</p>
 <h2 id="methods">Methods</h2>
+<h3 id="arraytransform3d-_get_camera_offsetstracker_name-stringname-virtual"><code>Array\[Transform3D\] _get_camera_offsets(tracker_name: StringName) virtual</code></h3>
+<p>Returns an array of offsets for each view rendered for the given camera, if this camera is handled by this extension. <code>tracker_name</code> refers to the camera tracker for which we're retrieving this.</p>
+<h3 id="arrayprojection-_get_camera_projectionstracker_name-stringname-aspect-float-z_near-float-z_far-float-virtual"><code>Array\[Projection\] _get_camera_projections(tracker_name: StringName, aspect: float, z_near: float, z_far: float) virtual</code></h3>
+<p>Returns an array of projections for each view rendered for the given camera, if this camera is handled by this extension. <code>tracker_name</code> refers to the camera tracker for which we're retrieving this.</p>
 <h3 id="int-_get_composition_layerindex-int-virtual"><code>int _get_composition_layer(index: int) virtual</code></h3>
 <p>Returns a pointer to an <code>XrCompositionLayerBaseHeader</code> struct to provide the given composition layer.</p>
 <p>This will only be called if the extension previously registered itself with <code>OpenXRAPIExtension.register_composition_layer_provider()</code>.</p>
@@ -142,6 +146,12 @@
 <p>Add additional data structures to <code>XrReferenceSpaceCreateInfo</code>.</p>
 <h3 id="int-_set_session_create_and_get_next_pointernext_pointer-void-virtual"><code>int _set_session_create_and_get_next_pointer(next_pointer: </code>void*<code>) virtual</code></h3>
 <p>Add additional data structures when the OpenXR session is created.</p>
+<h3 id="int-_set_spatial_container_create_info_and_get_next_pointerspatial_container-rid-next_pointer-void-virtual"><code>int _set_spatial_container_create_info_and_get_next_pointer(spatial_container: RID, next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures when the spatial container is created.</p>
+<h3 id="int-_set_spatial_container_views_locate_info_and_get_next_pointerspatial_container-rid-next_pointer-void-virtual"><code>int _set_spatial_container_views_locate_info_and_get_next_pointer(spatial_container: RID, next_pointer: </code>void*<code>) virtual</code></h3>
+<p>Add additional data structures to <code>XrSpatialContainerViewsLocateInfoEXT</code> for the spatial container specified by <code>spatial_container</code>.</p>
+<p>This will only be called if the extension previously registered itself with <code>OpenXRAPIExtension.register_frame_info_extension()</code>.</p>
+<p><strong>Note:</strong> This virtual method will be called on the render thread. Additionally, the data it returns will be used shortly after this method is called, so it needs to remain valid until the next time <code>_on_pre_render()</code> runs.</p>
 <h3 id="int-_set_swapchain_create_info_and_get_next_pointernext_pointer-void-virtual"><code>int _set_swapchain_create_info_and_get_next_pointer(next_pointer: </code>void*<code>) virtual</code></h3>
 <p>Add additional data structures when creating OpenXR swapchains.</p>
 <h3 id="int-_set_system_properties_and_get_next_pointernext_pointer-void-virtual"><code>int _set_system_properties_and_get_next_pointer(next_pointer: </code>void*<code>) virtual</code></h3>

@@ -20,7 +20,7 @@
 <h1 id="packedbytearray">PackedByteArray</h1>
 <p>A packed array of bytes.</p>
 <h2 id="description">Description</h2>
-<p>An array specifically designed to hold bytes. Packs data tightly, so it saves memory for large array sizes.</p>
+<p>An array specifically designed to hold bytes (integers between <code>0</code> and <code>255</code>). Packs data tightly, so it saves memory for large array sizes.</p>
 <p><strong>PackedByteArray</strong> also provides methods to encode/decode various types to/from bytes. The way values are encoded is an implementation detail and shouldn't be relied upon when interacting with external apps.</p>
 <p><strong>Note:</strong> Packed arrays are always passed by reference. To get a copy of an array that can be modified independently of the original array, use <code>duplicate()</code>. This is <em>not</em> the case for built-in properties and methods. In these cases the returned packed array is a copy, and changing it will <em>not</em> affect the original value. To update a built-in property of this type, modify the returned array and then assign it to the property again.</p>
 <p><strong>Note:</strong> In a boolean context, a packed array will evaluate to <code>false</code> if it's empty. Otherwise, a packed array will always evaluate to <code>true</code>.</p>
@@ -33,7 +33,17 @@
 <h3 id="packedbytearray-packedbytearrayfrom-packedbytearray"><code>PackedByteArray PackedByteArray(from: PackedByteArray)</code></h3>
 <p>Constructs a <strong>PackedByteArray</strong> as a copy of the given <strong>PackedByteArray</strong>.</p>
 <h3 id="packedbytearray-packedbytearrayfrom-array"><code>PackedByteArray PackedByteArray(from: Array)</code></h3>
-<p>Constructs a new <strong>PackedByteArray</strong>. Optionally, you can pass in a generic <a href="Array.html">Array</a> that will be converted.</p>
+<p>Constructs a new <strong>PackedByteArray</strong> from a generic <a href="Array.html">Array</a>.</p>
+<p>Boolean <code>false</code> and <code>true</code> are converted to <code>0</code> and <code>1</code> respectively.</p>
+<p>Integers from the generic Array outside the byte range will overflow and roll over.</p>
+<p>Floating-point numbers from the generic Array are converted to integers by truncating the decimal part. If the resulting integer is outside the byte range, it will overflow and roll over.</p>
+<p>Strings from the generic Array are converted to integers using <code>String.to_int()</code>, with <code>0</code> as a fallback value if no integer can be parsed from the string. If the resulting integer is outside the byte range, it will overflow and roll over.</p>
+<p>Other values from the generic Array that cannot be converted into an integer are initialized to <code>0</code>.</p>
+<pre class="gdscript"><code>print(PackedByteArray([true, false])) # Prints [1, 0]
+print(PackedByteArray([-1, 0, 255, 256, 300])) # Prints [255, 0, 255, 0, 44]
+print(PackedByteArray([-1.0, 0.0, 1.0, 1.9, 2.0, 500.0])) # Prints [255, 0, 1, 1, 2, 244]
+print(PackedByteArray([&quot;&quot;, &quot;10&quot;, &quot;123.456&quot;, &quot;-1 but valid&quot;, &quot;invalid&quot;])) # Prints [0, 10, 123, 255, 0]
+print(PackedByteArray([Object.new(), Callable(), Signal()])) # Prints [0, 0, 0]</code></pre>
 <h2 id="methods">Methods</h2>
 <h3 id="bool-appendvalue-int"><code>bool append(value: int)</code></h3>
 <p>Appends an element at the end of the array (alias of <code>push_back()</code>).</p>
@@ -85,7 +95,7 @@
 <p><strong>Note:</strong> Decompression is not guaranteed to work with data not compressed by Godot, for example if data compressed with the deflate compression mode lacks a checksum or header.</p>
 <h3 id="packedbytearray-decompress_dynamicmax_output_size-int-compression_mode-int--0-const"><code>PackedByteArray decompress_dynamic(max_output_size: int, compression_mode: int = 0) const</code></h3>
 <p>Returns a new <strong>PackedByteArray</strong> with the data decompressed. Set the compression mode using one of <code>FileAccess.CompressionMode</code>'s constants. <strong>This method only accepts brotli, gzip, and deflate compression modes.</strong></p>
-<p>This method is potentially slower than <code>decompress()</code>, as it may have to re-allocate its output buffer multiple times while decompressing, whereas <code>decompress()</code> knows it's output buffer size from the beginning.</p>
+<p>This method is potentially slower than <code>decompress()</code>, as it may have to re-allocate its output buffer multiple times while decompressing, whereas <code>decompress()</code> knows the size of its output buffer from the beginning.</p>
 <p>GZIP has a maximal compression ratio of 1032:1, meaning it's very possible for a small compressed payload to decompress to a potentially very large output. To guard against this, you may provide a maximum size this function is allowed to allocate in bytes via <code>max_output_size</code>. Passing -1 will allow for unbounded output. If any positive value is passed, and the decompression exceeds that amount in bytes, then an error will be returned.</p>
 <p><strong>Note:</strong> Decompression is not guaranteed to work with data not compressed by Godot, for example if data compressed with the deflate compression mode lacks a checksum or header.</p>
 <h3 id="packedbytearray-duplicate-const"><code>PackedByteArray duplicate() const</code></h3>
@@ -113,7 +123,7 @@
 <h3 id="void-encode_u64byte_offset-int-value-int"><code>void encode_u64(byte_offset: int, value: int)</code></h3>
 <p>Encodes a 64-bit unsigned integer number as bytes at the index of <code>byte_offset</code> bytes. The array must have at least 8 bytes of space, starting at the offset.</p>
 <h3 id="int-encode_varbyte_offset-int-value-variant-allow_objects-bool--false"><code>int encode_var(byte_offset: int, value: Variant, allow_objects: bool = false)</code></h3>
-<p>Encodes a <a href="Variant.html">Variant</a> at the index of <code>byte_offset</code> bytes. A sufficient space must be allocated, depending on the encoded variant's size. If <code>allow_objects</code> is <code>false</code>, <a href="Object.html">Object</a>-derived values are not permitted and will instead be serialized as ID-only.</p>
+<p>Encodes a <a href="Variant.html">Variant</a> at the index of <code>byte_offset</code> bytes. A sufficient space must be allocated, depending on the encoded variant's size. If <code>allow_objects</code> is <code>false</code>, <a href="Object.html">Object</a>-derived values are not permitted and will instead be serialized as ID-only. Returns the length of the encoded data in bytes.</p>
 <h3 id="bool-erasevalue-int"><code>bool erase(value: int)</code></h3>
 <p>Removes the first occurrence of a value from the array and returns <code>true</code>. If the value does not exist in the array, nothing happens and <code>false</code> is returned. To remove an element by index, use <code>remove_at()</code> instead.</p>
 <h3 id="void-fillvalue-int"><code>void fill(value: int)</code></h3>
@@ -139,7 +149,7 @@
 <h3 id="string-get_string_from_utf32-const"><code>String get_string_from_utf32() const</code></h3>
 <p>Converts UTF-32 encoded array to <a href="String.html">String</a>. Returns empty string if source array is not valid UTF-32 string. This is the inverse of <code>String.to_utf32_buffer()</code>.</p>
 <h3 id="string-get_string_from_wchar-const"><code>String get_string_from_wchar() const</code></h3>
-<p>Converts wide character (<code>wchar_t</code>, UTF-16 on Windows, UTF-32 on other platforms) encoded array to <a href="String.html">String</a>. Returns empty string if source array is not valid wide string. This is the inverse of <code>String.to_wchar_buffer()</code>.</p>
+<p>Converts wide character ( <code>wchar_t</code>, UTF-16 on Windows, UTF-32 on other platforms) encoded array to <a href="String.html">String</a>. Returns empty string if source array is not valid wide string. This is the inverse of <code>String.to_wchar_buffer()</code>.</p>
 <h3 id="bool-hasvalue-int-const"><code>bool has(value: int) const</code></h3>
 <p>Returns <code>true</code> if the array contains <code>value</code>.</p>
 <h3 id="bool-has_encoded_varbyte_offset-int-allow_objects-bool--false-const"><code>bool has_encoded_var(byte_offset: int, allow_objects: bool = false) const</code></h3>
@@ -148,16 +158,16 @@
 <p>Returns a hexadecimal representation of this array as a <a href="String.html">String</a>.</p>
 <pre class="gdscript"><code>var array = PackedByteArray([11, 46, 255])
 print(array.hex_encode()) # Prints &quot;0b2eff&quot;</code></pre>
-<div class="sourceCode" id="cb2"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">byte</span><span class="op">[]</span> array <span class="op">=</span> <span class="op">[</span><span class="dv">11</span><span class="op">,</span> <span class="dv">46</span><span class="op">,</span> <span class="dv">255</span><span class="op">];</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>array<span class="op">.</span><span class="fu">HexEncode</span><span class="op">());</span> <span class="co">// Prints &quot;0b2eff&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode csharp"><code class="sourceCode cs"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">byte</span><span class="op">[]</span> array <span class="op">=</span> <span class="op">[</span><span class="dv">11</span><span class="op">,</span> <span class="dv">46</span><span class="op">,</span> <span class="dv">255</span><span class="op">];</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>GD<span class="op">.</span><span class="fu">Print</span><span class="op">(</span>array<span class="op">.</span><span class="fu">HexEncode</span><span class="op">());</span> <span class="co">// Prints &quot;0b2eff&quot;</span></span></code></pre></div>
 <h3 id="int-insertat_index-int-value-int"><code>int insert(at_index: int, value: int)</code></h3>
-<p>Inserts a new element at a given position in the array. The position must be valid, or at the end of the array (<code>idx == size()</code>).</p>
+<p>Inserts a new element at a given position in the array. The position must be valid, or at the end of the array ( <code>idx == size()</code>).</p>
 <h3 id="bool-is_empty-const"><code>bool is_empty() const</code></h3>
 <p>Returns <code>true</code> if the array is empty.</p>
 <h3 id="bool-push_backvalue-int"><code>bool push_back(value: int)</code></h3>
 <p>Appends an element at the end of the array.</p>
 <h3 id="void-remove_atindex-int"><code>void remove_at(index: int)</code></h3>
-<p>Removes an element from the array by index.</p>
+<p>Removes an element from the array by index. If <code>index</code> is out-of-bounds or negative, this method fails.</p>
 <h3 id="int-resizenew_size-int"><code>int resize(new_size: int)</code></h3>
 <p>Sets the size of the array. If the array is grown, reserves elements at the end of the array. If the array is shrunk, truncates the array to the new size. Calling <code>resize()</code> once and assigning the new values is faster than adding new elements one by one.</p>
 <p>Returns <code>@GlobalScope.OK</code> on success, or one of the following <code>@GlobalScope.Error</code> constants if this method fails: <code>@GlobalScope.ERR_INVALID_PARAMETER</code> if the size is negative, or <code>@GlobalScope.ERR_OUT_OF_MEMORY</code> if allocations fail. Use <code>size()</code> to find the actual size of the array after resize.</p>

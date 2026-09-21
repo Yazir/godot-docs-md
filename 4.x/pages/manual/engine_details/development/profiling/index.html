@@ -33,8 +33,8 @@
 <li>ref (Windows only)</li>
 <li>ref (Linux only)</li>
 <li>ref (Apple only)</li>
+<li>ref (Windows, Linux, Xbox, and PlayStation, requires paid license)</li>
 </ul>
-<p>These profilers may not be the most powerful or flexible options, but their standalone operation and limited feature set tends to make them easier to use.</p>
 <h3 id="setting-up-godot">Setting up Godot</h3>
 <p>To get useful profiling information, it is <strong>absolutely required</strong> to use a Godot build that includes debugging symbols. Official binaries do not include debugging symbols, since these would make the download size significantly larger.</p>
 <p>To get profiling data that best matches the production environment (but with debugging symbols), you should compile binaries with the <code>production=yes debug_symbols=yes</code> SCons options.</p>
@@ -59,6 +59,60 @@
 </blockquote>
 <p>In order to use either of them, you'll need to build the engine from source. If you've never done this before, please read ref for the platform you want to profile on. You'll need to perform the same steps here, but with some additional arguments for <code>scons</code>.</p>
 <h2 id="all-recommended-profilers">All recommended profilers</h2>
+<h2 id="microbenchmarks">Microbenchmarks</h2>
+<p>While not technically profiling, microbenchmarks are a related concept: after you've identified your hotspot, you'll want a simple and isolatable way to test whether what you're doing has an impact. While re-profiling can be an option, sometimes a microbenchmark can be simpler.</p>
+<p>You can see example benchmark setups in the subsections below. Between C++ and GDScript, GDScript benchmarks are usually the more appropriate choice. Because they involve the GDScript language and its overhead, GDScript benchmarks are truthful to how most people will experience your changes. C++ benchmarks are more versatile and can measure smaller performance differences. However, they are also more difficult to get right. In practice, it can often be good to benchmark both.</p>
+<blockquote>
+<p><strong>Note:</strong> To benchmark effectively can be difficult. Benchmarks can easily lead you astray, for example by not representing the situation faithfully, by failing to account for compiler optimizations and other nuances, or by measuring in an unreliable way such that you record noise instead of an actual performance change. Before you start benchmarking, please read up on benchmarking guides and best practices. A good place to start is Gregg's <a href="https://www.brendangregg.com/activebenchmarking.html">"Active Benchmarking"</a>, which provides a high level overview and quick checklist for benchmarking.</p>
+</blockquote>
+<h3 id="gdscript-benchmarks">GDScript benchmarks</h3>
+<p>To run a GDScript benchmark, start by creating a <code>benchmark.gd</code> file with the following contents:</p>
+<pre class="gdscript"><code>extends SceneTree
+
+func _init():
+    const N = 1_000_000
+
+    var t0 := Time.get_ticks_usec()
+    for i in N:
+        pass  # Do the thing you want to benchmark here.
+    var t1 := Time.get_ticks_usec()
+
+    var ns_per_op := (t1 - t0) * 1000.0 / N
+    print(&quot;Benchmark result: %.1f ns/op&quot; % ns_per_op)
+    quit()</code></pre>
+<p>Edit the file to add your benchmark. You can run the benchmark using <code>godot --headless -s benchmark.gd</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> At the time of writing, GDScript performs few code optimization. Dead code elimination, for example, is generally not performed. Therefore, it is easier to write a decently representative benchmark in GDScript than in C++. This might change in the future.</p>
+</blockquote>
+<h3 id="c-benchmarks">C++ benchmarks</h3>
+<p>To run a C++ benchmark, create the file <code>tests/core/test_user_bench.cpp</code> with the following contents:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;tests/test_macros.h&quot;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>TEST_FORCE_LINK<span class="op">(</span>test_user_bench<span class="op">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;chrono&gt;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cstdio&gt;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="at">static</span> <span class="dt">void</span> user_bench<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">const</span> <span class="dt">int</span> N <span class="op">=</span> <span class="dv">1&#39;000&#39;000</span><span class="op">;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">uintptr_t</span> sink <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> <span class="co">// Defeats dead-code elimination.</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> t0 <span class="op">=</span> <span class="bu">std::</span>chrono::steady_clock::now<span class="op">();</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> N<span class="op">;</span> i<span class="op">++)</span> <span class="op">{</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Do the thing you want to benchmark here.</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// sink += (uintptr_t)something; // Update the sink from the result somehow.</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> t1 <span class="op">=</span> <span class="bu">std::</span>chrono::steady_clock::now<span class="op">();</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> ns_per_op <span class="op">=</span> <span class="bu">std::</span>chrono::duration<span class="op">&lt;</span><span class="dt">double</span><span class="op">,</span> <span class="bu">std::</span>nano<span class="op">&gt;(</span>t1 <span class="op">-</span> t0<span class="op">).</span>count<span class="op">()</span> <span class="op">/</span> N<span class="op">;</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    printf<span class="op">(</span><span class="st">&quot;Benchmark result: </span><span class="sc">%.1f</span><span class="st"> ns/op (sink </span><span class="sc">%zu</span><span class="st">)</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">,</span> ns_per_op<span class="op">,</span> <span class="op">(</span><span class="dt">size_t</span><span class="op">)</span>sink<span class="op">);</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>REGISTER_TEST_COMMAND<span class="op">(</span><span class="st">&quot;user-bench&quot;</span><span class="op">,</span> <span class="op">&amp;</span>user_bench<span class="op">)</span></span></code></pre></div>
+<p>Edit the file to add your benchmark. Compile Godot with <code>tests=yes</code>, and run the benchmark using <code>godot --test user-bench</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> C++ benchmarks can be fickle and can easily lead you astray unless you have a strong foundation of knowledge about C++ and compilers. Before you start benchmarking, read up on guides and best practices about how to benchmark C++. You can find free in-depth guides in Bakhvalov's <a href="https://github.com/dendibakh/perf-book">"Performance Analysis and Tuning on Modern CPUs"</a>, and Agner Fog's <a href="https://www.agner.org/optimize/">"Software Optimization Resources"</a>.</p>
+</blockquote>
 
 </main>
 <script>window.SITE_ROOT = "../../../../";</script>

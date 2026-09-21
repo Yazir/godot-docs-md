@@ -24,7 +24,7 @@
 <p>A node with the ability to send HTTP requests. Uses <a href="HTTPClient.html">HTTPClient</a> internally.</p>
 <p>Can be used to make HTTP requests, i.e. download or upload files or web content via HTTP.</p>
 <p><strong>Warning:</strong> See the notes and warnings on <a href="HTTPClient.html">HTTPClient</a> for limitations, especially regarding TLS security.</p>
-<p><strong>Note:</strong> When exporting to Android, make sure to enable the <code>INTERNET</code> permission in the Android export preset before exporting the project or using one-click deploy. Otherwise, network communication of any kind will be blocked by Android.</p>
+<p><strong>Note:</strong> When exporting to Android, make sure to enable the <code>INTERNET</code> permission in the Android export preset before exporting the project or using remote deploy. Otherwise, network communication of any kind will be blocked by Android.</p>
 <p><strong>Example:</strong> Contact a REST API and print one of its returned fields:</p>
 <pre class="gdscript"><code>func _ready():
     # Create an HTTP request node and connect its completion signal.
@@ -171,6 +171,13 @@ func _http_request_completed(result, response_code, headers, body):
 <p>Any Response body declaring a <code>Content-Encoding</code> of either <code>gzip</code> or <code>deflate</code> will then be automatically decompressed, and the uncompressed bytes will be delivered via <code>request_completed</code>.</p>
 <p>If the user has specified their own <code>Accept-Encoding</code> header, then no header will be added regardless of <code>accept_gzip</code>.</p>
 <p>If <code>false</code> no header will be added, and no decompression will be performed on response bodies. The raw bytes of the response body will be returned via <code>request_completed</code>.</p>
+<h3 id="bool-append_to_download_file--false"><code>bool append_to_download_file = false</code></h3>
+<ul>
+<li>Setter: <code>set_append_to_download_file(value: bool)</code></li>
+<li>Getter: <code>is_appending_to_download_file()</code></li>
+</ul>
+<p>If <code>true</code> and the server responds with HTTP status code <code>206 Partial Content</code>, the response body will be appended to the existing <code>download_file</code> instead of overwriting it. If the server responds with <code>200 OK</code> (e.g. if it does not support range requests), the file will be overwritten as usual.</p>
+<p>This is useful for resuming interrupted downloads when used together with an HTTP <code>Range</code> header in the request. See also <code>keep_partial_download</code>.</p>
 <h3 id="int-body_size_limit---1"><code>int body_size_limit = -1</code></h3>
 <ul>
 <li>Setter: <code>set_body_size_limit(value: int)</code></li>
@@ -190,6 +197,13 @@ func _http_request_completed(result, response_code, headers, body):
 <li>Getter: <code>get_download_file()</code></li>
 </ul>
 <p>The file to download into. Will output any received file into it.</p>
+<h3 id="bool-keep_partial_download--false"><code>bool keep_partial_download = false</code></h3>
+<ul>
+<li>Setter: <code>set_keep_partial_download(value: bool)</code></li>
+<li>Getter: <code>is_keeping_partial_download()</code></li>
+</ul>
+<p>If <code>true</code>, the partially downloaded file set via <code>download_file</code> will not be deleted when the request fails or is canceled. This allows resuming an interrupted download later by sending a new request with an HTTP <code>Range</code> header and <code>append_to_download_file</code> set to <code>true</code>.</p>
+<p>If <code>false</code> (the default), incomplete download files are automatically deleted on failure or cancellation.</p>
 <h3 id="int-max_redirects--8"><code>int max_redirects = 8</code></h3>
 <ul>
 <li>Setter: <code>set_max_redirects(value: int)</code></li>

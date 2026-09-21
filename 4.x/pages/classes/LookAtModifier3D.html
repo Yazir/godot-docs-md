@@ -139,13 +139,13 @@
 <li>Getter: <code>get_primary_rotation_axis()</code></li>
 </ul>
 <p>The axis of the first rotation. This <a href="SkeletonModifier3D.html">SkeletonModifier3D</a> works by compositing the rotation by Euler angles to prevent to rotate the <code>forward_axis</code>.</p>
+<p><strong>Note:</strong> Since <strong>LookAtModifier3D</strong> never modifies the twist when <code>use_secondary_rotation</code> is <code>false</code> and <code>relative</code> is <code>true</code>, the twist is not fixed even if <code>use_rest_for_limitation</code> is <code>true</code>.</p>
 <h3 id="bool-relative--false"><code>bool relative = false</code></h3>
 <ul>
 <li>Setter: <code>set_relative(value: bool)</code></li>
 <li>Getter: <code>is_relative()</code></li>
 </ul>
 <p>The relative option. If <code>true</code>, the rotation is applied relative to the pose. If <code>false</code>, the rotation is applied relative to the rest. It means to replace the current pose with the <strong>LookAtModifier3D</strong>'s result.</p>
-<p><strong>Note:</strong> This option affects the base angle for <code>use_angle_limitation</code>. Since the <strong>LookAtModifier3D</strong> relies strongly on Euler rotation, the axis that determines the limitation and the actual rotation are strongly tied together.</p>
 <h3 id="float-secondary_damp_threshold"><code>float secondary_damp_threshold</code></h3>
 <ul>
 <li>Setter: <code>set_secondary_damp_threshold(value: float)</code></li>
@@ -188,7 +188,7 @@
 <li>Getter: <code>is_limitation_symmetry()</code></li>
 </ul>
 <p>If <code>true</code>, the limitations are spread from the bone symmetrically.</p>
-<p>If <code>false</code>, the limitation can be specified separately for each side of the bone rest.</p>
+<p>If <code>false</code>, the limitation can be specified separately for each side of the reference pose. In here, the reference pose is the bone pose immediately before processing this modifier.</p>
 <h3 id="nodepath-target_node--nodepath"><code>NodePath target_node = NodePath("")</code></h3>
 <ul>
 <li>Setter: <code>set_target_node(value: NodePath)</code></li>
@@ -209,6 +209,14 @@
 <p>If <code>true</code>, limits the amount of rotation. For example, this helps to prevent a character's neck from rotating 360 degrees.</p>
 <p><strong>Note:</strong> As with <a href="AnimationTree.html">AnimationTree</a> blending, interpolation is provided that favors <code>Skeleton3D.get_bone_rest()</code> or <code>Skeleton3D.get_bone_pose()</code> depends on the <code>relative</code> option. This means that interpolation does not select the shortest path in some cases.</p>
 <p><strong>Note:</strong> Some values for <code>transition_type</code> (such as <code>Tween.TRANS_BACK</code>, <code>Tween.TRANS_ELASTIC</code>, and <code>Tween.TRANS_SPRING</code>) may exceed the limitations. If interpolation occurs while overshooting the limitations, the result might not respect the bone rest.</p>
+<h3 id="bool-use_rest_for_limitation"><code>bool use_rest_for_limitation</code></h3>
+<ul>
+<li>Setter: <code>set_use_rest_for_limitation(value: bool)</code></li>
+<li>Getter: <code>is_using_rest_for_limitation()</code></li>
+</ul>
+<p>If <code>true</code>, the angle limitation and the rotation axes are applied based on the <code>Skeleton3D.get_bone_rest()</code>.</p>
+<p>If <code>false</code>, the angle limitation is applied based on the reference pose. In here, the reference pose is the bone pose immediately before processing this modifier.</p>
+<p><strong>Note:</strong> The limitation is applied to the rotation computed by this modifier. If the reference pose is rotated around the same axis, the limitation behaves as if it also limits the rotation of the reference pose. A rotation that this modifier does not change, such as the twist, is not limited.</p>
 <h3 id="bool-use_secondary_rotation--true"><code>bool use_secondary_rotation = true</code></h3>
 <ul>
 <li>Setter: <code>set_use_secondary_rotation(value: bool)</code></li>
@@ -219,7 +227,7 @@
 <h3 id="float-get_interpolation_remaining-const"><code>float get_interpolation_remaining() const</code></h3>
 <p>Returns the remaining seconds of the time-based interpolation.</p>
 <h3 id="bool-is_interpolating-const"><code>bool is_interpolating() const</code></h3>
-<p>Returns <code>true</code> if time-based interpolation is running. If <code>true</code>, it is equivalent to <code>get_interpolation_remaining()</code> returning <code>0.0</code>.</p>
+<p>Returns <code>true</code> if time-based interpolation is running. If <code>false</code>, it is equivalent to <code>get_interpolation_remaining()</code> returning <code>0.0</code>.</p>
 <p>This is useful to determine whether a <strong>LookAtModifier3D</strong> can be removed safely.</p>
 <h3 id="bool-is_target_within_limitation-const"><code>bool is_target_within_limitation() const</code></h3>
 <p>Returns whether the target is within the angle limitations. It is useful for unsetting the <code>target_node</code> when the target is outside of the angle limitations.</p>

@@ -44,6 +44,14 @@
 <pre><code>@export_subgroup(&quot;Extra Properties&quot;)
 @export var string = &quot;&quot;
 @export var flag = false</code></pre>
+<p>Both groups and subgroups can optionally specify a property prefix, which will hide it from the property names. This is useful to shorten long property names:</p>
+<pre><code>@export_group(&quot;Group&quot;, &quot;group_&quot;)
+# Will appear as &quot;Example Number&quot; in the inspector instead of &quot;Group Example Number&quot;.
+@export var group_example_number = 3
+
+@export_subgroup(&quot;Subgroup&quot;, &quot;group_subgroup_&quot;)
+# Will appear as &quot;Example String&quot; in the inspector instead of &quot;Group Subgroup Example String&quot;.
+@export var group_subgroup_example_string = &quot;&quot;</code></pre>
 <p>You can also change the name of your main category, or create additional categories in the property list with the ref annotation.</p>
 <pre><code>@export_category(&quot;Main Category&quot;)
 @export var number = 3
@@ -51,8 +59,23 @@
 
 @export_category(&quot;Extra Category&quot;)
 @export var flag = false</code></pre>
+<p>If you have a boolean property that toggles a behavior, you can move its checkbox from the list of properties to the group heading as follows:</p>
+<pre><code>@export_group(&quot;Group&quot;, &quot;group_&quot;)
+@export_custom(PROPERTY_HINT_GROUP_ENABLE, &quot;&quot;) var group_enabled = false
+@export var group_example_string = &quot;&quot;</code></pre>
+<p>When the group is enabled, its properties are shown:</p>
+<p><em>Image: Group enabled (with checkbox in the group heading).</em></p>
+<p>Group enabled (with checkbox in the group heading).</p>
+<p>Properties are automatically hidden when the group is disabled. Their value is still saved and can be modified from code, but they won't be visible in the inspector until the group is enabled again.</p>
 <blockquote>
 <p><strong>Note:</strong> The list of properties is organized based on the class inheritance and new categories break that expectation. Use them carefully, especially when creating projects for public use.</p>
+<p>The engine applies several conventions to its own property names. While not strictly required, consider following this style for consistency:</p>
+<ul>
+<li>Properties that are part of groups all start with the same prefix (<code>group_*</code>).</li>
+<li>Properties that are part of subgroups all start with the same prefix, which is an extension of the parent group prefix (<code>group_subgroup_*</code>).</li>
+<li>Properties that toggle a group are booleans whose name ends with <code>_enabled</code>.</li>
+</ul>
+<p>For example, <code>class_BaseMaterial3D</code> has <code>refraction_enabled</code>, <code>refraction_scale</code>, and <code>refraction_texture</code> properties, all part of the <code>Refraction</code> group (using <code>refraction_</code> as a prefix). The <code>refraction_enabled</code> boolean property makes use of the <code>PROPERTY_HINT_GROUP_ENABLE</code> hint to move its checkbox to the group heading.</p>
 </blockquote>
 <h2 id="strings-as-paths">Strings as paths</h2>
 <p>String as a path to a file. See ref.</p>
@@ -97,10 +120,10 @@
 <h2 id="adding-suffixes-and-handling-degreesradians">Adding suffixes and handling degrees/radians</h2>
 <p>A suffix can also be defined to make the value more self-explanatory in the inspector. For example, to define a value that is meant to be configured as "meters" (<code>m</code>) by the user:</p>
 <pre><code>@export_range(0, 100, 1, &quot;suffix:m&quot;) var m: int</code></pre>
-<p>For angles that are stored in radians but displayed as degrees to the user, use the "radians_as_degrees" hint:</p>
+<p>For angles that are stored in radians but displayed as degrees to the user, use the <code>"radians_as_degrees"</code> hint:</p>
 <pre><code>@export_range(0, 360, 0.1, &quot;radians_as_degrees&quot;) var angle: float</code></pre>
-<p>This performs automatic conversion when the value is displayed or modified in the inspector and also displays a degree (<code>°</code>) suffix. This approach is used by Godot's own rotation properties throughout the editor.</p>
-<p>If the angle is stored in degrees instead, use the "degrees" hint to display the degree symbol while disabling the automatic degrees-to-radians conversion when the value is modified from the inspector.</p>
+<p>This performs automatic conversion when the value is displayed or modified in the inspector and also displays a degree (<code>°</code>) suffix. This approach is used by Godot's own <code>rotation</code> properties throughout the editor.</p>
+<p>If the angle is stored in degrees instead, use the <code>"degrees"</code> hint to display the degree symbol while disabling the automatic degrees-to-radians conversion when the value is modified from the inspector.</p>
 <h2 id="linking-vector-values-together">Linking vector values together</h2>
 <p>It is possible to link vector values together. When the user adjusts one of the vector's components, the other components are automatically adjusted proportionally. For example, this is useful to maintain the aspect ratio of a 2D sprite when adjusting its scale. This feature can be temporarily disabled by the user by clicking the link icon to the right of the property.</p>
 <pre><code># Leave the hint string empty if you don&#39;t want to add a suffix.

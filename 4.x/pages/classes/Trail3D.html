@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trail3D — Godot 4.7 docs (MD)</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head">
+    <a id="home" href="../index.html">godot-docs-md</a>
+    <div id="meta">Godot 4.7<span id="meta-shas"></span></div>
+    <input id="search" type="search" placeholder="Search documentation…" autocomplete="off" spellcheck="false">
+    <div id="results" hidden></div>
+  </div>
+  <nav id="tree" aria-label="Table of contents"></nav>
+</aside>
+<main id="content">
+<h1 id="trail3d">Trail3D</h1>
+<p><em>Inherits: <a href="Line3D.html">Line3D</a> &lt; <a href="GeometryInstance3D.html">GeometryInstance3D</a> &lt; <a href="VisualInstance3D.html">VisualInstance3D</a> &lt; <a href="Node3D.html">Node3D</a> &lt; <a href="Node.html">Node</a> &lt; <a href="Object.html">Object</a></em></p>
+<p>A node to draw lines behind moving objects.</p>
+<h2 id="description">Description</h2>
+<p>The <strong>Trail3D</strong> node draws a flat line in space, with an optional billboard mode.</p>
+<p><strong>Note:</strong> This node is designed for visual effects. For solid lines, pipes, and tubes, use a <a href="CSGPolygon3D.html">CSGPolygon3D</a> node in <code>CSGPolygon3D.MODE_PATH</code> mode.</p>
+<h2 id="properties">Properties</h2>
+<h3 id="color-color--color1-1-1-1"><code>Color color = Color(1, 1, 1, 1)</code></h3>
+<ul>
+<li>Setter: <code>set_color(value: Color)</code></li>
+<li>Getter: <code>get_color()</code></li>
+</ul>
+<p>The color of the trail.</p>
+<p><strong>Note:</strong> Colors with values above <code>1.0</code> (overbright) are not supported.</p>
+<p><strong>Note:</strong> To have a visible effect on a <a href="BaseMaterial3D.html">BaseMaterial3D</a>, <code>BaseMaterial3D.vertex_color_use_as_albedo</code> <em>must</em> be <code>true</code>. For a <a href="ShaderMaterial.html">ShaderMaterial</a>, <code>ALBEDO *= COLOR.rgb;</code> must be inserted in the shader's <code>fragment()</code> function. Otherwise, <code>color</code> will have no visible effect.</p>
+<h3 id="gradient-color_gradient"><code>Gradient color_gradient</code></h3>
+<ul>
+<li>Setter: <code>set_color_gradient(value: Gradient)</code></li>
+<li>Getter: <code>get_color_gradient()</code></li>
+</ul>
+<p>The color gradient over the trail length.</p>
+<p><strong>Note:</strong> Colors with values above <code>1.0</code> (overbright) are not supported.</p>
+<p><strong>Note:</strong> To have a visible effect on a <a href="BaseMaterial3D.html">BaseMaterial3D</a>, <code>BaseMaterial3D.vertex_color_use_as_albedo</code> <em>must</em> be <code>true</code>. For a <a href="ShaderMaterial.html">ShaderMaterial</a>, <code>ALBEDO *= COLOR.rgb;</code> must be inserted in the shader's <code>fragment()</code> function. Otherwise, <code>color</code> will have no visible effect.</p>
+<h3 id="bool-emitting--true"><code>bool emitting = true</code></h3>
+<ul>
+<li>Setter: <code>set_emitting(value: bool)</code></li>
+<li>Getter: <code>is_emitting()</code></li>
+</ul>
+<p>If <code>true</code>, the trail will generate new points from its head.</p>
+<p><strong>Note:</strong> Only one active trail is supported. Setting this property to <code>true</code> will cause the existing trail mesh to be cleared.</p>
+<h3 id="float-lifetime--02"><code>float lifetime = 0.2</code></h3>
+<ul>
+<li>Setter: <code>set_lifetime(value: float)</code></li>
+<li>Getter: <code>get_lifetime()</code></li>
+</ul>
+<p>The lifetime of the trail when <code>limit_mode</code> is <code>LIMIT_MODE_LIFETIME</code>.</p>
+<h3 id="limitmode-limit_mode--0">``LimitMode<code> limit_mode = 0</code></h3>
+<ul>
+<li>Setter: <code>set_limit_mode(value: </code>LimitMode<code>)</code></li>
+<li>Getter: <code>get_limit_mode()</code></li>
+</ul>
+<p>Whether to limit the trail by lifetime or length.</p>
+<h3 id="shadermaterial-material"><code>ShaderMaterial material</code></h3>
+<ul>
+<li>Setter: <code>set_material(value: ShaderMaterial)</code></li>
+<li>Getter: <code>get_material()</code></li>
+</ul>
+<p>The material to assign to the trail mesh when <code>material_mode</code> is <code>Line3D.MATERIAL_MODE_CUSTOM</code>.</p>
+<p><strong>Tip:</strong> To preserve billboarding, use the following shader as a base:</p>
+<pre class="gdscript"><code>shader_type spatial;
+render_mode blend_mix, depth_draw_never, unshaded, skip_vertex_transform, cull_disabled;
+
+void vertex() {
+    // Billboarding code for trails
+    // CUSTOM0 contains the tangent of the trail and the width.
+    if (dot(CUSTOM0.xyz, CUSTOM0.xyz) &gt; 0.0) {
+        vec3 p = (inverse(MODELVIEW_MATRIX) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+        p = VERTEX - p;
+        vec3 t = CUSTOM0.xyz;
+        vec3 binormal = normalize(cross(p, t));
+        vec3 normal = normalize(cross(t, binormal));
+        vec3 tangent = normalize(cross(binormal, normal));
+        VERTEX += CUSTOM0.w * binormal;
+        NORMAL = normal;
+        TANGENT = tangent;
+        BINORMAL = binormal;
+    }
+}
+
+void fragment() {
+    ALBEDO = COLOR.rgb;
+    ALPHA = COLOR.a;
+}</code></pre>
+<h3 id="line3dmaterialmode-material_mode--0">``Line3D.MaterialMode<code> material_mode = 0</code></h3>
+<ul>
+<li>Setter: <code>set_material_mode(value: </code>Line3D.MaterialMode<code>)</code></li>
+<li>Getter: <code>get_material_mode()</code></li>
+</ul>
+<p>The material mode for the trail.</p>
+<h3 id="float-max_length"><code>float max_length</code></h3>
+<ul>
+<li>Setter: <code>set_max_length(value: float)</code></li>
+<li>Getter: <code>get_max_length()</code></li>
+</ul>
+<p>The maximum length of the trail when <code>limit_mode</code> is <code>LIMIT_MODE_MAX_LENGTH</code>.</p>
+<h3 id="line3dmeshalignment-mesh_alignment--1">``Line3D.MeshAlignment<code> mesh_alignment = 1</code></h3>
+<ul>
+<li>Setter: <code>set_mesh_alignment(value: </code>Line3D.MeshAlignment<code>)</code></li>
+<li>Getter: <code>get_mesh_alignment()</code></li>
+</ul>
+<p>Alignment of the trail. Possible options are <code>Line3D.MESH_ALIGNMENT_LOCAL</code> for a 3D line, and <code>Line3D.MESH_ALIGNMENT_BILLBOARD</code> for a billboarded line.</p>
+<h3 id="float-min_section_length--02"><code>float min_section_length = 0.2</code></h3>
+<ul>
+<li>Setter: <code>set_min_section_length(value: float)</code></li>
+<li>Getter: <code>get_min_section_length()</code></li>
+</ul>
+<p>Minimum required distance before adding a new section.</p>
+<h3 id="bool-pin_uv--false"><code>bool pin_uv = false</code></h3>
+<ul>
+<li>Setter: <code>set_pin_uv(value: bool)</code></li>
+<li>Getter: <code>get_pin_uv()</code></li>
+</ul>
+<p>If <code>true</code>, pins the UVs to their positions in space.</p>
+<h3 id="line3dtilingmode-tiling_mode--1">``Line3D.TilingMode<code> tiling_mode = 1</code></h3>
+<ul>
+<li>Setter: <code>set_tiling_mode(value: </code>Line3D.TilingMode<code>)</code></li>
+<li>Getter: <code>get_tiling_mode()</code></li>
+</ul>
+<p>How to tile the UVs across the length of the trail.</p>
+<h3 id="float-tiling_multiplier--10"><code>float tiling_multiplier = 1.0</code></h3>
+<ul>
+<li>Setter: <code>set_tiling_multiplier(value: float)</code></li>
+<li>Getter: <code>get_tiling_multiplier()</code></li>
+</ul>
+<p>UV multiplier across the length of the trail.</p>
+<h3 id="float-width--03"><code>float width = 0.3</code></h3>
+<ul>
+<li>Setter: <code>set_width(value: float)</code></li>
+<li>Getter: <code>get_width()</code></li>
+</ul>
+<p>Width of the trail.</p>
+<h3 id="curve-width_curve"><code>Curve width_curve</code></h3>
+<ul>
+<li>Setter: <code>set_width_curve(value: Curve)</code></li>
+<li>Getter: <code>get_width_curve()</code></li>
+</ul>
+<p>Width across the length of the trail.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="void-clear"><code>void clear()</code></h3>
+<p>Clears the trail.</p>
+<h3 id="float-get_current_length-const"><code>float get_current_length() const</code></h3>
+<p>Returns the current length of the trail.</p>
+<h2 id="enumerations">Enumerations</h2>
+<h3 id="enum-limitmode"><code>enum LimitMode</code></h3>
+<ul>
+<li><p><code>LIMIT_MODE_LIFETIME = 0</code></p>
+<p>Limit the trail length in time.</p></li>
+<li><p><code>LIMIT_MODE_MAX_LENGTH = 1</code></p>
+<p>Limit the trail length in size.</p></li>
+<li><p><code>LIMIT_MODE_MAX = 2</code></p>
+<p>Represents the size of the <code>LimitMode</code> enum.</p></li>
+</ul>
+
+</main>
+<script>window.SITE_ROOT = "../";</script>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

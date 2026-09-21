@@ -19,7 +19,7 @@
 <main id="content">
 <h1 id="editordock">EditorDock</h1>
 <p><em>Inherits: <a href="MarginContainer.html">MarginContainer</a> &lt; <a href="Container.html">Container</a> &lt; <a href="Control.html">Control</a> &lt; <a href="CanvasItem.html">CanvasItem</a> &lt; <a href="Node.html">Node</a> &lt; <a href="Object.html">Object</a></em></p>
-<p><em>Implemented by: <a href="FileSystemDock.html">FileSystemDock</a></em></p>
+<p><em>Implemented by: <a href="FileSystemDock.html">FileSystemDock</a>, <a href="ScriptEditor.html">ScriptEditor</a></em></p>
 <p><strong>Experimental:</strong> This class may be changed or removed in future versions.</p>
 <p>Dockable container for the editor.</p>
 <h2 id="description">Description</h2>
@@ -51,6 +51,12 @@ func _exit_tree():
 <li><a href="../manual/tutorials/plugins/editor/making_plugins.html">Making plugins</a></li>
 </ul>
 <h2 id="properties">Properties</h2>
+<h3 id="bool-allow_switch_screen--false"><code>bool allow_switch_screen = false</code></h3>
+<ul>
+<li>Setter: <code>set_allow_switch_screen(value: bool)</code></li>
+<li>Getter: <code>is_allow_switch_screen()</code></li>
+</ul>
+<p>If <code>true</code> and this dock is docked in the main screen, selecting a node in the scene tree can switch away from this dock. The selected node needs to be handled by another main screen dock (2D, 3D) for the switch to happen.</p>
 <h3 id="bitfielddocklayout-available_layouts--5"><code>BitField\[</code>DockLayout<code>\] available_layouts = 5</code></h3>
 <ul>
 <li>Setter: <code>set_available_layouts(value: BitField\[</code>DockLayout<code>\])</code></li>
@@ -130,8 +136,13 @@ func _exit_tree():
 <h3 id="void-_save_layout_to_configconfig-configfile-section-string-virtual-const"><code>void _save_layout_to_config(config: ConfigFile, section: String) virtual const</code></h3>
 <p>Implement this method to handle saving this dock's layout. It's equivalent to <code>EditorPlugin._get_window_layout()</code>. <code>section</code> is a unique section based on <code>layout_key</code>.</p>
 <h3 id="void-_update_layoutlayout-int-virtual"><code>void _update_layout(layout: int) virtual</code></h3>
+<p><strong>Deprecated:</strong> Use <code>_update_layout_and_slot()</code> instead.</p>
 <p>Implement this method to handle the layout switching for this dock. <code>layout</code> is one of the <code>DockLayout</code> constants.</p>
 <pre class="gdscript"><code>func _update_layout(layout):
+    box_container.vertical = (layout == DOCK_LAYOUT_VERTICAL)</code></pre>
+<h3 id="void-_update_layout_and_slotlayout-int-slot-int-virtual"><code>void _update_layout_and_slot(layout: int, slot: int) virtual</code></h3>
+<p>Implement this method to handle the layout/slot switching for this dock. <code>layout</code> is one of the <code>DockLayout</code> constants, and <code>slot</code> is one of the <code>DockSlot</code> ones.</p>
+<pre class="gdscript"><code>func _update_layout_and_slot(layout, slot):
     box_container.vertical = (layout == DOCK_LAYOUT_VERTICAL)</code></pre>
 <h3 id="void-close"><code>void close()</code></h3>
 <p>Closes the dock, making its tab hidden.</p>
@@ -142,7 +153,7 @@ func _exit_tree():
 <p><strong>Note:</strong> This does not focus the dock. If you want to open and focus the dock, use <code>make_visible()</code>.</p>
 <h2 id="signals">Signals</h2>
 <h3 id="closed"><code>closed()</code></h3>
-<p>Emitted when the dock is closed with the Close button in the context popup, before it's removed from its parent. See <code>closable</code>.</p>
+<p>Emitted when the dock is closed, before it's removed from its parent. The dock can be closed using Close button in the dock popup, using <code>close()</code>, or as a result of a layout change.</p>
 <h3 id="opened"><code>opened()</code></h3>
 <p>Emitted when the dock is opened via the Editor &gt; Editor Docks menu, before it's made visible.</p>
 <h2 id="enumerations">Enumerations</h2>
@@ -154,8 +165,10 @@ func _exit_tree():
 <p>Allows placing the dock in the horizontal dock slots at the bottom.</p></li>
 <li><p><code>DOCK_LAYOUT_FLOATING = 4</code></p>
 <p>Allows making the dock floating (opened as a separate window).</p></li>
+<li><p><code>DOCK_LAYOUT_MAIN_SCREEN = 8</code></p>
+<p>Allows using the dock as main screen.</p></li>
 <li><p><code>DOCK_LAYOUT_ALL = 7</code></p>
-<p>Allows placing the dock in all available slots.</p></li>
+<p>Allows placing the dock in all available slots, except in main screen.</p></li>
 </ul>
 <h3 id="enum-dockslot"><code>enum DockSlot</code></h3>
 <ul>
@@ -183,7 +196,9 @@ func _exit_tree():
 <p>Dock slot at the bottom, below bottom panel, on the left side.</p></li>
 <li><p><code>DOCK_SLOT_BOTTOM_R = 10</code></p>
 <p>Dock slot at the bottom, below bottom panel, on the right side.</p></li>
-<li><p><code>DOCK_SLOT_MAX = 11</code></p>
+<li><p><code>DOCK_SLOT_MAIN_SCREEN = 11</code></p>
+<p>The editor's main screen.</p></li>
+<li><p><code>DOCK_SLOT_MAX = 12</code></p>
 <p>Represents the size of the <code>DockSlot</code> enum.</p></li>
 </ul>
 

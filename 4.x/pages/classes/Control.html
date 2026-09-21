@@ -19,7 +19,7 @@
 <main id="content">
 <h1 id="control">Control</h1>
 <p><em>Inherits: <a href="CanvasItem.html">CanvasItem</a> &lt; <a href="Node.html">Node</a> &lt; <a href="Object.html">Object</a></em></p>
-<p><em>Implemented by: <a href="BaseButton.html">BaseButton</a>, <a href="ColorRect.html">ColorRect</a>, <a href="Container.html">Container</a>, <a href="GraphEdit.html">GraphEdit</a>, <a href="ItemList.html">ItemList</a>, <a href="Label.html">Label</a>, <a href="LineEdit.html">LineEdit</a>, <a href="MenuBar.html">MenuBar</a>, <a href="NinePatchRect.html">NinePatchRect</a>, <a href="Panel.html">Panel</a>, <a href="Range.html">Range</a>, <a href="ReferenceRect.html">ReferenceRect</a>, <a href="RichTextLabel.html">RichTextLabel</a>, <a href="Separator.html">Separator</a>, <a href="TabBar.html">TabBar</a>, <a href="TextEdit.html">TextEdit</a>, <a href="TextureRect.html">TextureRect</a>, <a href="Tree.html">Tree</a>, <a href="VideoStreamPlayer.html">VideoStreamPlayer</a>, <a href="VirtualJoystick.html">VirtualJoystick</a></em></p>
+<p><em>Implemented by: <a href="BaseButton.html">BaseButton</a>, <a href="ColorRect.html">ColorRect</a>, <a href="Container.html">Container</a>, <a href="GraphEdit.html">GraphEdit</a>, <a href="ItemList.html">ItemList</a>, <a href="Label.html">Label</a>, <a href="LineEdit.html">LineEdit</a>, <a href="MenuBar.html">MenuBar</a>, <a href="NinePatchRect.html">NinePatchRect</a>, <a href="Panel.html">Panel</a>, <a href="Range.html">Range</a>, <a href="ReferenceRect.html">ReferenceRect</a>, <a href="RichTextLabel.html">RichTextLabel</a>, <a href="ScenePaint2DEditor.html">ScenePaint2DEditor</a>, <a href="Separator.html">Separator</a>, <a href="TabBar.html">TabBar</a>, <a href="TextEdit.html">TextEdit</a>, <a href="TextureRect.html">TextureRect</a>, <a href="Tree.html">Tree</a>, <a href="VideoStreamPlayer.html">VideoStreamPlayer</a>, <a href="VirtualJoystick.html">VirtualJoystick</a></em></p>
 <p>Base class for all GUI controls. Adapts its position and size based on its parent control.</p>
 <h2 id="description">Description</h2>
 <p>Base class for all UI-related nodes. <strong>Control</strong> features a bounding rectangle that defines its extents, an anchor position relative to its parent control or the current viewport, and offsets relative to the anchor. The offsets update automatically when the node, any of its parents, or the screen size change.</p>
@@ -110,11 +110,9 @@
 <li>Setter: <code>set_custom_maximum_size(value: Vector2)</code></li>
 <li>Getter: <code>get_custom_maximum_size()</code></li>
 </ul>
-<p>The maximum size of this Control's bounding rectangle. If set to a value greater than or equal to <code>(0, 0)</code>, the node's bounding rectangle will never exceed this size. A value below <code>(0, 0)</code> means there is no maximum size.</p>
-<p><strong>Note:</strong> The final effective maximum size may be subject to parent Container sizing and propagated maximum sizes. See also: <code>get_combined_maximum_size()</code>.</p>
-<p><strong>Note:</strong> Not all <strong>Control</strong> subtypes handle a custom maximum size gracefully, which may lead to unexpected behavior if the control's contents exceed this size.</p>
-<p><strong>Note:</strong> This value has priority over <code>custom_minimum_size</code>. For example, if you set <code>custom_maximum_size</code> to <code>(100, 100)</code> and <code>custom_minimum_size</code> to <code>(200, 200)</code>, the resulting size will be <code>(100, 100)</code>.</p>
-<p><strong>Note:</strong> It is recommended to use <code>get_bound_minimum_size()</code> instead of <code>get_combined_minimum_size()</code> when using this property, as the former respects maximum size limits when calculating the minimum size, while the latter does not.</p>
+<p>The maximum size of the node's bounding rectangle. If set to a value greater than or equal to <code>(0, 0)</code>, the node's bounding rectangle will never exceed this size. A value below <code>(0, 0)</code> means there is no maximum size. This value has priority over <code>custom_minimum_size</code> if the two conflict.</p>
+<p><strong>Note:</strong> The final effective maximum size may be subject to the parent's maximum size (via <code>propagate_maximum_size</code>), so it is recommended to use <code>get_combined_maximum_size()</code> instead of <code>get_maximum_size()</code>. Likewise, use <code>get_bound_minimum_size()</code> instead of <code>get_combined_minimum_size()</code> to account for the maximum size.</p>
+<p><strong>Note:</strong> Not all <strong>Control</strong> subtypes handle this gracefully, and their contents may extend beyond the bounding rectangle. Set <code>clip_contents</code> to <code>true</code> to prevent child controls from rendering outside of this size, especially when this node is a <a href="Container.html">Container</a>.</p>
 <h3 id="vector2-custom_minimum_size--vector20-0"><code>Vector2 custom_minimum_size = Vector2(0, 0)</code></h3>
 <ul>
 <li>Setter: <code>set_custom_minimum_size(value: Vector2)</code></li>
@@ -178,13 +176,13 @@
 <li>Setter: <code>set_h_grow_direction(value: </code>GrowDirection<code>)</code></li>
 <li>Getter: <code>get_h_grow_direction()</code></li>
 </ul>
-<p>Controls the direction on the horizontal axis in which the control should grow if its horizontal minimum size is changed to be greater than its current size, as the control always has to be at least the minimum size.</p>
+<p>Controls the direction on the horizontal axis in which the control should grow or shrink if its horizontal size is changed.</p>
 <h3 id="growdirection-grow_vertical--1">``GrowDirection<code> grow_vertical = 1</code></h3>
 <ul>
 <li>Setter: <code>set_v_grow_direction(value: </code>GrowDirection<code>)</code></li>
 <li>Getter: <code>get_v_grow_direction()</code></li>
 </ul>
-<p>Controls the direction on the vertical axis in which the control should grow if its vertical minimum size is changed to be greater than its current size, as the control always has to be at least the minimum size.</p>
+<p>Controls the direction on the vertical axis in which the control should grow or shrink if its vertical size is changed.</p>
 <h3 id="layoutdirection-layout_direction--0">``LayoutDirection<code> layout_direction = 0</code></h3>
 <ul>
 <li>Setter: <code>set_layout_direction(value: </code>LayoutDirection<code>)</code></li>
@@ -867,7 +865,7 @@ func _get_drag_data(position):
 <p>Sets the size (see <code>size</code>).</p>
 <p>If <code>keep_offsets</code> is <code>true</code>, control's anchors will be updated instead of offsets.</p>
 <h3 id="void-update_maximum_size"><code>void update_maximum_size()</code></h3>
-<p>Invalidates the maximum size cache in this node and in parent nodes up to top level. Intended to be used with <code>get_maximum_size()</code> when the return value is changed. Setting <code>custom_maximum_size</code> directly calls this method automatically.</p>
+<p>Invalidates the maximum size cache in this node and in child nodes with <code>CanvasItem.top_level</code> set to <code>false</code>. Intended to be used with <code>get_maximum_size()</code> when the return value is changed. Setting <code>custom_maximum_size</code> directly calls this method automatically.</p>
 <p><strong>Note:</strong> Calling this method also calls <code>update_minimum_size()</code> since the combined minimum size may be affected by the maximum size change.</p>
 <h3 id="void-update_minimum_size"><code>void update_minimum_size()</code></h3>
 <p>Invalidates the minimum size cache in this node and in parent nodes up to top level. Intended to be used with <code>get_minimum_size()</code> when the return value is changed. Setting <code>custom_minimum_size</code> directly calls this method automatically.</p>
@@ -1029,6 +1027,10 @@ func _get_drag_data(position):
 <p>Tells the parent <a href="Container.html">Container</a> to center the node in the available space. It is mutually exclusive with <code>SIZE_FILL</code> and other shrink size flags, but can be used with <code>SIZE_EXPAND</code> in some containers. Use with <code>size_flags_horizontal</code> and <code>size_flags_vertical</code>.</p></li>
 <li><p><code>SIZE_SHRINK_END = 8</code></p>
 <p>Tells the parent <a href="Container.html">Container</a> to align the node with its end, either the bottom or the right edge. It is mutually exclusive with <code>SIZE_FILL</code> and other shrink size flags, but can be used with <code>SIZE_EXPAND</code> in some containers. Use with <code>size_flags_horizontal</code> and <code>size_flags_vertical</code>.</p></li>
+<li><p><code>SIZE_MAXIMIZE = 16</code></p>
+<p>Tells the parent <a href="Container.html">Container</a> to use the node's <code>custom_maximum_size</code> when doing minimum size calculations. Use with <code>size_flags_horizontal</code> and <code>size_flags_vertical</code>.</p>
+<p><strong>Note:</strong> Setting this flag does not necessarily mean the node will be resized to its maximum size, as the parent container may not have enough space to do so.</p>
+<p><strong>Note:</strong> If this node is a child of a Container that enables the <code>size_flags_stretch_ratio</code> property on its children for layout, nodes with this flag set will be given priority in stretching. If multiple nodes have this flag set, their relative stretch ratios will still be respected.</p></li>
 </ul>
 <h3 id="enum-mousefilter"><code>enum MouseFilter</code></h3>
 <ul>
@@ -1044,11 +1046,11 @@ func _get_drag_data(position):
 <h3 id="enum-growdirection"><code>enum GrowDirection</code></h3>
 <ul>
 <li><p><code>GROW_DIRECTION_BEGIN = 0</code></p>
-<p>The control will grow to the left or top to make up if its minimum size is changed to be greater than its current size on the respective axis.</p></li>
+<p>The control will grow/shrink to the left or top if its size is changed to be larger/smaller than its current size on the respective axis.</p></li>
 <li><p><code>GROW_DIRECTION_END = 1</code></p>
-<p>The control will grow to the right or bottom to make up if its minimum size is changed to be greater than its current size on the respective axis.</p></li>
+<p>The control will grow/shrink to the right or bottom if its size is changed to be larger/smaller than its current size on the respective axis.</p></li>
 <li><p><code>GROW_DIRECTION_BOTH = 2</code></p>
-<p>The control will grow in both directions equally to make up if its minimum size is changed to be greater than its current size.</p></li>
+<p>The control will grow/shrink in both directions equally if its size is changed to be larger/smaller than its current size.</p></li>
 </ul>
 <h3 id="enum-anchor"><code>enum Anchor</code></h3>
 <ul>

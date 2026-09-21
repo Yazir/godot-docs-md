@@ -38,6 +38,7 @@
 <p>Adjusts this image's <code>brightness</code>, <code>contrast</code>, and <code>saturation</code> by the given values. Does not work if the image is compressed (see <code>is_compressed()</code>).</p>
 <h3 id="void-blend_rectsrc-image-src_rect-rect2i-dst-vector2i"><code>void blend_rect(src: Image, src_rect: Rect2i, dst: Vector2i)</code></h3>
 <p>Alpha-blends <code>src_rect</code> from <code>src</code> image to this image at coordinates <code>dst</code>, clipped accordingly to both image bounds. This image and <code>src</code> image <strong>must</strong> have the same format. <code>src_rect</code> with non-positive size is treated as empty.</p>
+<p><strong>Note:</strong> Simultaneously reading and writing to the same image reference may lead to unexpected results.</p>
 <h3 id="void-blend_rect_masksrc-image-mask-image-src_rect-rect2i-dst-vector2i"><code>void blend_rect_mask(src: Image, mask: Image, src_rect: Rect2i, dst: Vector2i)</code></h3>
 <p>Alpha-blends <code>src_rect</code> from <code>src</code> image to this image using <code>mask</code> image at coordinates <code>dst</code>, clipped accordingly to both image bounds. Alpha channels are required for both <code>src</code> and <code>mask</code>. <code>dst</code> pixels and <code>src</code> pixels will blend if the corresponding mask pixel's alpha value is not 0. This image and <code>src</code> image <strong>must</strong> have the same format. <code>src</code> image and <code>mask</code> image <strong>must</strong> have the same size (width and height) but they can have different formats. <code>src_rect</code> with non-positive size is treated as empty.</p>
 <h3 id="void-blit_rectsrc-image-src_rect-rect2i-dst-vector2i"><code>void blit_rect(src: Image, src_rect: Rect2i, dst: Vector2i)</code></h3>
@@ -49,15 +50,15 @@
 <p>Converts a bump map to a normal map. A bump map provides a height offset per-pixel, while a normal map provides a normal direction per pixel.</p>
 <h3 id="void-clear_mipmaps"><code>void clear_mipmaps()</code></h3>
 <p>Removes the image's mipmaps.</p>
-<h3 id="globalscopeerrorcompressmodecompressmode-source-compresssource-0-astc_formatastcformat--0">``@GlobalScope.Error<code>compress(mode:</code>CompressMode<code>, source: </code>CompressSource<code>= 0, astc_format:</code>ASTCFormat<code> = 0)</code></h3>
+<h3 id="globalscopeerrorcompressmodecompressmode-source-compresssource-0-profilecompressprofile--0">``@GlobalScope.Error<code>compress(mode:</code>CompressMode<code>, source: </code>CompressSource<code>= 0, profile:</code>CompressProfile<code> = 0)</code></h3>
 <p>Compresses the image with a VRAM-compressed format to use less memory. Can not directly access pixel data while the image is compressed. Returns error if the chosen compression mode is not available.</p>
 <p>The <code>source</code> parameter helps to pick the best compression method for DXT and ETC2 formats. It is ignored for ASTC compression.</p>
-<p>The <code>astc_format</code> parameter is only taken into account when using ASTC compression; it is ignored for all other formats.</p>
+<p>The <code>profile</code> lets the user pick whether the compression should prioritize quality or a smaller size. Only ASTC compression uses this currently.</p>
 <p><strong>Note:</strong> <code>compress()</code> is only supported in editor builds. When run in an exported project, this method always returns <code>@GlobalScope.ERR_UNAVAILABLE</code>.</p>
-<h3 id="globalscopeerrorcompress_from_channelsmodecompressmode-channels-usedchannels-astc_format-astcformat--0">``@GlobalScope.Error<code>compress_from_channels(mode:</code>CompressMode<code>, channels: </code>UsedChannels<code>, astc_format: </code>ASTCFormat<code> = 0)</code></h3>
+<h3 id="globalscopeerrorcompress_from_channelsmodecompressmode-channels-usedchannels-profile-compressprofile--0">``@GlobalScope.Error<code>compress_from_channels(mode:</code>CompressMode<code>, channels: </code>UsedChannels<code>, profile: </code>CompressProfile<code> = 0)</code></h3>
 <p>Compresses the image with a VRAM-compressed format to use less memory. Can not directly access pixel data while the image is compressed. Returns error if the chosen compression mode is not available.</p>
-<p>This is an alternative to <code>compress()</code> that lets the user supply the channels used in order for the compressor to pick the best DXT and ETC2 formats. For other formats (non DXT or ETC2), this argument is ignored.</p>
-<p>The <code>astc_format</code> parameter is only taken into account when using ASTC compression; it is ignored for all other formats.</p>
+<p>This is an alternative to <code>compress()</code> that lets the user supply the channels used in order for the compressor to pick the best DXT, ETC2, and ASTC formats. For other formats (non DXT, ETC2, or ASTC), this argument is ignored.</p>
+<p>The <code>profile</code> lets the user pick whether the compression should prioritize quality or a smaller size. Only ASTC compression uses this currently.</p>
 <p><strong>Note:</strong> <code>compress_from_channels()</code> is only supported in editor builds. When run in an exported project, this method always returns <code>@GlobalScope.ERR_UNAVAILABLE</code>.</p>
 <h3 id="dictionary-compute_image_metricscompared_image-image-use_luma-bool"><code>Dictionary compute_image_metrics(compared_image: Image, use_luma: bool)</code></h3>
 <p>Compute image metrics on the current image and the compared image. This can be used to calculate the similarity between two images.</p>
@@ -91,9 +92,11 @@
 <p>Flips the image horizontally.</p>
 <h3 id="void-flip_y"><code>void flip_y()</code></h3>
 <p>Flips the image vertically.</p>
-<h3 id="globalscopeerror-generate_mipmapsrenormalize-bool--false">``@GlobalScope.Error<code> generate_mipmaps(renormalize: bool = false)</code></h3>
+<h3 id="globalscopeerror-generate_mipmapsrenormalize-bool--false-preserve_alpha_test_coverage-bool--false-alpha_test_threshold-float--05">``@GlobalScope.Error<code> generate_mipmaps(renormalize: bool = false, preserve_alpha_test_coverage: bool = false, alpha_test_threshold: float = 0.5)</code></h3>
 <p>Generates mipmaps for the image. Mipmaps are precalculated lower-resolution copies of the image that are automatically used if the image needs to be scaled down when rendered. They help improve image quality and performance when rendering. This method returns an error if the image is compressed, in a custom format, or if the image's width/height is <code>0</code>. Enabling <code>renormalize</code> when generating mipmaps for normal map textures will make sure all resulting vector values are normalized.</p>
 <p>It is possible to check if the image has mipmaps by calling <code>has_mipmaps()</code> or <code>get_mipmap_count()</code>. Calling <code>generate_mipmaps()</code> on an image that already has mipmaps will replace existing mipmaps in the image.</p>
+<p>If <code>preserve_alpha_test_coverage</code> is <code>true</code> it automatically adjusts alpha values to maintain consistent coverage when alpha testing is used. This is especially useful for hair, foliage, or other alpha-tested materials, as it prevents fading or popping artifacts across mipmap levels (LODs). This option is intended for color textures and clamps the alpha channel in the 0.0 - 1.0 range.</p>
+<p>The <code>alpha_test_threshold</code> parameter is the alpha threshold used when preserving alpha test coverage across mipmap levels. The coverage is measured at mipmap 0 using the setting and the lower mipmaps are adjusted to match that coverage. Higher values preserve more detail, lower values create softer edges. Note that this threshold is independent from the <code>Alpha Scissor Threshold</code> set on the material and they both may need to be tuned for optimal results.</p>
 <h3 id="packedbytearray-get_data-const"><code>PackedByteArray get_data() const</code></h3>
 <p>Returns a copy of the image's raw data.</p>
 <h3 id="int-get_data_size-const"><code>int get_data_size() const</code></h3>
@@ -129,7 +132,7 @@
 <h3 id="bool-is_invisible-const"><code>bool is_invisible() const</code></h3>
 <p>Returns <code>true</code> if all the image's pixels have an alpha value of 0. Returns <code>false</code> if any pixel has an alpha value higher than 0.</p>
 <h3 id="void-linear_to_srgb"><code>void linear_to_srgb()</code></h3>
-<p>Converts the entire image from linear encoding to nonlinear sRGB encoding by using a lookup table. Only works on images with <code>FORMAT_RGB8</code> or <code>FORMAT_RGBA8</code> formats.</p>
+<p>Converts the entire image from linear encoding to nonlinear sRGB encoding. Only works on images with <code>FORMAT_RGB8</code>, <code>FORMAT_RGBA8</code>, <code>FORMAT_RGBH</code>, or <code>FORMAT_RGBAH</code> format.</p>
 <h3 id="globalscopeerror-loadpath-string">``@GlobalScope.Error<code> load(path: String)</code></h3>
 <p>Loads an image from file <code>path</code>. See <code>Supported image formats &lt;../tutorials/assets_pipeline/importing_images.html#supported-image-formats&gt;</code>__ for a list of supported image formats and limitations.</p>
 <p><strong>Warning:</strong> This method should only be used in the editor or in cases when you need to load external images at run-time, such as images located at the <code>user://</code> directory, and may not work in exported projects.</p>
@@ -243,8 +246,8 @@ img.set_pixelv(Vector2i(1, 2), Color.RED) # Sets the color at (1, 2) to red.</co
 <h3 id="void-shrink_x2"><code>void shrink_x2()</code></h3>
 <p>Shrinks the image by a factor of 2 on each axis (this divides the pixel count by 4).</p>
 <h3 id="void-srgb_to_linear"><code>void srgb_to_linear()</code></h3>
-<p>Converts the raw data from nonlinear sRGB encoding to linear encoding using a lookup table. Only works on images with <code>FORMAT_RGB8</code> or <code>FORMAT_RGBA8</code> formats.</p>
-<p><strong>Note:</strong> The 8-bit formats required by this method are not suitable for storing linearly encoded values; a significant amount of color information will be lost in darker values. To maintain image quality, this method should not be used.</p>
+<p>Converts the raw data from nonlinear sRGB encoding to linear encoding. Only works on images with <code>FORMAT_RGB8</code>, <code>FORMAT_RGBA8</code>, <code>FORMAT_RGBH</code>, or <code>FORMAT_RGBAH</code> format.</p>
+<p><strong>Note:</strong> The 8-bit formats are not suitable for storing linearly encoded values; a significant amount of color information will be lost in darker values. Use this function on images that use a floating point format instead.</p>
 <h2 id="enumerations">Enumerations</h2>
 <h3 id="enum-format"><code>enum Format</code></h3>
 <ul>
@@ -307,24 +310,24 @@ img.set_pixelv(Vector2i(1, 2), Color.RED) # Sets the color at (1, 2) to red.</co
 <li><p><code>FORMAT_ETC = 25</code></p>
 <p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC1">Ericsson Texture Compression format 1</a>, also referred to as "ETC1", and is part of the OpenGL ES graphics standard. This format cannot store an alpha channel.</p></li>
 <li><p><code>FORMAT_ETC2_R11 = 26</code></p>
-<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> (<code>R11_EAC</code> variant), which provides one channel of unsigned data.</p></li>
+<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> ( <code>R11_EAC</code> variant), which provides one channel of unsigned data.</p></li>
 <li><p><code>FORMAT_ETC2_R11S = 27</code></p>
-<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> (<code>SIGNED_R11_EAC</code> variant), which provides one channel of signed data.</p></li>
+<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> ( <code>SIGNED_R11_EAC</code> variant), which provides one channel of signed data.</p></li>
 <li><p><code>FORMAT_ETC2_RG11 = 28</code></p>
-<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> (<code>RG11_EAC</code> variant), which provides two channels of unsigned data.</p></li>
+<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> ( <code>RG11_EAC</code> variant), which provides two channels of unsigned data.</p></li>
 <li><p><code>FORMAT_ETC2_RG11S = 29</code></p>
-<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> (<code>SIGNED_RG11_EAC</code> variant), which provides two channels of signed data.</p></li>
+<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> ( <code>SIGNED_RG11_EAC</code> variant), which provides two channels of signed data.</p></li>
 <li><p><code>FORMAT_ETC2_RGB8 = 30</code></p>
-<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> (<code>RGB8</code> variant), which is a follow-up of ETC1 and compresses RGB888 data.</p>
+<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> ( <code>RGB8</code> variant), which is a follow-up of ETC1 and compresses RGB888 data.</p>
 <p><strong>Note:</strong> When creating an <a href="ImageTexture.html">ImageTexture</a>, a nonlinear sRGB to linear encoding conversion is performed.</p></li>
 <li><p><code>FORMAT_ETC2_RGBA8 = 31</code></p>
-<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> (<code>RGBA8</code> variant), which compresses RGBA8888 data with full alpha support.</p>
+<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> ( <code>RGBA8</code> variant), which compresses RGBA8888 data with full alpha support.</p>
 <p><strong>Note:</strong> When creating an <a href="ImageTexture.html">ImageTexture</a>, a nonlinear sRGB to linear encoding conversion is performed.</p></li>
 <li><p><code>FORMAT_ETC2_RGB8A1 = 32</code></p>
-<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> (<code>RGB8_PUNCHTHROUGH_ALPHA1</code> variant), which compresses RGBA data to make alpha either fully transparent or fully opaque.</p>
+<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> ( <code>RGB8_PUNCHTHROUGH_ALPHA1</code> variant), which compresses RGBA data to make alpha either fully transparent or fully opaque.</p>
 <p><strong>Note:</strong> When creating an <a href="ImageTexture.html">ImageTexture</a>, a nonlinear sRGB to linear encoding conversion is performed.</p></li>
 <li><p><code>FORMAT_ETC2_RA_AS_RG = 33</code></p>
-<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> (<code>RGBA8</code> variant), which compresses RA data and interprets it as two channels (red and green). See also <code>FORMAT_ETC2_RGBA8</code>.</p></li>
+<p><a href="https://en.wikipedia.org/wiki/Ericsson_Texture_Compression#ETC2_and_EAC">Ericsson Texture Compression format 2</a> ( <code>RGBA8</code> variant), which compresses RA data and interprets it as two channels (red and green). See also <code>FORMAT_ETC2_RGBA8</code>.</p></li>
 <li><p><code>FORMAT_DXT5_RA_AS_RG = 34</code></p>
 <p>The <a href="https://en.wikipedia.org/wiki/S3_Texture_Compression">S3TC</a> texture format also known as Block Compression 3 or BC3, which compresses RA data and interprets it as two channels (red and green). See also <code>FORMAT_DXT5</code>.</p></li>
 <li><p><code>FORMAT_ASTC_4x4 = 35</code></p>
@@ -363,7 +366,11 @@ img.set_pixelv(Vector2i(1, 2), Color.RED) # Sets the color at (1, 2) to red.</co
 <p>OpenGL texture format <code>GL_RGBA16UI</code> where there are four components, each a 16-bit unsigned integer value. Each component is clamped between <code>0</code> and <code>65535</code> (inclusive).</p>
 <p><strong>Note:</strong> When used in a shader, the texture requires usage of <code>usampler</code> samplers. Additionally, it only supports nearest-neighbor filtering under the Compatibility renderer.</p>
 <p><strong>Note:</strong> When sampling using <code>get_pixel()</code>, returned <a href="Color.html">Color</a> s have to be divided by <code>65535</code> to get the correct color value.</p></li>
-<li><p><code>FORMAT_MAX = 47</code></p>
+<li><p><code>FORMAT_ASTC_6x6 = 47</code></p>
+<p><a href="https://en.wikipedia.org/wiki/Adaptive_scalable_texture_compression">Adaptive Scalable Texture Compression</a>. This implements the 6×6 (medium quality) mode.</p></li>
+<li><p><code>FORMAT_ASTC_6x6_HDR = 48</code></p>
+<p>Same format as <code>FORMAT_ASTC_6x6</code>, but with the hint to let the GPU know it is used for HDR.</p></li>
+<li><p><code>FORMAT_MAX = 49</code></p>
 <p>Represents the size of the <code>Format</code> enum.</p></li>
 </ul>
 <h3 id="enum-interpolation"><code>enum Interpolation</code></h3>
@@ -378,7 +385,7 @@ img.set_pixelv(Vector2i(1, 2), Color.RED) # Sets the color at (1, 2) to red.</co
 <p>Performs bilinear separately on the two most-suited mipmap levels, then linearly interpolates between them.</p>
 <p>It's slower than <code>INTERPOLATE_BILINEAR</code>, but produces higher-quality results with far fewer aliasing artifacts.</p>
 <p>If the image does not have mipmaps, they will be generated and used internally, but no mipmaps will be generated on the resulting image.</p>
-<p><strong>Note:</strong> If you intend to scale multiple copies of the original image, it's better to call <code>generate_mipmaps()</code>] on it in advance, to avoid wasting processing power in generating them again and again.</p>
+<p><strong>Note:</strong> If you intend to scale multiple copies of the original image, it's better to call <code>generate_mipmaps()</code> on it in advance, to avoid wasting processing power in generating them again and again.</p>
 <p>On the other hand, if the image already has mipmaps, they will be used, and a new set will be generated for the resulting image.</p></li>
 <li><p><code>INTERPOLATE_LANCZOS = 4</code></p>
 <p>Performs Lanczos interpolation. This is the slowest image resizing mode, but it typically gives the best results, especially when downscaling images.</p></li>
@@ -430,6 +437,19 @@ img.set_pixelv(Vector2i(1, 2), Color.RED) # Sets the color at (1, 2) to red.</co
 <p>Source texture (before compression) uses nonlinear sRGB encoding.</p></li>
 <li><p><code>COMPRESS_SOURCE_NORMAL = 2</code></p>
 <p>Source texture (before compression) is a normal texture (e.g. it can be compressed into two channels).</p></li>
+</ul>
+<h3 id="enum-compressprofile"><code>enum CompressProfile</code></h3>
+<ul>
+<li><p><code>COMPRESS_PROFILE_AUTOMATIC = 0</code></p>
+<p>Automatically adjusts the quality level based on the number of unique color channels present in the image. For ASTC, this corresponds to picking 8×8 when only one channel is detected (R, L), 6×6 when two channels are detected (RG, LA), and 4×4 in all other cases.</p></li>
+<li><p><code>COMPRESS_PROFILE_MAX_QUALITY = 1</code></p>
+<p>Prioritizes highest quality over compression. For ASTC, this corresponds to using a 4×4 block size.</p></li>
+<li><p><code>COMPRESS_PROFILE_COMPRESSED = 2</code></p>
+<p>Prioritizes some compression over quality. For ASTC, this corresponds to using a 6×6 block size.</p></li>
+<li><p><code>COMPRESS_PROFILE_MAX_COMPRESSION = 3</code></p>
+<p>Prioritizes highest compression over quality. For ASTC, this corresponds to using an 8×8 block size.</p></li>
+<li><p><code>COMPRESS_PROFILE_MAX = 4</code></p>
+<p>Represents the size of the <code>CompressProfile</code> enum.</p></li>
 </ul>
 <h3 id="enum-astcformat"><code>enum ASTCFormat</code></h3>
 <ul>
